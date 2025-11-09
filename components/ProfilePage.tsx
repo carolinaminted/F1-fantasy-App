@@ -96,7 +96,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
         <h3 className="text-2xl font-bold mb-6 text-center">Season Usage Stats</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <h4 className="text-xl font-semibold mb-4 text-[#ff8400]">Team Usage</h4>
+            <h4 className="text-xl font-semibold mb-4 text-[#ff8400] text-center">Team Usage</h4>
             {teamUsageEntries.length > 0 ? (
               <div className="space-y-4">
                 {classATeamUsage.length > 0 && (
@@ -113,11 +113,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
                 )}
               </div>
             ) : (
-              <p className="text-gray-400">No teams have been used this season.</p>
+              <p className="text-gray-400 text-center">No teams have been used this season.</p>
             )}
           </div>
           <div>
-            <h4 className="text-xl font-semibold mb-4 text-[#94d600]">Driver Usage</h4>
+            <h4 className="text-xl font-semibold mb-4 text-[#94d600] text-center">Driver Usage</h4>
             {driverUsageEntries.length > 0 ? (
               <div className="space-y-4">
                 {classADriverUsage.length > 0 && (
@@ -134,7 +134,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
                 )}
               </div>
             ) : (
-               <p className="text-gray-400">No drivers have been used this season.</p>
+               <p className="text-gray-400 text-center">No drivers have been used this season.</p>
             )}
           </div>
         </div>
