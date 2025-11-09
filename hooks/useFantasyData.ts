@@ -30,52 +30,44 @@ export const calculateScoreRollup = (seasonPicks: { [eventId: string]: PickSelec
       return pos !== -1 ? (points[pos] || 0) : 0;
     };
     
-    const getTeamPoints = (teamId: string | null, results: string[], points: number[]) => {
-      if(!teamId) return 0;
-      const teamDrivers = DRIVERS.filter(d => d.constructorId === teamId);
-      return teamDrivers.reduce((sum, driver) => sum + getDriverPoints(driver.id, results, points), 0);
-    }
-    
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
       const results = MOCK_RACE_RESULTS[eventId];
       if (!results) return; // No results for this event yet
 
-      const allPickedDrivers = [...picks.aDrivers, ...picks.bDrivers].filter((d): d is string => d !== null);
-      const allPickedTeams = [...picks.aTeams, picks.bTeam].filter((t): t is string => t !== null);
+      // Create a unique set of all drivers that can score points from this pick to avoid double counting.
+      const scoringDriverIds = new Set<string>();
 
-      // Grand Prix Points (Teams & Drivers)
-      allPickedDrivers.forEach(driverId => {
-        grandPrixPoints += getDriverPoints(driverId, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
+      // Add individually picked drivers
+      [...picks.aDrivers, ...picks.bDrivers].forEach(driverId => {
+        if (driverId) scoringDriverIds.add(driverId);
       });
-       allPickedTeams.forEach(teamId => {
-        grandPrixPoints += getTeamPoints(teamId, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
-       });
+      
+      // Add drivers from picked teams
+      [...picks.aTeams, picks.bTeam].forEach(teamId => {
+        if (teamId) {
+          DRIVERS.forEach(driver => {
+            if (driver.constructorId === teamId) {
+              scoringDriverIds.add(driver.id);
+            }
+          });
+        }
+      });
 
-      // Sprint Points (Teams & Drivers)
-      if (results.sprintFinish) {
-        allPickedDrivers.forEach(driverId => {
+      // Calculate points based on the unique set of drivers
+      scoringDriverIds.forEach(driverId => {
+        grandPrixPoints += getDriverPoints(driverId, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
+        if (results.sprintFinish) {
           sprintPoints += getDriverPoints(driverId, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
-        });
-        allPickedTeams.forEach(teamId => {
-          sprintPoints += getTeamPoints(teamId, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
-        });
-      }
-
-      // Fastest Lap
+        }
+        gpQualifyingPoints += getDriverPoints(driverId, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
+        if(results.sprintQualifying) {
+           sprintQualifyingPoints += getDriverPoints(driverId, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
+        }
+      });
+      
+      // Fastest Lap is separate and awarded only if the picked driver got it
       if (picks.fastestLap === results.fastestLap) {
         fastestLapPoints += POINTS_SYSTEM.fastestLap;
-      }
-
-      // GP Qualifying
-      allPickedDrivers.forEach(driverId => {
-        gpQualifyingPoints += getDriverPoints(driverId, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
-      });
-
-      // Sprint Qualifying
-      if(results.sprintQualifying) {
-         allPickedDrivers.forEach(driverId => {
-           sprintQualifyingPoints += getDriverPoints(driverId, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
-         });
       }
     });
 
