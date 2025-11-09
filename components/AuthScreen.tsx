@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo';
+import { auth } from '../services/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserProfileDocument } from '../services/firestoreService';
 
-interface AuthScreenProps {
-  onLogin: (userData: { displayName: string, email: string }) => void;
-}
-
-const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
+const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogoClick = () => {
     if (isLogin) {
@@ -21,6 +21,41 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
       setEmail(`test.user.${randomId}@fantasy.f1`);
       setPassword('password123');
     }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsLoading(true);
+
+      if (isLogin) {
+          try {
+              await signInWithEmailAndPassword(auth, email, password);
+              // Auth state change will be caught by the listener in App.tsx
+          } catch (error) {
+              alert('Failed to log in. Please check your credentials.');
+              console.error(error);
+              setIsLoading(false);
+          }
+      } else {
+          if (!displayName) {
+              alert('Please enter a display name.');
+              setIsLoading(false);
+              return;
+          }
+          try {
+              const { user } = await createUserWithEmailAndPassword(auth, email, password);
+              await createUserProfileDocument(user, { displayName });
+          } catch (error: any) {
+              if (error.code === 'auth/email-already-in-use') {
+                alert('This email is already in use. Please log in or use a different email.');
+              } else {
+                alert('Failed to sign up. Please try again.');
+              }
+              console.error(error);
+              setIsLoading(false);
+          }
+      }
+      // Don't setIsLoading(false) on success, as the component will unmount
   };
 
   return (
@@ -34,7 +69,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           <F1FantasyLogo className="w-64 h-auto mb-4"/>
         </div>
         
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onLogin({ displayName: displayName || 'Team Principal', email }); }}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           {!isLogin && (
             <div>
               <label className="text-sm font-bold text-ghost-white" htmlFor="displayName">Display Name</label>
@@ -44,6 +79,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Awesome Racing"
+                required
                 className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
               />
             </div>
@@ -56,6 +92,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="principal@example.com"
+              required
               className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
             />
           </div>
@@ -67,15 +104,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              required
+              minLength={6}
               className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
             />
           </div>
           <div className="pt-4">
              <button
                 type="submit"
-                className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-primary-red/20"
+                disabled={isLoading}
+                className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
               >
-                {isLogin ? 'Log In' : 'Sign Up'}
+                {isLoading ? 'Processing...' : (isLogin ? 'Log In' : 'Sign Up')}
               </button>
           </div>
         </form>
