@@ -10,6 +10,7 @@ import { SprintIcon } from './icons/SprintIcon';
 import { PolePositionIcon } from './icons/PolePositionIcon';
 import { FastestLapIcon } from './icons/FastestLapIcon';
 import { ProfileIcon } from './icons/ProfileIcon';
+import { LeaderboardIcon } from './icons/LeaderboardIcon';
 
 interface ProfilePageProps {
   user: User;
@@ -60,30 +61,57 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
       </div>
 
+      {/* Scoring Breakdown Section */}
+      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+        <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
+        <div className="grid grid-cols-2 gap-y-6 gap-x-4 text-center">
+            <div>
+                <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">Grand Prix</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
+            </div>
+            <div>
+                <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">Sprint Race</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
+            </div>
+            <div>
+                <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">Fastest Lap</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
+            </div>
+            <div>
+                <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">GP Quali</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
+            </div>
+        </div>
+      </div>
+
       {/* Usage Stats Section */}
       <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
         <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3">Class A Teams</h3>
+                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class A Teams</h3>
                 <div className="space-y-3">
                     {aTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.A, 'teams')} />)}
                 </div>
             </div>
              <div>
-                <h3 className="text-lg font-semibold text-highlight-silver mb-3">Class B Teams</h3>
+                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class B Teams</h3>
                 <div className="space-y-3">
                     {bTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.B, 'teams')} />)}
                 </div>
             </div>
              <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3">Class A Drivers</h3>
+                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class A Drivers</h3>
                 <div className="space-y-3">
                     {aDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.A, 'drivers')} />)}
                 </div>
             </div>
              <div>
-                <h3 className="text-lg font-semibold text-highlight-silver mb-3">Class B Drivers</h3>
+                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class B Drivers</h3>
                 <div className="space-y-3">
                     {bDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.B, 'drivers')} />)}
                 </div>
