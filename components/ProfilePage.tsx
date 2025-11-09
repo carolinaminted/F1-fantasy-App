@@ -151,6 +151,73 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setModalData({ title, content: <div className="space-y-4">{detailsContent}</div> });
   };
 
+  const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl') => {
+    const event = EVENTS.find(e => e.id === eventId);
+    const picks = seasonPicks[eventId];
+    const results = raceResults[eventId];
+
+    if (!event || !picks || !results) return;
+
+    let title = '';
+    const eventEntries: React.ReactNode[] = [];
+    let pointSource: (string | null)[] | undefined;
+    let pointSystem: number[];
+
+    switch(category) {
+        case 'gp':
+            title = `${event.name} - GP Points`;
+            pointSource = results.grandPrixFinish;
+            pointSystem = POINTS_SYSTEM.grandPrixFinish;
+            break;
+        case 'sprint':
+            title = `${event.name} - Sprint Points`;
+            pointSource = results.sprintFinish;
+            pointSystem = POINTS_SYSTEM.sprintFinish;
+            break;
+        case 'quali':
+            title = `${event.name} - Quali Points`;
+            pointSource = results.gpQualifying;
+            pointSystem = POINTS_SYSTEM.gpQualifying;
+            break;
+        case 'fl':
+            title = `${event.name} - Fastest Lap`;
+            break;
+    }
+
+    if (category === 'fl') {
+        if (picks.fastestLap) {
+            const points = (picks.fastestLap === results.fastestLap) ? POINTS_SYSTEM.fastestLap : 0;
+            eventEntries.push(<li key={`fl-${picks.fastestLap}`}>{getEntityName(picks.fastestLap)}: <span className="font-semibold">{points} pts</span></li>);
+        }
+    } else if (pointSource && pointSystem) {
+        const allPickedTeams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
+        const allPickedDrivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
+
+        allPickedTeams.forEach(teamId => {
+            let teamPoints = 0;
+            DRIVERS.forEach(driver => {
+                if (driver.constructorId === teamId) {
+                    teamPoints += getDriverPoints(driver.id, pointSource, pointSystem);
+                }
+            });
+            eventEntries.push(<li key={`team-${teamId}`}>{getEntityName(teamId)}: <span className="font-semibold">{teamPoints} pts</span></li>);
+        });
+
+        allPickedDrivers.forEach(driverId => {
+            const driverPoints = getDriverPoints(driverId, pointSource, pointSystem);
+            eventEntries.push(<li key={`driver-${driverId}`}>{getEntityName(driverId)}: <span className="font-semibold">{driverPoints} pts</span></li>);
+        });
+    }
+
+    if (eventEntries.length === 0 || eventEntries.every(e => (e as any).props.children[2].props.children[0] === 0)) {
+       eventEntries.push(<li key="no-points" className="text-highlight-silver">No points scored in this category.</li>);
+    }
+    
+    const finalContent = <ul className="list-disc list-inside ml-2 text-ghost-white text-sm space-y-1">{eventEntries}</ul>
+
+    setModalData({ title, content: finalContent });
+  };
+
 
   return (
     <>
@@ -264,11 +331,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                    <div className="mt-4 pt-4 border-t border-accent-gray/50">
                                        <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
                                        <div className="flex justify-around flex-wrap gap-4">
-                                            <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
-                                            {event.hasSprint && <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />}
-                                            <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
+                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
+                                                <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
+                                            </button>
+                                            {event.hasSprint && (
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'sprint')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />
+                                                </button>
+                                            )}
+                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'quali')} className="transition-transform transform hover:scale-105">
+                                                <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
+                                            </button>
                                             {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
-                                            <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
+                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
+                                                <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
+                                            </button>
                                        </div>
                                    </div>
                                )}
@@ -286,7 +363,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                         <h3 className="text-2xl font-bold text-pure-white">{modalData.title}</h3>
-                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white">&times;</button>
+                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white text-3xl leading-none">&times;</button>
                     </div>
                     {modalData.content}
                 </div>
@@ -303,7 +380,7 @@ interface PointChipProps {
     points?: number;
 }
 const PointChip: React.FC<PointChipProps> = ({ icon: Icon, label, points = 0 }) => (
-    <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-carbon-black/50 w-28">
+    <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-carbon-black/50 w-28 h-full">
         <Icon className="w-6 h-6 text-highlight-silver mb-1"/>
         <span className="text-xs text-highlight-silver">{label}</span>
         <span className="font-bold text-lg text-pure-white">{points}</span>
