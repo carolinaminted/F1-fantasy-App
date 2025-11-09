@@ -1,43 +1,72 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PickSelection, EntityClass, Event } from '../types';
-import useFantasyData from '../hooks/useFantasyData';
+import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types';
 import CountdownTimer from './CountdownTimer';
 import SelectorGroup from './SelectorGroup';
 import { SubmitIcon } from './icons/SubmitIcon';
 import { FastestLapIcon } from './icons/FastestLapIcon';
 
-const initialPicks: PickSelection = {
+const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
   bTeam: null,
   aDrivers: [null, null, null],
   bDrivers: [null, null],
   fastestLap: null,
-};
+});
 
 interface PicksFormProps {
+  user: User;
   event: Event;
+  initialPicksForEvent?: PickSelection;
+  onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  aTeams: Constructor[];
+  bTeams: Constructor[];
+  aDrivers: Driver[];
+  bDrivers: Driver[];
+  allDrivers: Driver[];
+  getUsage: (id: string, type: 'teams' | 'drivers') => number;
+  getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
+  hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
 }
 
-const PicksForm: React.FC<PicksFormProps> = ({ event }) => {
-  const [picks, setPicks] = useState<PickSelection>(initialPicks);
-  const [submitted, setSubmitted] = useState(false);
+const PicksForm: React.FC<PicksFormProps> = ({
+  user,
+  event,
+  initialPicksForEvent,
+  onPicksSubmit,
+  aTeams,
+  bTeams,
+  aDrivers,
+  bDrivers,
+  allDrivers,
+  getUsage,
+  getLimit,
+  hasRemaining
+}) => {
+  const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
+  const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
-  const { aTeams, bTeams, aDrivers, bDrivers, allDrivers, getUsage, getLimit, hasRemaining } = useFantasyData();
 
-  // Reset form when the event changes
+  const isSubmitted = !!initialPicksForEvent;
+
   useEffect(() => {
-    setPicks(initialPicks);
-    setSubmitted(false);
-  }, [event.id]);
+    const savedPicks = initialPicksForEvent;
+    setPicks(savedPicks || getInitialPicks());
+    setIsEditing(!savedPicks);
+  }, [event.id, initialPicksForEvent]);
 
   const handleSelect = useCallback((category: keyof PickSelection, value: string | null, index?: number) => {
     setPicks(prev => {
       const newPicks = { ...prev };
-      if (Array.isArray(newPicks[category]) && index !== undefined) {
-        (newPicks[category] as (string | null)[])[index] = value;
+      const field = newPicks[category];
+
+      if (Array.isArray(field) && typeof index === 'number') {
+        const newArray = [...field];
+        newArray[index] = value;
+        (newPicks as any)[category] = newArray;
       } else {
-        (newPicks[category] as string | null) = value;
+        (newPicks as any)[category] = value;
       }
+      
       return newPicks;
     });
   }, []);
@@ -53,19 +82,19 @@ const PicksForm: React.FC<PicksFormProps> = ({ event }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if(isSelectionComplete()) {
-        console.log(`Submitted Picks for ${event.name}:`, picks);
-        setSubmitted(true);
+        onPicksSubmit(event.id, picks);
+        setIsEditing(false);
     } else {
         alert("Please complete all selections before submitting.");
     }
   };
 
-  if(submitted) {
+  if(!isEditing) {
     return (
         <div className="max-w-4xl mx-auto text-center bg-gray-800/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-green-400/30">
             <h2 className="text-3xl font-bold text-green-400 mb-4">Picks Submitted Successfully!</h2>
-            <p className="text-gray-300">Your picks for the {event.name} are locked in. Good luck, Team Principal!</p>
-            <button onClick={() => setSubmitted(false)} className="mt-6 bg-[#ff8400] hover:bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">
+            <p className="text-gray-300">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
+            <button onClick={() => setIsEditing(true)} className="mt-6 bg-[#ff8400] hover:bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">
                 Edit Picks
             </button>
         </div>
@@ -79,7 +108,7 @@ const PicksForm: React.FC<PicksFormProps> = ({ event }) => {
           <div className="flex-grow text-center md:text-left">
             <div className="flex flex-wrap justify-center md:justify-start items-baseline gap-x-3 gap-y-1">
               <h2 className="text-3xl font-bold text-white">{event.name}</h2>
-              {submitted ? (
+              {isSubmitted ? (
                 <span className="text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-3 py-1 rounded-full">Submitted</span>
               ) : (
                 <span className="text-xs font-bold uppercase tracking-wider bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full">Unsubmitted</span>
@@ -213,7 +242,7 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                     ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                 </div>
             </div>
         );

@@ -5,7 +5,7 @@ import HomePage from './components/HomePage';
 import ProfilePage from './components/ProfilePage';
 import LeaderboardPage from './components/LeaderboardPage';
 import Dashboard from './components/Dashboard';
-import { User } from './types';
+import { User, PickSelection } from './types';
 import { HomeIcon } from './components/icons/HomeIcon';
 import { PicksIcon } from './components/icons/PicksIcon';
 import { ProfileIcon } from './components/icons/ProfileIcon';
@@ -18,11 +18,17 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [activePage, setActivePage] = useState<Page>('home');
+  const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   
+  const handlePicksSubmit = (eventId: string, picks: PickSelection) => {
+    setSeasonPicks(prev => ({ ...prev, [eventId]: picks }));
+  };
+
   const handleLogin = () => {
     setUser({ id: 'user-001', displayName: 'Team Principal' });
     setIsAuthenticated(true);
     setActivePage('home');
+    setSeasonPicks({}); // Reset picks for new session
   };
   
   const renderPage = () => {
@@ -30,11 +36,12 @@ const App: React.FC = () => {
       case 'home':
         return <Dashboard setActivePage={setActivePage} />;
       case 'picks':
-        return <HomePage />;
+        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} />;
+        return null;
       case 'leaderboard':
         return <LeaderboardPage />;
       case 'profile':
-        if(user) return <ProfilePage user={user} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} />;
         return null; // Should not happen if authenticated
       default:
         return <Dashboard setActivePage={setActivePage} />;

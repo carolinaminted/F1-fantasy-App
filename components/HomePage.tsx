@@ -1,22 +1,23 @@
 // Fix: Implement the HomePage component to act as the main screen for making picks.
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import PicksForm from './PicksForm';
 import { EVENTS } from '../constants';
-import { Event } from '../types';
+import { Event, PickSelection, User } from '../types';
+import useFantasyData from '../hooks/useFantasyData';
 
-const HomePage: React.FC = () => {
-  const upcomingEvent = useMemo(() => {
-    const now = new Date().getTime();
-    // Find the next event that hasn't locked yet
-    return EVENTS.find(e => new Date(e.lockAtUtc).getTime() > now) || EVENTS[0];
-  }, []);
-  
-  const [selectedEvent, setSelectedEvent] = useState<Event>(upcomingEvent);
+interface HomePageProps {
+  user: User;
+  seasonPicks: { [eventId: string]: PickSelection };
+  onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit }) => {
+  const [selectedEvent, setSelectedEvent] = useState<Event>(EVENTS[0]);
+  const fantasyData = useFantasyData(seasonPicks);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4">
-      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-        <h1 className="text-3xl md:text-4xl font-bold text-white">F1 Fantasy 2026</h1>
+      <div className="flex flex-col md:flex-row justify-end md:items-center mb-6 gap-4">
         <div className="relative">
             <label htmlFor="event-selector" className="sr-only">Select Event</label>
             <select
@@ -39,7 +40,13 @@ const HomePage: React.FC = () => {
             </div>
         </div>
       </div>
-      <PicksForm event={selectedEvent} />
+      <PicksForm
+        user={user}
+        event={selectedEvent}
+        initialPicksForEvent={seasonPicks[selectedEvent.id]}
+        onPicksSubmit={onPicksSubmit}
+        {...fantasyData}
+      />
     </div>
   );
 };

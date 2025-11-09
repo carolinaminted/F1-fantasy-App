@@ -1,4 +1,4 @@
-import { Constructor, Driver, EntityClass, Event, UsageRollup } from './types';
+import { Constructor, Driver, EntityClass, Event } from './types';
 
 export const CONSTRUCTORS: Constructor[] = [
   // Class A
@@ -87,19 +87,4 @@ export const EVENTS: Event[] = [
 export const USAGE_LIMITS = {
   [EntityClass.A]: { teams: 10, drivers: 8 },
   [EntityClass.B]: { teams: 5, drivers: 5 },
-};
-
-export const MOCK_USER_USAGE: UsageRollup = {
-  teams: {
-    'ferrari': 2,
-    'red_bull': 9,
-    'kick_sauber': 4,
-  },
-  drivers: {
-    'ver': 7,
-    'lec': 1,
-    'nor': 3,
-    'alb': 2,
-    'mag': 4
-  },
 };

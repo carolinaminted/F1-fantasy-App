@@ -1,9 +1,8 @@
+import { useMemo, useCallback } from 'react';
+import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS } from '../constants';
+import { EntityClass, PickSelection } from '../types';
 
-import { useMemo } from 'react';
-import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS, MOCK_USER_USAGE } from '../constants';
-import { EntityClass } from '../types';
-
-const useFantasyData = () => {
+const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
   const data = useMemo(() => {
     const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
     const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
@@ -12,15 +11,30 @@ const useFantasyData = () => {
     return { aTeams, bTeams, aDrivers, bDrivers, allDrivers: DRIVERS };
   }, []);
 
-  const getUsage = (id: string, type: 'teams' | 'drivers'): number => {
-    return MOCK_USER_USAGE[type][id] || 0;
-  };
+  const usageRollup = useMemo(() => {
+    const teams: { [id: string]: number } = {};
+    const drivers: { [id: string]: number } = {};
 
-  const getLimit = (entityClass: EntityClass, type: 'teams' | 'drivers'): number => {
+    Object.values(seasonPicks).forEach(p => {
+        p.aTeams.forEach(id => { if(id) teams[id] = (teams[id] || 0) + 1; });
+        if (p.bTeam) teams[p.bTeam] = (teams[p.bTeam] || 0) + 1;
+        p.aDrivers.forEach(id => { if(id) drivers[id] = (drivers[id] || 0) + 1; });
+        p.bDrivers.forEach(id => { if(id) drivers[id] = (drivers[id] || 0) + 1; });
+    });
+    
+    return { teams, drivers };
+  }, [seasonPicks]);
+
+
+  const getUsage = useCallback((id: string, type: 'teams' | 'drivers'): number => {
+    return usageRollup[type][id] || 0;
+  }, [usageRollup]);
+
+  const getLimit = useCallback((entityClass: EntityClass, type: 'teams' | 'drivers'): number => {
     return USAGE_LIMITS[entityClass][type];
-  };
+  }, []);
 
-  const hasRemaining = (id: string, type: 'teams' | 'drivers'): boolean => {
+  const hasRemaining = useCallback((id: string, type: 'teams' | 'drivers'): boolean => {
     const entityList = type === 'teams' ? CONSTRUCTORS : DRIVERS;
     const entity = entityList.find(e => e.id === id);
     if (!entity) return false;
@@ -28,9 +42,9 @@ const useFantasyData = () => {
     const usage = getUsage(id, type);
     const limit = getLimit(entity.class, type);
     return usage < limit;
-  };
+  }, [getLimit, getUsage]);
 
-  return { ...data, getUsage, getLimit, hasRemaining };
+  return { ...data, getUsage, getLimit, hasRemaining, usageRollup };
 };
 
 export default useFantasyData;

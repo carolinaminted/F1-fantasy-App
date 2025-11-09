@@ -1,20 +1,64 @@
 // Fix: Implement the ProfilePage component to display user data and usage stats.
 import React from 'react';
-import { User } from '../types';
+import { User, PickSelection, EntityClass, Constructor, Driver } from '../types';
 import useFantasyData from '../hooks/useFantasyData';
-import { MOCK_USER_USAGE } from '../constants';
 
 interface ProfilePageProps {
   user: User;
+  seasonPicks: { [eventId: string]: PickSelection };
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
-  const { aTeams, bTeams, aDrivers, bDrivers } = useFantasyData();
-  const allEntities = [...aTeams, ...bTeams, ...aDrivers, ...bDrivers];
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
+  const { aTeams, bTeams, aDrivers, bDrivers, usageRollup } = useFantasyData(seasonPicks);
+
+  // Process Team Usage
+  const allTeams = [...aTeams, ...bTeams];
+  const teamUsageEntries = Object.entries(usageRollup.teams)
+    .map(([id, count]) => {
+      const team = allTeams.find(t => t.id === id);
+      return team ? { ...team, count } : null;
+    })
+    .filter((t): t is Constructor & { count: number } => t !== null);
+
+  const classATeamUsage = teamUsageEntries
+    .filter(t => t.class === EntityClass.A)
+    .sort((a, b) => b.count - a.count);
+
+  const classBTeamUsage = teamUsageEntries
+    .filter(t => t.class === EntityClass.B)
+    .sort((a, b) => b.count - a.count);
+
+  // Process Driver Usage
+  const allDrivers = [...aDrivers, ...bDrivers];
+  const driverUsageEntries = Object.entries(usageRollup.drivers)
+    .map(([id, count]) => {
+      const driver = allDrivers.find(d => d.id === id);
+      return driver ? { ...driver, count } : null;
+    })
+    .filter((d): d is Driver & { count: number } => d !== null);
+
+  const classADriverUsage = driverUsageEntries
+    .filter(d => d.class === EntityClass.A)
+    .sort((a, b) => b.count - a.count);
+
+  const classBDriverUsage = driverUsageEntries
+    .filter(d => d.class === EntityClass.B)
+    .sort((a, b) => b.count - a.count);
+
+  const UsageList: React.FC<{ items: ({ id: string; name: string; count: number })[] }> = ({ items }) => (
+    <ul className="space-y-2">
+      {items.map(item => (
+        <li key={item.id} className="flex justify-between items-center text-gray-300">
+          <span>{item.name}</span>
+          <span className="font-mono bg-gray-700/50 px-2 py-1 rounded">{item.count}</span>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <div className="max-w-4xl mx-auto text-white">
-      <h1 className="text-4xl font-bold mb-8">Team Principal Profile</h1>
+      <h1 className="text-4xl font-bold mb-8">Profile</h1>
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
         <h2 className="text-2xl font-semibold">{user.displayName}</h2>
         <p className="text-gray-400">{user.id}</p>
@@ -25,31 +69,45 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
             <h4 className="text-xl font-semibold mb-3 text-[#ff8400]">Team Usage</h4>
-            <ul className="space-y-2">
-              {Object.entries(MOCK_USER_USAGE.teams).map(([id, count]) => {
-                const team = allEntities.find(e => e.id === id);
-                return (
-                  <li key={id} className="flex justify-between items-center text-gray-300">
-                    <span>{team?.name || id}</span>
-                    <span className="font-mono bg-gray-700/50 px-2 py-1 rounded">{count}</span>
-                  </li>
-                );
-              })}
-            </ul>
+            {teamUsageEntries.length > 0 ? (
+              <div className="space-y-4">
+                {classATeamUsage.length > 0 && (
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class A</h5>
+                    <UsageList items={classATeamUsage} />
+                  </div>
+                )}
+                {classBTeamUsage.length > 0 && (
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class B</h5>
+                    <UsageList items={classBTeamUsage} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-400">No teams have been used this season.</p>
+            )}
           </div>
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
             <h4 className="text-xl font-semibold mb-3 text-[#94d600]">Driver Usage</h4>
-            <ul className="space-y-2">
-              {Object.entries(MOCK_USER_USAGE.drivers).map(([id, count]) => {
-                const driver = allEntities.find(e => e.id === id);
-                return (
-                  <li key={id} className="flex justify-between items-center text-gray-300">
-                    <span>{driver?.name || id}</span>
-                    <span className="font-mono bg-gray-700/50 px-2 py-1 rounded">{count}</span>
-                  </li>
-                );
-              })}
-            </ul>
+            {driverUsageEntries.length > 0 ? (
+              <div className="space-y-4">
+                {classADriverUsage.length > 0 && (
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class A</h5>
+                    <UsageList items={classADriverUsage} />
+                  </div>
+                )}
+                {classBDriverUsage.length > 0 && (
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class B</h5>
+                    <UsageList items={classBDriverUsage} />
+                  </div>
+                )}
+              </div>
+            ) : (
+               <p className="text-gray-400">No drivers have been used this season.</p>
+            )}
           </div>
         </div>
       </div>
