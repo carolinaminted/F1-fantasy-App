@@ -1,9 +1,9 @@
 // Fix: Implement the ProfilePage component to display user stats and picks history.
 import React, { useState } from 'react';
-import { User, PickSelection, RaceResults, EntityClass } from '../types';
+import { User, PickSelection, RaceResults, EntityClass, EventResult } from '../types';
 import useFantasyData from '../hooks/useFantasyData';
 import { calculatePointsForEvent } from '../services/scoringService';
-import { EVENTS, CONSTRUCTORS, DRIVERS } from '../constants';
+import { EVENTS, CONSTRUCTORS, DRIVERS, POINTS_SYSTEM } from '../constants';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon';
 import { SprintIcon } from './icons/SprintIcon';
@@ -16,6 +16,17 @@ interface ProfilePageProps {
   user: User;
   seasonPicks: { [eventId: string]: PickSelection };
   raceResults: RaceResults;
+}
+
+const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
+  if (!driverId || !results) return 0;
+  const pos = results.indexOf(driverId);
+  return pos !== -1 ? (points[pos] || 0) : 0;
+};
+
+interface ModalData {
+    title: string;
+    content: React.ReactNode;
 }
 
 const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({ label, used, limit }) => {
@@ -39,6 +50,7 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const [modalData, setModalData] = useState<ModalData | null>(null);
   
   const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
   const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
@@ -49,12 +61,107 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setExpandedEvent(prev => (prev === eventId ? null : eventId));
   };
   
-  const getEntityName = (id: string | null) => {
+  const getEntityName = (id: string | null): string => {
     if (!id) return 'N/A';
     return DRIVERS.find(d => d.id === id)?.name || CONSTRUCTORS.find(c => c.id === id)?.name || 'Unknown';
   };
 
+  const handleScoringDetailClick = (category: 'gp' | 'sprint' | 'quali' | 'fl') => {
+    let title = '';
+    const detailsContent: React.ReactNode[] = [];
+
+    const relevantEvents = EVENTS.filter(e => seasonPicks[e.id] && raceResults[e.id]);
+
+    if (relevantEvents.length === 0) {
+        detailsContent.push(<p key="no-picks" className="text-highlight-silver">No picks submitted for completed events yet.</p>);
+    } else {
+        relevantEvents.forEach(event => {
+            const picks = seasonPicks[event.id];
+            const results = raceResults[event.id];
+            
+            let pointSource: (string | null)[] | undefined;
+            let pointSystem: number[];
+
+            switch(category) {
+                case 'gp':
+                    title = 'Grand Prix Points Breakdown';
+                    pointSource = results.grandPrixFinish;
+                    pointSystem = POINTS_SYSTEM.grandPrixFinish;
+                    break;
+                case 'sprint':
+                    title = 'Sprint Race Points Breakdown';
+                    pointSource = results.sprintFinish;
+                    pointSystem = POINTS_SYSTEM.sprintFinish;
+                    break;
+                case 'quali':
+                    title = 'GP Qualifying Points Breakdown';
+                    pointSource = results.gpQualifying;
+                    pointSystem = POINTS_SYSTEM.gpQualifying;
+                    break;
+                case 'fl':
+                    title = 'Fastest Lap Points Breakdown';
+                    break;
+                default:
+                    return;
+            }
+
+            const eventEntries: React.ReactNode[] = [];
+            const pickedDriverIds = new Set((picks.aDrivers || []).concat(picks.bDrivers || []).filter(Boolean) as string[]);
+
+            const processPicks = (pickIds: (string|null)[], type: 'team'|'driver') => {
+                pickIds.forEach((pickId, index) => {
+                    if (!pickId) return;
+                    
+                    let points = 0;
+                    if (pointSource && pointSystem) {
+                       if (type === 'driver') {
+                            points = getDriverPoints(pickId, pointSource, pointSystem);
+                        } else { // type === 'team'
+                            DRIVERS.forEach(driver => {
+                                if (driver.constructorId === pickId && !pickedDriverIds.has(driver.id)) {
+                                    points += getDriverPoints(driver.id, pointSource, pointSystem);
+                                }
+                            });
+                        }
+                    }
+                    
+                    eventEntries.push(
+                        <li key={`${pickId}-${index}`}>{getEntityName(pickId)}: <span className="font-semibold">{points} pts</span></li>
+                    );
+                });
+            };
+
+            if (category === 'fl') {
+                if(picks.fastestLap){
+                    const points = (picks.fastestLap === results.fastestLap) ? POINTS_SYSTEM.fastestLap : 0;
+                    eventEntries.push(<li key="fl">{getEntityName(picks.fastestLap)}: <span className="font-semibold">{points} pts</span></li>);
+                }
+            } else {
+                processPicks(picks.aTeams, 'team');
+                processPicks([picks.bTeam], 'team');
+                processPicks(picks.aDrivers, 'driver');
+                processPicks(picks.bDrivers, 'driver');
+            }
+
+            if (eventEntries.length > 0) {
+                 detailsContent.push(
+                    <div key={event.id}>
+                        <h4 className="font-bold text-primary-red">{event.name}</h4>
+                        <ul className="list-disc list-inside ml-2 text-ghost-white text-sm">
+                            {eventEntries}
+                        </ul>
+                    </div>
+                );
+            }
+        });
+    }
+
+    setModalData({ title, content: <div className="space-y-4">{detailsContent}</div> });
+  };
+
+
   return (
+    <>
     <div className="max-w-4xl mx-auto text-pure-white space-y-12">
       <div>
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
@@ -64,27 +171,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       {/* Scoring Breakdown Section */}
       <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
         <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
-        <div className="grid grid-cols-2 gap-y-6 gap-x-4 text-center">
-            <div>
+        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+            <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
                 <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
                 <p className="text-sm text-highlight-silver">Grand Prix</p>
                 <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
-            </div>
-            <div>
+            </button>
+            <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
                 <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
                 <p className="text-sm text-highlight-silver">Sprint Race</p>
                 <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
-            </div>
-            <div>
+            </button>
+            <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
                 <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
                 <p className="text-sm text-highlight-silver">Fastest Lap</p>
                 <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
-            </div>
-            <div>
+            </button>
+            <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
                 <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
                 <p className="text-sm text-highlight-silver">GP Quali</p>
                 <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
-            </div>
+            </button>
         </div>
       </div>
 
@@ -133,7 +240,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
                 return (
                     <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                        <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left" onClick={() => toggleEvent(event.id)}>
+                        <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors" onClick={() => toggleEvent(event.id)}>
                             <div>
                                 <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
                                 <p className="text-sm text-highlight-silver">{event.country}</p>
@@ -181,6 +288,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
       </div>
     </div>
+    {modalData && (
+        <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-50 p-4" onClick={() => setModalData(null)}>
+            <div className="bg-accent-gray rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto ring-1 ring-pure-white/20 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-2xl font-bold text-pure-white">{modalData.title}</h3>
+                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white">&times;</button>
+                    </div>
+                    {modalData.content}
+                </div>
+            </div>
+        </div>
+    )}
+    </>
   );
 };
 
