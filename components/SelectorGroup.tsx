@@ -46,12 +46,12 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                 onClick={handleSelect}
                 className={`
                   p-4 rounded-lg border-2 text-center transition-all
-                  ${disabled ? 'bg-gray-700 opacity-40 cursor-not-allowed' : 'bg-gray-900 border-gray-700 hover:border-[#ff8400] cursor-pointer'}
+                  ${disabled ? 'bg-accent-gray opacity-40 cursor-not-allowed' : 'bg-carbon-black border-accent-gray hover:border-primary-red cursor-pointer'}
                 `}
               >
-                <p className="font-semibold text-white">{option.name}</p>
-                <p className="text-sm text-gray-400">{usageCount} / {limit} used</p>
-                {!canSelect && <p className="text-xs text-red-400 mt-1">Limit Reached</p>}
+                <p className="font-semibold text-pure-white">{option.name}</p>
+                <p className="text-sm text-highlight-silver">{usageCount} / {limit} used</p>
+                {!canSelect && <p className="text-xs text-primary-red mt-1">Limit Reached</p>}
               </div>
             );
           })}
@@ -68,10 +68,10 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                           'grid-cols-1 md:grid-cols-3';
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
-      <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <Icon className={`w-6 h-6 ${entityClass === EntityClass.A ? 'text-[#ff8400]' : 'text-[#d4d756]'}`} />
-        {title} <span className="text-gray-400 font-normal text-base">({slots} required)</span>
+    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+      <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
+        <Icon className={`w-6 h-6 ${entityClass === EntityClass.A ? 'text-primary-red' : 'text-highlight-silver'}`} />
+        {title} <span className="text-highlight-silver font-normal text-base">({slots} required)</span>
       </h3>
       <div className={`grid ${gridLayoutClass} gap-4`}>
         {Array.from({ length: slots }).map((_, index) => {

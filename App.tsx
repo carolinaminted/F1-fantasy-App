@@ -91,18 +91,18 @@ const App: React.FC = () => {
   };
   
   const appContent = (
-    <div className="relative min-h-screen bg-gray-900 text-white pb-24">
+    <div className="relative min-h-screen bg-carbon-black text-ghost-white pb-24">
        <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
        
-       <header className="relative py-4 px-6 flex items-center justify-between bg-gray-900/50 backdrop-blur-sm border-b border-gray-800">
+       <header className="relative py-4 px-6 flex items-center justify-between bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray">
          <div onClick={() => setActivePage('home')} className="flex items-center gap-2 cursor-pointer">
-           <F1CarIcon className="w-8 h-8 text-[#ff8400]" />
+           <F1CarIcon className="w-8 h-8 text-primary-red" />
            <span className="font-bold text-xl">F1 Fantasy</span>
          </div>
          {user && (
            <div className="text-right">
              <p className="font-semibold">{user.displayName}</p>
-             <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-white">
+             <button onClick={handleLogout} className="text-sm text-highlight-silver hover:text-pure-white">
                Log Out
              </button>
            </div>
@@ -113,7 +113,7 @@ const App: React.FC = () => {
          {renderPage()}
        </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-lg border-t border-gray-700/50 flex justify-around md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 flex justify-around md:hidden">
         <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={setActivePage} />
         <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={setActivePage} />
         <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={setActivePage} />
@@ -126,7 +126,7 @@ const App: React.FC = () => {
   );
 
   const authFlow = (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}>
+    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}>
       <AuthScreen onLogin={handleLogin} />
     </div>
   );
@@ -147,7 +147,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, page, activePage, 
   return (
     <button
       onClick={() => setActivePage(page)}
-      className={`flex flex-col items-center justify-center w-full pt-3 pb-2 transition-colors duration-200 ${isActive ? 'text-[#ff8400]' : 'text-gray-400 hover:text-white'}`}
+      className={`flex flex-col items-center justify-center w-full pt-3 pb-2 transition-colors duration-200 ${isActive ? 'text-primary-red' : 'text-highlight-silver hover:text-pure-white'}`}
     >
       <Icon className="w-6 h-6 mb-1" />
       <span className="text-xs font-medium">{label}</span>

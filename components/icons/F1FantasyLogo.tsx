@@ -1,26 +1,40 @@
 import React from 'react';
 
 export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" {...props}>
+  <svg viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <defs>
+      <linearGradient id="red-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#DA291C" />
+        <stop offset="100%" stopColor="#FF3C28" />
+      </linearGradient>
+    </defs>
     <style>
       {`
-        .f1-text { 
+        .formula-text { 
           font-family: 'Exo 2', sans-serif; 
-          font-weight: 900; 
-          font-style: italic; 
-          font-size: 48px; 
-          fill: #ff8400; 
+          font-weight: 400;
+          font-size: 18px;
+          fill: #F5F5F5;
+          letter-spacing: 0.3em;
+          text-anchor: middle;
         }
-        .fantasy-text { 
+        .fantasy-one-text { 
           font-family: 'Exo 2', sans-serif; 
-          font-weight: 600; 
-          font-size: 16px; 
-          letter-spacing: 2.5px; 
-          fill: #ffffff; 
+          font-weight: 900;
+          font-style: italic;
+          font-size: 48px;
+          fill: url(#red-grad);
+          letter-spacing: -2px;
+          text-anchor: middle;
+        }
+        .one-part {
+          fill: #F5F5F5;
         }
       `}
     </style>
-    <text x="0" y="40" className="f1-text">F1</text>
-    <text x="55" y="36" className="fantasy-text">FANTASY</text>
+    <text x="150" y="25" className="formula-text">FORMULA</text>
+    <text x="150" y="70" className="fantasy-one-text">
+      FANTASY <tspan className="one-part">ONE</tspan>
+    </text>
   </svg>
 );

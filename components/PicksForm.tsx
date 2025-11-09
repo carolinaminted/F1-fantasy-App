@@ -91,10 +91,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   if(!isEditing) {
     return (
-        <div className="max-w-4xl mx-auto text-center bg-gray-800/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-green-400/30">
-            <h2 className="text-3xl font-bold text-green-400 mb-4">Picks Submitted Successfully!</h2>
-            <p className="text-gray-300">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
-            <button onClick={() => setIsEditing(true)} className="mt-6 bg-[#ff8400] hover:bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">
+        <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-highlight-silver/30">
+            <h2 className="text-3xl font-bold text-ghost-white mb-4">Picks Submitted Successfully!</h2>
+            <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
+            <button onClick={() => setIsEditing(true)} className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg">
                 Edit Picks
             </button>
         </div>
@@ -104,15 +104,15 @@ const PicksForm: React.FC<PicksFormProps> = ({
   return (
     <>
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div className="flex-grow text-center">
-            <h2 className="text-3xl font-bold text-white">{event.name}</h2>
-            <p className="text-gray-400 mt-1">Round {event.round} - {event.country}</p>
+            <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>
+            <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
             <div className="mt-2">
               {isSubmitted ? (
-                <span className="text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-3 py-1 rounded-full">Submitted</span>
+                <span className="text-xs font-bold uppercase tracking-wider bg-highlight-silver/20 text-ghost-white px-3 py-1 rounded-full">Submitted</span>
               ) : (
-                <span className="text-xs font-bold uppercase tracking-wider bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full">Unsubmitted</span>
+                <span className="text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
               )}
             </div>
           </div>
@@ -171,9 +171,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
           setModalContent={setModalContent}
         />
         
-         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <FastestLapIcon className="w-6 h-6 text-[#94d600]" />
+         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+              <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
+                  <FastestLapIcon className="w-6 h-6 text-primary-red" />
                   Fastest Lap
               </h3>
               <div className="grid grid-cols-1">
@@ -194,7 +194,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
           <button
             type="submit"
             disabled={!isSelectionComplete()}
-            className="flex items-center gap-2 bg-[#ff8400] hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-500/20 disabled:bg-gray-600 disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
+            className="flex items-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
           >
             <SubmitIcon className="w-5 h-5" />
             Lock In Picks
@@ -202,8 +202,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
         </div>
       </form>
       {modalContent && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4" onClick={() => setModalContent(null)}>
-          <div className="bg-gray-800 rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-[999] p-4" onClick={() => setModalContent(null)}>
+          <div className="bg-accent-gray rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               {modalContent}
           </div>
         </div>
@@ -232,7 +232,7 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                 <select
                     value={option?.id || ''}
                     onChange={(e) => onSelect(e.target.value || null)}
-                    className="w-full bg-gray-900/70 border border-gray-700 rounded-md shadow-sm py-3 px-4 text-white focus:outline-none focus:ring-[#ff8400] focus:border-[#ff8400] appearance-none"
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none"
                 >
                     <option value="">{placeholder}</option>
                     {options.map(opt => (
@@ -241,7 +241,7 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                         </option>
                     ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-highlight-silver">
                     <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                 </div>
             </div>
@@ -254,14 +254,14 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
             className={`
                 p-4 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
                 transition-all duration-200
-                ${isSelected ? 'bg-[#0091b3]/20 border-[#0091b3] shadow-lg shadow-[#0091b3]/20' : 'bg-gray-900/50 border-gray-700 hover:border-gray-500'}
+                ${isSelected ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver'}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
         >
-            <p className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+            <p className={`font-bold text-lg ${isSelected ? 'text-pure-white' : 'text-ghost-white'}`}>
                 {option ? option.name : placeholder}
             </p>
-            {usage && <p className={`text-sm mt-1 ${isSelected ? 'text-cyan-300' : 'text-gray-400'}`}>{usage}</p>}
+            {usage && <p className={`text-sm mt-1 ${isSelected ? 'text-primary-red' : 'text-highlight-silver'}`}>{usage}</p>}
         </div>
     );
 };
