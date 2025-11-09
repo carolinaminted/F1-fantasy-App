@@ -1,6 +1,6 @@
 // Fix: Display total points and a detailed scoring breakdown on the profile page.
 import React from 'react';
-import { User, PickSelection, EntityClass, Constructor, Driver } from '../types';
+import { User, PickSelection, EntityClass, Constructor, Driver, RaceResults } from '../types';
 import useFantasyData from '../hooks/useFantasyData';
 import { LeaderboardIcon } from './icons/LeaderboardIcon';
 import { FastestLapIcon } from './icons/FastestLapIcon';
@@ -9,10 +9,11 @@ import { F1CarIcon } from './icons/F1CarIcon';
 interface ProfilePageProps {
   user: User;
   seasonPicks: { [eventId: string]: PickSelection };
+  raceResults: RaceResults;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
-  const { aTeams, bTeams, aDrivers, bDrivers, usageRollup, scoreRollup } = useFantasyData(seasonPicks);
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults }) => {
+  const { aTeams, bTeams, aDrivers, bDrivers, usageRollup, scoreRollup } = useFantasyData(seasonPicks, raceResults);
 
   // Process Team Usage
   const allTeams = [...aTeams, ...bTeams];

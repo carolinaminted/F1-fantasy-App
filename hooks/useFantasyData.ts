@@ -1,7 +1,7 @@
 // Fix: Add score calculation logic to process picks against race results and a points system.
 import { useMemo, useCallback } from 'react';
-import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS, POINTS_SYSTEM, MOCK_RACE_RESULTS } from '../constants';
-import { EntityClass, PickSelection, Driver, UsageRollup } from '../types';
+import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS, POINTS_SYSTEM } from '../constants';
+import { EntityClass, PickSelection, UsageRollup, RaceResults, EventResult } from '../types';
 
 export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelection }): UsageRollup => {
     const teams: { [id: string]: number } = {};
@@ -17,21 +17,24 @@ export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelec
     return { teams, drivers };
 };
 
-export const calculateScoreRollup = (seasonPicks: { [eventId: string]: PickSelection }) => {
+export const calculateScoreRollup = (
+  seasonPicks: { [eventId: string]: PickSelection },
+  raceResults: RaceResults
+) => {
     let grandPrixPoints = 0;
     let sprintPoints = 0;
     let fastestLapPoints = 0;
     let gpQualifyingPoints = 0;
     let sprintQualifyingPoints = 0;
 
-    const getDriverPoints = (driverId: string | null, results: string[], points: number[]) => {
-      if (!driverId) return 0;
+    const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
+      if (!driverId || !results) return 0;
       const pos = results.indexOf(driverId);
       return pos !== -1 ? (points[pos] || 0) : 0;
     };
     
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
-      const results = MOCK_RACE_RESULTS[eventId];
+      const results: EventResult | undefined = raceResults[eventId];
       if (!results) return; // No results for this event yet
 
       // Create a unique set of all drivers that can score points from this pick to avoid double counting.
@@ -77,7 +80,10 @@ export const calculateScoreRollup = (seasonPicks: { [eventId: string]: PickSelec
 };
 
 
-const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
+const useFantasyData = (
+    seasonPicks: { [eventId: string]: PickSelection },
+    raceResults: RaceResults
+) => {
   const data = useMemo(() => {
     const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
     const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
@@ -87,7 +93,7 @@ const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
   }, []);
 
   const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks), [seasonPicks]);
-  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks), [seasonPicks]);
+  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults), [seasonPicks, raceResults]);
 
 
   const getUsage = useCallback((id: string, type: 'teams' | 'drivers'): number => {

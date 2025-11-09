@@ -1,5 +1,5 @@
 // Fix: Add a detailed points system and mock race results to enable dynamic scoring calculations.
-import { Constructor, Driver, EntityClass, Event, PickSelection, User } from './types';
+import { Constructor, Driver, EntityClass, Event, PickSelection, User, RaceResults } from './types';
 
 export const CONSTRUCTORS: Constructor[] = [
   // Class A
@@ -98,113 +98,117 @@ export const POINTS_SYSTEM = {
   sprintQualifying: [3, 2, 1],
 };
 
-export const MOCK_RACE_RESULTS: { [eventId: string]: any } = {
+export let RACE_RESULTS: RaceResults = {
   'aus_25': {
     grandPrixFinish: ['nor', 'ver', 'rus', 'ant', 'alb', 'str', 'hul', 'lec', 'pia', 'ham'],
-    gpQualifying: ['nor'],
+    gpQualifying: ['nor', null, null],
     fastestLap: 'nor',
   },
   'chn_25': {
     grandPrixFinish: ['pia', 'nor', 'rus', 'ver', 'oco', 'ant', 'alb', 'bea', 'str', 'sai'],
     sprintFinish: ['ham', 'pia', 'ver', 'rus', 'lec', 'tsu', 'ant', 'nor'],
-    gpQualifying: ['pia'],
+    gpQualifying: ['pia', null, null],
     fastestLap: 'nor',
   },
   'jpn_25': {
     grandPrixFinish: ['ver', 'nor', 'pia', 'lec', 'rus', 'ant', 'ham', 'had', 'alb', 'bea'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'ant',
   },
   'bhr_25': {
     grandPrixFinish: ['pia', 'rus', 'nor', 'lec', 'ham', 'ver', 'gas', 'oco', 'tsu', 'bea'],
-    gpQualifying: ['pia'],
+    gpQualifying: ['pia', null, null],
     fastestLap: 'pia',
   },
   'sau_25': {
     grandPrixFinish: ['pia', 'ver', 'lec', 'nor', 'rus', 'ant', 'ham', 'sai', 'alb', 'had'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'nor',
   },
   'mia_25': {
     grandPrixFinish: ['pia', 'nor', 'rus', 'ver', 'alb', 'ant', 'lec', 'ham', 'sai', 'tsu'],
     sprintFinish: ['nor', 'pia', 'ham', 'rus', 'str', 'tsu', 'ant', 'gas'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'nor',
   },
   'emi_25': {
     grandPrixFinish: ['ver', 'nor', 'pia', 'ham', 'alb', 'lec', 'rus', 'sai', 'had', 'tsu'],
-    gpQualifying: ['pia'],
+    gpQualifying: ['pia', null, null],
     fastestLap: 'ver',
   },
   'mco_25': {
     grandPrixFinish: ['nor', 'lec', 'pia', 'ver', 'ham', 'had', 'oco', 'law', 'alb', 'sai'],
-    gpQualifying: ['nor'],
+    gpQualifying: ['nor', null, null],
     fastestLap: 'ham',
   },
   'esp_25': {
     grandPrixFinish: ['pia', 'nor', 'lec', 'rus', 'hul', 'ham', 'had', 'gas', 'alo', 'ver'],
-    gpQualifying: ['pia'],
+    gpQualifying: ['pia', null, null],
     fastestLap: 'pia',
   },
   'can_25': {
     grandPrixFinish: ['rus', 'ver', 'ant', 'pia', 'lec', 'ham', 'alo', 'hul', 'oco', 'sai'],
-    gpQualifying: ['rus'],
+    gpQualifying: ['rus', null, null],
     fastestLap: 'rus',
   },
   'aut_25': {
     grandPrixFinish: ['nor', 'pia', 'lec', 'ham', 'rus', 'law', 'alo', 'bor', 'hul', 'oco'],
-    gpQualifying: ['nor'],
+    gpQualifying: ['nor', null, null],
     fastestLap: 'pia',
   },
   'gbr_25': {
     grandPrixFinish: ['nor', 'pia', 'hul', 'ham', 'ver', 'gas', 'str', 'alb', 'alo', 'rus'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'pia',
   },
   'bel_25': {
     grandPrixFinish: ['pia', 'nor', 'lec', 'ver', 'rus', 'alb', 'ham', 'law', 'bor', 'gas'],
     sprintFinish: ['ver', 'pia', 'nor', 'lec', 'oco', 'sai', 'bea', 'had'],
-    gpQualifying: ['nor'],
+    gpQualifying: ['nor', null, null],
     fastestLap: 'ant',
   },
   'hun_25': {
     grandPrixFinish: ['nor', 'pia', 'rus', 'lec', 'alo', 'bor', 'str', 'law', 'ver', 'ant'],
-    gpQualifying: ['lec'],
+    gpQualifying: ['lec', null, null],
     fastestLap: 'rus',
   },
   'nld_25': {
     grandPrixFinish: ['pia', 'ver', 'had', 'rus', 'alb', 'bea', 'str', 'alo', 'tsu', 'oco'],
-    gpQualifying: ['pia'],
+    gpQualifying: ['pia', null, null],
     fastestLap: 'pia',
   },
   'ita_25': {
     grandPrixFinish: ['ver', 'nor', 'pia', 'lec', 'rus', 'ham', 'alb', 'bor', 'ant', 'had'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'nor',
   },
   'aze_25': {
     grandPrixFinish: ['ver', 'rus', 'sai', 'ant', 'law', 'tsu', 'nor', 'ham', 'lec', 'had'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'ver',
   },
   'sgp_25': {
     grandPrixFinish: ['rus', 'ver', 'nor', 'pia', 'ant', 'lec', 'alo', 'ham', 'bea', 'sai'],
-    gpQualifying: ['rus'],
+    gpQualifying: ['rus', null, null],
     fastestLap: 'ham',
   },
   'usa_25': {
     grandPrixFinish: ['ver', 'nor', 'lec', 'ham', 'pia', 'rus', 'tsu', 'hul', 'bea', 'alo'],
     sprintFinish: ['ver', 'rus', 'sai', 'ham', 'lec', 'alb', 'tsu', 'ant'],
-    gpQualifying: ['ver'],
+    gpQualifying: ['ver', null, null],
     fastestLap: 'ant',
   },
   'mex_25': {
     grandPrixFinish: ['nor', 'lec', 'ver', 'bea', 'pia', 'ant', 'rus', 'ham', 'oco', 'bor'],
-    gpQualifying: ['nor'],
+    gpQualifying: ['nor', null, null],
     fastestLap: 'rus',
   },
   'bra_25': {
+    grandPrixFinish: [],
     sprintFinish: ['nor', 'ant', 'rus', 'ver', 'lec', 'alo', 'ham', 'gas'],
+    gpQualifying: [],
+    // Fix: Add missing 'fastestLap' property to conform to the EventResult type.
+    fastestLap: null,
   },
 };
 

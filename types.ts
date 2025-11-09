@@ -48,3 +48,15 @@ export interface User {
   displayName: string;
   email: string;
 }
+
+export interface EventResult {
+  grandPrixFinish: (string | null)[];
+  gpQualifying: (string | null)[];
+  fastestLap: string | null;
+  sprintFinish?: (string | null)[];
+  sprintQualifying?: (string | null)[];
+}
+
+export interface RaceResults {
+  [eventId: string]: EventResult;
+}

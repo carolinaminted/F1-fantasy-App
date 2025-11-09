@@ -1,7 +1,7 @@
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState } from 'react';
 import PicksForm from './PicksForm';
-import { EVENTS } from '../constants';
+import { EVENTS, RACE_RESULTS } from '../constants';
 import { Event, PickSelection, User } from '../types';
 import useFantasyData from '../hooks/useFantasyData';
 
@@ -13,7 +13,7 @@ interface HomePageProps {
 
 const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event>(EVENTS[0]);
-  const fantasyData = useFantasyData(seasonPicks);
+  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4">

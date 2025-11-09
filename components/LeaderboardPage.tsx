@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { MOCK_USERS, MOCK_SEASON_PICKS, CONSTRUCTORS, DRIVERS } from '../constants';
 import { calculateScoreRollup } from '../hooks/useFantasyData';
-import { User } from '../types';
+import { User, RaceResults } from '../types';
 
 interface BarChartData {
   label: string;
@@ -35,12 +35,17 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
   );
 };
 
-const LeaderboardPage: React.FC<{currentUser: User | null}> = ({currentUser}) => {
+interface LeaderboardPageProps {
+  currentUser: User | null;
+  raceResults: RaceResults;
+}
+
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResults}) => {
   
   const leaderboardData = useMemo(() => {
-    return MOCK_USERS.map((user, index) => {
+    return MOCK_USERS.map((user) => {
       const userPicks = MOCK_SEASON_PICKS[user.id] || {};
-      const { totalPoints } = calculateScoreRollup(userPicks);
+      const { totalPoints } = calculateScoreRollup(userPicks, raceResults);
       return {
         ...user,
         points: totalPoints,
@@ -49,7 +54,7 @@ const LeaderboardPage: React.FC<{currentUser: User | null}> = ({currentUser}) =>
     })
     .sort((a, b) => b.points - a.points)
     .map((user, index) => ({ ...user, rank: index + 1 }));
-  }, []);
+  }, [raceResults]);
 
   const leagueUsageData = useMemo(() => {
     const teamUsage: { [id: string]: number } = {};
