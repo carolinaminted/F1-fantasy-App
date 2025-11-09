@@ -17,7 +17,7 @@ const MOCK_LEADERBOARD = [
 const LeaderboardPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto text-white">
-      <h1 className="text-4xl font-bold mb-8">Season Leaderboard</h1>
+      <h1 className="text-4xl font-bold mb-8 text-center">Season Leaderboard</h1>
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg ring-1 ring-white/10 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-900/50">

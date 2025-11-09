@@ -11,7 +11,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl md:text-4xl font-bold text-white mb-8">Home Dashboard</h1>
+      <h1 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">Home Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <NavTile
           icon={PicksIcon}

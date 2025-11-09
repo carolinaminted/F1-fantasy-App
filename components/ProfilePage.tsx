@@ -72,7 +72,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
   return (
     <div className="max-w-4xl mx-auto text-white space-y-8">
       <div>
-        <h1 className="text-4xl font-bold mb-2">Profile</h1>
+        <h1 className="text-4xl font-bold mb-4 text-center">Profile</h1>
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold">{user.displayName}</h2>
@@ -86,7 +86,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
       </div>
       
       <div>
-        <h3 className="text-2xl font-bold mb-4">Scoring Breakdown</h3>
+        <h3 className="text-2xl font-bold mb-4 text-center">Scoring Breakdown</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <ScoreBreakdownItem title="Grand Prix" points={scoreRollup.grandPrixPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
             <ScoreBreakdownItem title="Sprint Race" points={scoreRollup.sprintPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
@@ -97,7 +97,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
       </div>
 
       <div>
-        <h3 className="text-2xl font-bold mb-4">Season Usage Stats</h3>
+        <h3 className="text-2xl font-bold mb-4 text-center">Season Usage Stats</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
             <h4 className="text-xl font-semibold mb-3 text-[#ff8400]">Team Usage</h4>

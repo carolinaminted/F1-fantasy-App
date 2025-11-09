@@ -105,8 +105,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
     <>
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div className="flex-grow text-center md:text-left">
-            <div className="flex flex-wrap justify-center md:justify-start items-baseline gap-x-3 gap-y-1">
+          <div className="flex-grow text-center">
+            <div className="flex flex-wrap justify-center items-baseline gap-x-3 gap-y-1">
               <h2 className="text-3xl font-bold text-white">{event.name}</h2>
               {isSubmitted ? (
                 <span className="text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-3 py-1 rounded-full">Submitted</span>
@@ -242,7 +242,7 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                     ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                 </div>
             </div>
         );
