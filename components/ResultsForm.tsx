@@ -92,7 +92,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
 
             <div>
-                <h3 className="font-semibold mb-2">Fastest Lap</h3>
+                <h3 className="font-semibold mb-2 text-center">Fastest Lap</h3>
                 <SelectDriver
                     value={results.fastestLap}
                     onChange={handleFastestLapSelect}
@@ -123,7 +123,7 @@ interface ResultGroupProps {
 
 const ResultGroup: React.FC<ResultGroupProps> = ({ title, positions, selected, onSelect, options }) => (
     <div className="bg-gray-900/50 p-4 rounded-lg">
-        <h3 className="font-semibold mb-3 text-lg">{title}</h3>
+        <h3 className="font-semibold mb-3 text-lg text-center">{title}</h3>
         <div className="space-y-2">
             {Array.from({ length: positions }).map((_, i) => (
                 <SelectDriver

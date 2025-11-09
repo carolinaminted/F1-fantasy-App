@@ -102,13 +102,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
               <div className="space-y-4">
                 {classATeamUsage.length > 0 && (
                   <div>
-                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class A</h5>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1 text-center">Class A</h5>
                     <UsageList items={classATeamUsage} />
                   </div>
                 )}
                 {classBTeamUsage.length > 0 && (
                   <div>
-                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class B</h5>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1 text-center">Class B</h5>
                     <UsageList items={classBTeamUsage} />
                   </div>
                 )}
@@ -123,13 +123,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
               <div className="space-y-4">
                 {classADriverUsage.length > 0 && (
                   <div>
-                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class A</h5>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1 text-center">Class A</h5>
                     <UsageList items={classADriverUsage} />
                   </div>
                 )}
                 {classBDriverUsage.length > 0 && (
                   <div>
-                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1">Class B</h5>
+                    <h5 className="text-md font-semibold text-gray-300 mb-2 border-b border-gray-700 pb-1 text-center">Class B</h5>
                     <UsageList items={classBDriverUsage} />
                   </div>
                 )}
