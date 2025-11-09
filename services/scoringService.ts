@@ -21,54 +21,62 @@ const getDriverPoints = (driverId: string | null, results: (string | null)[] | u
   return pos !== -1 ? (points[pos] || 0) : 0;
 };
 
-// Fix: Extract per-event scoring logic into a reusable function.
 export const calculatePointsForEvent = (
   picks: PickSelection,
   results: EventResult
 ) => {
-    let grandPrixPoints = 0;
-    let sprintPoints = 0;
+    let teamGrandPrixPoints = 0;
+    let driverGrandPrixPoints = 0;
+    let teamSprintPoints = 0;
+    let driverSprintPoints = 0;
+    let teamGpQualifyingPoints = 0;
+    let driverGpQualifyingPoints = 0;
+    let teamSprintQualifyingPoints = 0;
+    let driverSprintQualifyingPoints = 0;
     let fastestLapPoints = 0;
-    let gpQualifyingPoints = 0;
-    let sprintQualifyingPoints = 0;
 
-    // Create a unique set of all drivers that can score points from this pick to avoid double counting.
-    const scoringDriverIds = new Set<string>();
+    const allPickedTeams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
+    const allPickedDrivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
 
-    // Add individually picked drivers
-    [...picks.aDrivers, ...picks.bDrivers].forEach(driverId => {
-      if (driverId) scoringDriverIds.add(driverId);
-    });
-    
-    // Add drivers from picked teams
-    [...picks.aTeams, picks.bTeam].forEach(teamId => {
-      if (teamId) {
+    // --- Team Points (Additive) ---
+    allPickedTeams.forEach(teamId => {
         DRIVERS.forEach(driver => {
-          if (driver.constructorId === teamId) {
-            scoringDriverIds.add(driver.id);
-          }
+            if (driver.constructorId === teamId) {
+                teamGrandPrixPoints += getDriverPoints(driver.id, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
+                if (results.sprintFinish) {
+                    teamSprintPoints += getDriverPoints(driver.id, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
+                }
+                teamGpQualifyingPoints += getDriverPoints(driver.id, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
+                if (results.sprintQualifying) {
+                    teamSprintQualifyingPoints += getDriverPoints(driver.id, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
+                }
+            }
         });
-      }
     });
 
-    // Calculate points based on the unique set of drivers
-    scoringDriverIds.forEach(driverId => {
-      grandPrixPoints += getDriverPoints(driverId, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
-      if (results.sprintFinish) {
-        sprintPoints += getDriverPoints(driverId, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
-      }
-      gpQualifyingPoints += getDriverPoints(driverId, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
-      if(results.sprintQualifying) {
-         sprintQualifyingPoints += getDriverPoints(driverId, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
-      }
+    // --- Driver Points (Additive) ---
+    allPickedDrivers.forEach(driverId => {
+        driverGrandPrixPoints += getDriverPoints(driverId, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
+        if (results.sprintFinish) {
+            driverSprintPoints += getDriverPoints(driverId, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
+        }
+        driverGpQualifyingPoints += getDriverPoints(driverId, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
+        if (results.sprintQualifying) {
+            driverSprintQualifyingPoints += getDriverPoints(driverId, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
+        }
     });
-    
-    // Fastest Lap is separate and awarded only if the picked driver got it
+
+    // --- Fastest Lap ---
     if (picks.fastestLap === results.fastestLap) {
-      fastestLapPoints += POINTS_SYSTEM.fastestLap;
+        fastestLapPoints = POINTS_SYSTEM.fastestLap;
     }
-    
-    const totalPoints = grandPrixPoints + sprintPoints + fastestLapPoints + gpQualifyingPoints + sprintQualifyingPoints;
+
+    const grandPrixPoints = teamGrandPrixPoints + driverGrandPrixPoints;
+    const sprintPoints = teamSprintPoints + driverSprintPoints;
+    const gpQualifyingPoints = teamGpQualifyingPoints + driverGpQualifyingPoints;
+    const sprintQualifyingPoints = teamSprintQualifyingPoints + driverSprintQualifyingPoints;
+
+    const totalPoints = grandPrixPoints + sprintPoints + gpQualifyingPoints + sprintQualifyingPoints + fastestLapPoints;
 
     return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints };
 };

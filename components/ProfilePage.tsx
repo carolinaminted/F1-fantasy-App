@@ -78,7 +78,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         relevantEvents.forEach(event => {
             const picks = seasonPicks[event.id];
             const results = raceResults[event.id];
-            
+            const eventEntries: React.ReactNode[] = [];
             let pointSource: (string | null)[] | undefined;
             let pointSystem: number[];
 
@@ -92,6 +92,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     title = 'Sprint Race Points Breakdown';
                     pointSource = results.sprintFinish;
                     pointSystem = POINTS_SYSTEM.sprintFinish;
+                    if (!event.hasSprint) return;
                     break;
                 case 'quali':
                     title = 'GP Qualifying Points Breakdown';
@@ -105,42 +106,29 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     return;
             }
 
-            const eventEntries: React.ReactNode[] = [];
-            const pickedDriverIds = new Set((picks.aDrivers || []).concat(picks.bDrivers || []).filter(Boolean) as string[]);
-
-            const processPicks = (pickIds: (string|null)[], type: 'team'|'driver') => {
-                pickIds.forEach((pickId, index) => {
-                    if (!pickId) return;
-                    
-                    let points = 0;
-                    if (pointSource && pointSystem) {
-                       if (type === 'driver') {
-                            points = getDriverPoints(pickId, pointSource, pointSystem);
-                        } else { // type === 'team'
-                            DRIVERS.forEach(driver => {
-                                if (driver.constructorId === pickId && !pickedDriverIds.has(driver.id)) {
-                                    points += getDriverPoints(driver.id, pointSource, pointSystem);
-                                }
-                            });
-                        }
-                    }
-                    
-                    eventEntries.push(
-                        <li key={`${pickId}-${index}`}>{getEntityName(pickId)}: <span className="font-semibold">{points} pts</span></li>
-                    );
-                });
-            };
-
             if (category === 'fl') {
-                if(picks.fastestLap){
+                if (picks.fastestLap) {
                     const points = (picks.fastestLap === results.fastestLap) ? POINTS_SYSTEM.fastestLap : 0;
                     eventEntries.push(<li key="fl">{getEntityName(picks.fastestLap)}: <span className="font-semibold">{points} pts</span></li>);
                 }
-            } else {
-                processPicks(picks.aTeams, 'team');
-                processPicks([picks.bTeam], 'team');
-                processPicks(picks.aDrivers, 'driver');
-                processPicks(picks.bDrivers, 'driver');
+            } else if (pointSource && pointSystem) {
+                const allPickedTeams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
+                const allPickedDrivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
+
+                allPickedTeams.forEach(teamId => {
+                    let teamPoints = 0;
+                    DRIVERS.forEach(driver => {
+                        if (driver.constructorId === teamId) {
+                            teamPoints += getDriverPoints(driver.id, pointSource, pointSystem);
+                        }
+                    });
+                    eventEntries.push(<li key={`team-${teamId}`}>{getEntityName(teamId)}: <span className="font-semibold">{teamPoints} pts</span></li>);
+                });
+
+                allPickedDrivers.forEach(driverId => {
+                    const driverPoints = getDriverPoints(driverId, pointSource, pointSystem);
+                    eventEntries.push(<li key={`driver-${driverId}`}>{getEntityName(driverId)}: <span className="font-semibold">{driverPoints} pts</span></li>);
+                });
             }
 
             if (eventEntries.length > 0) {
@@ -154,6 +142,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 );
             }
         });
+    }
+
+    if (detailsContent.length === 0 || (detailsContent.length === 1 && (detailsContent[0] as any)?.key === 'no-picks')) {
+        detailsContent.push(<p key="no-points" className="text-highlight-silver mt-4">No points scored in this category for any completed events.</p>);
     }
 
     setModalData({ title, content: <div className="space-y-4">{detailsContent}</div> });
