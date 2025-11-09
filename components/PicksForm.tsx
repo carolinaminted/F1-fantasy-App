@@ -4,6 +4,7 @@ import CountdownTimer from './CountdownTimer';
 import SelectorGroup from './SelectorGroup';
 import { SubmitIcon } from './icons/SubmitIcon';
 import { FastestLapIcon } from './icons/FastestLapIcon';
+import { LockIcon } from './icons/LockIcon';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -18,6 +19,7 @@ interface PicksFormProps {
   event: Event;
   initialPicksForEvent?: PickSelection;
   onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  formLocks: { [eventId: string]: boolean };
   aTeams: Constructor[];
   bTeams: Constructor[];
   aDrivers: Driver[];
@@ -33,6 +35,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   event,
   initialPicksForEvent,
   onPicksSubmit,
+  formLocks,
   aTeams,
   bTeams,
   aDrivers,
@@ -47,6 +50,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
 
   const isSubmitted = !!initialPicksForEvent;
+  const isLockedByAdmin = formLocks[event.id] && user.email !== 'admin@fantasy.f1';
 
   useEffect(() => {
     const savedPicks = initialPicksForEvent;
@@ -88,6 +92,16 @@ const PicksForm: React.FC<PicksFormProps> = ({
         alert("Please complete all selections before submitting.");
     }
   };
+
+  if (isLockedByAdmin) {
+    return (
+        <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50">
+            <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
+            <h2 className="text-3xl font-bold text-ghost-white mb-2">Picks Are Locked</h2>
+            <p className="text-ghost-white">Edits disabled. This event has been locked by an administrator.</p>
+        </div>
+    );
+  }
 
   if(!isEditing) {
     return (

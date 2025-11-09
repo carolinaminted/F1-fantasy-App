@@ -9,9 +9,10 @@ interface HomePageProps {
   user: User;
   seasonPicks: { [eventId: string]: PickSelection };
   onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  formLocks: { [eventId: string]: boolean };
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event>(EVENTS[0]);
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS);
 
@@ -45,6 +46,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit })
         event={selectedEvent}
         initialPicksForEvent={seasonPicks[selectedEvent.id]}
         onPicksSubmit={onPicksSubmit}
+        formLocks={formLocks}
         {...fantasyData}
       />
     </div>
