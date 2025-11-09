@@ -32,10 +32,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           title={isLogin ? "Click to fill admin credentials" : "Click to fill test user data"}
         >
           <F1FantasyLogo className="w-64 h-auto mb-4"/>
-          <h2 className="text-3xl font-bold text-pure-white text-center">{isLogin ? 'Team Principal Login' : 'Create Account'}</h2>
-          <p className="text-highlight-silver mt-2 text-center">
-            {isLogin ? 'Enter your credentials to manage your team.' : 'Join the league to start competing.'}
-          </p>
         </div>
         
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onLogin({ displayName: displayName || 'Team Principal', email }); }}>
