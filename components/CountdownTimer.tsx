@@ -50,11 +50,11 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ event }) => {
   }
 
   return (
-    <div className={`p-3 rounded-lg text-center ${isLateWindow ? 'bg-yellow-500/20' : 'bg-gray-900/50'}`}>
+    <div className="text-center">
         <p className="text-sm uppercase tracking-wider font-semibold text-gray-400">
             {isLocked ? "Picks Locked" : (isLateWindow ? "Late Window" : "Picks Open")}
         </p>
-        <p className={`text-2xl font-bold tracking-tighter ${isLocked ? "text-red-500" : (isLateWindow ? "text-yellow-400" : "text-white")}`}>
+        <p className={`text-3xl font-bold tracking-tighter ${isLocked ? "text-red-500" : (isLateWindow ? "text-yellow-400" : "text-white")}`}>
             {isLocked ? "LOCKED" : (isLateWindow ? renderTime(timeLeft.lock) : renderTime(timeLeft.soft))}
         </p>
          <p className="text-xs text-gray-500">

@@ -75,10 +75,17 @@ const PicksForm: React.FC<PicksFormProps> = ({ event }) => {
   return (
     <>
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Picks for {event.name}</h2>
-            <p className="text-gray-400">Round {event.round} - {event.country}</p>
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+          <div className="flex-grow text-center md:text-left">
+            <div className="flex flex-wrap justify-center md:justify-start items-baseline gap-x-3 gap-y-1">
+              <h2 className="text-3xl font-bold text-white">{event.name}</h2>
+              {submitted ? (
+                <span className="text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-3 py-1 rounded-full">Submitted</span>
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-wider bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full">Unsubmitted</span>
+              )}
+            </div>
+            <p className="text-gray-400 mt-1">Round {event.round} - {event.country}</p>
           </div>
           <CountdownTimer event={event} />
         </div>
