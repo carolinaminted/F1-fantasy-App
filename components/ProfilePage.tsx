@@ -60,7 +60,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
   );
 
   const ScoreBreakdownItem: React.FC<{ title: string, points: number, icon: React.ReactNode }> = ({ title, points, icon }) => (
-    <div className="bg-gray-900/50 p-4 rounded-lg flex items-center gap-4">
+    <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg flex items-center gap-4 ring-1 ring-white/10">
       <div className="text-[#ff8400]">{icon}</div>
       <div>
         <p className="text-gray-400 text-sm">{title}</p>
@@ -70,17 +70,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto text-white space-y-8">
+    <div className="max-w-4xl mx-auto text-white space-y-12">
       <div>
-        <h1 className="text-4xl font-bold mb-4 text-center">Profile</h1>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex justify-between items-center">
+        <h1 className="text-4xl font-bold mb-6 text-center">Profile</h1>
+        <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left border-b border-gray-700/50 pb-6">
           <div>
-            <h2 className="text-2xl font-semibold">{user.displayName}</h2>
+            <h2 className="text-3xl font-semibold">{user.displayName}</h2>
             <p className="text-gray-400">{user.id}</p>
           </div>
-          <div className="text-right">
+          <div className="mt-4 md:mt-0 text-center md:text-right">
               <p className="text-gray-400 text-sm uppercase tracking-wider">Season Total</p>
-              <p className="text-4xl font-black text-[#ff8400]">{scoreRollup.totalPoints} <span className="text-2xl font-bold text-gray-300">PTS</span></p>
+              <p className="text-5xl font-black text-[#ff8400]">{scoreRollup.totalPoints} <span className="text-3xl font-bold text-gray-300">PTS</span></p>
           </div>
         </div>
       </div>
@@ -97,10 +97,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
       </div>
 
       <div>
-        <h3 className="text-2xl font-bold mb-4 text-center">Season Usage Stats</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
-            <h4 className="text-xl font-semibold mb-3 text-[#ff8400]">Team Usage</h4>
+        <h3 className="text-2xl font-bold mb-6 text-center">Season Usage Stats</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h4 className="text-xl font-semibold mb-4 text-[#ff8400]">Team Usage</h4>
             {teamUsageEntries.length > 0 ? (
               <div className="space-y-4">
                 {classATeamUsage.length > 0 && (
@@ -120,8 +120,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
               <p className="text-gray-400">No teams have been used this season.</p>
             )}
           </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
-            <h4 className="text-xl font-semibold mb-3 text-[#94d600]">Driver Usage</h4>
+          <div>
+            <h4 className="text-xl font-semibold mb-4 text-[#94d600]">Driver Usage</h4>
             {driverUsageEntries.length > 0 ? (
               <div className="space-y-4">
                 {classADriverUsage.length > 0 && (
