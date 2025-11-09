@@ -1,7 +1,10 @@
-// Fix: Implement the ProfilePage component to display user data and usage stats.
+// Fix: Display total points and a detailed scoring breakdown on the profile page.
 import React from 'react';
 import { User, PickSelection, EntityClass, Constructor, Driver } from '../types';
 import useFantasyData from '../hooks/useFantasyData';
+import { LeaderboardIcon } from './icons/LeaderboardIcon';
+import { FastestLapIcon } from './icons/FastestLapIcon';
+import { F1CarIcon } from './icons/F1CarIcon';
 
 interface ProfilePageProps {
   user: User;
@@ -9,7 +12,7 @@ interface ProfilePageProps {
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
-  const { aTeams, bTeams, aDrivers, bDrivers, usageRollup } = useFantasyData(seasonPicks);
+  const { aTeams, bTeams, aDrivers, bDrivers, usageRollup, scoreRollup } = useFantasyData(seasonPicks);
 
   // Process Team Usage
   const allTeams = [...aTeams, ...bTeams];
@@ -56,15 +59,44 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
     </ul>
   );
 
+  const ScoreBreakdownItem: React.FC<{ title: string, points: number, icon: React.ReactNode }> = ({ title, points, icon }) => (
+    <div className="bg-gray-900/50 p-4 rounded-lg flex items-center gap-4">
+      <div className="text-[#ff8400]">{icon}</div>
+      <div>
+        <p className="text-gray-400 text-sm">{title}</p>
+        <p className="text-white font-bold text-xl">{points}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto text-white">
-      <h1 className="text-4xl font-bold mb-8">Profile</h1>
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">
-        <h2 className="text-2xl font-semibold">{user.displayName}</h2>
-        <p className="text-gray-400">{user.id}</p>
+    <div className="max-w-4xl mx-auto text-white space-y-8">
+      <div>
+        <h1 className="text-4xl font-bold mb-2">Profile</h1>
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-semibold">{user.displayName}</h2>
+            <p className="text-gray-400">{user.id}</p>
+          </div>
+          <div className="text-right">
+              <p className="text-gray-400 text-sm uppercase tracking-wider">Season Total</p>
+              <p className="text-4xl font-black text-[#ff8400]">{scoreRollup.totalPoints} <span className="text-2xl font-bold text-gray-300">PTS</span></p>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-2xl font-bold mb-4">Scoring Breakdown</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <ScoreBreakdownItem title="Grand Prix" points={scoreRollup.grandPrixPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
+            <ScoreBreakdownItem title="Sprint Race" points={scoreRollup.sprintPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
+            <ScoreBreakdownItem title="Fastest Lap" points={scoreRollup.fastestLapPoints} icon={<FastestLapIcon className="w-8 h-8"/>} />
+            <ScoreBreakdownItem title="GP Quali" points={scoreRollup.gpQualifyingPoints} icon={<LeaderboardIcon className="w-8 h-8" />} />
+            <ScoreBreakdownItem title="Sprint Quali" points={scoreRollup.sprintQualifyingPoints} icon={<LeaderboardIcon className="w-8 h-8" />} />
+        </div>
       </div>
 
-      <div className="mt-8">
+      <div>
         <h3 className="text-2xl font-bold mb-4">Season Usage Stats</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-white/10">

@@ -1,3 +1,4 @@
+// Fix: Add a detailed points system and mock race results to enable dynamic scoring calculations.
 import { Constructor, Driver, EntityClass, Event } from './types';
 
 export const CONSTRUCTORS: Constructor[] = [
@@ -87,4 +88,32 @@ export const EVENTS: Event[] = [
 export const USAGE_LIMITS = {
   [EntityClass.A]: { teams: 10, drivers: 8 },
   [EntityClass.B]: { teams: 5, drivers: 5 },
+};
+
+export const POINTS_SYSTEM = {
+  grandPrixFinish: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
+  sprintFinish: [8, 7, 6, 5, 4, 3, 2, 1],
+  fastestLap: 5,
+  gpQualifying: [3, 2, 1],
+  sprintQualifying: [3, 2, 1],
+};
+
+export const MOCK_RACE_RESULTS: { [eventId: string]: any } = {
+  'aus_26': {
+    grandPrixFinish: ['ver', 'lec', 'nor', 'sai', 'per', 'pia', 'rus', 'alo', 'ham', 'tsu'],
+    gpQualifying: ['ver', 'lec', 'sai'],
+    fastestLap: 'lec',
+  },
+  'chn_26': {
+    grandPrixFinish: ['lec', 'nor', 'ver', 'sai', 'per', 'pia', 'rus', 'alo', 'ham', 'tsu'],
+    sprintFinish: ['nor', 'ham', 'ver', 'sai', 'lec', 'per', 'pia', 'rus'],
+    gpQualifying: ['lec', 'ver', 'nor'],
+    sprintQualifying: ['nor', 'ham', 'ver'],
+    fastestLap: 'ver',
+  },
+  'jpn_26': {
+    grandPrixFinish: ['ver', 'per', 'sai', 'lec', 'nor', 'alo', 'rus', 'pia', 'ham', 'tsu'],
+    gpQualifying: ['ver', 'per', 'nor'],
+    fastestLap: 'ver',
+  },
 };
