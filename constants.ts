@@ -14,74 +14,74 @@ export const CONSTRUCTORS: Constructor[] = [
   { id: 'alpine', name: 'Alpine', class: EntityClass.B },
   { id: 'racing_bulls', name: 'Racing Bulls', class: EntityClass.B },
   { id: 'haas', name: 'Haas F1 Team', class: EntityClass.B },
-  { id: 'cadillac', name: 'Cadillac', class: EntityClass.B },
 ];
 
 export const DRIVERS: Driver[] = [
-  // Class A
+  // Ferrari (A)
   { id: 'lec', name: 'Charles Leclerc', constructorId: 'ferrari', class: EntityClass.A },
-  { id: 'sai', name: 'Carlos Sainz', constructorId: 'ferrari', class: EntityClass.A },
+  { id: 'ham', name: 'Lewis Hamilton', constructorId: 'ferrari', class: EntityClass.A },
+  // McLaren (A)
   { id: 'nor', name: 'Lando Norris', constructorId: 'mclaren', class: EntityClass.A },
   { id: 'pia', name: 'Oscar Piastri', constructorId: 'mclaren', class: EntityClass.A },
+  // Red Bull (A)
   { id: 'ver', name: 'Max Verstappen', constructorId: 'red_bull', class: EntityClass.A },
-  { id: 'per', name: 'Sergio Pérez', constructorId: 'red_bull', class: EntityClass.A },
-  { id: 'ham', name: 'Lewis Hamilton', constructorId: 'mercedes', class: EntityClass.A },
+  { id: 'tsu', name: 'Yuki Tsunoda', constructorId: 'red_bull', class: EntityClass.A },
+  // Mercedes (A)
   { id: 'rus', name: 'George Russell', constructorId: 'mercedes', class: EntityClass.A },
+  { id: 'ant', name: 'Andrea Kimi Antonelli', constructorId: 'mercedes', class: EntityClass.A },
+  // Williams (A)
   { id: 'alb', name: 'Alexander Albon', constructorId: 'williams', class: EntityClass.A },
-  { id: 'sar', name: 'Logan Sargeant', constructorId: 'williams', class: EntityClass.A },
-  // Class B
+  { id: 'sai', name: 'Carlos Sainz Jr.', constructorId: 'williams', class: EntityClass.A },
+  // Aston Martin (B)
   { id: 'alo', name: 'Fernando Alonso', constructorId: 'aston_martin', class: EntityClass.B },
   { id: 'str', name: 'Lance Stroll', constructorId: 'aston_martin', class: EntityClass.B },
-  { id: 'bot', name: 'Valtteri Bottas', constructorId: 'kick_sauber', class: EntityClass.B },
-  { id: 'zho', name: 'Guanyu Zhou', constructorId: 'kick_sauber', class: EntityClass.B },
+  // Kick Sauber (B)
+  { id: 'hul', name: 'Nico Hulkenberg', constructorId: 'kick_sauber', class: EntityClass.B },
+  { id: 'bor', name: 'Gabriel Bortoleto', constructorId: 'kick_sauber', class: EntityClass.B },
+  // Alpine (B)
   { id: 'gas', name: 'Pierre Gasly', constructorId: 'alpine', class: EntityClass.B },
-  { id: 'oco', name: 'Esteban Ocon', constructorId: 'alpine', class: EntityClass.B },
-  { id: 'ric', name: 'Daniel Ricciardo', constructorId: 'racing_bulls', class: EntityClass.B },
-  { id: 'tsu', name: 'Yuki Tsunoda', constructorId: 'racing_bulls', class: EntityClass.B },
-  { id: 'mag', name: 'Kevin Magnussen', constructorId: 'haas', class: EntityClass.B },
-  { id: 'hul', name: 'Nico Hülkenberg', constructorId: 'haas', class: EntityClass.B },
-  { id: 'pal', name: 'Alex Palou', constructorId: 'cadillac', class: EntityClass.B },
-  { id: 'her', name: 'Colton Herta', constructorId: 'cadillac', class: EntityClass.B },
+  // Racing Bulls (B)
+  { id: 'had', name: 'Isack Hadjar', constructorId: 'racing_bulls', class: EntityClass.B },
+  { id: 'law', name: 'Liam Lawson', constructorId: 'racing_bulls', class: EntityClass.B },
+  // Haas (B)
+  { id: 'oco', name: 'Esteban Ocon', constructorId: 'haas', class: EntityClass.B },
+  { id: 'bea', name: 'Oliver Bearman', constructorId: 'haas', class: EntityClass.B },
 ];
 
-
-const generateEventDate = (base: Date, daysToAdd: number) => {
-    const newDate = new Date(base);
-    newDate.setDate(newDate.getDate() + daysToAdd);
+const createEventDate = (dateString: string) => {
+    const lockAt = new Date(`${dateString}T14:00:00Z`);
+    const softDeadline = new Date(lockAt.getTime() - 2 * 60 * 60 * 1000);
     return {
-        lockAtUtc: newDate.toISOString(),
-        softDeadlineUtc: new Date(newDate.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        lockAtUtc: lockAt.toISOString(),
+        softDeadlineUtc: softDeadline.toISOString(),
     };
 };
 
-const baseDate = new Date(); // Use today as a starting point for dynamic dates
-baseDate.setHours(14, 0, 0, 0); // Set a consistent time for lock-in
-
 export const EVENTS: Event[] = [
-    { id: 'aus_26', round: 1, name: 'Australian GP', country: 'Australia', hasSprint: false, ...generateEventDate(baseDate, -7 * 4) },
-    { id: 'chn_26', round: 2, name: 'Chinese GP', country: 'China', hasSprint: true, ...generateEventDate(baseDate, -7 * 3) },
-    { id: 'jpn_26', round: 3, name: 'Japanese GP', country: 'Japan', hasSprint: false, ...generateEventDate(baseDate, -7 * 2) },
-    { id: 'bhr_26', round: 4, name: 'Bahrain GP', country: 'Bahrain', hasSprint: false, ...generateEventDate(baseDate, -7 * 1) },
-    { id: 'sau_26', round: 5, name: 'Saudi Arabian GP', country: 'Saudi Arabia', hasSprint: false, ...generateEventDate(baseDate, 7 * 1) },
-    { id: 'mia_26', round: 6, name: 'Miami GP', country: 'USA', hasSprint: true, ...generateEventDate(baseDate, 7 * 2) },
-    { id: 'emi_26', round: 7, name: 'Emilia-Romagna GP', country: 'Italy', hasSprint: false, ...generateEventDate(baseDate, 7 * 3) },
-    { id: 'mco_26', round: 8, name: 'Monaco GP', country: 'Monaco', hasSprint: false, ...generateEventDate(baseDate, 7 * 4) },
-    { id: 'can_26', round: 9, name: 'Canadian GP', country: 'Canada', hasSprint: true, ...generateEventDate(baseDate, 7 * 5) },
-    { id: 'esp_26', round: 10, name: 'Spanish GP', country: 'Spain', hasSprint: false, ...generateEventDate(baseDate, 7 * 6) },
-    { id: 'aut_26', round: 11, name: 'Austrian GP', country: 'Austria', hasSprint: false, ...generateEventDate(baseDate, 7 * 7) },
-    { id: 'gbr_26', round: 12, name: 'British GP', country: 'Great Britain', hasSprint: true, ...generateEventDate(baseDate, 7 * 8) },
-    { id: 'bel_26', round: 13, name: 'Belgian GP', country: 'Belgium', hasSprint: false, ...generateEventDate(baseDate, 7 * 9) },
-    { id: 'hun_26', round: 14, name: 'Hungarian GP', country: 'Hungary', hasSprint: false, ...generateEventDate(baseDate, 7 * 10) },
-    { id: 'nld_26', round: 15, name: 'Dutch GP', country: 'Netherlands', hasSprint: true, ...generateEventDate(baseDate, 7 * 11) },
-    { id: 'ita_26', round: 16, name: 'Italian GP', country: 'Italy', hasSprint: false, ...generateEventDate(baseDate, 7 * 12) },
-    { id: 'aze_26', round: 17, name: 'Azerbaijan GP', country: 'Azerbaijan', hasSprint: false, ...generateEventDate(baseDate, 7 * 13) },
-    { id: 'sgp_26', round: 18, name: 'Singapore GP', country: 'Singapore', hasSprint: true, ...generateEventDate(baseDate, 7 * 14) },
-    { id: 'usa_26', round: 19, name: 'United States GP', country: 'USA', hasSprint: false, ...generateEventDate(baseDate, 7 * 15) },
-    { id: 'mex_26', round: 20, name: 'Mexico City GP', country: 'Mexico', hasSprint: false, ...generateEventDate(baseDate, 7 * 16) },
-    { id: 'bra_26', round: 21, name: 'Sao Paulo GP', country: 'Brazil', hasSprint: false, ...generateEventDate(baseDate, 7 * 17) },
-    { id: 'las_26', round: 22, name: 'Las Vegas GP', country: 'USA', hasSprint: false, ...generateEventDate(baseDate, 7 * 18) },
-    { id: 'qat_26', round: 23, name: 'Qatar GP', country: 'Qatar', hasSprint: false, ...generateEventDate(baseDate, 7 * 19) },
-    { id: 'abu_26', round: 24, name: 'Abu Dhabi GP', country: 'Abu Dhabi', hasSprint: false, ...generateEventDate(baseDate, 7 * 20) },
+    { id: 'aus_25', round: 1, name: 'Australian GP', country: 'Australia', hasSprint: false, ...createEventDate('2025-03-16') },
+    { id: 'chn_25', round: 2, name: 'Chinese GP', country: 'China', hasSprint: true, ...createEventDate('2025-03-23') },
+    { id: 'jpn_25', round: 3, name: 'Japanese GP', country: 'Japan', hasSprint: false, ...createEventDate('2025-04-06') },
+    { id: 'bhr_25', round: 4, name: 'Bahrain GP', country: 'Bahrain', hasSprint: false, ...createEventDate('2025-04-13') },
+    { id: 'sau_25', round: 5, name: 'Saudi Arabian GP', country: 'Saudi Arabia', hasSprint: false, ...createEventDate('2025-04-20') },
+    { id: 'mia_25', round: 6, name: 'Miami GP', country: 'USA', hasSprint: true, ...createEventDate('2025-05-04') },
+    { id: 'emi_25', round: 7, name: 'Emilia-Romagna GP', country: 'Italy', hasSprint: false, ...createEventDate('2025-05-18') },
+    { id: 'mco_25', round: 8, name: 'Monaco GP', country: 'Monaco', hasSprint: false, ...createEventDate('2025-05-25') },
+    { id: 'esp_25', round: 9, name: 'Spanish GP', country: 'Spain', hasSprint: false, ...createEventDate('2025-06-01') },
+    { id: 'can_25', round: 10, name: 'Canadian GP', country: 'Canada', hasSprint: false, ...createEventDate('2025-06-15') },
+    { id: 'aut_25', round: 11, name: 'Austrian GP', country: 'Austria', hasSprint: false, ...createEventDate('2025-06-29') },
+    { id: 'gbr_25', round: 12, name: 'British GP', country: 'Great Britain', hasSprint: false, ...createEventDate('2025-07-06') },
+    { id: 'bel_25', round: 13, name: 'Belgian GP', country: 'Belgium', hasSprint: true, ...createEventDate('2025-07-27') },
+    { id: 'hun_25', round: 14, name: 'Hungarian GP', country: 'Hungary', hasSprint: false, ...createEventDate('2025-08-03') },
+    { id: 'nld_25', round: 15, name: 'Dutch GP', country: 'Netherlands', hasSprint: false, ...createEventDate('2025-08-31') },
+    { id: 'ita_25', round: 16, name: 'Italian GP', country: 'Italy', hasSprint: false, ...createEventDate('2025-09-07') },
+    { id: 'aze_25', round: 17, name: 'Azerbaijan GP', country: 'Azerbaijan', hasSprint: false, ...createEventDate('2025-09-21') },
+    { id: 'sgp_25', round: 18, name: 'Singapore GP', country: 'Singapore', hasSprint: false, ...createEventDate('2025-10-05') },
+    { id: 'usa_25', round: 19, name: 'United States GP', country: 'USA', hasSprint: true, ...createEventDate('2025-10-19') },
+    { id: 'mex_25', round: 20, name: 'Mexico City GP', country: 'Mexico', hasSprint: false, ...createEventDate('2025-10-26') },
+    { id: 'bra_25', round: 21, name: 'Sao Paulo GP', country: 'Brazil', hasSprint: true, ...createEventDate('2025-11-09') },
+    { id: 'las_25', round: 22, name: 'Las Vegas GP', country: 'USA', hasSprint: false, ...createEventDate('2025-11-22') },
+    { id: 'qat_25', round: 23, name: 'Qatar GP', country: 'Qatar', hasSprint: true, ...createEventDate('2025-11-30') },
+    { id: 'abu_25', round: 24, name: 'Abu Dhabi GP', country: 'Abu Dhabi', hasSprint: false, ...createEventDate('2025-12-07') },
 ];
 
 
@@ -99,27 +99,112 @@ export const POINTS_SYSTEM = {
 };
 
 export const MOCK_RACE_RESULTS: { [eventId: string]: any } = {
-  'aus_26': {
-    grandPrixFinish: ['ver', 'lec', 'nor', 'sai', 'per', 'pia', 'rus', 'alo', 'ham', 'tsu'],
-    gpQualifying: ['ver', 'lec', 'sai'],
-    fastestLap: 'lec',
+  'aus_25': {
+    grandPrixFinish: ['nor', 'ver', 'rus', 'ant', 'alb', 'str', 'hul', 'lec', 'pia', 'ham'],
+    gpQualifying: ['nor'],
+    fastestLap: 'nor',
   },
-  'chn_26': {
-    grandPrixFinish: ['lec', 'nor', 'ver', 'sai', 'per', 'pia', 'rus', 'alo', 'ham', 'tsu'],
-    sprintFinish: ['nor', 'ham', 'ver', 'sai', 'lec', 'per', 'pia', 'rus'],
-    gpQualifying: ['lec', 'ver', 'nor'],
-    sprintQualifying: ['nor', 'ham', 'ver'],
+  'chn_25': {
+    grandPrixFinish: ['pia', 'nor', 'rus', 'ver', 'oco', 'ant', 'alb', 'bea', 'str', 'sai'],
+    sprintFinish: ['ham', 'pia', 'ver', 'rus', 'lec', 'tsu', 'ant', 'nor'],
+    gpQualifying: ['pia'],
+    fastestLap: 'nor',
+  },
+  'jpn_25': {
+    grandPrixFinish: ['ver', 'nor', 'pia', 'lec', 'rus', 'ant', 'ham', 'had', 'alb', 'bea'],
+    gpQualifying: ['ver'],
+    fastestLap: 'ant',
+  },
+  'bhr_25': {
+    grandPrixFinish: ['pia', 'rus', 'nor', 'lec', 'ham', 'ver', 'gas', 'oco', 'tsu', 'bea'],
+    gpQualifying: ['pia'],
+    fastestLap: 'pia',
+  },
+  'sau_25': {
+    grandPrixFinish: ['pia', 'ver', 'lec', 'nor', 'rus', 'ant', 'ham', 'sai', 'alb', 'had'],
+    gpQualifying: ['ver'],
+    fastestLap: 'nor',
+  },
+  'mia_25': {
+    grandPrixFinish: ['pia', 'nor', 'rus', 'ver', 'alb', 'ant', 'lec', 'ham', 'sai', 'tsu'],
+    sprintFinish: ['nor', 'pia', 'ham', 'rus', 'str', 'tsu', 'ant', 'gas'],
+    gpQualifying: ['ver'],
+    fastestLap: 'nor',
+  },
+  'emi_25': {
+    grandPrixFinish: ['ver', 'nor', 'pia', 'ham', 'alb', 'lec', 'rus', 'sai', 'had', 'tsu'],
+    gpQualifying: ['pia'],
     fastestLap: 'ver',
   },
-  'jpn_26': {
-    grandPrixFinish: ['ver', 'per', 'sai', 'lec', 'nor', 'alo', 'rus', 'pia', 'ham', 'tsu'],
-    gpQualifying: ['ver', 'per', 'nor'],
+  'mco_25': {
+    grandPrixFinish: ['nor', 'lec', 'pia', 'ver', 'ham', 'had', 'oco', 'law', 'alb', 'sai'],
+    gpQualifying: ['nor'],
+    fastestLap: 'ham',
+  },
+  'esp_25': {
+    grandPrixFinish: ['pia', 'nor', 'lec', 'rus', 'hul', 'ham', 'had', 'gas', 'alo', 'ver'],
+    gpQualifying: ['pia'],
+    fastestLap: 'pia',
+  },
+  'can_25': {
+    grandPrixFinish: ['rus', 'ver', 'ant', 'pia', 'lec', 'ham', 'alo', 'hul', 'oco', 'sai'],
+    gpQualifying: ['rus'],
+    fastestLap: 'rus',
+  },
+  'aut_25': {
+    grandPrixFinish: ['nor', 'pia', 'lec', 'ham', 'rus', 'law', 'alo', 'bor', 'hul', 'oco'],
+    gpQualifying: ['nor'],
+    fastestLap: 'pia',
+  },
+  'gbr_25': {
+    grandPrixFinish: ['nor', 'pia', 'hul', 'ham', 'ver', 'gas', 'str', 'alb', 'alo', 'rus'],
+    gpQualifying: ['ver'],
+    fastestLap: 'pia',
+  },
+  'bel_25': {
+    grandPrixFinish: ['pia', 'nor', 'lec', 'ver', 'rus', 'alb', 'ham', 'law', 'bor', 'gas'],
+    sprintFinish: ['ver', 'pia', 'nor', 'lec', 'oco', 'sai', 'bea', 'had'],
+    gpQualifying: ['nor'],
+    fastestLap: 'ant',
+  },
+  'hun_25': {
+    grandPrixFinish: ['nor', 'pia', 'rus', 'lec', 'alo', 'bor', 'str', 'law', 'ver', 'ant'],
+    gpQualifying: ['lec'],
+    fastestLap: 'rus',
+  },
+  'nld_25': {
+    grandPrixFinish: ['pia', 'ver', 'had', 'rus', 'alb', 'bea', 'str', 'alo', 'tsu', 'oco'],
+    gpQualifying: ['pia'],
+    fastestLap: 'pia',
+  },
+  'ita_25': {
+    grandPrixFinish: ['ver', 'nor', 'pia', 'lec', 'rus', 'ham', 'alb', 'bor', 'ant', 'had'],
+    gpQualifying: ['ver'],
+    fastestLap: 'nor',
+  },
+  'aze_25': {
+    grandPrixFinish: ['ver', 'rus', 'sai', 'ant', 'law', 'tsu', 'nor', 'ham', 'lec', 'had'],
+    gpQualifying: ['ver'],
     fastestLap: 'ver',
   },
-  'bhr_26': {
-    grandPrixFinish: ['sai', 'lec', 'ver', 'rus', 'nor', 'ham', 'pia', 'alo', 'str', 'zho'],
-    gpQualifying: ['lec', 'ver', 'sai'],
-    fastestLap: 'sai',
+  'sgp_25': {
+    grandPrixFinish: ['rus', 'ver', 'nor', 'pia', 'ant', 'lec', 'alo', 'ham', 'bea', 'sai'],
+    gpQualifying: ['rus'],
+    fastestLap: 'ham',
+  },
+  'usa_25': {
+    grandPrixFinish: ['ver', 'nor', 'lec', 'ham', 'pia', 'rus', 'tsu', 'hul', 'bea', 'alo'],
+    sprintFinish: ['ver', 'rus', 'sai', 'ham', 'lec', 'alb', 'tsu', 'ant'],
+    gpQualifying: ['ver'],
+    fastestLap: 'ant',
+  },
+  'mex_25': {
+    grandPrixFinish: ['nor', 'lec', 'ver', 'bea', 'pia', 'ant', 'rus', 'ham', 'oco', 'bor'],
+    gpQualifying: ['nor'],
+    fastestLap: 'rus',
+  },
+  'bra_25': {
+    sprintFinish: ['nor', 'ant', 'rus', 'ver', 'lec', 'alo', 'ham', 'gas'],
   },
 };
 
@@ -154,93 +239,27 @@ export let MOCK_USERS: User[] = [
 
 export let MOCK_SEASON_PICKS: { [userId: string]: { [eventId: string]: PickSelection } } = {
   "user-001": {
-    "aus_26": { "aTeams": ["red_bull", "ferrari"], "bTeam": "haas", "aDrivers": ["ver", "lec", "sai"], "bDrivers": ["mag", "hul"], "fastestLap": "ver" },
-    "chn_26": { "aTeams": ["mclaren", "mercedes"], "bTeam": "racing_bulls", "aDrivers": ["nor", "ham", "rus"], "bDrivers": ["ric", "tsu"], "fastestLap": "nor" }
+    "aus_25": { "aTeams": ["red_bull", "ferrari"], "bTeam": "haas", "aDrivers": ["ver", "lec", "ham"], "bDrivers": ["oco", "bea"], "fastestLap": "ver" },
+    "chn_25": { "aTeams": ["mclaren", "mercedes"], "bTeam": "racing_bulls", "aDrivers": ["nor", "rus", "ant"], "bDrivers": ["had", "law"], "fastestLap": "nor" }
   },
   "user-002": {
-    "aus_26": { "aTeams": ["mclaren", "williams"], "bTeam": "aston_martin", "aDrivers": ["pia", "nor", "alb"], "bDrivers": ["alo", "str"], "fastestLap": "pia" },
-    "chn_26": { "aTeams": ["ferrari", "red_bull"], "bTeam": "alpine", "aDrivers": ["lec", "sai", "per"], "bDrivers": ["gas", "oco"], "fastestLap": "lec" },
-    "jpn_26": { "aTeams": ["mercedes", "red_bull"], "bTeam": "kick_sauber", "aDrivers": ["ham", "rus", "ver"], "bDrivers": ["bot", "zho"], "fastestLap": "ham" }
+    "aus_25": { "aTeams": ["mclaren", "williams"], "bTeam": "aston_martin", "aDrivers": ["pia", "nor", "alb"], "bDrivers": ["alo", "str"], "fastestLap": "pia" },
+    "chn_25": { "aTeams": ["ferrari", "red_bull"], "bTeam": "alpine", "aDrivers": ["lec", "ham", "tsu"], "bDrivers": ["gas"], "fastestLap": "lec" },
+    "jpn_25": { "aTeams": ["mercedes", "red_bull"], "bTeam": "kick_sauber", "aDrivers": ["rus", "ant", "ver"], "bDrivers": ["hul", "bor"], "fastestLap": "rus" }
   },
   "user-003": {
-    "aus_26": { "aTeams": ["ferrari", "mercedes"], "bTeam": "racing_bulls", "aDrivers": ["lec", "ham", "rus"], "bDrivers": ["ric", "tsu"], "fastestLap": "rus" },
-    "chn_26": { "aTeams": ["red_bull", "mclaren"], "bTeam": "haas", "aDrivers": ["ver", "per", "nor"], "bDrivers": ["mag", "hul"], "fastestLap": "ver" },
-    "bhr_26": { "aTeams": ["ferrari", "mclaren"], "bTeam": "cadillac", "aDrivers": ["sai", "lec", "pia"], "bDrivers": ["pal", "her"], "fastestLap": "sai" }
+    "aus_25": { "aTeams": ["ferrari", "mercedes"], "bTeam": "racing_bulls", "aDrivers": ["lec", "rus", "ant"], "bDrivers": ["had", "law"], "fastestLap": "rus" },
+    "chn_25": { "aTeams": ["red_bull", "mclaren"], "bTeam": "haas", "aDrivers": ["ver", "tsu", "nor"], "bDrivers": ["oco", "bea"], "fastestLap": "ver" },
+    "bhr_25": { "aTeams": ["ferrari", "mclaren"], "bTeam": "aston_martin", "aDrivers": ["ham", "lec", "pia"], "bDrivers": ["alo", "str"], "fastestLap": "ham" }
   },
-  "user-004": {
-    "jpn_26": { "aTeams": ["red_bull", "ferrari"], "bTeam": "aston_martin", "aDrivers": ["ver", "lec", "per"], "bDrivers": ["alo", "str"], "fastestLap": "per" },
-    "bhr_26": { "aTeams": ["mclaren", "mercedes"], "bTeam": "alpine", "aDrivers": ["nor", "pia", "ham"], "bDrivers": ["gas", "oco"], "fastestLap": "nor" }
-  },
-  "user-005": {
-    "aus_26": { "aTeams": ["red_bull", "mclaren"], "bTeam": "kick_sauber", "aDrivers": ["ver", "nor", "pia"], "bDrivers": ["bot", "zho"], "fastestLap": "ver" },
-    "chn_26": { "aTeams": ["ferrari", "williams"], "bTeam": "haas", "aDrivers": ["lec", "sai", "alb"], "bDrivers": ["mag", "hul"], "fastestLap": "lec" },
-    "jpn_26": { "aTeams": ["mercedes", "ferrari"], "bTeam": "racing_bulls", "aDrivers": ["ham", "rus", "lec"], "bDrivers": ["ric", "tsu"], "fastestLap": "rus" },
-    "bhr_26": { "aTeams": ["red_bull", "mercedes"], "bTeam": "aston_martin", "aDrivers": ["ver", "per", "ham"], "bDrivers": ["alo", "str"], "fastestLap": "ver" }
-  },
-  "user-006": {
-    "chn_26": { "aTeams": ["mclaren", "ferrari"], "bTeam": "alpine", "aDrivers": ["nor", "lec", "sai"], "bDrivers": ["gas", "oco"], "fastestLap": "nor" },
-    "jpn_26": { "aTeams": ["red_bull", "williams"], "bTeam": "cadillac", "aDrivers": ["ver", "per", "alb"], "bDrivers": ["pal", "her"], "fastestLap": "ver" }
-  },
-  "user-007": {
-    "aus_26": { "aTeams": ["mercedes", "red_bull"], "bTeam": "haas", "aDrivers": ["ham", "rus", "ver"], "bDrivers": ["mag", "hul"], "fastestLap": "ham" },
-    "chn_26": { "aTeams": ["ferrari", "mclaren"], "bTeam": "aston_martin", "aDrivers": ["lec", "nor", "pia"], "bDrivers": ["alo", "str"], "fastestLap": "lec" },
-    "jpn_26": { "aTeams": ["red_bull", "mercedes"], "bTeam": "racing_bulls", "aDrivers": ["ver", "ham", "rus"], "bDrivers": ["ric", "tsu"], "fastestLap": "ver" }
-  },
-  "user-008": {
-    "aus_26": { "aTeams": ["williams", "ferrari"], "bTeam": "kick_sauber", "aDrivers": ["alb", "sar", "lec"], "bDrivers": ["bot", "zho"], "fastestLap": "lec" },
-    "bhr_26": { "aTeams": ["mclaren", "red_bull"], "bTeam": "haas", "aDrivers": ["nor", "pia", "ver"], "bDrivers": ["mag", "hul"], "fastestLap": "nor" }
-  },
-  "user-009": {
-    "aus_26": { "aTeams": ["ferrari", "red_bull"], "bTeam": "alpine", "aDrivers": ["lec", "sai", "ver"], "bDrivers": ["gas", "oco"], "fastestLap": "ver" },
-    "chn_26": { "aTeams": ["mclaren", "mercedes"], "bTeam": "aston_martin", "aDrivers": ["nor", "pia", "ham"], "bDrivers": ["alo", "str"], "fastestLap": "pia" },
-    "jpn_26": { "aTeams": ["red_bull", "ferrari"], "bTeam": "haas", "aDrivers": ["ver", "per", "lec"], "bDrivers": ["mag", "hul"], "fastestLap": "ver" }
-  },
-  "user-010": {
-    "chn_26": { "aTeams": ["mercedes", "williams"], "bTeam": "racing_bulls", "aDrivers": ["ham", "rus", "alb"], "bDrivers": ["ric", "tsu"], "fastestLap": "ham" },
-    "bhr_26": { "aTeams": ["ferrari", "red_bull"], "bTeam": "kick_sauber", "aDrivers": ["lec", "sai", "ver"], "bDrivers": ["bot", "zho"], "fastestLap": "lec" }
-  },
-  "user-011": {
-    "aus_26": { "aTeams": ["mclaren", "mercedes"], "bTeam": "cadillac", "aDrivers": ["nor", "pia", "rus"], "bDrivers": ["pal", "her"], "fastestLap": "nor" },
-    "chn_26": { "aTeams": ["red_bull", "ferrari"], "bTeam": "alpine", "aDrivers": ["ver", "lec", "sai"], "bDrivers": ["gas", "oco"], "fastestLap": "ver" }
-  },
-  "user-012": {
-    "jpn_26": { "aTeams": ["ferrari", "mclaren"], "bTeam": "haas", "aDrivers": ["lec", "sai", "nor"], "bDrivers": ["mag", "hul"], "fastestLap": "sai" },
-    "bhr_26": { "aTeams": ["red_bull", "williams"], "bTeam": "aston_martin", "aDrivers": ["ver", "per", "alb"], "bDrivers": ["alo", "str"], "fastestLap": "ver" }
-  },
-  "user-013": {
-    "aus_26": { "aTeams": ["red_bull", "mercedes"], "bTeam": "racing_bulls", "aDrivers": ["ver", "ham", "rus"], "bDrivers": ["tsu", "ric"], "fastestLap": "ham" }
-  },
-  "user-014": {
-    "chn_26": { "aTeams": ["ferrari", "mclaren"], "bTeam": "kick_sauber", "aDrivers": ["lec", "nor", "sai"], "bDrivers": ["bot", "zho"], "fastestLap": "nor" },
-    "jpn_26": { "aTeams": ["red_bull", "mercedes"], "bTeam": "alpine", "aDrivers": ["ver", "per", "ham"], "bDrivers": ["gas", "oco"], "fastestLap": "ver" }
-  },
-  "user-015": {
-    "aus_26": { "aTeams": ["mclaren", "ferrari"], "bTeam": "haas", "aDrivers": ["nor", "pia", "lec"], "bDrivers": ["mag", "hul"], "fastestLap": "lec" },
-    "chn_26": { "aTeams": ["red_bull", "mercedes"], "bTeam": "aston_martin", "aDrivers": ["ver", "ham", "rus"], "bDrivers": ["alo", "str"], "fastestLap": "rus" },
-    "bhr_26": { "aTeams": ["ferrari", "williams"], "bTeam": "racing_bulls", "aDrivers": ["sai", "lec", "alb"], "bDrivers": ["ric", "tsu"], "fastestLap": "sai" }
-  },
-  "user-016": {
-    "aus_26": { "aTeams": ["ferrari", "williams"], "bTeam": "cadillac", "aDrivers": ["lec", "sai", "alb"], "bDrivers": ["pal", "her"], "fastestLap": "lec" },
-    "jpn_26": { "aTeams": ["mclaren", "red_bull"], "bTeam": "kick_sauber", "aDrivers": ["nor", "pia", "ver"], "bDrivers": ["bot", "zho"], "fastestLap": "ver" }
-  },
-  "user-017": {
-    "chn_26": { "aTeams": ["red_bull", "mercedes"], "bTeam": "haas", "aDrivers": ["ver", "ham", "rus"], "bDrivers": ["mag", "hul"], "fastestLap": "ham" },
-    "bhr_26": { "aTeams": ["ferrari", "mclaren"], "bTeam": "alpine", "aDrivers": ["lec", "sai", "nor"], "bDrivers": ["gas", "oco"], "fastestLap": "lec" }
-  },
-  "user-018": {
-    "aus_26": { "aTeams": ["mclaren", "red_bull"], "bTeam": "racing_bulls", "aDrivers": ["nor", "ver", "per"], "bDrivers": ["ric", "tsu"], "fastestLap": "nor" },
-    "jpn_26": { "aTeams": ["ferrari", "mercedes"], "bTeam": "aston_martin", "aDrivers": ["lec", "sai", "ham"], "bDrivers": ["alo", "str"], "fastestLap": "sai" }
-  },
-  "user-019": {
-    "aus_26": { "aTeams": ["red_bull", "ferrari"], "bTeam": "kick_sauber", "aDrivers": ["ver", "lec", "sai"], "bDrivers": ["bot", "zho"], "fastestLap": "ver" },
-    "chn_26": { "aTeams": ["mclaren", "williams"], "bTeam": "haas", "aDrivers": ["nor", "pia", "alb"], "bDrivers": ["mag", "hul"], "fastestLap": "pia" }
-  },
-  "user-020": {
-    "chn_26": { "aTeams": ["ferrari", "mercedes"], "bTeam": "cadillac", "aDrivers": ["lec", "sai", "ham"], "bDrivers": ["pal", "her"], "fastestLap": "lec" },
-    "bhr_26": { "aTeams": ["red_bull", "mclaren"], "bTeam": "racing_bulls", "aDrivers": ["ver", "per", "nor"], "bDrivers": ["ric", "tsu"], "fastestLap": "ver" }
+   "user-005": {
+    "aus_25": { "aTeams": ["red_bull", "mclaren"], "bTeam": "kick_sauber", "aDrivers": ["ver", "nor", "pia"], "bDrivers": ["hul", "bor"], "fastestLap": "ver" },
+    "chn_25": { "aTeams": ["ferrari", "williams"], "bTeam": "haas", "aDrivers": ["lec", "ham", "alb"], "bDrivers": ["oco", "bea"], "fastestLap": "lec" },
+    "jpn_25": { "aTeams": ["mercedes", "ferrari"], "bTeam": "racing_bulls", "aDrivers": ["rus", "ant", "lec"], "bDrivers": ["had", "law"], "fastestLap": "rus" },
+    "bhr_25": { "aTeams": ["red_bull", "mercedes"], "bTeam": "aston_martin", "aDrivers": ["ver", "tsu", "rus"], "bDrivers": ["alo", "str"], "fastestLap": "ver" }
   },
   "user-admin": {
-    "aus_26": { "aTeams": ["ferrari", "red_bull"], "bTeam": "racing_bulls", "aDrivers": ["ver", "lec", "sai"], "bDrivers": ["ric", "tsu"], "fastestLap": "ver" },
-    "chn_26": { "aTeams": ["mclaren", "ferrari"], "bTeam": "haas", "aDrivers": ["nor", "lec", "pia"], "bDrivers": ["mag", "hul"], "fastestLap": "nor" }
+    "aus_25": { "aTeams": ["ferrari", "red_bull"], "bTeam": "racing_bulls", "aDrivers": ["ver", "lec", "ham"], "bDrivers": ["had", "law"], "fastestLap": "ver" },
+    "chn_25": { "aTeams": ["mclaren", "ferrari"], "bTeam": "haas", "aDrivers": ["nor", "lec", "pia"], "bDrivers": ["oco", "bea"], "fastestLap": "nor" }
   }
 };
