@@ -24,8 +24,8 @@ const App: React.FC = () => {
     setSeasonPicks(prev => ({ ...prev, [eventId]: picks }));
   };
 
-  const handleLogin = () => {
-    setUser({ id: 'user-001', displayName: 'Team Principal' });
+  const handleLogin = (userData: { displayName: string, email: string }) => {
+    setUser({ id: 'user-001', ...userData });
     setIsAuthenticated(true);
     setActivePage('home');
     setSeasonPicks({}); // Reset picks for new session

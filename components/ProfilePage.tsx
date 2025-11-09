@@ -60,12 +60,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
   );
 
   const ScoreBreakdownItem: React.FC<{ title: string, points: number, icon: React.ReactNode }> = ({ title, points, icon }) => (
-    <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg flex items-center gap-4 ring-1 ring-white/10">
+    <div className="flex flex-col items-center justify-center text-center p-2">
       <div className="text-[#ff8400]">{icon}</div>
-      <div>
-        <p className="text-gray-400 text-sm">{title}</p>
-        <p className="text-white font-bold text-xl">{points}</p>
-      </div>
+      <p className="text-gray-400 text-sm mt-2">{title}</p>
+      <p className="text-white font-bold text-xl">{points}</p>
     </div>
   );
 
@@ -76,7 +74,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
         <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left border-b border-gray-700/50 pb-6">
           <div>
             <h2 className="text-3xl font-semibold">{user.displayName}</h2>
-            <p className="text-gray-400">{user.id}</p>
+            <p className="text-gray-400">{user.email}</p>
           </div>
           <div className="mt-4 md:mt-0 text-center md:text-right">
               <p className="text-gray-400 text-sm uppercase tracking-wider">Season Total</p>

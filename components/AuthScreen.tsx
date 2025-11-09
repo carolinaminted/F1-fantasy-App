@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo';
 
 interface AuthScreenProps {
-  onLogin: () => void;
+  onLogin: (userData: { displayName: string, email: string }) => void;
 }
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
@@ -38,7 +38,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           </p>
         </div>
         
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onLogin({ displayName: displayName || 'Team Principal', email }); }}>
           {!isLogin && (
             <div>
               <label className="text-sm font-bold text-gray-300" htmlFor="displayName">Display Name</label>
