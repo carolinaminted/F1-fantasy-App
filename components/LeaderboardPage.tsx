@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { MOCK_USERS, MOCK_SEASON_PICKS, CONSTRUCTORS, DRIVERS } from '../constants';
-import { calculateScoreRollup } from '../hooks/useFantasyData';
+// Fix: Update import path for calculateScoreRollup to the new service file.
+import { calculateScoreRollup } from '../services/scoringService';
 import { User, RaceResults } from '../types';
 
 interface BarChartData {

@@ -1,6 +1,13 @@
+// Fix: Create types definitions for the application.
 export enum EntityClass {
   A = 'A',
   B = 'B',
+}
+
+export interface User {
+  id: string;
+  displayName: string;
+  email: string;
 }
 
 export interface Constructor {
@@ -10,7 +17,7 @@ export interface Constructor {
 }
 
 export interface Driver {
-  id:string;
+  id: string;
   name: string;
   constructorId: string;
   class: EntityClass;
@@ -34,21 +41,6 @@ export interface PickSelection {
   fastestLap: string | null;
 }
 
-export interface Usage {
-  [entityId: string]: number;
-}
-
-export interface UsageRollup {
-  teams: Usage;
-  drivers: Usage;
-}
-
-export interface User {
-  id: string;
-  displayName: string;
-  email: string;
-}
-
 export interface EventResult {
   grandPrixFinish: (string | null)[];
   gpQualifying: (string | null)[];
@@ -59,4 +51,9 @@ export interface EventResult {
 
 export interface RaceResults {
   [eventId: string]: EventResult;
+}
+
+export interface UsageRollup {
+    teams: { [id: string]: number };
+    drivers: { [id: string]: number };
 }

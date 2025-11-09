@@ -1,10 +1,15 @@
-// Fix: Display total points and a detailed scoring breakdown on the profile page.
-import React from 'react';
-import { User, PickSelection, EntityClass, Constructor, Driver, RaceResults } from '../types';
+// Fix: Implement the ProfilePage component to display user stats and picks history.
+import React, { useState } from 'react';
+import { User, PickSelection, RaceResults, EntityClass } from '../types';
 import useFantasyData from '../hooks/useFantasyData';
-import { LeaderboardIcon } from './icons/LeaderboardIcon';
+import { calculatePointsForEvent } from '../services/scoringService';
+import { EVENTS, CONSTRUCTORS, DRIVERS } from '../constants';
+import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon';
+import { SprintIcon } from './icons/SprintIcon';
+import { PolePositionIcon } from './icons/PolePositionIcon';
 import { FastestLapIcon } from './icons/FastestLapIcon';
-import { F1CarIcon } from './icons/F1CarIcon';
+import { ProfileIcon } from './icons/ProfileIcon';
 
 interface ProfilePageProps {
   user: User;
@@ -12,136 +17,157 @@ interface ProfilePageProps {
   raceResults: RaceResults;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults }) => {
-  const { aTeams, bTeams, aDrivers, bDrivers, usageRollup, scoreRollup } = useFantasyData(seasonPicks, raceResults);
-
-  // Process Team Usage
-  const allTeams = [...aTeams, ...bTeams];
-  const teamUsageEntries = Object.entries(usageRollup.teams)
-    .map(([id, count]) => {
-      const team = allTeams.find(t => t.id === id);
-      return team ? { ...team, count } : null;
-    })
-    .filter((t): t is Constructor & { count: number } => t !== null);
-
-  const classATeamUsage = teamUsageEntries
-    .filter(t => t.class === EntityClass.A)
-    .sort((a, b) => b.count - a.count);
-
-  const classBTeamUsage = teamUsageEntries
-    .filter(t => t.class === EntityClass.B)
-    .sort((a, b) => b.count - a.count);
-
-  // Process Driver Usage
-  const allDrivers = [...aDrivers, ...bDrivers];
-  const driverUsageEntries = Object.entries(usageRollup.drivers)
-    .map(([id, count]) => {
-      const driver = allDrivers.find(d => d.id === id);
-      return driver ? { ...driver, count } : null;
-    })
-    .filter((d): d is Driver & { count: number } => d !== null);
-
-  const classADriverUsage = driverUsageEntries
-    .filter(d => d.class === EntityClass.A)
-    .sort((a, b) => b.count - a.count);
-
-  const classBDriverUsage = driverUsageEntries
-    .filter(d => d.class === EntityClass.B)
-    .sort((a, b) => b.count - a.count);
-
-  const UsageList: React.FC<{ items: ({ id: string; name: string; count: number })[] }> = ({ items }) => (
-    <ul className="space-y-2">
-      {items.map(item => (
-        <li key={item.id} className="flex justify-between items-center text-ghost-white">
-          <span>{item.name}</span>
-          <span className="font-mono bg-carbon-black/50 px-2 py-1 rounded">{item.count}</span>
-        </li>
-      ))}
-    </ul>
-  );
-
-  const ScoreBreakdownItem: React.FC<{ title: string, points: number, icon: React.ReactNode }> = ({ title, points, icon }) => (
-    <div className="flex flex-col items-center justify-center text-center p-2">
-      <div className="text-primary-red">{icon}</div>
-      <p className="text-highlight-silver text-sm mt-2">{title}</p>
-      <p className="text-pure-white font-bold text-xl">{points}</p>
+const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({ label, used, limit }) => {
+  const percentage = limit > 0 ? (used / limit) * 100 : 0;
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-sm font-semibold text-ghost-white">{label}</span>
+        <span className="text-sm font-mono text-highlight-silver">{used} / {limit}</span>
+      </div>
+      <div className="w-full bg-carbon-black rounded-full h-2.5">
+        <div 
+          className="bg-primary-red h-2.5 rounded-full" 
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
     </div>
   );
+};
+
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults }) => {
+  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  
+  const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
+  const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
+  const aDrivers = DRIVERS.filter(d => d.class === EntityClass.A);
+  const bDrivers = DRIVERS.filter(d => d.class === EntityClass.B);
+
+  const toggleEvent = (eventId: string) => {
+    setExpandedEvent(prev => (prev === eventId ? null : eventId));
+  };
+  
+  const getEntityName = (id: string | null) => {
+    if (!id) return 'N/A';
+    return DRIVERS.find(d => d.id === id)?.name || CONSTRUCTORS.find(c => c.id === id)?.name || 'Unknown';
+  };
 
   return (
     <div className="max-w-4xl mx-auto text-pure-white space-y-12">
       <div>
-        <h1 className="text-4xl font-bold mb-6 text-center">Profile</h1>
-        <div className="text-center border-b border-accent-gray/50 pb-6">
-            <h2 className="text-3xl font-semibold">{user.displayName}</h2>
-            <p className="text-highlight-silver">{user.email}</p>
+        <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
+        <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
+      </div>
+
+      {/* Usage Stats Section */}
+      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+        <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div>
+                <h3 className="text-lg font-semibold text-primary-red mb-3">Class A Teams</h3>
+                <div className="space-y-3">
+                    {aTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.A, 'teams')} />)}
+                </div>
+            </div>
+             <div>
+                <h3 className="text-lg font-semibold text-highlight-silver mb-3">Class B Teams</h3>
+                <div className="space-y-3">
+                    {bTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.B, 'teams')} />)}
+                </div>
+            </div>
+             <div>
+                <h3 className="text-lg font-semibold text-primary-red mb-3">Class A Drivers</h3>
+                <div className="space-y-3">
+                    {aDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.A, 'drivers')} />)}
+                </div>
+            </div>
+             <div>
+                <h3 className="text-lg font-semibold text-highlight-silver mb-3">Class B Drivers</h3>
+                <div className="space-y-3">
+                    {bDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.B, 'drivers')} />)}
+                </div>
+            </div>
         </div>
       </div>
       
+      {/* Picks History Section */}
       <div>
-        <h3 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h3>
-        <div className="text-center mb-8">
-            <p className="text-highlight-silver text-sm uppercase tracking-wider">Season Total</p>
-            <p className="text-6xl font-black text-primary-red">{scoreRollup.totalPoints} <span className="text-4xl font-bold text-ghost-white">PTS</span></p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <ScoreBreakdownItem title="Grand Prix" points={scoreRollup.grandPrixPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
-            <ScoreBreakdownItem title="Sprint Race" points={scoreRollup.sprintPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
-            <ScoreBreakdownItem title="Fastest Lap" points={scoreRollup.fastestLapPoints} icon={<FastestLapIcon className="w-8 h-8"/>} />
-            <ScoreBreakdownItem title="GP Quali" points={scoreRollup.gpQualifyingPoints} icon={<LeaderboardIcon className="w-8 h-8" />} />
-            <ScoreBreakdownItem title="Sprint Quali" points={scoreRollup.sprintQualifyingPoints} icon={<LeaderboardIcon className="w-8 h-8" />} />
-        </div>
-      </div>
+        <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
+        <div className="space-y-2">
+            {EVENTS.map(event => {
+                const picks = seasonPicks[event.id];
+                const results = raceResults[event.id];
+                if (!picks) return null;
 
-      <div>
-        <h3 className="text-2xl font-bold mb-6 text-center">Season Usage Stats</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Team Usage</h4>
-            {teamUsageEntries.length > 0 ? (
-              <div className="space-y-4">
-                {classATeamUsage.length > 0 && (
-                  <div>
-                    <h5 className="text-md font-semibold text-ghost-white mb-2 border-b border-accent-gray pb-1 text-center">Class A</h5>
-                    <UsageList items={classATeamUsage} />
-                  </div>
-                )}
-                {classBTeamUsage.length > 0 && (
-                  <div>
-                    <h5 className="text-md font-semibold text-ghost-white mb-2 border-b border-accent-gray pb-1 text-center">Class B</h5>
-                    <UsageList items={classBTeamUsage} />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-highlight-silver text-center">No teams have been used this season.</p>
-            )}
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Driver Usage</h4>
-            {driverUsageEntries.length > 0 ? (
-              <div className="space-y-4">
-                {classADriverUsage.length > 0 && (
-                  <div>
-                    <h5 className="text-md font-semibold text-ghost-white mb-2 border-b border-accent-gray pb-1 text-center">Class A</h5>
-                    <UsageList items={classADriverUsage} />
-                  </div>
-                )}
-                {classBDriverUsage.length > 0 && (
-                  <div>
-                    <h5 className="text-md font-semibold text-ghost-white mb-2 border-b border-accent-gray pb-1 text-center">Class B</h5>
-                    <UsageList items={classBDriverUsage} />
-                  </div>
-                )}
-              </div>
-            ) : (
-               <p className="text-highlight-silver text-center">No drivers have been used this season.</p>
-            )}
-          </div>
+                const eventPoints = results ? calculatePointsForEvent(picks, results) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
+                const isExpanded = expandedEvent === event.id;
+
+                return (
+                    <div key={event.id} className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                        <button className="w-full p-4 flex justify-between items-center cursor-pointer hover:bg-accent-gray/70 text-left" onClick={() => toggleEvent(event.id)}>
+                            <div>
+                                <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
+                                <p className="text-sm text-highlight-silver">{event.country}</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="font-bold text-xl">{eventPoints.totalPoints} PTS</span>
+                                <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            </div>
+                        </button>
+                        {isExpanded && (
+                             <div className="p-4 border-t border-accent-gray/50 text-sm">
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div>
+                                       <h4 className="font-bold text-primary-red mb-2">Teams</h4>
+                                       <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
+                                       <p>B: {getEntityName(picks.bTeam)}</p>
+                                   </div>
+                                    <div>
+                                       <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
+                                       <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
+                                       <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
+                                   </div>
+                                    <div className="md:col-span-2">
+                                       <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
+                                       <p>{getEntityName(picks.fastestLap)}</p>
+                                   </div>
+                               </div>
+                               {results && (
+                                   <div className="mt-4 pt-4 border-t border-accent-gray/50">
+                                       <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
+                                       <div className="flex justify-around flex-wrap gap-4">
+                                            <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
+                                            {event.hasSprint && <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />}
+                                            <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
+                                            {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
+                                            <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
+                                       </div>
+                                   </div>
+                               )}
+                            </div>
+                        )}
+                    </div>
+                );
+            }).filter(Boolean)}
         </div>
       </div>
     </div>
   );
 };
+
+interface PointChipProps {
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    label: string;
+    points?: number;
+}
+const PointChip: React.FC<PointChipProps> = ({ icon: Icon, label, points = 0 }) => (
+    <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-carbon-black/50 w-28">
+        <Icon className="w-6 h-6 text-highlight-silver mb-1"/>
+        <span className="text-xs text-highlight-silver">{label}</span>
+        <span className="font-bold text-lg text-pure-white">{points}</span>
+    </div>
+);
+
 
 export default ProfilePage;
