@@ -5,46 +5,88 @@ import HomePage from './components/HomePage';
 import ProfilePage from './components/ProfilePage';
 import LeaderboardPage from './components/LeaderboardPage';
 import Dashboard from './components/Dashboard';
-import { User, PickSelection } from './types';
+import AdminPage from './components/AdminPage'; // Added Admin Page
+import { User, PickSelection, RaceResults } from './types';
 import { HomeIcon } from './components/icons/HomeIcon';
 import { PicksIcon } from './components/icons/PicksIcon';
 import { ProfileIcon } from './components/icons/ProfileIcon';
 import { LeaderboardIcon } from './components/icons/LeaderboardIcon';
 import { F1CarIcon } from './components/icons/F1CarIcon';
+import { AdminIcon } from './components/icons/AdminIcon';
+import { MOCK_USERS, MOCK_SEASON_PICKS, RACE_RESULTS } from './constants';
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile';
+
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin'; // Added 'admin' page
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [activePage, setActivePage] = useState<Page>('home');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
+  const [raceResults, setRaceResults] = useState<RaceResults>(RACE_RESULTS);
   
   const handlePicksSubmit = (eventId: string, picks: PickSelection) => {
     setSeasonPicks(prev => ({ ...prev, [eventId]: picks }));
+     if (user) {
+        if (!MOCK_SEASON_PICKS[user.id]) {
+            MOCK_SEASON_PICKS[user.id] = {};
+        }
+        MOCK_SEASON_PICKS[user.id][eventId] = picks;
+    }
   };
 
-  const handleLogin = () => {
-    setUser({ id: 'user-001', displayName: 'Team Principal' });
+  const handleLogin = (userData: { displayName: string, email: string }) => {
+    let loggedInUser = MOCK_USERS.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
+
+    if (!loggedInUser) {
+        const newId = `user-${Date.now()}`;
+        loggedInUser = { 
+            id: newId, 
+            displayName: userData.displayName || `Principal-${Math.floor(Math.random() * 1000)}`,
+            email: userData.email 
+        };
+        MOCK_USERS.push(loggedInUser);
+        MOCK_SEASON_PICKS[newId] = {};
+    }
+
+    setUser(loggedInUser);
     setIsAuthenticated(true);
     setActivePage('home');
-    setSeasonPicks({}); // Reset picks for new session
+    setSeasonPicks(MOCK_SEASON_PICKS[loggedInUser.id] || {});
   };
   
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setSeasonPicks({});
+    setActivePage('home');
+  };
+
+  const handleResultsUpdate = (eventId: string, results: any) => {
+    const newResults = { ...raceResults, [eventId]: results };
+    setRaceResults(newResults);
+    RACE_RESULTS[eventId] = results; // Also update the mutable constant
+    alert(`${eventId} results updated successfully!`);
+  };
+
+
   const renderPage = () => {
     switch (activePage) {
       case 'home':
-        return <Dashboard setActivePage={setActivePage} />;
+        return <Dashboard user={user} setActivePage={setActivePage} />;
       case 'picks':
         if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} />;
         return null;
       case 'leaderboard':
-        return <LeaderboardPage />;
+        return <LeaderboardPage currentUser={user} raceResults={raceResults} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} />;
         return null; // Should not happen if authenticated
+      case 'admin':
+        if(user?.email === 'admin@fantasy.f1') return <AdminPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} />;
+        return <Dashboard user={user} setActivePage={setActivePage} />; // Redirect non-admins home
       default:
-        return <Dashboard setActivePage={setActivePage} />;
+        return <Dashboard user={user} setActivePage={setActivePage} />;
     }
   };
   
@@ -60,7 +102,7 @@ const App: React.FC = () => {
          {user && (
            <div className="text-right">
              <p className="font-semibold">{user.displayName}</p>
-             <button onClick={() => { setIsAuthenticated(false); setUser(null); }} className="text-sm text-gray-400 hover:text-white">
+             <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-white">
                Log Out
              </button>
            </div>
@@ -76,6 +118,9 @@ const App: React.FC = () => {
         <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={setActivePage} />
         <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={setActivePage} />
         <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={setActivePage} />
+        {user?.email === 'admin@fantasy.f1' && (
+          <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={setActivePage} />
+        )}
       </nav>
     </div>
   );

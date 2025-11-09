@@ -1,14 +1,19 @@
 import React from 'react';
 import { Page } from '../App';
+import { User } from '../types';
 import { PicksIcon } from './icons/PicksIcon';
 import { LeaderboardIcon } from './icons/LeaderboardIcon';
 import { ProfileIcon } from './icons/ProfileIcon';
+import { AdminIcon } from './icons/AdminIcon';
 
 interface DashboardProps {
+  user: User | null;
   setActivePage: (page: Page) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
+  const isAdmin = user?.email === 'admin@fantasy.f1';
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">Home Dashboard</h1>
@@ -31,6 +36,14 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
           description="Check your season usage stats and history."
           onClick={() => setActivePage('profile')}
         />
+        {isAdmin && (
+          <NavTile
+            icon={AdminIcon}
+            title="Admin Panel"
+            description="Manage season events and update race results."
+            onClick={() => setActivePage('admin')}
+          />
+        )}
       </div>
     </div>
   );
