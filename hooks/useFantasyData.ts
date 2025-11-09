@@ -1,18 +1,9 @@
 // Fix: Add score calculation logic to process picks against race results and a points system.
 import { useMemo, useCallback } from 'react';
 import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS, POINTS_SYSTEM, MOCK_RACE_RESULTS } from '../constants';
-import { EntityClass, PickSelection, Driver } from '../types';
+import { EntityClass, PickSelection, Driver, UsageRollup } from '../types';
 
-const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
-  const data = useMemo(() => {
-    const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
-    const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
-    const aDrivers = DRIVERS.filter(d => d.class === EntityClass.A);
-    const bDrivers = DRIVERS.filter(d => d.class === EntityClass.B);
-    return { aTeams, bTeams, aDrivers, bDrivers, allDrivers: DRIVERS, allConstructors: CONSTRUCTORS };
-  }, []);
-
-  const usageRollup = useMemo(() => {
+export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelection }): UsageRollup => {
     const teams: { [id: string]: number } = {};
     const drivers: { [id: string]: number } = {};
 
@@ -24,9 +15,9 @@ const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
     });
     
     return { teams, drivers };
-  }, [seasonPicks]);
+};
 
-  const scoreRollup = useMemo(() => {
+export const calculateScoreRollup = (seasonPicks: { [eventId: string]: PickSelection }) => {
     let grandPrixPoints = 0;
     let sprintPoints = 0;
     let fastestLapPoints = 0;
@@ -49,8 +40,8 @@ const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
       const results = MOCK_RACE_RESULTS[eventId];
       if (!results) return; // No results for this event yet
 
-      const allPickedDrivers = [...picks.aDrivers, ...picks.bDrivers].filter(Boolean);
-      const allPickedTeams = [...picks.aTeams, picks.bTeam].filter(Boolean);
+      const allPickedDrivers = [...picks.aDrivers, ...picks.bDrivers].filter((d): d is string => d !== null);
+      const allPickedTeams = [...picks.aTeams, picks.bTeam].filter((t): t is string => t !== null);
 
       // Grand Prix Points (Teams & Drivers)
       allPickedDrivers.forEach(driverId => {
@@ -91,7 +82,20 @@ const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
     const totalPoints = grandPrixPoints + sprintPoints + fastestLapPoints + gpQualifyingPoints + sprintQualifyingPoints;
 
     return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints };
-  }, [seasonPicks]);
+};
+
+
+const useFantasyData = (seasonPicks: { [eventId: string]: PickSelection }) => {
+  const data = useMemo(() => {
+    const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
+    const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
+    const aDrivers = DRIVERS.filter(d => d.class === EntityClass.A);
+    const bDrivers = DRIVERS.filter(d => d.class === EntityClass.B);
+    return { aTeams, bTeams, aDrivers, bDrivers, allDrivers: DRIVERS, allConstructors: CONSTRUCTORS };
+  }, []);
+
+  const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks), [seasonPicks]);
+  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks), [seasonPicks]);
 
 
   const getUsage = useCallback((id: string, type: 'teams' | 'drivers'): number => {

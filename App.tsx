@@ -11,6 +11,8 @@ import { PicksIcon } from './components/icons/PicksIcon';
 import { ProfileIcon } from './components/icons/ProfileIcon';
 import { LeaderboardIcon } from './components/icons/LeaderboardIcon';
 import { F1CarIcon } from './components/icons/F1CarIcon';
+import { MOCK_USERS, MOCK_SEASON_PICKS } from './constants';
+
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile';
 
@@ -22,15 +24,41 @@ const App: React.FC = () => {
   
   const handlePicksSubmit = (eventId: string, picks: PickSelection) => {
     setSeasonPicks(prev => ({ ...prev, [eventId]: picks }));
+     if (user) {
+        if (!MOCK_SEASON_PICKS[user.id]) {
+            MOCK_SEASON_PICKS[user.id] = {};
+        }
+        MOCK_SEASON_PICKS[user.id][eventId] = picks;
+    }
   };
 
   const handleLogin = (userData: { displayName: string, email: string }) => {
-    setUser({ id: 'user-001', ...userData });
+    let loggedInUser = MOCK_USERS.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
+
+    if (!loggedInUser) {
+        const newId = `user-${Date.now()}`;
+        loggedInUser = { 
+            id: newId, 
+            displayName: userData.displayName || `Principal-${Math.floor(Math.random() * 1000)}`,
+            email: userData.email 
+        };
+        MOCK_USERS.push(loggedInUser);
+        MOCK_SEASON_PICKS[newId] = {};
+    }
+
+    setUser(loggedInUser);
     setIsAuthenticated(true);
     setActivePage('home');
-    setSeasonPicks({}); // Reset picks for new session
+    setSeasonPicks(MOCK_SEASON_PICKS[loggedInUser.id] || {});
   };
   
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setSeasonPicks({});
+    setActivePage('home');
+  };
+
   const renderPage = () => {
     switch (activePage) {
       case 'home':
@@ -39,7 +67,7 @@ const App: React.FC = () => {
         if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} />;
         return null;
       case 'leaderboard':
-        return <LeaderboardPage />;
+        return <LeaderboardPage currentUser={user} />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} />;
         return null; // Should not happen if authenticated
@@ -60,7 +88,7 @@ const App: React.FC = () => {
          {user && (
            <div className="text-right">
              <p className="font-semibold">{user.displayName}</p>
-             <button onClick={() => { setIsAuthenticated(false); setUser(null); }} className="text-sm text-gray-400 hover:text-white">
+             <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-white">
                Log Out
              </button>
            </div>

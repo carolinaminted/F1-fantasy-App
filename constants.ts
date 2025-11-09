@@ -1,5 +1,5 @@
 // Fix: Add a detailed points system and mock race results to enable dynamic scoring calculations.
-import { Constructor, Driver, EntityClass, Event } from './types';
+import { Constructor, Driver, EntityClass, Event, PickSelection, User } from './types';
 
 export const CONSTRUCTORS: Constructor[] = [
   // Class A
@@ -58,30 +58,30 @@ const baseDate = new Date(); // Use today as a starting point for dynamic dates
 baseDate.setHours(14, 0, 0, 0); // Set a consistent time for lock-in
 
 export const EVENTS: Event[] = [
-    { id: 'aus_26', round: 1, name: 'Australian GP', country: 'Australia', hasSprint: false, ...generateEventDate(baseDate, 7 * 0) },
-    { id: 'chn_26', round: 2, name: 'Chinese GP', country: 'China', hasSprint: true, ...generateEventDate(baseDate, 7 * 1) },
-    { id: 'jpn_26', round: 3, name: 'Japanese GP', country: 'Japan', hasSprint: false, ...generateEventDate(baseDate, 7 * 2) },
-    { id: 'bhr_26', round: 4, name: 'Bahrain GP', country: 'Bahrain', hasSprint: false, ...generateEventDate(baseDate, 7 * 3) },
-    { id: 'sau_26', round: 5, name: 'Saudi Arabian GP', country: 'Saudi Arabia', hasSprint: false, ...generateEventDate(baseDate, 7 * 4) },
-    { id: 'mia_26', round: 6, name: 'Miami GP', country: 'USA', hasSprint: true, ...generateEventDate(baseDate, 7 * 5) },
-    { id: 'can_26', round: 7, name: 'Canadian GP', country: 'Canada', hasSprint: true, ...generateEventDate(baseDate, 7 * 6) },
-    { id: 'mco_26', round: 8, name: 'Monaco GP', country: 'Monaco', hasSprint: false, ...generateEventDate(baseDate, 7 * 7) },
-    { id: 'esp_26', round: 9, name: 'Spanish GP', country: 'Spain', hasSprint: false, ...generateEventDate(baseDate, 7 * 8) },
-    { id: 'aut_26', round: 10, name: 'Austrian GP', country: 'Austria', hasSprint: false, ...generateEventDate(baseDate, 7 * 9) },
-    { id: 'gbr_26', round: 11, name: 'British GP', country: 'Great Britain', hasSprint: true, ...generateEventDate(baseDate, 7 * 10) },
-    { id: 'bel_26', round: 12, name: 'Belgian GP', country: 'Belgium', hasSprint: false, ...generateEventDate(baseDate, 7 * 11) },
-    { id: 'hun_26', round: 13, name: 'Hungarian GP', country: 'Hungary', hasSprint: false, ...generateEventDate(baseDate, 7 * 12) },
-    { id: 'nld_26', round: 14, name: 'Dutch GP', country: 'Netherlands', hasSprint: true, ...generateEventDate(baseDate, 7 * 13) },
-    { id: 'ita_26', round: 15, name: 'Italian GP', country: 'Italy', hasSprint: false, ...generateEventDate(baseDate, 7 * 14) },
-    { id: 'mad_26', round: 16, name: 'Madrid GP', country: 'Spain', hasSprint: false, ...generateEventDate(baseDate, 7 * 15) },
-    { id: 'aze_26', round: 17, name: 'Azerbaijan GP', country: 'Azerbaijan', hasSprint: false, ...generateEventDate(baseDate, 7 * 16) },
-    { id: 'sgp_26', round: 18, name: 'Singapore GP', country: 'Singapore', hasSprint: true, ...generateEventDate(baseDate, 7 * 17) },
-    { id: 'usa_26', round: 19, name: 'United States GP', country: 'USA', hasSprint: false, ...generateEventDate(baseDate, 7 * 18) },
-    { id: 'mex_26', round: 20, name: 'Mexico City GP', country: 'Mexico', hasSprint: false, ...generateEventDate(baseDate, 7 * 19) },
-    { id: 'bra_26', round: 21, name: 'Sao Paulo GP', country: 'Brazil', hasSprint: false, ...generateEventDate(baseDate, 7 * 20) },
-    { id: 'las_26', round: 22, name: 'Las Vegas GP', country: 'USA', hasSprint: false, ...generateEventDate(baseDate, 7 * 21) },
-    { id: 'qat_26', round: 23, name: 'Qatar GP', country: 'Qatar', hasSprint: false, ...generateEventDate(baseDate, 7 * 22) },
-    { id: 'abu_26', round: 24, name: 'Abu Dhabi GP', country: 'Abu Dhabi', hasSprint: false, ...generateEventDate(baseDate, 7 * 23) },
+    { id: 'aus_26', round: 1, name: 'Australian GP', country: 'Australia', hasSprint: false, ...generateEventDate(baseDate, -7 * 2) },
+    { id: 'chn_26', round: 2, name: 'Chinese GP', country: 'China', hasSprint: true, ...generateEventDate(baseDate, -7 * 1) },
+    { id: 'jpn_26', round: 3, name: 'Japanese GP', country: 'Japan', hasSprint: false, ...generateEventDate(baseDate, 7 * 1) },
+    { id: 'bhr_26', round: 4, name: 'Bahrain GP', country: 'Bahrain', hasSprint: false, ...generateEventDate(baseDate, 7 * 2) },
+    { id: 'sau_26', round: 5, name: 'Saudi Arabian GP', country: 'Saudi Arabia', hasSprint: false, ...generateEventDate(baseDate, 7 * 3) },
+    { id: 'mia_26', round: 6, name: 'Miami GP', country: 'USA', hasSprint: true, ...generateEventDate(baseDate, 7 * 4) },
+    { id: 'can_26', round: 7, name: 'Canadian GP', country: 'Canada', hasSprint: true, ...generateEventDate(baseDate, 7 * 5) },
+    { id: 'mco_26', round: 8, name: 'Monaco GP', country: 'Monaco', hasSprint: false, ...generateEventDate(baseDate, 7 * 6) },
+    { id: 'esp_26', round: 9, name: 'Spanish GP', country: 'Spain', hasSprint: false, ...generateEventDate(baseDate, 7 * 7) },
+    { id: 'aut_26', round: 10, name: 'Austrian GP', country: 'Austria', hasSprint: false, ...generateEventDate(baseDate, 7 * 8) },
+    { id: 'gbr_26', round: 11, name: 'British GP', country: 'Great Britain', hasSprint: true, ...generateEventDate(baseDate, 7 * 9) },
+    { id: 'bel_26', round: 12, name: 'Belgian GP', country: 'Belgium', hasSprint: false, ...generateEventDate(baseDate, 7 * 10) },
+    { id: 'hun_26', round: 13, name: 'Hungarian GP', country: 'Hungary', hasSprint: false, ...generateEventDate(baseDate, 7 * 11) },
+    { id: 'nld_26', round: 14, name: 'Dutch GP', country: 'Netherlands', hasSprint: true, ...generateEventDate(baseDate, 7 * 12) },
+    { id: 'ita_26', round: 15, name: 'Italian GP', country: 'Italy', hasSprint: false, ...generateEventDate(baseDate, 7 * 13) },
+    { id: 'mad_26', round: 16, name: 'Madrid GP', country: 'Spain', hasSprint: false, ...generateEventDate(baseDate, 7 * 14) },
+    { id: 'aze_26', round: 17, name: 'Azerbaijan GP', country: 'Azerbaijan', hasSprint: false, ...generateEventDate(baseDate, 7 * 15) },
+    { id: 'sgp_26', round: 18, name: 'Singapore GP', country: 'Singapore', hasSprint: true, ...generateEventDate(baseDate, 7 * 16) },
+    { id: 'usa_26', round: 19, name: 'United States GP', country: 'USA', hasSprint: false, ...generateEventDate(baseDate, 7 * 17) },
+    { id: 'mex_26', round: 20, name: 'Mexico City GP', country: 'Mexico', hasSprint: false, ...generateEventDate(baseDate, 7 * 18) },
+    { id: 'bra_26', round: 21, name: 'Sao Paulo GP', country: 'Brazil', hasSprint: false, ...generateEventDate(baseDate, 7 * 19) },
+    { id: 'las_26', round: 22, name: 'Las Vegas GP', country: 'USA', hasSprint: false, ...generateEventDate(baseDate, 7 * 20) },
+    { id: 'qat_26', round: 23, name: 'Qatar GP', country: 'Qatar', hasSprint: false, ...generateEventDate(baseDate, 7 * 21) },
+    { id: 'abu_26', round: 24, name: 'Abu Dhabi GP', country: 'Abu Dhabi', hasSprint: false, ...generateEventDate(baseDate, 7 * 22) },
 ];
 
 
@@ -115,5 +115,39 @@ export const MOCK_RACE_RESULTS: { [eventId: string]: any } = {
     grandPrixFinish: ['ver', 'per', 'sai', 'lec', 'nor', 'alo', 'rus', 'pia', 'ham', 'tsu'],
     gpQualifying: ['ver', 'per', 'nor'],
     fastestLap: 'ver',
+  },
+};
+
+export let MOCK_USERS: User[] = [
+  { id: 'user-001', displayName: 'Team Principal', email: 'admin@fantasy.f1' },
+  { id: 'user-002', displayName: 'Awesome Racing', email: 'awesome@fantasy.f1' },
+  { id: 'user-003', displayName: 'Velocity Vipers', email: 'velocity@fantasy.f1' },
+  { id: 'user-004', displayName: 'Circuit Breakers', email: 'circuit@fantasy.f1' },
+  { id: 'user-005', displayName: 'Apex Predators', email: 'apex@fantasy.f1' },
+  { id: 'user-006', displayName: 'Grid Masters', email: 'grid@fantasy.f1' },
+];
+
+export let MOCK_SEASON_PICKS: { [userId: string]: { [eventId: string]: PickSelection } } = {
+  'user-001': {
+    'aus_26': { aTeams: ['ferrari', 'red_bull'], bTeam: 'racing_bulls', aDrivers: ['ver', 'lec', 'sai'], bDrivers: ['ric', 'tsu'], fastestLap: 'ver' },
+    'chn_26': { aTeams: ['mclaren', 'ferrari'], bTeam: 'haas', aDrivers: ['nor', 'lec', 'pia'], bDrivers: ['mag', 'hul'], fastestLap: 'nor' },
+  },
+  'user-002': {
+    'aus_26': { aTeams: ['red_bull', 'mclaren'], bTeam: 'aston_martin', aDrivers: ['ver', 'per', 'nor'], bDrivers: ['alo', 'str'], fastestLap: 'ver' },
+    'chn_26': { aTeams: ['red_bull', 'ferrari'], bTeam: 'kick_sauber', aDrivers: ['ver', 'per', 'lec'], bDrivers: ['bot', 'zho'], fastestLap: 'per' },
+  },
+  'user-003': {
+    'aus_26': { aTeams: ['ferrari', 'mercedes'], bTeam: 'alpine', aDrivers: ['lec', 'sai', 'ham'], bDrivers: ['gas', 'oco'], fastestLap: 'lec' },
+  },
+  'user-004': {
+    'aus_26': { aTeams: ['mclaren', 'williams'], bTeam: 'haas', aDrivers: ['nor', 'pia', 'alb'], bDrivers: ['mag', 'hul'], fastestLap: 'nor' },
+    'chn_26': { aTeams: ['mclaren', 'mercedes'], bTeam: 'aston_martin', aDrivers: ['nor', 'pia', 'rus'], bDrivers: ['alo', 'str'], fastestLap: 'pia' },
+  },
+  'user-005': {
+    'aus_26': { aTeams: ['red_bull', 'ferrari'], bTeam: 'racing_bulls', aDrivers: ['ver', 'lec', 'per'], bDrivers: ['ric', 'tsu'], fastestLap: 'ver' },
+  },
+   'user-006': {
+    'aus_26': { aTeams: ['mercedes', 'williams'], bTeam: 'cadillac', aDrivers: ['ham', 'rus', 'alb'], bDrivers: ['pal', 'her'], fastestLap: 'ham' },
+    'chn_26': { aTeams: ['mercedes', 'ferrari'], bTeam: 'alpine', aDrivers: ['ham', 'rus', 'lec'], bDrivers: ['gas', 'oco'], fastestLap: 'rus' },
   },
 };
