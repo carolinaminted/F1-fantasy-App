@@ -71,20 +71,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks }) => {
     <div className="max-w-4xl mx-auto text-white space-y-12">
       <div>
         <h1 className="text-4xl font-bold mb-6 text-center">Profile</h1>
-        <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left border-b border-gray-700/50 pb-6">
-          <div>
+        <div className="text-center border-b border-gray-700/50 pb-6">
             <h2 className="text-3xl font-semibold">{user.displayName}</h2>
             <p className="text-gray-400">{user.email}</p>
-          </div>
-          <div className="mt-4 md:mt-0 text-center md:text-right">
-              <p className="text-gray-400 text-sm uppercase tracking-wider">Season Total</p>
-              <p className="text-5xl font-black text-[#ff8400]">{scoreRollup.totalPoints} <span className="text-3xl font-bold text-gray-300">PTS</span></p>
-          </div>
         </div>
       </div>
       
       <div>
-        <h3 className="text-2xl font-bold mb-4 text-center">Scoring Breakdown</h3>
+        <h3 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h3>
+        <div className="text-center mb-8">
+            <p className="text-gray-400 text-sm uppercase tracking-wider">Season Total</p>
+            <p className="text-6xl font-black text-[#ff8400]">{scoreRollup.totalPoints} <span className="text-4xl font-bold text-gray-300">PTS</span></p>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <ScoreBreakdownItem title="Grand Prix" points={scoreRollup.grandPrixPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
             <ScoreBreakdownItem title="Sprint Race" points={scoreRollup.sprintPoints} icon={<F1CarIcon className="w-8 h-8"/>} />
