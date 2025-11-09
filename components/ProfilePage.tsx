@@ -62,7 +62,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       {/* Scoring Breakdown Section */}
-      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
         <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
         <div className="grid grid-cols-2 gap-y-6 gap-x-4 text-center">
             <div>
@@ -89,7 +89,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       {/* Usage Stats Section */}
-      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
         <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div>
@@ -132,8 +132,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 const isExpanded = expandedEvent === event.id;
 
                 return (
-                    <div key={event.id} className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                        <button className="w-full p-4 flex justify-between items-center cursor-pointer hover:bg-accent-gray/70 text-left" onClick={() => toggleEvent(event.id)}>
+                    <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                        <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left" onClick={() => toggleEvent(event.id)}>
                             <div>
                                 <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
                                 <p className="text-sm text-highlight-silver">{event.country}</p>
