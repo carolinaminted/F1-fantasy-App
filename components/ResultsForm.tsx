@@ -51,7 +51,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     const driverOptions = DRIVERS.map(d => ({ value: d.id, label: d.name }));
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 text-white">
+        <form onSubmit={handleSubmit} className="space-y-6 text-pure-white">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <ResultGroup
                     title="Grand Prix Qualifying"
@@ -104,7 +104,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             <div className="flex justify-end pt-4">
                 <button
                     type="submit"
-                    className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg"
+                    className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg"
                 >
                     Save Results
                 </button>
@@ -122,7 +122,7 @@ interface ResultGroupProps {
 }
 
 const ResultGroup: React.FC<ResultGroupProps> = ({ title, positions, selected, onSelect, options }) => (
-    <div className="bg-gray-900/50 p-4 rounded-lg">
+    <div className="bg-carbon-black/50 p-4 rounded-lg">
         <h3 className="font-semibold mb-3 text-lg text-center">{title}</h3>
         <div className="space-y-2">
             {Array.from({ length: positions }).map((_, i) => (
@@ -147,11 +147,11 @@ interface SelectDriverProps {
 
 const SelectDriver: React.FC<SelectDriverProps> = ({ value, onChange, options, label }) => (
     <div className="flex items-center gap-2">
-        <label className="w-10 text-sm font-semibold text-gray-400">{label}</label>
+        <label className="w-10 text-sm font-semibold text-highlight-silver">{label}</label>
         <select
             value={value || ''}
             onChange={e => onChange(e.target.value || null)}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-white focus:outline-none focus:ring-[#ff8400] focus:border-[#ff8400]"
+            className="w-full bg-accent-gray/80 border border-accent-gray rounded-md py-1 px-2 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
         >
             <option value="">Select Driver...</option>
             {options.map(opt => (

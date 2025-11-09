@@ -6,6 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>F1 Fantasy League Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'primary-red': '#DA291C',
+              'carbon-black': '#0A0A0A',
+              'ghost-white': '#F5F5F5',
+              'pure-white': '#FFFFFF',
+              'accent-gray': '#2C2C2C',
+              'highlight-silver': '#C0C0C0',
+            }
+          }
+        }
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -24,7 +40,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900 text-gray-100">
+  <body class="bg-carbon-black text-ghost-white">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

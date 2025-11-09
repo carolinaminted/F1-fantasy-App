@@ -1,61 +1,54 @@
-import React, { useState } from 'react';
-import { RaceResults, Event, EventResult } from '../types';
-import { EVENTS } from '../constants';
-import ResultsForm from './ResultsForm';
+import React from 'react';
 import { AdminIcon } from './icons/AdminIcon';
 import { LeaderboardIcon } from './icons/LeaderboardIcon';
+import { LockIcon } from './icons/LockIcon';
 
 interface AdminPageProps {
-    raceResults: RaceResults;
-    onResultsUpdate: (eventId: string, results: EventResult) => void;
+    setAdminSubPage: (page: 'results' | 'form-lock') => void;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ raceResults, onResultsUpdate }) => {
-    const [editingEventId, setEditingEventId] = useState<string | null>(null);
-
-    const handleEditToggle = (eventId: string) => {
-        setEditingEventId(prevId => prevId === eventId ? null : eventId);
-    };
-
-    const handleSave = (eventId: string, results: EventResult) => {
-        onResultsUpdate(eventId, results);
-        setEditingEventId(null);
-    };
-
+const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     return (
-        <div className="max-w-4xl mx-auto text-white">
-            <h1 className="text-4xl font-bold mb-8 text-center flex items-center justify-center gap-3">
-                <AdminIcon className="w-8 h-8"/> Admin Panel: Results
+        <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center flex items-center justify-center gap-3">
+                <AdminIcon className="w-8 h-8"/> Admin Dashboard
             </h1>
-            <div className="space-y-4">
-                {EVENTS.map(event => (
-                    <div key={event.id} className="bg-gray-800/50 backdrop-blur-sm rounded-lg ring-1 ring-white/10 overflow-hidden">
-                        <div className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-700/50" onClick={() => handleEditToggle(event.id)}>
-                            <div>
-                                <h2 className="text-xl font-bold">R{event.round}: {event.name}</h2>
-                                <p className="text-sm text-gray-400">{event.country}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                {Object.keys(raceResults[event.id] ?? {}).length > 0 && <span className="text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-3 py-1 rounded-full">Results Added</span>}
-                                <button className="bg-[#ff8400] hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-lg">
-                                    {editingEventId === event.id ? 'Close' : 'Manage'}
-                                </button>
-                            </div>
-                        </div>
-                        {editingEventId === event.id && (
-                            <div className="p-4 border-t border-gray-700">
-                                <ResultsForm
-                                    event={event}
-                                    currentResults={raceResults[event.id]}
-                                    onSave={handleSave}
-                                />
-                            </div>
-                        )}
-                    </div>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <AdminTile
+                    icon={LeaderboardIcon}
+                    title="Results Entry"
+                    description="Update and manage race results for each event."
+                    onClick={() => setAdminSubPage('results')}
+                />
+                <AdminTile
+                    icon={LockIcon}
+                    title="Form Lock"
+                    description="Manually lock or unlock pick submission forms."
+                    onClick={() => setAdminSubPage('form-lock')}
+                />
             </div>
         </div>
     );
+};
+
+interface AdminTileProps {
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    title: string;
+    description: string;
+    onClick: () => void;
+}
+
+const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, description, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 text-left ring-1 ring-pure-white/10 hover:ring-primary-red transition-all duration-300 transform hover:-translate-y-1"
+    >
+      <Icon className="w-10 h-10 text-primary-red mb-4" />
+      <h3 className="text-xl font-bold text-pure-white mb-2">{title}</h3>
+      <p className="text-highlight-silver">{description}</p>
+    </button>
+  );
 };
 
 export default AdminPage;

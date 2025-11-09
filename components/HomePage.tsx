@@ -9,9 +9,10 @@ interface HomePageProps {
   user: User;
   seasonPicks: { [eventId: string]: PickSelection };
   onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  formLocks: { [eventId: string]: boolean };
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event>(EVENTS[0]);
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS);
 
@@ -27,7 +28,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit })
                     const event = EVENTS.find(ev => ev.id === e.target.value);
                     if (event) setSelectedEvent(event);
                 }}
-                className="w-full md:w-72 bg-gray-900/70 border border-gray-700 rounded-md shadow-sm py-2 px-10 text-white focus:outline-none focus:ring-[#ff8400] focus:border-[#ff8400] appearance-none text-center"
+                className="w-full md:w-72 bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-2 px-10 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none text-center"
             >
                 {EVENTS.map(event => (
                     <option key={event.id} value={event.id}>
@@ -35,7 +36,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit })
                     </option>
                 ))}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-highlight-silver">
               <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
             </div>
         </div>
@@ -45,6 +46,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit })
         event={selectedEvent}
         initialPicksForEvent={seasonPicks[selectedEvent.id]}
         onPicksSubmit={onPicksSubmit}
+        formLocks={formLocks}
         {...fantasyData}
       />
     </div>
