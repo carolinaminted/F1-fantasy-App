@@ -17,10 +17,11 @@ import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
 import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
-import { MOCK_SEASON_PICKS, RACE_RESULTS } from './constants.ts';
-import { auth } from './services/firebase.ts';
+import { RACE_RESULTS } from './constants.ts';
+import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { getUserProfile, getUserPicks, saveUserPicks, getFormLocks, saveFormLocks } from './services/firestoreService.ts';
+import { onSnapshot, doc } from 'firebase/firestore';
+import { getUserProfile, getUserPicks, saveUserPicks, getFormLocks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
@@ -90,48 +91,53 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('home');
   const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
-  const [raceResults, setRaceResults] = useState<RaceResults>(RACE_RESULTS);
+  const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   
   useEffect(() => {
-    // Fetch persistent app-wide settings once on load
-    const loadInitialAppSettings = async () => {
+    // Set up real-time listener for Race Results. This will provide live updates to all users.
+    const resultsRef = doc(db, 'app_state', 'race_results');
+    const unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
+      if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
+        console.log("Live update for race results received from Firestore.");
+        setRaceResults(docSnap.data() as RaceResults);
+      } else {
+        // If the document doesn't exist, create it with the initial mock data.
+        console.log("No race results in Firestore. Seeding with initial data.");
+        saveRaceResults(RACE_RESULTS); // This triggers the listener again to update state.
+      }
+    });
+
+    // Fetch form locks on initial load
+    const loadFormLocks = async () => {
       const locks = await getFormLocks();
       setFormLocks(locks);
     };
-
-    loadInitialAppSettings();
+    loadFormLocks();
     
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Auth state listener to manage user session and data
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setIsLoading(true);
       if (firebaseUser) {
         let userProfile = await getUserProfile(firebaseUser.uid);
 
-        // This handles a race condition on new user registration where the auth listener
-        // fires before the user's profile document is created in Firestore.
         if (!userProfile) {
           console.log("Profile not found on initial load, retrying for new user...");
-          // Wait a moment for Firestore to be updated
           await new Promise(resolve => setTimeout(resolve, 1500));
           userProfile = await getUserProfile(firebaseUser.uid);
         }
 
         if (userProfile) {
-          // Profile found, proceed to load user data
           const userPicks = await getUserPicks(firebaseUser.uid);
           setUser(userProfile);
           setSeasonPicks(userPicks);
           setIsAuthenticated(true);
         } else {
-          // If the profile still doesn't exist after the retry, something went wrong with registration.
-          // Log the user out to prevent them from being in a broken, authenticated-but-no-profile state.
           console.error("User profile document not found after retry. Forcing logout.");
           await signOut(auth);
-          // The signOut will re-trigger this listener, falling into the `else` block below.
-          return; // Exit early to avoid setting loading to false here
+          return;
         }
       } else {
-        // User is logged out
         setUser(null);
         setSeasonPicks({});
         setIsAuthenticated(false);
@@ -139,7 +145,10 @@ const App: React.FC = () => {
       setIsLoading(false);
     });
     
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      unsubscribeResults(); // Cleanup the results listener on component unmount
+    };
   }, []);
 
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
@@ -157,11 +166,13 @@ const App: React.FC = () => {
     setAdminSubPage('dashboard');
   };
 
-  const handleResultsUpdate = (eventId: string, results: any) => {
+  const handleResultsUpdate = async (eventId: string, results: any) => {
+    // Create a new results object with the updated event
     const newResults = { ...raceResults, [eventId]: results };
-    setRaceResults(newResults);
-    RACE_RESULTS[eventId] = results; // Also update the mutable constant
-    alert(`${eventId} results updated successfully!`);
+    // Save the entire updated results object to Firestore
+    await saveRaceResults(newResults);
+    // The onSnapshot listener will automatically update the state for all clients, including this one.
+    alert(`${eventId} results updated and saved successfully!`);
   };
   
   const handleToggleFormLock = async (eventId: string) => {
