@@ -221,7 +221,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   return (
     <>
-    <div className="max-w-7xl mx-auto text-pure-white space-y-12">
+    <div className="max-w-7xl mx-auto text-pure-white space-y-8">
       <div>
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
         <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
@@ -230,7 +230,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       {/* Scoring Breakdown Section */}
       <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
         <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
-        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
             <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
                 <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
                 <p className="text-sm text-highlight-silver">Grand Prix</p>
@@ -254,106 +254,111 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
       </div>
 
-      {/* Usage Stats Section */}
-      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-        <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class A Teams</h3>
-                <div className="space-y-3">
-                    {aTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.A, 'teams')} />)}
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Selection Counts Section */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
+          <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+              <CollapsibleUsageList
+                  title="Class A Teams"
+                  entities={aTeams}
+                  usageData={usageRollup.teams}
+                  limit={getLimit(EntityClass.A, 'teams')}
+              />
+              <CollapsibleUsageList
+                  title="Class B Teams"
+                  entities={bTeams}
+                  usageData={usageRollup.teams}
+                  limit={getLimit(EntityClass.B, 'teams')}
+              />
+              <CollapsibleUsageList
+                  title="Class A Drivers"
+                  entities={aDrivers}
+                  usageData={usageRollup.drivers}
+                  limit={getLimit(EntityClass.A, 'drivers')}
+              />
+              <CollapsibleUsageList
+                  title="Class B Drivers"
+                  entities={bDrivers}
+                  usageData={usageRollup.drivers}
+                  limit={getLimit(EntityClass.B, 'drivers')}
+              />
             </div>
-             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class B Teams</h3>
-                <div className="space-y-3">
-                    {bTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.B, 'teams')} />)}
-                </div>
-            </div>
-             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class A Drivers</h3>
-                <div className="space-y-3">
-                    {aDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.A, 'drivers')} />)}
-                </div>
-            </div>
-             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class B Drivers</h3>
-                <div className="space-y-3">
-                    {bDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.B, 'drivers')} />)}
-                </div>
-            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Picks History Section */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
-        <div className="space-y-2">
-            {EVENTS.map(event => {
-                const picks = seasonPicks[event.id];
-                const results = raceResults[event.id];
-                if (!picks) return null;
 
-                const eventPoints = results ? calculatePointsForEvent(picks, results) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
-                const isExpanded = expandedEvent === event.id;
 
-                return (
-                    <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                        <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors" onClick={() => toggleEvent(event.id)}>
-                            <div>
-                                <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
-                                <p className="text-sm text-highlight-silver">{event.country}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className="font-bold text-xl">{eventPoints.totalPoints} PTS</span>
-                                <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                            </div>
-                        </button>
-                        {isExpanded && (
-                             <div className="p-4 border-t border-accent-gray/50 text-sm">
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                   <div>
-                                       <h4 className="font-bold text-primary-red mb-2">Teams</h4>
-                                       <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
-                                       <p>B: {getEntityName(picks.bTeam)}</p>
-                                   </div>
+        {/* Picks History Section */}
+        <div>
+            <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
+            <div className="space-y-2">
+                {EVENTS.map(event => {
+                    const picks = seasonPicks[event.id];
+                    const results = raceResults[event.id];
+                    if (!picks) return null;
+
+                    const eventPoints = results ? calculatePointsForEvent(picks, results) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
+                    const isExpanded = expandedEvent === event.id;
+
+                    return (
+                        <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                            <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors" onClick={() => toggleEvent(event.id)}>
+                                <div>
+                                    <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
+                                    <p className="text-sm text-highlight-silver">{event.country}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="font-bold text-xl">{eventPoints.totalPoints} PTS</span>
+                                    <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </div>
+                            </button>
+                            {isExpanded && (
+                                <div className="p-4 border-t border-accent-gray/50 text-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                       <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
-                                       <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
-                                       <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
-                                   </div>
-                                    <div className="md:col-span-2">
-                                       <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
-                                       <p>{getEntityName(picks.fastestLap)}</p>
-                                   </div>
-                               </div>
-                               {results && (
-                                   <div className="mt-4 pt-4 border-t border-accent-gray/50">
-                                       <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
-                                       <div className="flex justify-around flex-wrap gap-4">
-                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
-                                                <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
-                                            </button>
-                                            {event.hasSprint && (
-                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'sprint')} className="transition-transform transform hover:scale-105">
-                                                    <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />
+                                        <h4 className="font-bold text-primary-red mb-2">Teams</h4>
+                                        <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
+                                        <p>B: {getEntityName(picks.bTeam)}</p>
+                                    </div>
+                                        <div>
+                                        <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
+                                        <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
+                                        <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
+                                    </div>
+                                        <div className="md:col-span-2">
+                                        <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
+                                        <p>{getEntityName(picks.fastestLap)}</p>
+                                    </div>
+                                </div>
+                                {results && (
+                                    <div className="mt-4 pt-4 border-t border-accent-gray/50">
+                                        <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
+                                        <div className="flex justify-around flex-wrap gap-4">
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
                                                 </button>
-                                            )}
-                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'quali')} className="transition-transform transform hover:scale-105">
-                                                <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
-                                            </button>
-                                            {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
-                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
-                                                <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
-                                            </button>
-                                       </div>
-                                   </div>
-                               )}
-                            </div>
-                        )}
-                    </div>
-                );
-            }).filter(Boolean)}
+                                                {event.hasSprint && (
+                                                    <button onClick={() => handleEventScoringDetailClick(event.id, 'sprint')} className="transition-transform transform hover:scale-105">
+                                                        <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />
+                                                    </button>
+                                                )}
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'quali')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
+                                                </button>
+                                                {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
+                                                </button>
+                                        </div>
+                                    </div>
+                                )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                }).filter(Boolean)}
+            </div>
         </div>
       </div>
     </div>
@@ -386,6 +391,40 @@ const PointChip: React.FC<PointChipProps> = ({ icon: Icon, label, points = 0 }) 
         <span className="font-bold text-lg text-pure-white">{points}</span>
     </div>
 );
+
+const CollapsibleUsageList: React.FC<{
+  title: string;
+  entities: { id: string; name: string }[];
+  usageData: { [id: string]: number };
+  limit: number;
+}> = ({ title, entities, usageData, limit }) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="h-full flex flex-col">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex justify-between items-center text-left py-2 px-2 rounded-md hover:bg-pure-white/5"
+        aria-expanded={isOpen}
+      >
+        <h3 className="text-lg font-semibold text-primary-red">{title}</h3>
+        <ChevronDownIcon className={`w-6 h-6 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="mt-3 space-y-3 flex-grow">
+          {entities.map(e => (
+            <UsageMeter
+              key={e.id}
+              label={e.name}
+              used={usageData[e.id] || 0}
+              limit={limit}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 export default ProfilePage;
