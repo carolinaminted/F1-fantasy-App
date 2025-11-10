@@ -16,6 +16,7 @@ type FilterType = 'all' | 'added' | 'pending';
 const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('all');
+    const [parsingText, setParsingText] = useState('');
 
     const handleSelectEvent = (eventId: string) => {
         setSelectedEventId(prevId => (prevId === eventId ? null : eventId));
@@ -116,6 +117,17 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                     {/* Mobile expanded view */}
                                     {isSelected && (
                                         <div className="md:hidden p-4 border-t border-accent-gray">
+                                            <div className="mb-6">
+                                                <label htmlFor="parsing-agent-mobile" className="block text-lg font-bold mb-2 text-center">Results Parsing Agent</label>
+                                                <textarea
+                                                    id="parsing-agent-mobile"
+                                                    value={parsingText}
+                                                    onChange={(e) => setParsingText(e.target.value)}
+                                                    placeholder="Paste raw results here..."
+                                                    rows={5}
+                                                    className="w-full bg-accent-gray/80 border border-accent-gray rounded-md py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+                                                />
+                                            </div>
                                             <ResultsForm
                                                 event={event}
                                                 currentResults={raceResults[event.id]}
@@ -140,6 +152,17 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                         {selectedEvent ? (
                             <div>
                                 <h2 className="text-2xl font-bold mb-4">Manage Results: {selectedEvent.name}</h2>
+                                <div className="mb-6">
+                                    <label htmlFor="parsing-agent-desktop" className="block text-lg font-bold mb-2">Results Parsing Agent</label>
+                                    <textarea
+                                        id="parsing-agent-desktop"
+                                        value={parsingText}
+                                        onChange={(e) => setParsingText(e.target.value)}
+                                        placeholder="Paste raw results here..."
+                                        rows={5}
+                                        className="w-full bg-accent-gray/80 border border-accent-gray rounded-md py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+                                    />
+                                </div>
                                 <ResultsForm
                                     event={selectedEvent}
                                     currentResults={raceResults[selectedEvent.id]}
