@@ -227,34 +227,34 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Scoring Breakdown Section */}
-        <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-          <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
-          <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-              <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                  <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                  <p className="text-sm text-highlight-silver">Grand Prix</p>
-                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
-              </button>
-              <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                  <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                  <p className="text-sm text-highlight-silver">Sprint Race</p>
-                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
-              </button>
-              <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                  <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                  <p className="text-sm text-highlight-silver">Fastest Lap</p>
-                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
-              </button>
-              <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                  <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                  <p className="text-sm text-highlight-silver">GP Quali</p>
-                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
-              </button>
-          </div>
+      {/* Scoring Breakdown Section */}
+      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+        <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
+            <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">Grand Prix</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
+            </button>
+            <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">Sprint Race</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
+            </button>
+            <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">Fastest Lap</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
+            </button>
+            <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                <p className="text-sm text-highlight-silver">GP Quali</p>
+                <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
+            </button>
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Usage Stats Section */}
         <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
           <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
@@ -285,77 +285,77 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             />
           </div>
         </div>
-      </div>
-      
-      {/* Picks History Section */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
-        <div className="space-y-2">
-            {EVENTS.map(event => {
-                const picks = seasonPicks[event.id];
-                const results = raceResults[event.id];
-                if (!picks) return null;
 
-                const eventPoints = results ? calculatePointsForEvent(picks, results) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
-                const isExpanded = expandedEvent === event.id;
+        {/* Picks History Section */}
+        <div>
+            <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
+            <div className="space-y-2">
+                {EVENTS.map(event => {
+                    const picks = seasonPicks[event.id];
+                    const results = raceResults[event.id];
+                    if (!picks) return null;
 
-                return (
-                    <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                        <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors" onClick={() => toggleEvent(event.id)}>
-                            <div>
-                                <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
-                                <p className="text-sm text-highlight-silver">{event.country}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className="font-bold text-xl">{eventPoints.totalPoints} PTS</span>
-                                <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                            </div>
-                        </button>
-                        {isExpanded && (
-                             <div className="p-4 border-t border-accent-gray/50 text-sm">
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                   <div>
-                                       <h4 className="font-bold text-primary-red mb-2">Teams</h4>
-                                       <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
-                                       <p>B: {getEntityName(picks.bTeam)}</p>
-                                   </div>
+                    const eventPoints = results ? calculatePointsForEvent(picks, results) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
+                    const isExpanded = expandedEvent === event.id;
+
+                    return (
+                        <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                            <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors" onClick={() => toggleEvent(event.id)}>
+                                <div>
+                                    <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
+                                    <p className="text-sm text-highlight-silver">{event.country}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="font-bold text-xl">{eventPoints.totalPoints} PTS</span>
+                                    <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </div>
+                            </button>
+                            {isExpanded && (
+                                <div className="p-4 border-t border-accent-gray/50 text-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                       <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
-                                       <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
-                                       <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
-                                   </div>
-                                    <div className="md:col-span-2">
-                                       <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
-                                       <p>{getEntityName(picks.fastestLap)}</p>
-                                   </div>
-                               </div>
-                               {results && (
-                                   <div className="mt-4 pt-4 border-t border-accent-gray/50">
-                                       <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
-                                       <div className="flex justify-around flex-wrap gap-4">
-                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
-                                                <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
-                                            </button>
-                                            {event.hasSprint && (
-                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'sprint')} className="transition-transform transform hover:scale-105">
-                                                    <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />
+                                        <h4 className="font-bold text-primary-red mb-2">Teams</h4>
+                                        <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
+                                        <p>B: {getEntityName(picks.bTeam)}</p>
+                                    </div>
+                                        <div>
+                                        <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
+                                        <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
+                                        <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
+                                    </div>
+                                        <div className="md:col-span-2">
+                                        <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
+                                        <p>{getEntityName(picks.fastestLap)}</p>
+                                    </div>
+                                </div>
+                                {results && (
+                                    <div className="mt-4 pt-4 border-t border-accent-gray/50">
+                                        <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
+                                        <div className="flex justify-around flex-wrap gap-4">
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
                                                 </button>
-                                            )}
-                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'quali')} className="transition-transform transform hover:scale-105">
-                                                <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
-                                            </button>
-                                            {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
-                                            <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
-                                                <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
-                                            </button>
-                                       </div>
-                                   </div>
-                               )}
-                            </div>
-                        )}
-                    </div>
-                );
-            }).filter(Boolean)}
+                                                {event.hasSprint && (
+                                                    <button onClick={() => handleEventScoringDetailClick(event.id, 'sprint')} className="transition-transform transform hover:scale-105">
+                                                        <PointChip icon={SprintIcon} label="Sprint" points={eventPoints.sprintPoints} />
+                                                    </button>
+                                                )}
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'quali')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
+                                                </button>
+                                                {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
+                                                <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
+                                                    <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
+                                                </button>
+                                        </div>
+                                    </div>
+                                )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                }).filter(Boolean)}
+            </div>
         </div>
       </div>
     </div>
