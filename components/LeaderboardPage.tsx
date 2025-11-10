@@ -3,6 +3,7 @@ import { CONSTRUCTORS, DRIVERS } from '../constants.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
+import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
 interface BarChartData {
   label: string;
@@ -45,6 +46,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leagueUsageData, setLeagueUsageData] = useState<{ mostUsedTeams: any[], mostUsedDrivers: any[] }>({ mostUsedTeams: [], mostUsedDrivers: [] });
   const [isLoading, setIsLoading] = useState(true);
+  const [isStandingsExpanded, setIsStandingsExpanded] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
@@ -95,11 +98,29 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
     fetchLeaderboardData();
   }, [raceResults]);
 
-  const top5 = leaderboardData.slice(0, 5).map(u => ({
+  const sortedLeaderboardData = useMemo(() => {
+    const dataToSort = [...leaderboardData];
+    dataToSort.sort((a, b) => {
+        if (sortOrder === 'desc') {
+            return b.points - a.points;
+        } else {
+            return a.points - b.points;
+        }
+    });
+    // Re-rank after sorting
+    return dataToSort.map((user, index) => ({ ...user, rank: index + 1 }));
+  }, [leaderboardData, sortOrder]);
+
+  const handleSortToggle = () => {
+    setSortOrder(current => (current === 'desc' ? 'asc' : 'desc'));
+  };
+
+  const top5 = useMemo(() => leaderboardData.slice(0, 5).map(u => ({
     label: u.displayName,
     value: u.points,
     isCurrentUser: u.id === currentUser?.id,
-  }));
+  })), [leaderboardData, currentUser]);
+
 
   const UsageList: React.FC<{ items: { name: string; count: number }[] }> = ({ items }) => (
     <ul className="space-y-2">
@@ -124,18 +145,34 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
             
             {/* Main Content: Full Standings */}
             <div className="lg:col-span-3">
-                <h3 className="text-2xl font-bold mb-4 text-primary-red text-center">Full Standings</h3>
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                <button
+                    onClick={() => setIsStandingsExpanded(!isStandingsExpanded)}
+                    className="w-full flex justify-between items-center p-2 rounded-md hover:bg-accent-gray/50 lg:hidden mb-4"
+                    aria-expanded={isStandingsExpanded}
+                    aria-controls="full-standings-table"
+                >
+                    <h3 className="text-2xl font-bold text-primary-red">Full Standings</h3>
+                    <ChevronDownIcon className={`w-8 h-8 transition-transform ${isStandingsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                
+                <h3 className="hidden lg:block text-2xl font-bold mb-4 text-primary-red text-center">Full Standings</h3>
+                
+                <div id="full-standings-table" className={`bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden ${!isStandingsExpanded ? 'hidden' : ''} lg:block`}>
                     <table className="w-full text-left">
                         <thead className="bg-carbon-black/50">
                             <tr>
                                 <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Rank</th>
                                 <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Team Name</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-right">Points</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-right">
+                                    <button onClick={handleSortToggle} className="flex items-center justify-end gap-1 w-full font-semibold uppercase">
+                                        Points
+                                        <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                                    </button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {leaderboardData.map(entry => (
+                            {sortedLeaderboardData.map(entry => (
                                 <tr 
                                     key={entry.id} 
                                     className={`border-t border-accent-gray/50 ${entry.id === currentUser?.id ? 'bg-primary-red/20' : ''}`}
