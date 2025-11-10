@@ -75,3 +75,20 @@ export const getAllUsersAndPicks = async () => {
 
     return { users, allPicks };
 };
+
+// Form Lock Management
+export const getFormLocks = async (): Promise<{ [eventId: string]: boolean }> => {
+    const locksRef = doc(db, 'app_state', 'form_locks');
+    const snapshot = await getDoc(locksRef);
+    return snapshot.exists() ? snapshot.data() : {};
+};
+
+export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
+    const locksRef = doc(db, 'app_state', 'form_locks');
+    try {
+        await setDoc(locksRef, locks);
+        console.log("Form locks saved successfully.");
+    } catch (error) {
+        console.error("Error saving form locks", error);
+    }
+};

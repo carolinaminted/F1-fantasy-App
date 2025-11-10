@@ -267,5 +267,3 @@ export let MOCK_SEASON_PICKS: { [userId: string]: { [eventId: string]: PickSelec
     "chn_25": { "aTeams": ["mclaren", "ferrari"], "bTeam": "haas", "aDrivers": ["nor", "lec", "pia"], "bDrivers": ["oco", "bea"], "fastestLap": "nor" }
   }
 };
-
-export let FORM_LOCKS: { [eventId: string]: boolean } = {};

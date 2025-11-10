@@ -17,10 +17,10 @@ import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
 import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
-import { MOCK_SEASON_PICKS, RACE_RESULTS, FORM_LOCKS } from './constants.ts';
+import { MOCK_SEASON_PICKS, RACE_RESULTS } from './constants.ts';
 import { auth } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { getUserProfile, getUserPicks, saveUserPicks } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, getFormLocks, saveFormLocks } from './services/firestoreService.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
@@ -91,9 +91,17 @@ const App: React.FC = () => {
   const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>(RACE_RESULTS);
-  const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>(FORM_LOCKS);
+  const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   
   useEffect(() => {
+    // Fetch persistent app-wide settings once on load
+    const loadInitialAppSettings = async () => {
+      const locks = await getFormLocks();
+      setFormLocks(locks);
+    };
+
+    loadInitialAppSettings();
+    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setIsLoading(true);
       if (firebaseUser) {
@@ -156,10 +164,10 @@ const App: React.FC = () => {
     alert(`${eventId} results updated successfully!`);
   };
   
-  const handleToggleFormLock = (eventId: string) => {
+  const handleToggleFormLock = async (eventId: string) => {
     const newLocks = { ...formLocks, [eventId]: !formLocks[eventId] };
-    setFormLocks(newLocks);
-    FORM_LOCKS[eventId] = !FORM_LOCKS[eventId]; // Update mutable constant
+    setFormLocks(newLocks); // Optimistic UI update
+    await saveFormLocks(newLocks); // Persist change to Firestore
     alert(`Form for event ${eventId} has been ${newLocks[eventId] ? 'LOCKED' : 'UNLOCKED'}.`);
   };
 
