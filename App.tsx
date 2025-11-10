@@ -191,11 +191,9 @@ const App: React.FC = () => {
     const newResults = { ...raceResults, [eventId]: results };
     try {
       await saveRaceResults(newResults);
-      // The onSnapshot listener will automatically update the state, but an immediate alert is good UX.
-      alert(`Results for ${eventId} updated successfully!`);
     } catch (error) {
       console.error("Failed to save race results:", error);
-      alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+      throw error; // Re-throw for the caller to handle
     }
   };
   
