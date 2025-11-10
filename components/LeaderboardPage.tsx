@@ -124,7 +124,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
             
             {/* Main Content: Full Standings */}
             <div className="lg:col-span-3">
-                <h3 className="text-2xl font-bold mb-4 text-center lg:text-left">Full Standings</h3>
+                <h3 className="text-2xl font-bold mb-4 text-primary-red text-center">Full Standings</h3>
                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
                     <table className="w-full text-left">
                         <thead className="bg-carbon-black/50">
@@ -153,12 +153,11 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
             {/* Sidebar: Top 5 & Stats */}
             <div className="lg:col-span-2 space-y-12">
                 <div>
-                    <h3 className="text-2xl font-bold mb-4 text-center lg:text-left">Top 5 Principals</h3>
+                    <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Top 5 Principals</h4>
                     <BarChart data={top5} />
                 </div>
                 
                 <div>
-                    <h3 className="text-2xl font-bold mb-4 text-center lg:text-left">League Usage Stats</h3>
                     {/* On tablet, this section is full-width, so 2 columns is good. 
                         On desktop, it's in a sidebar, so we collapse back to 1 column. */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-8">
