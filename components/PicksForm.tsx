@@ -119,7 +119,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-8">
         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div className="flex-grow text-center">
+          <div className="flex-grow text-center md:text-left">
             <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>
             <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
             <div className="mt-2">
@@ -133,57 +133,64 @@ const PicksForm: React.FC<PicksFormProps> = ({
           <CountdownTimer event={event} />
         </div>
 
-        <SelectorGroup
-          title="Class A Teams"
-          slots={2}
-          options={aTeams}
-          selected={picks.aTeams}
-          onSelect={(value, index) => handleSelect('aTeams', value, index)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="teams"
-          setModalContent={setModalContent}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column: Teams */}
+            <div className="space-y-8">
+                 <SelectorGroup
+                    title="Class A Teams"
+                    slots={2}
+                    options={aTeams}
+                    selected={picks.aTeams}
+                    onSelect={(value, index) => handleSelect('aTeams', value, index)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="teams"
+                    setModalContent={setModalContent}
+                />
 
-        <SelectorGroup
-          title="Class B Team"
-          slots={1}
-          options={bTeams}
-          selected={[picks.bTeam]}
-          onSelect={(value) => handleSelect('bTeam', value, 0)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="teams"
-          setModalContent={setModalContent}
-        />
-
-        <SelectorGroup
-          title="Class A Drivers"
-          slots={3}
-          options={aDrivers}
-          selected={picks.aDrivers}
-          onSelect={(value, index) => handleSelect('aDrivers', value, index)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="drivers"
-          setModalContent={setModalContent}
-        />
-        
-        <SelectorGroup
-          title="Class B Drivers"
-          slots={2}
-          options={bDrivers}
-          selected={picks.bDrivers}
-          onSelect={(value, index) => handleSelect('bDrivers', value, index)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="drivers"
-          setModalContent={setModalContent}
-        />
+                <SelectorGroup
+                    title="Class B Team"
+                    slots={1}
+                    options={bTeams}
+                    selected={[picks.bTeam]}
+                    onSelect={(value) => handleSelect('bTeam', value, 0)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="teams"
+                    setModalContent={setModalContent}
+                />
+            </div>
+            {/* Right Column: Drivers */}
+            <div className="space-y-8">
+                 <SelectorGroup
+                    title="Class A Drivers"
+                    slots={3}
+                    options={aDrivers}
+                    selected={picks.aDrivers}
+                    onSelect={(value, index) => handleSelect('aDrivers', value, index)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="drivers"
+                    setModalContent={setModalContent}
+                />
+                
+                <SelectorGroup
+                    title="Class B Drivers"
+                    slots={2}
+                    options={bDrivers}
+                    selected={picks.bDrivers}
+                    onSelect={(value, index) => handleSelect('bDrivers', value, index)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="drivers"
+                    setModalContent={setModalContent}
+                />
+            </div>
+        </div>
         
          <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
               <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
