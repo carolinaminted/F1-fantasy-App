@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { auth } from '../services/firebase.ts';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 
 const AuthScreen: React.FC = () => {
@@ -43,8 +43,21 @@ const AuthScreen: React.FC = () => {
               return;
           }
           try {
-              const { user } = await createUserWithEmailAndPassword(auth, email, password);
-              await createUserProfileDocument(user, { displayName });
+              const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+              const user = userCredential.user;
+              try {
+                  await createUserProfileDocument(user, { displayName });
+                  // On success, the onAuthStateChanged listener handles the redirect, so we don't reset loading state.
+              } catch (profileError) {
+                  // This is a critical failure: auth user was created, but firestore profile was not.
+                  // We should "roll back" the auth user creation to avoid an inconsistent state.
+                  console.error("Firestore profile creation failed. Rolling back Auth user.", profileError);
+                  if (auth.currentUser) {
+                      await deleteUser(auth.currentUser);
+                  }
+                  // Let the outer catch block handle the UI feedback.
+                  throw new Error("Failed to create user profile in the database.");
+              }
           } catch (error: any) {
               if (error.code === 'auth/email-already-in-use') {
                 alert('This email is already in use. Please log in or use a different email.');
@@ -55,7 +68,8 @@ const AuthScreen: React.FC = () => {
               setIsLoading(false);
           }
       }
-      // Don't setIsLoading(false) on success, as the component will unmount
+      // On successful sign-up or sign-in, the component unmounts via the onAuthStateChanged listener,
+      // so we don't need to set isLoading to false here. It's only reset on failure.
   };
 
   return (

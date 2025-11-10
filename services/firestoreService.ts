@@ -19,6 +19,8 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
             });
         } catch (error) {
             console.error("Error creating user profile", error);
+            // Re-throw the error to be handled by the calling function
+            throw error;
         }
     }
     return userRef;
