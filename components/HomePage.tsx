@@ -1,9 +1,9 @@
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState } from 'react';
-import PicksForm from './PicksForm';
-import { EVENTS, RACE_RESULTS } from '../constants';
-import { Event, PickSelection, User } from '../types';
-import useFantasyData from '../hooks/useFantasyData';
+import PicksForm from './PicksForm.tsx';
+import { EVENTS, RACE_RESULTS } from '../constants.ts';
+import { Event, PickSelection, User } from '../types.ts';
+import useFantasyData from '../hooks/useFantasyData.ts';
 
 interface HomePageProps {
   user: User;

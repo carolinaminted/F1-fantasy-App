@@ -1,7 +1,7 @@
 import React from 'react';
-import { EVENTS } from '../constants';
-import { LockIcon } from './icons/LockIcon';
-import { BackIcon } from './icons/BackIcon';
+import { EVENTS } from '../constants.ts';
+import { LockIcon } from './icons/LockIcon.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface FormLockPageProps {
     formLocks: { [eventId: string]: boolean };

@@ -1,16 +1,16 @@
 // Fix: Implement the ProfilePage component to display user stats and picks history.
 import React, { useState } from 'react';
-import { User, PickSelection, RaceResults, EntityClass, EventResult } from '../types';
-import useFantasyData from '../hooks/useFantasyData';
-import { calculatePointsForEvent } from '../services/scoringService';
-import { EVENTS, CONSTRUCTORS, DRIVERS, POINTS_SYSTEM } from '../constants';
-import { ChevronDownIcon } from './icons/ChevronDownIcon';
-import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon';
-import { SprintIcon } from './icons/SprintIcon';
-import { PolePositionIcon } from './icons/PolePositionIcon';
-import { FastestLapIcon } from './icons/FastestLapIcon';
-import { ProfileIcon } from './icons/ProfileIcon';
-import { LeaderboardIcon } from './icons/LeaderboardIcon';
+import { User, PickSelection, RaceResults, EntityClass, EventResult } from '../types.ts';
+import useFantasyData from '../hooks/useFantasyData.ts';
+import { calculatePointsForEvent } from '../services/scoringService.ts';
+import { EVENTS, CONSTRUCTORS, DRIVERS, POINTS_SYSTEM } from '../constants.ts';
+import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
+import { SprintIcon } from './icons/SprintIcon.tsx';
+import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
+import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
+import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 
 interface ProfilePageProps {
   user: User;

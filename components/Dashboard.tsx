@@ -1,10 +1,10 @@
 import React from 'react';
-import { Page } from '../App';
-import { User } from '../types';
-import { PicksIcon } from './icons/PicksIcon';
-import { LeaderboardIcon } from './icons/LeaderboardIcon';
-import { ProfileIcon } from './icons/ProfileIcon';
-import { AdminIcon } from './icons/AdminIcon';
+import { Page } from '../App.tsx';
+import { User } from '../types.ts';
+import { PicksIcon } from './icons/PicksIcon.tsx';
+import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
+import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { AdminIcon } from './icons/AdminIcon.tsx';
 
 interface DashboardProps {
   user: User | null;

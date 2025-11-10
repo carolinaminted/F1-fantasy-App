@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { CONSTRUCTORS, DRIVERS } from '../constants';
-import { calculateScoreRollup } from '../services/scoringService';
-import { User, RaceResults, PickSelection } from '../types';
-import { getAllUsersAndPicks } from '../services/firestoreService';
+import { CONSTRUCTORS, DRIVERS } from '../constants.ts';
+import { calculateScoreRollup } from '../services/scoringService.ts';
+import { User, RaceResults, PickSelection } from '../types.ts';
+import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 
 interface BarChartData {
   label: string;

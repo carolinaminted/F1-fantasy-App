@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types';
-import CountdownTimer from './CountdownTimer';
-import SelectorGroup from './SelectorGroup';
-import { SubmitIcon } from './icons/SubmitIcon';
-import { FastestLapIcon } from './icons/FastestLapIcon';
-import { LockIcon } from './icons/LockIcon';
+import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
+import CountdownTimer from './CountdownTimer.tsx';
+import SelectorGroup from './SelectorGroup.tsx';
+import { SubmitIcon } from './icons/SubmitIcon.tsx';
+import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
+import { LockIcon } from './icons/LockIcon.tsx';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],

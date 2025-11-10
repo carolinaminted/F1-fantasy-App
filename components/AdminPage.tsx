@@ -1,7 +1,7 @@
 import React from 'react';
-import { AdminIcon } from './icons/AdminIcon';
-import { LeaderboardIcon } from './icons/LeaderboardIcon';
-import { LockIcon } from './icons/LockIcon';
+import { AdminIcon } from './icons/AdminIcon.tsx';
+import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
+import { LockIcon } from './icons/LockIcon.tsx';
 
 interface AdminPageProps {
     setAdminSubPage: (page: 'results' | 'form-lock') => void;

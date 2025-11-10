@@ -1,6 +1,6 @@
-import { db } from './firebase';
+import { db } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
-import { PickSelection, User } from '../types';
+import { PickSelection, User } from '../types.ts';
 import { User as FirebaseUser } from 'firebase/auth';
 
 // User Profile Management

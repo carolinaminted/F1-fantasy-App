@@ -1,24 +1,24 @@
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect } from 'react';
-import AuthScreen from './components/AuthScreen';
-import HomePage from './components/HomePage';
-import ProfilePage from './components/ProfilePage';
-import LeaderboardPage from './components/LeaderboardPage';
-import Dashboard from './components/Dashboard';
-import AdminPage from './components/AdminPage';
-import FormLockPage from './components/FormLockPage';
-import ResultsManagerPage from './components/ResultsManagerPage';
-import { User, PickSelection, RaceResults } from './types';
-import { HomeIcon } from './components/icons/HomeIcon';
-import { PicksIcon } from './components/icons/PicksIcon';
-import { ProfileIcon } from './components/icons/ProfileIcon';
-import { LeaderboardIcon } from './components/icons/LeaderboardIcon';
-import { F1CarIcon } from './components/icons/F1CarIcon';
-import { AdminIcon } from './components/icons/AdminIcon';
-import { MOCK_SEASON_PICKS, RACE_RESULTS, FORM_LOCKS } from './constants';
-import { auth } from './services/firebase';
+import AuthScreen from './components/AuthScreen.tsx';
+import HomePage from './components/HomePage.tsx';
+import ProfilePage from './components/ProfilePage.tsx';
+import LeaderboardPage from './components/LeaderboardPage.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import AdminPage from './components/AdminPage.tsx';
+import FormLockPage from './components/FormLockPage.tsx';
+import ResultsManagerPage from './components/ResultsManagerPage.tsx';
+import { User, PickSelection, RaceResults } from './types.ts';
+import { HomeIcon } from './components/icons/HomeIcon.tsx';
+import { PicksIcon } from './components/icons/PicksIcon.tsx';
+import { ProfileIcon } from './components/icons/ProfileIcon.tsx';
+import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
+import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
+import { AdminIcon } from './components/icons/AdminIcon.tsx';
+import { MOCK_SEASON_PICKS, RACE_RESULTS, FORM_LOCKS } from './constants.ts';
+import { auth } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { getUserProfile, getUserPicks, saveUserPicks } from './services/firestoreService';
+import { getUserProfile, getUserPicks, saveUserPicks } from './services/firestoreService.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin';

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { F1FantasyLogo } from './icons/F1FantasyLogo';
-import { auth } from '../services/firebase';
+import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
+import { auth } from '../services/firebase.ts';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { createUserProfileDocument } from '../services/firestoreService';
+import { createUserProfileDocument } from '../services/firestoreService.ts';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);

@@ -1,8 +1,8 @@
 // Fix: Add score calculation logic to process picks against race results and a points system.
 import { useMemo, useCallback } from 'react';
-import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS } from '../constants';
-import { EntityClass, PickSelection, RaceResults } from '../types';
-import { calculateUsageRollup, calculateScoreRollup } from '../services/scoringService';
+import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS } from '../constants.ts';
+import { EntityClass, PickSelection, RaceResults } from '../types.ts';
+import { calculateUsageRollup, calculateScoreRollup } from '../services/scoringService.ts';
 
 const useFantasyData = (
     seasonPicks: { [eventId: string]: PickSelection },

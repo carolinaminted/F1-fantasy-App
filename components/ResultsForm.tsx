@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Event, EventResult, Driver } from '../types';
-import { DRIVERS } from '../constants';
+import { Event, EventResult, Driver } from '../types.ts';
+import { DRIVERS } from '../constants.ts';
 
 interface ResultsFormProps {
     event: Event;
