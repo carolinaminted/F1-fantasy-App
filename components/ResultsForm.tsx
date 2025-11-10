@@ -52,6 +52,15 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 text-pure-white">
+            <div className="flex justify-end">
+                <button
+                    type="submit"
+                    className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg"
+                >
+                    Save Results
+                </button>
+            </div>
+
             <div className="bg-carbon-black/50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2 text-center text-lg">Fastest Lap</h3>
                 <SelectDriver
@@ -106,15 +115,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         </div>
                     )}
                 </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-                <button
-                    type="submit"
-                    className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg"
-                >
-                    Save Results
-                </button>
             </div>
         </form>
     );
