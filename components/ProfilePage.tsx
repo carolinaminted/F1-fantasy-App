@@ -221,67 +221,69 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   return (
     <>
-    <div className="max-w-7xl mx-auto text-pure-white space-y-12">
+    <div className="max-w-7xl mx-auto text-pure-white space-y-8">
       <div>
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
         <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
       </div>
 
-      {/* Scoring Breakdown Section */}
-      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-        <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
-        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-            <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">Grand Prix</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
-            </button>
-            <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">Sprint Race</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
-            </button>
-            <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">Fastest Lap</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
-            </button>
-            <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">GP Quali</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
-            </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Scoring Breakdown Section */}
+        <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+          <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
+          <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+              <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                  <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                  <p className="text-sm text-highlight-silver">Grand Prix</p>
+                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
+              </button>
+              <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                  <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                  <p className="text-sm text-highlight-silver">Sprint Race</p>
+                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
+              </button>
+              <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                  <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                  <p className="text-sm text-highlight-silver">Fastest Lap</p>
+                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
+              </button>
+              <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                  <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                  <p className="text-sm text-highlight-silver">GP Quali</p>
+                  <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
+              </button>
+          </div>
         </div>
-      </div>
 
-      {/* Usage Stats Section */}
-      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-        <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class A Teams</h3>
-                <div className="space-y-3">
-                    {aTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.A, 'teams')} />)}
-                </div>
-            </div>
-             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class B Teams</h3>
-                <div className="space-y-3">
-                    {bTeams.map(t => <UsageMeter key={t.id} label={t.name} used={usageRollup.teams[t.id] || 0} limit={getLimit(EntityClass.B, 'teams')} />)}
-                </div>
-            </div>
-             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class A Drivers</h3>
-                <div className="space-y-3">
-                    {aDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.A, 'drivers')} />)}
-                </div>
-            </div>
-             <div>
-                <h3 className="text-lg font-semibold text-primary-red mb-3 text-center">Class B Drivers</h3>
-                <div className="space-y-3">
-                    {bDrivers.map(d => <UsageMeter key={d.id} label={d.name} used={usageRollup.drivers[d.id] || 0} limit={getLimit(EntityClass.B, 'drivers')} />)}
-                </div>
-            </div>
+        {/* Usage Stats Section */}
+        <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+          <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+            <CollapsibleUsageList
+                title="Class A Teams"
+                entities={aTeams}
+                usageData={usageRollup.teams}
+                limit={getLimit(EntityClass.A, 'teams')}
+            />
+            <CollapsibleUsageList
+                title="Class B Teams"
+                entities={bTeams}
+                usageData={usageRollup.teams}
+                limit={getLimit(EntityClass.B, 'teams')}
+            />
+            <CollapsibleUsageList
+                title="Class A Drivers"
+                entities={aDrivers}
+                usageData={usageRollup.drivers}
+                limit={getLimit(EntityClass.A, 'drivers')}
+            />
+            <CollapsibleUsageList
+                title="Class B Drivers"
+                entities={bDrivers}
+                usageData={usageRollup.drivers}
+                limit={getLimit(EntityClass.B, 'drivers')}
+            />
+          </div>
         </div>
       </div>
       
@@ -386,6 +388,40 @@ const PointChip: React.FC<PointChipProps> = ({ icon: Icon, label, points = 0 }) 
         <span className="font-bold text-lg text-pure-white">{points}</span>
     </div>
 );
+
+const CollapsibleUsageList: React.FC<{
+  title: string;
+  entities: { id: string; name: string }[];
+  usageData: { [id: string]: number };
+  limit: number;
+}> = ({ title, entities, usageData, limit }) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="h-full flex flex-col">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex justify-between items-center text-left py-2 px-2 rounded-md hover:bg-pure-white/5"
+        aria-expanded={isOpen}
+      >
+        <h3 className="text-lg font-semibold text-primary-red">{title}</h3>
+        <ChevronDownIcon className={`w-6 h-6 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="mt-3 space-y-3 flex-grow">
+          {entities.map(e => (
+            <UsageMeter
+              key={e.id}
+              label={e.name}
+              used={usageData[e.id] || 0}
+              limit={limit}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 export default ProfilePage;
