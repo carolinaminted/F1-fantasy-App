@@ -255,36 +255,39 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Usage Stats Section */}
-        <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-          <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-3"><ProfileIcon className="w-6 h-6" /> Season Usage Stats</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-            <CollapsibleUsageList
-                title="Class A Teams"
-                entities={aTeams}
-                usageData={usageRollup.teams}
-                limit={getLimit(EntityClass.A, 'teams')}
-            />
-            <CollapsibleUsageList
-                title="Class B Teams"
-                entities={bTeams}
-                usageData={usageRollup.teams}
-                limit={getLimit(EntityClass.B, 'teams')}
-            />
-            <CollapsibleUsageList
-                title="Class A Drivers"
-                entities={aDrivers}
-                usageData={usageRollup.drivers}
-                limit={getLimit(EntityClass.A, 'drivers')}
-            />
-            <CollapsibleUsageList
-                title="Class B Drivers"
-                entities={bDrivers}
-                usageData={usageRollup.drivers}
-                limit={getLimit(EntityClass.B, 'drivers')}
-            />
+        {/* Selection Counts Section */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
+          <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+              <CollapsibleUsageList
+                  title="Class A Teams"
+                  entities={aTeams}
+                  usageData={usageRollup.teams}
+                  limit={getLimit(EntityClass.A, 'teams')}
+              />
+              <CollapsibleUsageList
+                  title="Class B Teams"
+                  entities={bTeams}
+                  usageData={usageRollup.teams}
+                  limit={getLimit(EntityClass.B, 'teams')}
+              />
+              <CollapsibleUsageList
+                  title="Class A Drivers"
+                  entities={aDrivers}
+                  usageData={usageRollup.drivers}
+                  limit={getLimit(EntityClass.A, 'drivers')}
+              />
+              <CollapsibleUsageList
+                  title="Class B Drivers"
+                  entities={bDrivers}
+                  usageData={usageRollup.drivers}
+                  limit={getLimit(EntityClass.B, 'drivers')}
+              />
+            </div>
           </div>
         </div>
+
 
         {/* Picks History Section */}
         <div>
