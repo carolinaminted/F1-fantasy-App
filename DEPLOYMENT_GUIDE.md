@@ -156,3 +156,20 @@ service cloud.firestore {
 - Click the **"Publish"** button. Your changes will take effect almost immediately.
 
 After creating the database and publishing these rules, the user registration process in your application will work correctly.
+---
+
+## Part 6: Troubleshooting
+
+### Problem: "Your user account is missing required profile data..." Loop
+If you try to log in and see an alert that says your account is missing data, and then you try to sign up with the same email and see an alert that says "email is already in use," you have an **orphan account**.
+
+This happens if you successfully signed up before the Firestore database and its security rules were correctly configured. The fix is to **manually delete the broken user account** to get a clean slate.
+
+#### How to Delete an Orphan User:
+1.  Go to the [Firebase Console](https://console.firebase.google.com/) and open your project.
+2.  In the left-hand navigation menu, under **Build**, click on **Authentication**.
+3.  Go to the **"Users"** tab.
+4.  Find the user account that is causing the problem by looking for its email address in the list.
+5.  Hover over that user's row, click the three-dot menu icon (`...`) that appears on the far right, and select **"Delete account"**.
+6.  Confirm the deletion.
+7.  Now, go back to your web application and **sign up again** from scratch. The process will now complete successfully.

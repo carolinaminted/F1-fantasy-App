@@ -60,7 +60,7 @@ const AuthScreen: React.FC = () => {
               }
           } catch (error: any) {
               if (error.code === 'auth/email-already-in-use') {
-                alert('This email is already in use. Please log in or use a different email.');
+                alert('This email is already in use. If you previously had a failed sign-up attempt, please try logging in instead.');
               } else {
                 alert('Failed to sign up. Please try again.');
               }
