@@ -11,7 +11,7 @@ interface FormLockPageProps {
 
 const FormLockPage: React.FC<FormLockPageProps> = ({ formLocks, onToggleLock, setAdminSubPage }) => {
     return (
-        <div className="max-w-4xl mx-auto text-pure-white">
+        <div className="max-w-7xl mx-auto text-pure-white">
              <div className="flex items-center justify-between mb-8">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}

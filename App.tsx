@@ -25,6 +25,64 @@ import { getUserProfile, getUserPicks, saveUserPicks } from './services/firestor
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
 
+
+// New SideNavItem component for desktop sidebar
+interface SideNavItemProps {
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  page: Page;
+  activePage: Page;
+  setActivePage: (page: Page) => void;
+}
+
+const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage }) => {
+  const isActive = activePage === page;
+  return (
+    <button
+      onClick={() => setActivePage(page)}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 w-full text-left ${
+        isActive
+          ? 'bg-accent-gray text-pure-white font-semibold'
+          : 'text-highlight-silver hover:bg-accent-gray/50 hover:text-pure-white'
+      }`}
+    >
+      <Icon className={`w-6 h-6 flex-shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
+      <span className="text-sm font-medium">{label}</span>
+    </button>
+  );
+};
+
+// New SideNav component for desktop view
+const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
+    <aside className="hidden md:flex flex-col w-56 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0">
+        <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer pt-2 pb-4 mb-4">
+           <F1CarIcon className="w-8 h-8 text-primary-red" />
+           <span className="font-bold text-xl">F1 Fantasy</span>
+        </div>
+        <nav className="flex-grow space-y-1">
+            <SideNavItem icon={HomeIcon} label="Dashboard" page="home" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={PicksIcon} label="Weekly Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={TrophyIcon} label="Points System" page="points" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            {user?.email === 'admin@fantasy.f1' && (
+              <SideNavItem icon={AdminIcon} label="Admin Panel" page="admin" activePage={activePage} setActivePage={navigateToPage} />
+            )}
+        </nav>
+         {user && (
+           <div className="mt-auto flex-shrink-0">
+             <div className="pt-4 border-t border-accent-gray/50">
+                <p className="font-semibold text-pure-white truncate">{user.displayName}</p>
+                 <button onClick={handleLogout} className="text-sm text-highlight-silver hover:text-primary-red w-full text-left">
+                    Log Out
+                 </button>
+             </div>
+           </div>
+         )}
+    </aside>
+);
+
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -155,10 +213,13 @@ const App: React.FC = () => {
   }
   
   const appContent = (
-    <div className="relative min-h-screen bg-carbon-black text-ghost-white pb-24">
-       <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
-       
-       <header className="relative py-4 px-6 flex items-center justify-between bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray">
+    <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
+      {/* Sidebar for Desktop */}
+      <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
+
+      <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden">
+        {/* Header for Mobile */}
+        <header className="relative py-4 px-6 flex items-center justify-between bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden">
          <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer">
            <F1CarIcon className="w-8 h-8 text-primary-red" />
            <span className="font-bold text-xl">F1 Fantasy</span>
@@ -171,22 +232,28 @@ const App: React.FC = () => {
              </button>
            </div>
          )}
-       </header>
+        </header>
 
-       <main className="relative p-4 md:p-8">
-         {renderPage()}
-       </main>
+        {/* Main Content (scrollable) */}
+        <div className="relative flex-1 overflow-y-auto pb-24 md:pb-8">
+            <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
+            <main className="relative p-4 md:p-8">
+                {renderPage()}
+            </main>
+        </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 flex justify-around md:hidden">
-        <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
-        <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-        <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-        <NavItem icon={TrophyIcon} label="Points" page="points" activePage={activePage} setActivePage={navigateToPage} />
-        <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-        {user?.email === 'admin@fantasy.f1' && (
-          <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
-        )}
-      </nav>
+        {/* Bottom Nav for Mobile */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 flex justify-around md:hidden">
+            <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={TrophyIcon} label="Points" page="points" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            {user?.email === 'admin@fantasy.f1' && (
+              <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
+            )}
+        </nav>
+      </div>
     </div>
   );
 

@@ -117,7 +117,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
+      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-8">
         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div className="flex-grow text-center">
             <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>

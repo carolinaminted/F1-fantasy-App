@@ -28,7 +28,7 @@ const PointsList: React.FC<{ points: number[] }> = ({ points }) => (
 
 const PointsTransparency: React.FC = () => {
     return (
-        <div className="max-w-4xl mx-auto text-pure-white">
+        <div className="max-w-7xl mx-auto text-pure-white">
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Points System</h1>
             <p className="text-center text-highlight-silver mb-8">Understand how your fantasy team scores points each race weekend.</p>
 

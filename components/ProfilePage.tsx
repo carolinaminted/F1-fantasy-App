@@ -221,7 +221,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   return (
     <>
-    <div className="max-w-4xl mx-auto text-pure-white space-y-12">
+    <div className="max-w-7xl mx-auto text-pure-white space-y-12">
       <div>
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
         <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
