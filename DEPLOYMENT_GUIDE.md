@@ -169,6 +169,14 @@ service cloud.firestore {
        allow read: if request.auth != null;
        allow write: if request.auth != null;
     }
+
+    // App-wide race results.
+    // Allow any authenticated user to read (for live score updates).
+    // Allow any authenticated user to write (admin writes from client).
+    match /app_state/race_results {
+       allow read: if request.auth != null;
+       allow write: if request.auth != null;
+    }
   }
 }
 ```
