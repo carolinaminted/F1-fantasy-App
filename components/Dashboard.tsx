@@ -6,6 +6,7 @@ import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { DonationIcon } from './icons/DonationIcon.tsx';
 
 interface DashboardProps {
   user: User | null;
@@ -42,6 +43,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
           title="Points System"
           description="Learn how fantasy points are calculated."
           onClick={() => setActivePage('points')}
+        />
+        <NavTile
+          icon={DonationIcon}
+          title="Make a Donation"
+          description="Support the league by making a contribution."
+          onClick={() => setActivePage('donate')}
         />
         {isAdmin && (
           <NavTile

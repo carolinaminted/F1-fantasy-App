@@ -10,6 +10,8 @@ import FormLockPage from './components/FormLockPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
+import DonationPage from './components/DonationPage.tsx';
+import DonationSuccessPage from './components/DonationSuccessPage.tsx';
 import { User, PickSelection, RaceResults } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -25,7 +27,7 @@ import { onSnapshot, doc } from 'firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'donate-success';
 
 
 // New SideNavItem component for desktop sidebar
@@ -94,6 +96,7 @@ const App: React.FC = () => {
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
+  const [lastDonationAmount, setLastDonationAmount] = useState<number>(0);
   
   useEffect(() => {
     let unsubscribeResults = () => {};
@@ -219,6 +222,11 @@ const App: React.FC = () => {
     setActivePage(page);
   };
 
+  const handleDonationSubmit = (amount: number) => {
+    setLastDonationAmount(amount);
+    setActivePage('donate-success');
+  };
+
 
   const renderPage = () => {
     switch (activePage) {
@@ -234,6 +242,10 @@ const App: React.FC = () => {
         return null; // Should not happen if authenticated
       case 'points':
         return <PointsTransparency />;
+      case 'donate':
+        return <DonationPage user={user} setActivePage={navigateToPage} onDonationSubmit={handleDonationSubmit} />;
+      case 'donate-success':
+        return <DonationSuccessPage amount={lastDonationAmount} setActivePage={navigateToPage} />;
       case 'admin':
         if (user?.email !== 'admin@fantasy.f1') {
             return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins
@@ -262,7 +274,7 @@ const App: React.FC = () => {
       </div>
     );
   }
-  
+
   const appContent = (
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
       {/* Sidebar for Desktop */}
