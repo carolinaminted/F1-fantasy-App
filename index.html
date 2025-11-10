@@ -28,6 +28,19 @@
       body {
         font-family: 'Exo 2', sans-serif;
       }
+      @keyframes pulse-red {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.5);
+          opacity: 0.7;
+        }
+      }
+      .animate-pulse-red {
+        animation: pulse-red 1.5s infinite;
+      }
     </style>
     <!-- Add Babel Standalone for in-browser JSX/TSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>

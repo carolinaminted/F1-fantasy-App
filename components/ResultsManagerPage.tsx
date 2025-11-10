@@ -7,7 +7,7 @@ import { BackIcon } from './icons/BackIcon.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
-    onResultsUpdate: (eventId: string, results: EventResult) => void;
+    onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
     setAdminSubPage: (page: 'dashboard') => void;
 }
 
@@ -21,11 +21,17 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         setSelectedEventId(prevId => (prevId === eventId ? null : eventId));
     };
 
-    const handleSave = (eventId: string, results: EventResult) => {
-        onResultsUpdate(eventId, results);
-        // On desktop, keep the form open for potential further edits. On mobile, close it.
-        if (window.innerWidth < 768) {
-            setSelectedEventId(null);
+    const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
+        try {
+            await onResultsUpdate(eventId, results);
+            // On desktop, keep the form open for potential further edits. On mobile, close it.
+            if (window.innerWidth < 768) {
+                setSelectedEventId(null);
+            }
+            return true;
+        } catch (error) {
+            alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+            return false;
         }
     };
 

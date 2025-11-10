@@ -146,42 +146,60 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Function to check if the requesting user is an admin by email.
+    // --- Helper Functions ---
     function isAdmin() {
+      // Check if the requesting user's profile document has an admin email.
+      // This is more secure than checking the auth token claim directly on the client.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@fantasy.f1';
     }
     
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- User Profiles ---
     match /users/{userId} {
       allow read: if true;
-      allow create: if request.auth.uid == userId;
+      allow create: if isOwner(userId);
 
       // An update is allowed if:
       // 1. The user is the owner AND they are NOT trying to change their dues status.
       // 2. The requester is an admin AND they are ONLY changing the dues status.
-      allow update: if (request.auth.uid == userId && !('duesPaidStatus' in request.resource.data.diff(resource.data).changedKeys())) ||
+      allow update: if (isOwner(userId) && !('duesPaidStatus' in request.resource.data.diff(resource.data).changedKeys())) ||
                      (isAdmin() && request.resource.data.diff(resource.data).changedKeys().hasOnly(['duesPaidStatus']));
     }
     
+    // --- User Picks ---
     // Allow public read of all picks (for leaderboards and scoring).
     // Only allow a user to write (create, update) their own picks.
     match /userPicks/{userId} {
        allow read: if true;
-       allow write: if request.auth.uid == userId;
+       allow write: if isOwner(userId);
     }
 
-    // App-wide settings, like form locks.
-    // Allow any authenticated user to read (to see if forms are locked).
-    // Only allow an admin to write.
-    match /app_state/form_locks {
-       allow read: if request.auth != null;
-       allow write: if isAdmin();
+    // --- Donation Records (Subcollection of Users) ---
+    // A user can only read their own donation records.
+    // For this prototype, we allow a user to create their own donation record.
+    // In a production app, this should be locked down (`allow create: if false;`)
+    // and writes should only happen from a trusted backend server or Cloud Function.
+    match /users/{userId}/donations/{donationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      && request.resource.data.userId == userId
+                      && request.resource.data.createdAt == request.time;
+        allow update, delete: if false; // Client cannot modify or delete records.
     }
 
-    // App-wide race results.
-    // Allow any authenticated user to read (for live score updates).
-    // Only allow an admin to write.
-    match /app_state/race_results {
-       allow read: if request.auth != null;
+    // --- Global App State ---
+    // App-wide settings, like form locks and race results.
+    // Allow any authenticated user to read these documents.
+    // Only allow an admin to write to them.
+    match /app_state/{document} {
+       allow read: if isSignedIn();
        allow write: if isAdmin();
     }
   }

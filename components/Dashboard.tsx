@@ -6,6 +6,7 @@ import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { DonationIcon } from './icons/DonationIcon.tsx';
 
 interface DashboardProps {
   user: User | null;
@@ -18,36 +19,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
   return (
     <div className="max-w-5xl mx-auto">
       <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center">Home Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <NavTile
           icon={PicksIcon}
-          title="Weekly Picks"
-          description="Submit or edit your picks for the next event."
+          title="Grand Prix Picks"
+          description="Submit or edit picks for any active grand prix"
           onClick={() => setActivePage('picks')}
         />
         <NavTile
           icon={LeaderboardIcon}
-          title="Leaderboard"
-          description="View the current league standings and points."
+          title="League Dashboard"
+          description="View league wide standings with visuals and metrics"
           onClick={() => setActivePage('leaderboard')}
         />
         <NavTile
           icon={ProfileIcon}
-          title="My Profile"
-          description="Check your season usage stats and history."
+          title="Profile"
+          description="View your information, picks, and scoring breakdowns"
           onClick={() => setActivePage('profile')}
         />
         <NavTile
           icon={TrophyIcon}
-          title="Points System"
-          description="Learn how fantasy points are calculated."
+          title="Scoring System"
+          description="Learn how fantasy points are calculated"
           onClick={() => setActivePage('points')}
+        />
+        <NavTile
+          icon={DonationIcon}
+          title="Donate Now"
+          description="Donate to Victory Junction to support campers"
+          onClick={() => setActivePage('donate')}
         />
         {isAdmin && (
           <NavTile
             icon={AdminIcon}
-            title="Admin Panel"
-            description="Manage season events and update race results."
+            title="Admin"
+            description="Manage GP forms, update race results, manage users, and etc"
             onClick={() => setActivePage('admin')}
           />
         )}

@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect } from 'react';
 import AuthScreen from './components/AuthScreen.tsx';
@@ -10,8 +11,11 @@ import FormLockPage from './components/FormLockPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
+import DonationPage from './components/DonationPage.tsx';
+import DonationSuccessPage from './components/DonationSuccessPage.tsx';
 import { User, PickSelection, RaceResults } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
+import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
 import { ProfileIcon } from './components/icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
@@ -25,7 +29,7 @@ import { onSnapshot, doc } from 'firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'donate-success';
 
 
 // New SideNavItem component for desktop sidebar
@@ -62,13 +66,14 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
            <span className="font-bold text-xl">F1 Fantasy</span>
         </div>
         <nav className="flex-grow space-y-1">
-            <SideNavItem icon={HomeIcon} label="Dashboard" page="home" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={PicksIcon} label="Weekly Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={TrophyIcon} label="Points System" page="points" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
-              <SideNavItem icon={AdminIcon} label="Admin Panel" page="admin" activePage={activePage} setActivePage={navigateToPage} />
+              <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
         </nav>
          {user && (
@@ -94,6 +99,7 @@ const App: React.FC = () => {
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
+  const [lastDonationAmount, setLastDonationAmount] = useState<number>(0);
   
   useEffect(() => {
     let unsubscribeResults = () => {};
@@ -191,11 +197,9 @@ const App: React.FC = () => {
     const newResults = { ...raceResults, [eventId]: results };
     try {
       await saveRaceResults(newResults);
-      // The onSnapshot listener will automatically update the state, but an immediate alert is good UX.
-      alert(`Results for ${eventId} updated successfully!`);
     } catch (error) {
       console.error("Failed to save race results:", error);
-      alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+      throw error; // Re-throw for the caller to handle
     }
   };
   
@@ -221,6 +225,11 @@ const App: React.FC = () => {
     setActivePage(page);
   };
 
+  const handleDonationSubmit = (amount: number) => {
+    setLastDonationAmount(amount);
+    setActivePage('donate-success');
+  };
+
 
   const renderPage = () => {
     switch (activePage) {
@@ -236,6 +245,10 @@ const App: React.FC = () => {
         return null; // Should not happen if authenticated
       case 'points':
         return <PointsTransparency />;
+      case 'donate':
+        return <DonationPage user={user} setActivePage={navigateToPage} onDonationSubmit={handleDonationSubmit} />;
+      case 'donate-success':
+        return <DonationSuccessPage amount={lastDonationAmount} setActivePage={navigateToPage} />;
       case 'admin':
         if (user?.email !== 'admin@fantasy.f1') {
             return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins
@@ -264,7 +277,7 @@ const App: React.FC = () => {
       </div>
     );
   }
-  
+
   const appContent = (
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
       {/* Sidebar for Desktop */}
@@ -296,12 +309,12 @@ const App: React.FC = () => {
         </div>
 
         {/* Bottom Nav for Mobile */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 flex justify-around md:hidden">
+        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${user?.email === 'admin@fantasy.f1' ? 'grid-cols-6' : 'grid-cols-5'} md:hidden`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={TrophyIcon} label="Points" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}

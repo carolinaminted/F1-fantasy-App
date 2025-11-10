@@ -5,7 +5,7 @@ import { DRIVERS } from '../constants.ts';
 interface ResultsFormProps {
     event: Event;
     currentResults?: EventResult;
-    onSave: (eventId: string, results: EventResult) => void;
+    onSave: (eventId: string, results: EventResult) => Promise<boolean>;
 }
 
 const emptyResults = (event: Event): EventResult => ({
@@ -21,9 +21,11 @@ const emptyResults = (event: Event): EventResult => ({
 
 const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave }) => {
     const [results, setResults] = useState<EventResult>(currentResults || emptyResults(event));
+    const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success'>('idle');
 
     useEffect(() => {
         setResults(currentResults || emptyResults(event));
+        setSaveState('idle'); // Reset on event/results change
     }, [currentResults, event]);
 
     const handleSelect = (category: keyof EventResult, value: string | null, index: number) => {
@@ -43,21 +45,43 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         setResults(prev => ({ ...prev, fastestLap: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(event.id, results);
+        setSaveState('saving');
+        const success = await onSave(event.id, results);
+        if (success) {
+            setSaveState('success');
+            setTimeout(() => {
+                setSaveState('idle');
+            }, 2000);
+        } else {
+            setSaveState('idle'); // Parent shows error, so we just reset
+        }
     };
 
     const driverOptions = DRIVERS.map(d => ({ value: d.id, label: d.name }));
+
+    const buttonContent = {
+        idle: 'Save Results',
+        saving: 'Saving...',
+        success: '✓ Saved!',
+    };
+
+    const buttonClasses = {
+        idle: 'bg-primary-red hover:opacity-90',
+        saving: 'bg-accent-gray cursor-wait',
+        success: 'bg-green-600',
+    };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 text-pure-white">
             <div className="flex justify-end">
                 <button
                     type="submit"
-                    className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg"
+                    disabled={saveState !== 'idle'}
+                    className={`font-bold py-2 px-6 rounded-lg transition-colors duration-200 text-pure-white ${buttonClasses[saveState]}`}
                 >
-                    Save Results
+                    {buttonContent[saveState]}
                 </button>
             </div>
 
