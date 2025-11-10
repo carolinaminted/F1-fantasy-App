@@ -12,13 +12,20 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
     if (!snapshot.exists()) {
         const { email } = userAuth;
         const { displayName } = additionalData;
+        const userPicksRef = doc(db, 'userPicks', userAuth.uid); // Reference to the picks document
+
         try {
+            // Create the user profile document
             await setDoc(userRef, {
                 displayName,
                 email,
             });
+
+            // Create the initial empty user picks document to ensure it exists for all users
+            await setDoc(userPicksRef, {});
+
         } catch (error) {
-            console.error("Error creating user profile", error);
+            console.error("Error creating user profile or picks document", error);
             // Re-throw the error to be handled by the calling function
             throw error;
         }

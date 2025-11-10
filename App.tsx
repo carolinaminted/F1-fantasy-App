@@ -37,13 +37,35 @@ const App: React.FC = () => {
   
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setIsLoading(true);
       if (firebaseUser) {
-        const userProfile = await getUserProfile(firebaseUser.uid);
-        const userPicks = await getUserPicks(firebaseUser.uid);
-        setUser(userProfile);
-        setSeasonPicks(userPicks);
-        setIsAuthenticated(true);
+        let userProfile = await getUserProfile(firebaseUser.uid);
+
+        // This handles a race condition on new user registration where the auth listener
+        // fires before the user's profile document is created in Firestore.
+        if (!userProfile) {
+          console.log("Profile not found on initial load, retrying for new user...");
+          // Wait a moment for Firestore to be updated
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          userProfile = await getUserProfile(firebaseUser.uid);
+        }
+
+        if (userProfile) {
+          // Profile found, proceed to load user data
+          const userPicks = await getUserPicks(firebaseUser.uid);
+          setUser(userProfile);
+          setSeasonPicks(userPicks);
+          setIsAuthenticated(true);
+        } else {
+          // If the profile still doesn't exist after the retry, something went wrong with registration.
+          // Log the user out to prevent them from being in a broken, authenticated-but-no-profile state.
+          console.error("User profile document not found after retry. Forcing logout.");
+          await signOut(auth);
+          // The signOut will re-trigger this listener, falling into the `else` block below.
+          return; // Exit early to avoid setting loading to false here
+        }
       } else {
+        // User is logged out
         setUser(null);
         setSeasonPicks({});
         setIsAuthenticated(false);
