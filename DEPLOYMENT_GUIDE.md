@@ -112,23 +112,23 @@ firebase deploy
 
 ---
 
-## Part 5: Configure Firestore Security Rules
+## Part 5: Set Up Firestore Database
 
-This is a **critical step**. By default, your new Firebase project's database is locked down and will not allow the application to save any user data, causing sign-up to fail.
+This is a **critical step**. Without a database, your app has nowhere to save user data, which will cause the sign-up process to fail.
 
-### 1. The Problem
-- The application successfully creates a user with Firebase Authentication.
-- It then tries to create a corresponding user profile document in the Firestore database (e.g., in a `users` collection).
-- The default Firestore security rules **deny this write operation**.
-- The app correctly detects this failure, deletes the authentication user to prevent an inconsistent state, and shows the "Failed to sign up" error.
-
-### 2. The Solution
-You must update your Firestore security rules to allow users to create their own profiles and save their weekly picks.
-
-### 3. How to Update Your Rules
+### 1. Create the Database
 - Go back to the [Firebase Console](https://console.firebase.google.com/) and select your project.
 - In the left-hand navigation menu, under **Build**, click on **Firestore Database**.
-- Click the **"Rules"** tab at the top of the page.
+- Click the **"Create database"** button.
+- A wizard will appear. Select **"Start in production mode"**. This is important as it ensures your data is secure by default.
+- Click **"Next"**.
+- Choose a location for your Firestore data. Pick a location that is geographically close to the majority of your users for the best performance (e.g., `nam5 (us-central)`).
+- Click **"Enable"**. Firebase will take a moment to provision your database.
+
+### 2. Configure Security Rules
+Once your database is created, you need to update the security rules to allow users to create their own profiles and save their weekly picks.
+
+- With the database created, click the **"Rules"** tab at the top of the page.
 - Delete the existing rules in the editor and replace them with the following:
 
 ```
@@ -155,4 +155,4 @@ service cloud.firestore {
 
 - Click the **"Publish"** button. Your changes will take effect almost immediately.
 
-After publishing these rules, the user registration process in your application should now work correctly.
+After creating the database and publishing these rules, the user registration process in your application will work correctly.
