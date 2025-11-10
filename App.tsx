@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard.tsx';
 import AdminPage from './components/AdminPage.tsx';
 import FormLockPage from './components/FormLockPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
+import PointsTransparency from './components/PointsTransparency.tsx';
 import { User, PickSelection, RaceResults } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -15,13 +16,14 @@ import { ProfileIcon } from './components/icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
 import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
+import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { MOCK_SEASON_PICKS, RACE_RESULTS, FORM_LOCKS } from './constants.ts';
 import { auth } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getUserProfile, getUserPicks, saveUserPicks } from './services/firestoreService.ts';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -101,6 +103,8 @@ const App: React.FC = () => {
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} />;
         return null; // Should not happen if authenticated
+      case 'points':
+        return <PointsTransparency />;
       case 'admin':
         if (user?.email !== 'admin@fantasy.f1') {
             return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins
@@ -155,6 +159,7 @@ const App: React.FC = () => {
         <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
         <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
         <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+        <NavItem icon={TrophyIcon} label="Points" page="points" activePage={activePage} setActivePage={navigateToPage} />
         <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
         {user?.email === 'admin@fantasy.f1' && (
           <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
