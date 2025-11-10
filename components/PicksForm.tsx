@@ -205,7 +205,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                       isDropdown={true}
                       options={allDrivers}
                       onSelect={(value) => handleSelect('fastestLap', value)}
-                      placeholder="Select Fastest Lap Driver"
+                      placeholder="Fastest Lap Driver"
                   />
               </div>
          </div>

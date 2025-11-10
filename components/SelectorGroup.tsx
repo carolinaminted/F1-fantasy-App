@@ -86,7 +86,7 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
               option={selectedOption || null}
               isSelected={!!selectedOption}
               onClick={() => openModal(index)}
-              placeholder={`Select ${placeholderText}`}
+              placeholder={placeholderText}
               usage={usage}
             />
           );
