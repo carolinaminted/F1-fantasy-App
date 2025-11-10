@@ -10,8 +10,8 @@ interface DonationPageProps {
   onDonationSubmit: (amount: number) => void;
 }
 
-const RequiredIndicator: React.FC<{ filled: boolean }> = ({ filled }) => (
-    <span className={`absolute top-0 right-0 w-2 h-2 rounded-full transition-colors ${filled ? 'bg-green-500' : 'bg-primary-red'}`}></span>
+const RequiredIndicator: React.FC = () => (
+    <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary-red animate-pulse-red"></span>
 );
 
 const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDonationSubmit }) => {
@@ -38,9 +38,19 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
     
     const finalAmount = isCustom ? (parseFloat(customAmount) || 0) : amount;
 
-    // Validation checks
-    const isDonorInfoValid = firstName.trim() !== '' && lastName.trim() !== '' && email.includes('@');
-    const isPaymentInfoValid = cardName.trim() !== '' && cardNumber.length >= 19 && expiry.length === 5 && cvc.length >= 3;
+    // Field-level validation checks
+    const isFirstNameValid = firstName.trim() !== '';
+    const isLastNameValid = lastName.trim() !== '';
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isCardNameValid = cardName.trim() !== '';
+    const isCardNumberValid = cardNumber.replace(/\s/g, '').length === 16;
+    const isExpiryValid = /^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry);
+    const isCvcValid = cvc.length >= 3 && cvc.length <= 4;
+
+
+    // Section-level validation checks
+    const isDonorInfoValid = isFirstNameValid && isLastNameValid && isEmailValid;
+    const isPaymentInfoValid = isCardNameValid && isCardNumberValid && isExpiryValid && isCvcValid;
     const isFormValid = isDonorInfoValid && isPaymentInfoValid && finalAmount > 0;
 
     useEffect(() => {
@@ -141,17 +151,17 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
                             >
                                 <span className="relative pr-3">
                                     Donor Information
-                                    <RequiredIndicator filled={isDonorInfoValid} />
+                                    {!isDonorInfoValid && <RequiredIndicator />}
                                 </span>
                                 <ChevronDownIcon className={`w-6 h-6 transition-transform ${donorInfoOpen ? 'rotate-180' : ''}`} />
                             </button>
                             <hr className="border-t border-accent-gray my-2" />
                             {donorInfoOpen && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                    <InputField label="First Name" value={firstName} onChange={setFirstName} required filled={firstName.trim() !== ''} />
-                                    <InputField label="Last Name" value={lastName} onChange={setLastName} required filled={lastName.trim() !== ''} />
+                                    <InputField label="First Name" value={firstName} onChange={setFirstName} isInvalid={!isFirstNameValid} />
+                                    <InputField label="Last Name" value={lastName} onChange={setLastName} isInvalid={!isLastNameValid} />
                                     <div className="md:col-span-2">
-                                        <InputField label="Email Address" value={email} onChange={setEmail} type="email" required filled={email.includes('@')} />
+                                        <InputField label="Email Address" value={email} onChange={setEmail} type="email" isInvalid={!isEmailValid} />
                                     </div>
                                 </div>
                             )}
@@ -166,18 +176,18 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
                             >
                                 <span className="relative pr-3">
                                     Payment Information
-                                    <RequiredIndicator filled={isPaymentInfoValid} />
+                                    {!isPaymentInfoValid && <RequiredIndicator />}
                                 </span>
                                 <ChevronDownIcon className={`w-6 h-6 transition-transform ${paymentInfoOpen ? 'rotate-180' : ''}`} />
                             </button>
                             <hr className="border-t border-accent-gray my-2" />
                             {paymentInfoOpen && (
                                 <div className="space-y-4 mt-4">
-                                    <InputField label="Name on Card" value={cardName} onChange={setCardName} required filled={cardName.trim() !== ''} />
-                                    <InputField label="Card Number" value={formatCardNumber(cardNumber)} onChange={setCardNumber} placeholder="0000 0000 0000 0000" maxLength={19} required filled={cardNumber.length >= 19}/>
+                                    <InputField label="Name on Card" value={cardName} onChange={setCardName} isInvalid={!isCardNameValid} />
+                                    <InputField label="Card Number" value={formatCardNumber(cardNumber)} onChange={setCardNumber} placeholder="0000 0000 0000 0000" maxLength={19} isInvalid={!isCardNumberValid} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <InputField label="Expiry Date" value={formatExpiry(expiry)} onChange={setExpiry} placeholder="MM/YY" maxLength={5} required filled={expiry.length === 5} />
-                                        <InputField label="CVC" value={cvc.replace(/\D/g, '')} onChange={setCvc} placeholder="123" maxLength={4} required filled={cvc.length >= 3} />
+                                        <InputField label="Expiry Date" value={formatExpiry(expiry)} onChange={setExpiry} placeholder="MM/YY" maxLength={5} isInvalid={!isExpiryValid} />
+                                        <InputField label="CVC" value={cvc.replace(/\D/g, '')} onChange={setCvc} placeholder="123" maxLength={4} isInvalid={!isCvcValid} />
                                     </div>
                                 </div>
                             )}
@@ -215,15 +225,14 @@ interface InputFieldProps {
     type?: string;
     placeholder?: string;
     maxLength?: number;
-    required?: boolean;
-    filled?: boolean;
+    isInvalid: boolean;
 }
 
-const InputField: React.FC<InputFieldProps> = ({ label, value, onChange, type = "text", placeholder, maxLength, required, filled }) => (
+const InputField: React.FC<InputFieldProps> = ({ label, value, onChange, type = "text", placeholder, maxLength, isInvalid }) => (
     <div>
         <label className="block text-sm text-highlight-silver mb-1 relative pr-3">
             {label}
-            {required && <RequiredIndicator filled={filled!} />}
+            {isInvalid && <RequiredIndicator />}
         </label>
         <input
             type={type}
