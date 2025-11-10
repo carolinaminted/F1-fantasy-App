@@ -35,14 +35,9 @@ const AuthScreen: React.FC = () => {
               await signInWithEmailAndPassword(auth, email, password);
               // Auth state change will be caught by the listener in App.tsx
           } catch (error: any) {
-              // Firebase returns 'auth/invalid-credential' for both wrong email and wrong password
-              // to prevent user enumeration attacks. This is the primary error to catch.
-              if (error.code === 'auth/invalid-credential') {
-                setError('Invalid email or password. Please try again.');
-              } else {
-                // For other errors (like network issues), we'll still suggest checking credentials, as per the user request.
-                setError('Invalid email or password. Please try again.');
-              }
+              // Provide a generic error message for any login failure to prevent user enumeration
+              // and handle different Firebase error codes gracefully.
+              setError('Invalid email or password. Please try again.');
               console.error("Login error:", error);
               setIsLoading(false);
           }

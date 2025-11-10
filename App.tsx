@@ -21,7 +21,7 @@ import { RACE_RESULTS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { onSnapshot, doc } from 'firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, getFormLocks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points';
@@ -95,32 +95,43 @@ const App: React.FC = () => {
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   
   useEffect(() => {
-    // Set up real-time listener for Race Results. This will provide live updates to all users.
-    const resultsRef = doc(db, 'app_state', 'race_results');
-    const unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
-      if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
-        console.log("Live update for race results received from Firestore.");
-        setRaceResults(docSnap.data() as RaceResults);
-      } else {
-        // If the document doesn't exist, create it with the initial mock data.
-        console.log("No race results in Firestore. Seeding with initial data.");
-        saveRaceResults(RACE_RESULTS); // This triggers the listener again to update state.
-      }
-    });
+    let unsubscribeResults = () => {};
+    let unsubscribeLocks = () => {};
 
-    // Fetch form locks on initial load
-    const loadFormLocks = async () => {
-      const locks = await getFormLocks();
-      setFormLocks(locks);
-    };
-    loadFormLocks();
-    
-    // Auth state listener to manage user session and data
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous listeners before setting new ones or logging out
+      unsubscribeResults();
+      unsubscribeLocks();
+
       setIsLoading(true);
       if (firebaseUser) {
-        let userProfile = await getUserProfile(firebaseUser.uid);
+        // User is authenticated, it's safe to set up listeners now.
+        const resultsRef = doc(db, 'app_state', 'race_results');
+        unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
+          if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
+            setRaceResults(docSnap.data() as RaceResults);
+          } else {
+            console.log("No race results in Firestore. Seeding with initial data.");
+            saveRaceResults(RACE_RESULTS);
+          }
+        }, (error) => {
+            console.error("Firestore listener error (race_results):", error);
+        });
 
+        const locksRef = doc(db, 'app_state', 'form_locks');
+        unsubscribeLocks = onSnapshot(locksRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setFormLocks(docSnap.data());
+            } else {
+                console.log("Form locks document not found in Firestore. Creating a new one.");
+                saveFormLocks({});
+            }
+        }, (error) => {
+            console.error("Firestore listener error (form_locks):", error);
+        });
+
+        // Continue with fetching profile and picks
+        let userProfile = await getUserProfile(firebaseUser.uid);
         if (!userProfile) {
           console.log("Profile not found on initial load, retrying for new user...");
           await new Promise(resolve => setTimeout(resolve, 1500));
@@ -135,11 +146,14 @@ const App: React.FC = () => {
         } else {
           console.error("User profile document not found after retry. Forcing logout.");
           await signOut(auth);
-          return;
+          // The 'else' block below will handle state cleanup.
         }
       } else {
+        // User logged out, clear all state
         setUser(null);
         setSeasonPicks({});
+        setRaceResults({});
+        setFormLocks({});
         setIsAuthenticated(false);
       }
       setIsLoading(false);
@@ -147,17 +161,23 @@ const App: React.FC = () => {
     
     return () => {
       unsubscribeAuth();
-      unsubscribeResults(); // Cleanup the results listener on component unmount
+      unsubscribeResults();
+      unsubscribeLocks();
     };
   }, []);
 
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
     if (!user) return;
-    await saveUserPicks(user.id, eventId, picks);
-    // Refresh picks from DB to ensure UI consistency
-    const updatedPicks = await getUserPicks(user.id);
-    setSeasonPicks(updatedPicks);
-    alert(`Picks for ${eventId} submitted successfully!`);
+    try {
+      await saveUserPicks(user.id, eventId, picks);
+      // Refresh picks from DB to ensure UI consistency
+      const updatedPicks = await getUserPicks(user.id);
+      setSeasonPicks(updatedPicks);
+      alert(`Picks for ${eventId} submitted successfully!`);
+    } catch (error) {
+      console.error("Failed to submit picks:", error);
+      alert(`Error: Could not submit picks for ${eventId}. Please check your connection and try again.`);
+    }
   };
   
   const handleLogout = () => {
@@ -167,19 +187,30 @@ const App: React.FC = () => {
   };
 
   const handleResultsUpdate = async (eventId: string, results: any) => {
-    // Create a new results object with the updated event
     const newResults = { ...raceResults, [eventId]: results };
-    // Save the entire updated results object to Firestore
-    await saveRaceResults(newResults);
-    // The onSnapshot listener will automatically update the state for all clients, including this one.
-    alert(`${eventId} results updated and saved successfully!`);
+    try {
+      await saveRaceResults(newResults);
+      // The onSnapshot listener will automatically update the state, but an immediate alert is good UX.
+      alert(`Results for ${eventId} updated successfully!`);
+    } catch (error) {
+      console.error("Failed to save race results:", error);
+      alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+    }
   };
   
   const handleToggleFormLock = async (eventId: string) => {
+    const originalLocks = { ...formLocks }; // Keep a copy of the original state
     const newLocks = { ...formLocks, [eventId]: !formLocks[eventId] };
     setFormLocks(newLocks); // Optimistic UI update
-    await saveFormLocks(newLocks); // Persist change to Firestore
-    alert(`Form for event ${eventId} has been ${newLocks[eventId] ? 'LOCKED' : 'UNLOCKED'}.`);
+
+    try {
+      await saveFormLocks(newLocks);
+      alert(`Form for event ${eventId} has been ${newLocks[eventId] ? 'LOCKED' : 'UNLOCKED'}.`);
+    } catch (error) {
+      console.error("Failed to save form locks:", error);
+      alert(`Error: Could not update lock status for ${eventId}. Reverting change.`);
+      setFormLocks(originalLocks); // Revert the UI state on failure
+    }
   };
 
   const navigateToPage = (page: Page) => {

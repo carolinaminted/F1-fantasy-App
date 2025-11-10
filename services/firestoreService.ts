@@ -56,6 +56,7 @@ export const saveUserPicks = async (uid: string, eventId: string, picks: PickSel
         console.log(`Picks for ${eventId} saved successfully for user ${uid}`);
     } catch (error) {
         console.error("Error saving user picks", error);
+        throw error;
     }
 };
 
@@ -77,27 +78,6 @@ export const getAllUsersAndPicks = async () => {
 };
 
 // Form Lock Management
-export const getFormLocks = async (): Promise<{ [eventId: string]: boolean }> => {
-    const locksRef = doc(db, 'app_state', 'form_locks');
-    const snapshot = await getDoc(locksRef);
-    
-    if (snapshot.exists()) {
-        // If the document exists, return its data. This is the normal case.
-        return snapshot.data();
-    } else {
-        // If the document doesn't exist, this is likely a first-time setup.
-        // We'll create it to ensure future saves work correctly.
-        try {
-            console.log('Form locks document not found. Creating a new one.');
-            await setDoc(locksRef, {}); // Create the document with an empty object
-            return {}; // Return the empty state for this initial load
-        } catch (error) {
-            console.error('Error creating initial form_locks document:', error);
-            return {}; // Return empty on error to avoid crashing the app
-        }
-    }
-};
-
 export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
     const locksRef = doc(db, 'app_state', 'form_locks');
     try {
@@ -105,6 +85,7 @@ export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
         console.log("Form locks saved successfully.");
     } catch (error) {
         console.error("Error saving form locks", error);
+        throw error;
     }
 };
 
@@ -117,5 +98,6 @@ export const saveRaceResults = async (results: RaceResults) => {
         console.log("Race results saved successfully to Firestore.");
     } catch (error) {
         console.error("Error saving race results", error);
+        throw error;
     }
 };
