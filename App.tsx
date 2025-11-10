@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect } from 'react';
 import AuthScreen from './components/AuthScreen.tsx';
@@ -65,14 +66,14 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
            <span className="font-bold text-xl">F1 Fantasy</span>
         </div>
         <nav className="flex-grow space-y-1">
-            <SideNavItem icon={HomeIcon} label="Dashboard" page="home" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={PicksIcon} label="Weekly Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={TrophyIcon} label="Points System" page="points" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
-              <SideNavItem icon={AdminIcon} label="Admin Panel" page="admin" activePage={activePage} setActivePage={navigateToPage} />
+              <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
         </nav>
          {user && (
