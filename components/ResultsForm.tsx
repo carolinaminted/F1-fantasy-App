@@ -132,15 +132,19 @@ const ResultGroup: React.FC<ResultGroupProps> = ({ title, positions, selected, o
     <div className="bg-carbon-black/50 p-4 rounded-lg h-min">
         <h3 className="font-semibold mb-3 text-lg text-center">{title}</h3>
         <div className="space-y-2">
-            {Array.from({ length: positions }).map((_, i) => (
-                <SelectDriver
-                    key={i}
-                    value={selected[i]}
-                    onChange={(val) => onSelect(val, i)}
-                    options={options}
-                    label={`P${i + 1}`}
-                />
-            ))}
+            {Array.from({ length: positions }).map((_, i) => {
+                const otherSelectedIds = selected.filter((id, index) => index !== i && id !== null);
+                return (
+                    <SelectDriver
+                        key={i}
+                        value={selected[i]}
+                        onChange={(val) => onSelect(val, i)}
+                        options={options}
+                        label={`P${i + 1}`}
+                        disabledIds={otherSelectedIds}
+                    />
+                );
+            })}
         </div>
     </div>
 );
@@ -150,9 +154,10 @@ interface SelectDriverProps {
     onChange: (value: string | null) => void;
     options: { value: string; label: string }[];
     label: string;
+    disabledIds?: (string | null)[];
 }
 
-const SelectDriver: React.FC<SelectDriverProps> = ({ value, onChange, options, label }) => (
+const SelectDriver: React.FC<SelectDriverProps> = ({ value, onChange, options, label, disabledIds = [] }) => (
     <div className="flex items-center gap-2">
         <label className="w-10 text-sm font-semibold text-highlight-silver">{label}</label>
         <select
@@ -162,7 +167,13 @@ const SelectDriver: React.FC<SelectDriverProps> = ({ value, onChange, options, l
         >
             <option value="">Select Driver...</option>
             {options.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option 
+                    key={opt.value} 
+                    value={opt.value}
+                    disabled={disabledIds.includes(opt.value)}
+                >
+                    {opt.label}
+                </option>
             ))}
         </select>
     </div>
