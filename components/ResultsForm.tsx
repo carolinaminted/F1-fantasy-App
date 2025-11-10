@@ -63,7 +63,25 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column: Sprint Events */}
+                {/* Left Column: Grand Prix Events */}
+                <div className="space-y-6">
+                    <ResultGroup
+                        title="Grand Prix Qualifying"
+                        positions={3}
+                        selected={results.gpQualifying}
+                        onSelect={(value, index) => handleSelect('gpQualifying', value, index)}
+                        options={driverOptions}
+                    />
+                    <ResultGroup
+                        title="Grand Prix Finish"
+                        positions={10}
+                        selected={results.grandPrixFinish}
+                        onSelect={(value, index) => handleSelect('grandPrixFinish', value, index)}
+                        options={driverOptions}
+                    />
+                </div>
+
+                {/* Right Column: Sprint Events */}
                 <div className="space-y-6">
                     {event.hasSprint ? (
                         <>
@@ -87,24 +105,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                             <p className="text-highlight-silver text-center">No Sprint event for this race weekend.</p>
                         </div>
                     )}
-                </div>
-                
-                {/* Right Column: Grand Prix Events */}
-                <div className="space-y-6">
-                    <ResultGroup
-                        title="Grand Prix Qualifying"
-                        positions={3}
-                        selected={results.gpQualifying}
-                        onSelect={(value, index) => handleSelect('gpQualifying', value, index)}
-                        options={driverOptions}
-                    />
-                    <ResultGroup
-                        title="Grand Prix Finish"
-                        positions={10}
-                        selected={results.grandPrixFinish}
-                        onSelect={(value, index) => handleSelect('grandPrixFinish', value, index)}
-                        options={driverOptions}
-                    />
                 </div>
             </div>
 
