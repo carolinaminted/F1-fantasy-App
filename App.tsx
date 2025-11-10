@@ -14,6 +14,7 @@ import DonationPage from './components/DonationPage.tsx';
 import DonationSuccessPage from './components/DonationSuccessPage.tsx';
 import { User, PickSelection, RaceResults } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
+import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
 import { ProfileIcon } from './components/icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
@@ -69,6 +70,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrophyIcon} label="Points System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
               <SideNavItem icon={AdminIcon} label="Admin Panel" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
@@ -306,11 +308,12 @@ const App: React.FC = () => {
         </div>
 
         {/* Bottom Nav for Mobile */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid grid-cols-5 md:hidden">
+        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${user?.email === 'admin@fantasy.f1' ? 'grid-cols-6' : 'grid-cols-5'} md:hidden`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
