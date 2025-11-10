@@ -48,6 +48,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
   const [isLoading, setIsLoading] = useState(true);
   const [isStandingsExpanded, setIsStandingsExpanded] = useState(false);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
+  const [isDriversExpanded, setIsDriversExpanded] = useState(false);
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
@@ -195,16 +197,38 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
                 </div>
                 
                 <div>
-                    {/* On tablet, this section is full-width, so 2 columns is good. 
-                        On desktop, it's in a sidebar, so we collapse back to 1 column. */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-8">
                         <div>
-                            <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Most Used Teams</h4>
-                            <UsageList items={leagueUsageData.mostUsedTeams} />
+                            <button
+                                onClick={() => setIsTeamsExpanded(!isTeamsExpanded)}
+                                className="w-full flex justify-between items-center"
+                                aria-expanded={isTeamsExpanded}
+                            >
+                                <span className="w-6 h-6"></span> {/* Spacer for centering */}
+                                <span className="text-xl font-semibold text-primary-red">Popular Team Picks</span>
+                                <ChevronDownIcon className={`w-6 h-6 text-highlight-silver transition-transform ${isTeamsExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            {isTeamsExpanded && (
+                                <div className="mt-4">
+                                    <UsageList items={leagueUsageData.mostUsedTeams} />
+                                </div>
+                            )}
                         </div>
                         <div>
-                            <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Most Used Drivers</h4>
-                            <UsageList items={leagueUsageData.mostUsedDrivers} />
+                            <button
+                                onClick={() => setIsDriversExpanded(!isDriversExpanded)}
+                                className="w-full flex justify-between items-center"
+                                aria-expanded={isDriversExpanded}
+                            >
+                                <span className="w-6 h-6"></span> {/* Spacer for centering */}
+                                <span className="text-xl font-semibold text-primary-red">Popular Driver Picks</span>
+                                <ChevronDownIcon className={`w-6 h-6 text-highlight-silver transition-transform ${isDriversExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            {isDriversExpanded && (
+                                <div className="mt-4">
+                                    <UsageList items={leagueUsageData.mostUsedDrivers} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
