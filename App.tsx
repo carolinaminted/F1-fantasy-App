@@ -19,7 +19,7 @@ import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { MOCK_SEASON_PICKS, RACE_RESULTS, FORM_LOCKS } from './constants.ts';
 import { auth } from './services/firebase.ts';
-import { onAuthStateChanged, signOut, deleteUser } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { getUserProfile, getUserPicks, saveUserPicks } from './services/firestoreService.ts';
 
 
@@ -39,28 +39,10 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userProfile = await getUserProfile(firebaseUser.uid);
-        
-        if (userProfile) {
-          // This is the successful login path.
-          const userPicks = await getUserPicks(firebaseUser.uid);
-          setUser(userProfile);
-          setSeasonPicks(userPicks);
-          setIsAuthenticated(true);
-        } else {
-          // This is the "orphan" account self-healing logic.
-          // The user is authenticated, but their profile data is missing.
-          // We must delete the broken auth record to allow them to sign up again.
-          alert("Your user account is incomplete and will be deleted. Please sign up again using the same email address.");
-          try {
-              await deleteUser(firebaseUser);
-              // The onAuthStateChanged listener will automatically fire again with user=null,
-              // resetting state and keeping the user on the AuthScreen.
-          } catch (error) {
-              console.error("Failed to delete incomplete user:", error);
-              alert("There was an error cleaning up your incomplete account. Please try logging out manually.");
-              await signOut(auth); // Fallback to just signing out.
-          }
-        }
+        const userPicks = await getUserPicks(firebaseUser.uid);
+        setUser(userProfile);
+        setSeasonPicks(userPicks);
+        setIsAuthenticated(true);
       } else {
         setUser(null);
         setSeasonPicks({});
