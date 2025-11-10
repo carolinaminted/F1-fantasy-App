@@ -52,8 +52,44 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 text-pure-white">
+            <div className="bg-carbon-black/50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2 text-center text-lg">Fastest Lap</h3>
+                <SelectDriver
+                    value={results.fastestLap}
+                    onChange={handleFastestLapSelect}
+                    options={driverOptions}
+                    label="Driver"
+                />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column: Qualifying */}
+                {/* Left Column: Sprint Events */}
+                <div className="space-y-6">
+                    {event.hasSprint ? (
+                        <>
+                            <ResultGroup
+                                title="Sprint Qualifying"
+                                positions={3}
+                                selected={results.sprintQualifying || []}
+                                onSelect={(value, index) => handleSelect('sprintQualifying', value, index)}
+                                options={driverOptions}
+                            />
+                             <ResultGroup
+                                title="Sprint Race Finish"
+                                positions={8}
+                                selected={results.sprintFinish || []}
+                                onSelect={(value, index) => handleSelect('sprintFinish', value, index)}
+                                options={driverOptions}
+                            />
+                        </>
+                    ) : (
+                        <div className="bg-carbon-black/50 p-4 rounded-lg h-full flex items-center justify-center">
+                            <p className="text-highlight-silver text-center">No Sprint event for this race weekend.</p>
+                        </div>
+                    )}
+                </div>
+                
+                {/* Right Column: Grand Prix Events */}
                 <div className="space-y-6">
                     <ResultGroup
                         title="Grand Prix Qualifying"
@@ -62,18 +98,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         onSelect={(value, index) => handleSelect('gpQualifying', value, index)}
                         options={driverOptions}
                     />
-                    {event.hasSprint && (
-                        <ResultGroup
-                            title="Sprint Qualifying"
-                            positions={3}
-                            selected={results.sprintQualifying || []}
-                            onSelect={(value, index) => handleSelect('sprintQualifying', value, index)}
-                            options={driverOptions}
-                        />
-                    )}
-                </div>
-                {/* Right Column: Race Finish */}
-                <div className="space-y-6">
                     <ResultGroup
                         title="Grand Prix Finish"
                         positions={10}
@@ -81,26 +105,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         onSelect={(value, index) => handleSelect('grandPrixFinish', value, index)}
                         options={driverOptions}
                     />
-                    {event.hasSprint && (
-                        <ResultGroup
-                            title="Sprint Race Finish"
-                            positions={8}
-                            selected={results.sprintFinish || []}
-                            onSelect={(value, index) => handleSelect('sprintFinish', value, index)}
-                            options={driverOptions}
-                        />
-                    )}
                 </div>
-            </div>
-
-            <div className="bg-carbon-black/50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2 text-center">Fastest Lap</h3>
-                <SelectDriver
-                    value={results.fastestLap}
-                    onChange={handleFastestLapSelect}
-                    options={driverOptions}
-                    label="Driver"
-                />
             </div>
 
             <div className="flex justify-end pt-4">
