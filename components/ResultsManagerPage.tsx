@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { RaceResults, Event, EventResult } from '../types';
-import { EVENTS } from '../constants';
-import ResultsForm from './ResultsForm';
-import { AdminIcon } from './icons/AdminIcon';
-import { BackIcon } from './icons/BackIcon';
+import { RaceResults, Event, EventResult } from '../types.ts';
+import { EVENTS } from '../constants.ts';
+import ResultsForm from './ResultsForm.tsx';
+import { AdminIcon } from './icons/AdminIcon.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
@@ -24,7 +24,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     };
 
     return (
-        <div className="max-w-4xl mx-auto text-pure-white">
+        <div className="max-w-7xl mx-auto text-pure-white">
             <div className="flex items-center justify-between mb-8">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}

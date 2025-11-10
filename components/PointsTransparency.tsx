@@ -1,10 +1,74 @@
 import React from 'react';
+import { POINTS_SYSTEM } from '../constants.ts';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
+import { SprintIcon } from './icons/SprintIcon.tsx';
+import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
+import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
+
+const PointsCategoryCard: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
+    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+        <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-3">
+            <Icon className="w-6 h-6 text-primary-red" />
+            {title}
+        </h3>
+        {children}
+    </div>
+);
+
+const PointsList: React.FC<{ points: number[] }> = ({ points }) => (
+    <ol className="list-decimal list-inside space-y-1 text-ghost-white">
+        {points.map((p, i) => (
+            <li key={i}>
+                Position {i + 1}: <span className="font-bold text-pure-white">{p} points</span>
+            </li>
+        ))}
+    </ol>
+);
 
 const PointsTransparency: React.FC = () => {
     return (
-        <div className="p-4 bg-gray-800 text-white rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Points System Breakdown</h2>
-            <p>This component will provide a detailed breakdown of how fantasy points are calculated for each event, including points for finishing positions, qualifying, fastest laps, and sprints.</p>
+        <div className="max-w-7xl mx-auto text-pure-white">
+            <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Points System</h1>
+            <p className="text-center text-highlight-silver mb-8">Understand how your fantasy team scores points each race weekend.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <PointsCategoryCard title="Grand Prix Finish" icon={CheckeredFlagIcon}>
+                    <p className="text-sm text-highlight-silver mb-3">Points are awarded for the top 10 finishers in the main race.</p>
+                    <PointsList points={POINTS_SYSTEM.grandPrixFinish} />
+                </PointsCategoryCard>
+                
+                <PointsCategoryCard title="Sprint Race Finish" icon={SprintIcon}>
+                    <p className="text-sm text-highlight-silver mb-3">Awarded for the top 8 finishers in Sprint events.</p>
+                    <PointsList points={POINTS_SYSTEM.sprintFinish} />
+                </PointsCategoryCard>
+
+                <PointsCategoryCard title="GP Qualifying" icon={PolePositionIcon}>
+                    <p className="text-sm text-highlight-silver mb-3">Bonus points for the top 3 in Grand Prix qualifying.</p>
+                    <PointsList points={POINTS_SYSTEM.gpQualifying} />
+                     <p className="text-sm text-highlight-silver mt-3">The same points are awarded for Sprint Qualifying during Sprint weekends.</p>
+                </PointsCategoryCard>
+                
+                <PointsCategoryCard title="Fastest Lap" icon={FastestLapIcon}>
+                    <p className="text-sm text-highlight-silver mb-3">A bonus for picking the driver who sets the fastest lap of the Grand Prix.</p>
+                    <p className="text-2xl font-bold text-pure-white">{POINTS_SYSTEM.fastestLap} points</p>
+                </PointsCategoryCard>
+            </div>
+            
+            <div className="mt-12 bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <h2 className="text-2xl font-bold text-center mb-4">How It Adds Up</h2>
+                <div className="space-y-4 text-highlight-silver">
+                    <p>
+                        <strong className="text-ghost-white">Team Points:</strong> For each of your chosen teams, you score the total points earned by *both* of that constructor's drivers in a session (e.g., if you pick Ferrari, you get Leclerc's points + Hamilton's points).
+                    </p>
+                     <p>
+                        <strong className="text-ghost-white">Driver Points:</strong> For each of your chosen drivers, you score the points they earn individually.
+                    </p>
+                     <p>
+                        <strong className="text-ghost-white">Total Event Score:</strong> Your total score for an event is the sum of all your team points, all your driver points, and any fastest lap bonus points across all relevant sessions (GP, Sprint, etc.).
+                    </p>
+                </div>
+            </div>
         </div>
     );
 };

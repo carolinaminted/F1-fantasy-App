@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import { MOCK_USERS, MOCK_SEASON_PICKS, CONSTRUCTORS, DRIVERS } from '../constants';
-// Fix: Update import path for calculateScoreRollup to the new service file.
-import { calculateScoreRollup } from '../services/scoringService';
-import { User, RaceResults } from '../types';
+import React, { useMemo, useState, useEffect } from 'react';
+import { CONSTRUCTORS, DRIVERS } from '../constants.ts';
+import { calculateScoreRollup } from '../services/scoringService.ts';
+import { User, RaceResults, PickSelection } from '../types.ts';
+import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 
 interface BarChartData {
   label: string;
@@ -42,46 +42,58 @@ interface LeaderboardPageProps {
 }
 
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResults}) => {
-  
-  const leaderboardData = useMemo(() => {
-    return MOCK_USERS.map((user) => {
-      const userPicks = MOCK_SEASON_PICKS[user.id] || {};
-      const { totalPoints } = calculateScoreRollup(userPicks, raceResults);
-      return {
-        ...user,
-        points: totalPoints,
-        rank: 0 // placeholder
-      };
-    })
-    .sort((a, b) => b.points - a.points)
-    .map((user, index) => ({ ...user, rank: index + 1 }));
-  }, [raceResults]);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leagueUsageData, setLeagueUsageData] = useState<{ mostUsedTeams: any[], mostUsedDrivers: any[] }>({ mostUsedTeams: [], mostUsedDrivers: [] });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const leagueUsageData = useMemo(() => {
-    const teamUsage: { [id: string]: number } = {};
-    const driverUsage: { [id: string]: number } = {};
+  useEffect(() => {
+    const fetchLeaderboardData = async () => {
+      setIsLoading(true);
+      const { users, allPicks } = await getAllUsersAndPicks();
+      
+      const scoredUsers = users.map((user) => {
+        const userPicks = allPicks[user.id] || {};
+        const { totalPoints } = calculateScoreRollup(userPicks, raceResults);
+        return {
+          ...user,
+          points: totalPoints,
+          rank: 0 // placeholder
+        };
+      })
+      .sort((a, b) => b.points - a.points)
+      .map((user, index) => ({ ...user, rank: index + 1 }));
 
-    Object.values(MOCK_SEASON_PICKS).forEach(userPicks => {
-      Object.values(userPicks).forEach(eventPicks => {
-        [...eventPicks.aTeams, eventPicks.bTeam].forEach(id => {
-          if (id) teamUsage[id] = (teamUsage[id] || 0) + 1;
-        });
-        [...eventPicks.aDrivers, ...eventPicks.bDrivers].forEach(id => {
-          if (id) driverUsage[id] = (driverUsage[id] || 0) + 1;
+      setLeaderboardData(scoredUsers);
+
+      // Calculate league usage
+      const teamUsage: { [id: string]: number } = {};
+      const driverUsage: { [id: string]: number } = {};
+      Object.values(allPicks).forEach(userPicks => {
+        Object.values(userPicks).forEach(eventPicks => {
+          [...(eventPicks.aTeams || []), eventPicks.bTeam].forEach(id => {
+            if (id) teamUsage[id] = (teamUsage[id] || 0) + 1;
+          });
+          [...(eventPicks.aDrivers || []), ...(eventPicks.bDrivers || [])].forEach(id => {
+            if (id) driverUsage[id] = (driverUsage[id] || 0) + 1;
+          });
         });
       });
-    });
 
-    const mostUsedTeams = Object.entries(teamUsage)
-      .map(([id, count]) => ({ id, name: CONSTRUCTORS.find(c => c.id === id)?.name || id, count }))
-      .sort((a, b) => b.count - a.count);
+      const mostUsedTeams = Object.entries(teamUsage)
+        .map(([id, count]) => ({ id, name: CONSTRUCTORS.find(c => c.id === id)?.name || id, count }))
+        .sort((a, b) => b.count - a.count);
 
-    const mostUsedDrivers = Object.entries(driverUsage)
-      .map(([id, count]) => ({ id, name: DRIVERS.find(d => d.id === id)?.name || id, count }))
-      .sort((a, b) => b.count - a.count);
+      const mostUsedDrivers = Object.entries(driverUsage)
+        .map(([id, count]) => ({ id, name: DRIVERS.find(d => d.id === id)?.name || id, count }))
+        .sort((a, b) => b.count - a.count);
+      
+      setLeagueUsageData({ mostUsedTeams, mostUsedDrivers });
 
-    return { mostUsedTeams, mostUsedDrivers };
-  }, []);
+      setIsLoading(false);
+    };
+
+    fetchLeaderboardData();
+  }, [raceResults]);
 
   const top5 = leaderboardData.slice(0, 5).map(u => ({
     label: u.displayName,
@@ -99,9 +111,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
       ))}
     </ul>
   );
+  
+  if (isLoading) {
+    return <div className="text-center text-xl font-semibold">Loading Leaderboard...</div>;
+  }
 
   return (
-    <div className="max-w-4xl mx-auto text-pure-white space-y-12">
+    <div className="max-w-7xl mx-auto text-pure-white space-y-12">
       <h1 className="text-4xl font-bold text-center">Season Leaderboard</h1>
 
       <div>

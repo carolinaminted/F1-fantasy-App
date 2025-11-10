@@ -1,7 +1,7 @@
 import React from 'react';
-import { EVENTS } from '../constants';
-import { LockIcon } from './icons/LockIcon';
-import { BackIcon } from './icons/BackIcon';
+import { EVENTS } from '../constants.ts';
+import { LockIcon } from './icons/LockIcon.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface FormLockPageProps {
     formLocks: { [eventId: string]: boolean };
@@ -11,7 +11,7 @@ interface FormLockPageProps {
 
 const FormLockPage: React.FC<FormLockPageProps> = ({ formLocks, onToggleLock, setAdminSubPage }) => {
     return (
-        <div className="max-w-4xl mx-auto text-pure-white">
+        <div className="max-w-7xl mx-auto text-pure-white">
              <div className="flex items-center justify-between mb-8">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}

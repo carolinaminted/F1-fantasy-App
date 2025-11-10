@@ -1,8 +1,8 @@
 import React from 'react';
-import { EntityClass } from '../types';
-import { SelectorCard } from './PicksForm';
-import { TeamIcon } from './icons/TeamIcon';
-import { DriverIcon } from './icons/DriverIcon';
+import { EntityClass } from '../types.ts';
+import { SelectorCard } from './PicksForm.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
+import { DriverIcon } from './icons/DriverIcon.tsx';
 
 interface SelectorGroupProps {
   title: string;

@@ -1,7 +1,7 @@
 import React from 'react';
-import { AdminIcon } from './icons/AdminIcon';
-import { LeaderboardIcon } from './icons/LeaderboardIcon';
-import { LockIcon } from './icons/LockIcon';
+import { AdminIcon } from './icons/AdminIcon.tsx';
+import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
+import { LockIcon } from './icons/LockIcon.tsx';
 
 interface AdminPageProps {
     setAdminSubPage: (page: 'results' | 'form-lock') => void;
@@ -9,7 +9,7 @@ interface AdminPageProps {
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center flex items-center justify-center gap-3">
                 <AdminIcon className="w-8 h-8"/> Admin Dashboard
             </h1>
