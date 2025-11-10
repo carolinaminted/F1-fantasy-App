@@ -8,6 +8,7 @@ const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +22,7 @@ const AuthScreen: React.FC = () => {
       setDisplayName('Test Principal');
       setEmail(`test.user.${randomId}@fantasy.f1`);
       setPassword('password123');
+      setConfirmPassword('password123');
     }
      setError(null);
   };
@@ -44,6 +46,11 @@ const AuthScreen: React.FC = () => {
       } else {
           if (!displayName) {
               setError('Please enter a display name.');
+              setIsLoading(false);
+              return;
+          }
+          if (password !== confirmPassword) {
+              setError('Passwords do not match.');
               setIsLoading(false);
               return;
           }
@@ -137,6 +144,23 @@ const AuthScreen: React.FC = () => {
               className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
             />
           </div>
+          {!isLogin && (
+            <div>
+              <label className="text-sm font-bold text-ghost-white" htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setError(null);
+                }}
+                placeholder="••••••••"
+                required
+                className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+              />
+            </div>
+          )}
           
           {error && <p className="text-sm text-primary-red text-center pt-2">{error}</p>}
 
