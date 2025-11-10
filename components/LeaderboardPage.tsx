@@ -117,55 +117,63 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
   }
 
   return (
-    <div className="max-w-7xl mx-auto text-pure-white space-y-12">
-      <h1 className="text-4xl font-bold text-center">Season Leaderboard</h1>
-
-      <div>
-        <h3 className="text-2xl font-bold mb-4 text-center">Top 5 Principals</h3>
-        <BarChart data={top5} />
-      </div>
-
-      <div>
-        <h3 className="text-2xl font-bold mb-4 text-center">Full Standings</h3>
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-carbon-black/50">
-              <tr>
-                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Rank</th>
-                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Team Name</th>
-                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-right">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboardData.map(entry => (
-                <tr 
-                  key={entry.id} 
-                  className={`border-t border-accent-gray/50 ${entry.id === currentUser?.id ? 'bg-primary-red/20' : ''}`}
-                >
-                  <td className="p-4 font-bold text-lg w-16 text-center">{entry.rank}</td>
-                  <td className="p-4 font-semibold">{entry.displayName}</td>
-                  <td className="p-4 font-bold text-lg text-right">{entry.points}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      <div>
-        <h3 className="text-2xl font-bold mb-4 text-center">League Usage Stats</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-                <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Most Used Teams</h4>
-                <UsageList items={leagueUsageData.mostUsedTeams} />
+    <div className="max-w-7xl mx-auto text-pure-white">
+        <h1 className="text-4xl font-bold text-center mb-12">Season Leaderboard</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-x-12 gap-y-12">
+            
+            {/* Main Content: Full Standings */}
+            <div className="lg:col-span-3">
+                <h3 className="text-2xl font-bold mb-4 text-center lg:text-left">Full Standings</h3>
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-carbon-black/50">
+                            <tr>
+                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Rank</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Team Name</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-right">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {leaderboardData.map(entry => (
+                                <tr 
+                                    key={entry.id} 
+                                    className={`border-t border-accent-gray/50 ${entry.id === currentUser?.id ? 'bg-primary-red/20' : ''}`}
+                                >
+                                    <td className="p-4 font-bold text-lg w-16 text-center">{entry.rank}</td>
+                                    <td className="p-4 font-semibold">{entry.displayName}</td>
+                                    <td className="p-4 font-bold text-lg text-right">{entry.points}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div>
-                <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Most Used Drivers</h4>
-                <UsageList items={leagueUsageData.mostUsedDrivers} />
+
+            {/* Sidebar: Top 5 & Stats */}
+            <div className="lg:col-span-2 space-y-12">
+                <div>
+                    <h3 className="text-2xl font-bold mb-4 text-center lg:text-left">Top 5 Principals</h3>
+                    <BarChart data={top5} />
+                </div>
+                
+                <div>
+                    <h3 className="text-2xl font-bold mb-4 text-center lg:text-left">League Usage Stats</h3>
+                    {/* On tablet, this section is full-width, so 2 columns is good. 
+                        On desktop, it's in a sidebar, so we collapse back to 1 column. */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-8">
+                        <div>
+                            <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Most Used Teams</h4>
+                            <UsageList items={leagueUsageData.mostUsedTeams} />
+                        </div>
+                        <div>
+                            <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Most Used Drivers</h4>
+                            <UsageList items={leagueUsageData.mostUsedDrivers} />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-      </div>
-
     </div>
   );
 };

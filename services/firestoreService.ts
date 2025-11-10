@@ -80,7 +80,22 @@ export const getAllUsersAndPicks = async () => {
 export const getFormLocks = async (): Promise<{ [eventId: string]: boolean }> => {
     const locksRef = doc(db, 'app_state', 'form_locks');
     const snapshot = await getDoc(locksRef);
-    return snapshot.exists() ? snapshot.data() : {};
+    
+    if (snapshot.exists()) {
+        // If the document exists, return its data. This is the normal case.
+        return snapshot.data();
+    } else {
+        // If the document doesn't exist, this is likely a first-time setup.
+        // We'll create it to ensure future saves work correctly.
+        try {
+            console.log('Form locks document not found. Creating a new one.');
+            await setDoc(locksRef, {}); // Create the document with an empty object
+            return {}; // Return the empty state for this initial load
+        } catch (error) {
+            console.error('Error creating initial form_locks document:', error);
+            return {}; // Return empty on error to avoid crashing the app
+        }
+    }
 };
 
 export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
