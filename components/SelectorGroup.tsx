@@ -15,14 +15,16 @@ interface SelectorGroupProps {
   hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
   entityType: 'teams' | 'drivers';
   setModalContent: (content: React.ReactNode | null) => void;
+  disabled?: boolean;
 }
 
-const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, selected, onSelect, getUsage, getLimit, hasRemaining, entityType, setModalContent }) => {
+const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, selected, onSelect, getUsage, getLimit, hasRemaining, entityType, setModalContent, disabled }) => {
   
   const entityClass = options[0]?.class || EntityClass.A;
   const limit = getLimit(entityClass, entityType);
 
   const openModal = (index: number) => {
+    if (disabled) return;
     const placeholderText = title.endsWith('s') ? title.slice(0, -1) : title;
     const modalBody = (
       <div className="p-6">
@@ -31,11 +33,11 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
           {options.map(option => {
             const isSelected = selected.includes(option.id);
             const canSelect = hasRemaining(option.id, entityType);
-            const disabled = isSelected || !canSelect;
+            const isModalOptionDisabled = isSelected || !canSelect;
             const usageCount = getUsage(option.id, entityType);
             
             const handleSelect = () => {
-              if (disabled) return;
+              if (isModalOptionDisabled) return;
               onSelect(option.id, index);
               setModalContent(null);
             };
@@ -46,7 +48,7 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                 onClick={handleSelect}
                 className={`
                   p-4 rounded-lg border-2 text-center transition-all
-                  ${disabled ? 'bg-accent-gray opacity-40 cursor-not-allowed' : 'bg-carbon-black border-accent-gray hover:border-primary-red cursor-pointer'}
+                  ${isModalOptionDisabled ? 'bg-accent-gray opacity-40 cursor-not-allowed' : 'bg-carbon-black border-accent-gray hover:border-primary-red cursor-pointer'}
                 `}
               >
                 <p className="font-semibold text-pure-white">{option.name}</p>
@@ -86,8 +88,9 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
               option={selectedOption || null}
               isSelected={!!selectedOption}
               onClick={() => openModal(index)}
-              placeholder={`Select ${placeholderText}`}
+              placeholder={placeholderText}
               usage={usage}
+              disabled={disabled}
             />
           );
         })}

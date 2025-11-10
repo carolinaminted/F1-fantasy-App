@@ -10,6 +10,7 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleLogoClick = () => {
     if (isLogin) {
@@ -21,24 +22,28 @@ const AuthScreen: React.FC = () => {
       setEmail(`test.user.${randomId}@fantasy.f1`);
       setPassword('password123');
     }
+     setError(null);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setIsLoading(true);
+      setError(null);
 
       if (isLogin) {
           try {
               await signInWithEmailAndPassword(auth, email, password);
               // Auth state change will be caught by the listener in App.tsx
-          } catch (error) {
-              alert('Failed to log in. Please check your credentials.');
-              console.error(error);
+          } catch (error: any) {
+              // Provide a generic error message for any login failure to prevent user enumeration
+              // and handle different Firebase error codes gracefully.
+              setError('Invalid email or password. Please try again.');
+              console.error("Login error:", error);
               setIsLoading(false);
           }
       } else {
           if (!displayName) {
-              alert('Please enter a display name.');
+              setError('Please enter a display name.');
               setIsLoading(false);
               return;
           }
@@ -60,9 +65,9 @@ const AuthScreen: React.FC = () => {
               }
           } catch (error: any) {
               if (error.code === 'auth/email-already-in-use') {
-                alert('This email is already in use. Please log in or use a different email.');
+                setError('This email is already in use. Please log in or use a different email.');
               } else {
-                alert('Failed to sign up. Please try again.');
+                setError('Failed to sign up. Please try again.');
               }
               console.error(error);
               setIsLoading(false);
@@ -91,7 +96,10 @@ const AuthScreen: React.FC = () => {
                 type="text" 
                 id="displayName"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => {
+                    setDisplayName(e.target.value);
+                    setError(null);
+                }}
                 placeholder="e.g. Awesome Racing"
                 required
                 className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
@@ -104,7 +112,10 @@ const AuthScreen: React.FC = () => {
               type="email" 
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+              }}
               placeholder="principal@example.com"
               required
               className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
@@ -116,13 +127,19 @@ const AuthScreen: React.FC = () => {
               type="password" 
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+              }}
               placeholder="••••••••"
               required
               minLength={6}
               className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
             />
           </div>
+          
+          {error && <p className="text-sm text-primary-red text-center pt-2">{error}</p>}
+
           <div className="pt-4">
              <button
                 type="submit"
@@ -135,7 +152,7 @@ const AuthScreen: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-highlight-silver hover:text-primary-red">
+          <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-highlight-silver hover:text-primary-red">
             {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In'}
           </button>
         </div>

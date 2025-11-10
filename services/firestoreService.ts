@@ -1,6 +1,6 @@
 import { db } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
-import { PickSelection, User } from '../types.ts';
+import { PickSelection, User, RaceResults } from '../types.ts';
 import { User as FirebaseUser } from 'firebase/auth';
 
 // User Profile Management
@@ -56,6 +56,7 @@ export const saveUserPicks = async (uid: string, eventId: string, picks: PickSel
         console.log(`Picks for ${eventId} saved successfully for user ${uid}`);
     } catch (error) {
         console.error("Error saving user picks", error);
+        throw error;
     }
 };
 
@@ -74,4 +75,29 @@ export const getAllUsersAndPicks = async () => {
     });
 
     return { users, allPicks };
+};
+
+// Form Lock Management
+export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
+    const locksRef = doc(db, 'app_state', 'form_locks');
+    try {
+        await setDoc(locksRef, locks);
+        console.log("Form locks saved successfully.");
+    } catch (error) {
+        console.error("Error saving form locks", error);
+        throw error;
+    }
+};
+
+// Race Results Management
+export const saveRaceResults = async (results: RaceResults) => {
+    const resultsRef = doc(db, 'app_state', 'race_results');
+    try {
+        // This will overwrite the entire document with the new results object
+        await setDoc(resultsRef, results);
+        console.log("Race results saved successfully to Firestore.");
+    } catch (error) {
+        console.error("Error saving race results", error);
+        throw error;
+    }
 };

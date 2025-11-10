@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
-import CountdownTimer from './CountdownTimer.tsx';
 import SelectorGroup from './SelectorGroup.tsx';
 import { SubmitIcon } from './icons/SubmitIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
@@ -93,23 +92,31 @@ const PicksForm: React.FC<PicksFormProps> = ({
     }
   };
 
-  if (isLockedByAdmin) {
+  if (isLockedByAdmin && !isEditing) {
+    // Show a simplified lock view for non-admins if their picks are already submitted and locked
+    // The main form handles the detailed locked view while editing
     return (
         <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50">
             <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
             <h2 className="text-3xl font-bold text-ghost-white mb-2">Picks Are Locked</h2>
-            <p className="text-ghost-white">Edits disabled. This event has been locked by an administrator.</p>
+            <p className="text-ghost-white">Your submitted picks for this event cannot be edited.</p>
         </div>
     );
   }
 
+  const isFormLockedForStatus = formLocks[event.id];
+  
   if(!isEditing) {
     return (
         <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-highlight-silver/30">
             <h2 className="text-3xl font-bold text-ghost-white mb-4">Picks Submitted Successfully!</h2>
             <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
-            <button onClick={() => setIsEditing(true)} className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg">
-                Edit Picks
+            <button 
+              onClick={() => setIsEditing(true)} 
+              disabled={isFormLockedForStatus}
+              className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed"
+            >
+              {isFormLockedForStatus ? 'Editing Locked' : 'Edit Picks'}
             </button>
         </div>
     );
@@ -119,7 +126,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-8">
         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div className="flex-grow text-center">
+          <div className="flex-grow text-center md:text-left">
             <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>
             <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
             <div className="mt-2">
@@ -130,60 +137,81 @@ const PicksForm: React.FC<PicksFormProps> = ({
               )}
             </div>
           </div>
-          <CountdownTimer event={event} />
+          <div className="text-center">
+              <p className="text-sm uppercase tracking-wider font-semibold text-highlight-silver">
+                  {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
+              </p>
+              <p className={`text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
+                  {isFormLockedForStatus ? "LOCKED" : "OPEN"}
+              </p>
+               <p className="text-xs text-highlight-silver opacity-70">
+                  {isFormLockedForStatus ? "Submissions Closed" : "Submissions are available"}
+              </p>
+          </div>
         </div>
 
-        <SelectorGroup
-          title="Class A Teams"
-          slots={2}
-          options={aTeams}
-          selected={picks.aTeams}
-          onSelect={(value, index) => handleSelect('aTeams', value, index)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="teams"
-          setModalContent={setModalContent}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column: Teams */}
+            <div className="space-y-8">
+                 <SelectorGroup
+                    title="Class A Teams"
+                    slots={2}
+                    options={aTeams}
+                    selected={picks.aTeams}
+                    onSelect={(value, index) => handleSelect('aTeams', value, index)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="teams"
+                    setModalContent={setModalContent}
+                    disabled={isFormLockedForStatus}
+                />
 
-        <SelectorGroup
-          title="Class B Team"
-          slots={1}
-          options={bTeams}
-          selected={[picks.bTeam]}
-          onSelect={(value) => handleSelect('bTeam', value, 0)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="teams"
-          setModalContent={setModalContent}
-        />
-
-        <SelectorGroup
-          title="Class A Drivers"
-          slots={3}
-          options={aDrivers}
-          selected={picks.aDrivers}
-          onSelect={(value, index) => handleSelect('aDrivers', value, index)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="drivers"
-          setModalContent={setModalContent}
-        />
-        
-        <SelectorGroup
-          title="Class B Drivers"
-          slots={2}
-          options={bDrivers}
-          selected={picks.bDrivers}
-          onSelect={(value, index) => handleSelect('bDrivers', value, index)}
-          getUsage={getUsage}
-          getLimit={getLimit}
-          hasRemaining={hasRemaining}
-          entityType="drivers"
-          setModalContent={setModalContent}
-        />
+                <SelectorGroup
+                    title="Class B Team"
+                    slots={1}
+                    options={bTeams}
+                    selected={[picks.bTeam]}
+                    onSelect={(value) => handleSelect('bTeam', value, 0)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="teams"
+                    setModalContent={setModalContent}
+                    disabled={isFormLockedForStatus}
+                />
+            </div>
+            {/* Right Column: Drivers */}
+            <div className="space-y-8">
+                 <SelectorGroup
+                    title="Class A Drivers"
+                    slots={3}
+                    options={aDrivers}
+                    selected={picks.aDrivers}
+                    onSelect={(value, index) => handleSelect('aDrivers', value, index)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="drivers"
+                    setModalContent={setModalContent}
+                    disabled={isFormLockedForStatus}
+                />
+                
+                <SelectorGroup
+                    title="Class B Drivers"
+                    slots={2}
+                    options={bDrivers}
+                    selected={picks.bDrivers}
+                    onSelect={(value, index) => handleSelect('bDrivers', value, index)}
+                    getUsage={getUsage}
+                    getLimit={getLimit}
+                    hasRemaining={hasRemaining}
+                    entityType="drivers"
+                    setModalContent={setModalContent}
+                    disabled={isFormLockedForStatus}
+                />
+            </div>
+        </div>
         
          <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
               <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
@@ -198,7 +226,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
                       isDropdown={true}
                       options={allDrivers}
                       onSelect={(value) => handleSelect('fastestLap', value)}
-                      placeholder="Select Fastest Lap Driver"
+                      placeholder="Fastest Lap Driver"
+                      disabled={isFormLockedForStatus}
                   />
               </div>
          </div>
@@ -207,7 +236,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         <div className="flex justify-end pt-4">
           <button
             type="submit"
-            disabled={!isSelectionComplete()}
+            disabled={!isSelectionComplete() || isFormLockedForStatus}
             className="flex items-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
           >
             <SubmitIcon className="w-5 h-5" />
@@ -246,7 +275,8 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                 <select
                     value={option?.id || ''}
                     onChange={(e) => onSelect(e.target.value || null)}
-                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none"
+                    disabled={disabled}
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed"
                 >
                     <option value="">{placeholder}</option>
                     {options.map(opt => (

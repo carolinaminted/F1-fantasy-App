@@ -125,7 +125,17 @@ This is a **critical step**. Without a database, your app has nowhere to save us
 - Choose a location for your Firestore data. Pick a location that is geographically close to the majority of your users for the best performance (e.g., `nam5 (us-central)`).
 - Click **"Enable"**. Firebase will take a moment to provision your database.
 
-### 2. Configure Security Rules
+### 2. Create Required Collections
+After creating the database, you need to manually create the collections your application expects.
+1.  **`users` Collection:** Click **+ Start collection**, enter `users` as the Collection ID. You don't need to add a document now; the app will create them on sign-up.
+2.  **`userPicks` Collection:** Click **+ Start collection**, enter `userPicks` as the Collection ID. You don't need to add a document.
+3.  **`app_state` Collection (for Form Locks):**
+    - Click **+ Start collection**, enter `app_state` as the Collection ID.
+    - Click **"Next"**.
+    - For Document ID, enter `form_locks`.
+    - You don't need to add any fields. Click **"Save"** to create an empty document. This will be populated by the admin panel.
+
+### 3. Configure Security Rules
 Once your database is created, you need to update the security rules to allow users to create their own profiles and save their weekly picks.
 
 - With the database created, click the **"Rules"** tab at the top of the page.
@@ -148,6 +158,24 @@ service cloud.firestore {
     match /userPicks/{userId} {
        allow read: if true;
        allow write: if request.auth.uid == userId;
+    }
+
+    // App-wide settings, like form locks.
+    // Allow any authenticated user to read (to see if forms are locked).
+    // Allow any authenticated user to write.
+    // NOTE: In a production environment, write access should be restricted to admin roles using custom claims.
+    // For this project, admin status is checked on the client-side.
+    match /app_state/form_locks {
+       allow read: if request.auth != null;
+       allow write: if request.auth != null;
+    }
+
+    // App-wide race results.
+    // Allow any authenticated user to read (for live score updates).
+    // Allow any authenticated user to write (admin writes from client).
+    match /app_state/race_results {
+       allow read: if request.auth != null;
+       allow write: if request.auth != null;
     }
   }
 }
