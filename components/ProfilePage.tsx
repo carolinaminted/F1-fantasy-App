@@ -224,7 +224,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
       <div>
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
-        <p className="text-center text-xl text-highlight-silver mb-8">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
+        <div className="flex flex-col justify-center items-center gap-2 mb-8">
+            <p className="text-center text-xl text-highlight-silver">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
+            <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                (user.duesPaidStatus || 'Unpaid') === 'Paid'
+                ? 'bg-green-600/80 text-pure-white'
+                : 'bg-primary-red/80 text-pure-white'
+            }`}>
+                Dues: {user.duesPaidStatus || 'Unpaid'}
+            </span>
+        </div>
       </div>
 
       {/* Scoring Breakdown Section */}

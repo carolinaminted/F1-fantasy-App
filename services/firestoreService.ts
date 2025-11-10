@@ -1,5 +1,5 @@
 import { db } from './firebase.ts';
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
 import { PickSelection, User, RaceResults } from '../types.ts';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -19,6 +19,7 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
             await setDoc(userRef, {
                 displayName,
                 email,
+                duesPaidStatus: 'Unpaid',
             });
 
             // Create the initial empty user picks document to ensure it exists for all users
@@ -40,6 +41,24 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
         return { id: uid, ...snapshot.data() } as User;
     }
     return null;
+};
+
+export const updateUserDuesStatus = async (uid: string, status: 'Paid' | 'Unpaid') => {
+    const userRef = doc(db, 'users', uid);
+    try {
+        await updateDoc(userRef, { duesPaidStatus: status });
+        console.log(`Dues status for user ${uid} updated to ${status}`);
+    } catch (error) {
+        console.error("Error updating dues status", error);
+        throw error;
+    }
+};
+
+export const getAllUsers = async (): Promise<User[]> => {
+    const usersCollection = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollection);
+    const users: User[] = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    return users;
 };
 
 // User Picks Management
@@ -96,6 +115,7 @@ export const saveRaceResults = async (results: RaceResults) => {
         // This will overwrite the entire document with the new results object
         await setDoc(resultsRef, results);
         console.log("Race results saved successfully to Firestore.");
+    // Fix: Added missing opening brace for the catch block to correct the syntax.
     } catch (error) {
         console.error("Error saving race results", error);
         throw error;

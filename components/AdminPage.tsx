@@ -2,9 +2,10 @@ import React from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
+import { ProfileIcon } from './icons/ProfileIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'results' | 'form-lock') => void;
+    setAdminSubPage: (page: 'results' | 'form-lock' | 'dues-status') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -25,6 +26,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Form Lock"
                     description="Manually lock or unlock pick submission forms."
                     onClick={() => setAdminSubPage('form-lock')}
+                />
+                <AdminTile
+                    icon={ProfileIcon}
+                    title="Dues Status Manager"
+                    description="Update the dues paid status for league members."
+                    onClick={() => setAdminSubPage('dues-status')}
                 />
             </div>
         </div>

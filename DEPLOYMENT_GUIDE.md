@@ -146,11 +146,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow public read access to user profiles (for leaderboards).
-    // Only allow a user to create or update their own profile document.
+    // Function to check if the requesting user is an admin by email.
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@fantasy.f1';
+    }
+    
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
+
+      // An update is allowed if:
+      // 1. The user is the owner AND they are NOT trying to change their dues status.
+      // 2. The requester is an admin AND they are ONLY changing the dues status.
+      allow update: if (request.auth.uid == userId && !('duesPaidStatus' in request.resource.data.diff(resource.data).changedKeys())) ||
+                     (isAdmin() && request.resource.data.diff(resource.data).changedKeys().hasOnly(['duesPaidStatus']));
     }
     
     // Allow public read of all picks (for leaderboards and scoring).
@@ -162,20 +171,18 @@ service cloud.firestore {
 
     // App-wide settings, like form locks.
     // Allow any authenticated user to read (to see if forms are locked).
-    // Allow any authenticated user to write.
-    // NOTE: In a production environment, write access should be restricted to admin roles using custom claims.
-    // For this project, admin status is checked on the client-side.
+    // Only allow an admin to write.
     match /app_state/form_locks {
        allow read: if request.auth != null;
-       allow write: if request.auth != null;
+       allow write: if isAdmin();
     }
 
     // App-wide race results.
     // Allow any authenticated user to read (for live score updates).
-    // Allow any authenticated user to write (admin writes from client).
+    // Only allow an admin to write.
     match /app_state/race_results {
        allow read: if request.auth != null;
-       allow write: if request.auth != null;
+       allow write: if isAdmin();
     }
   }
 }

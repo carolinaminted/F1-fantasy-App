@@ -8,6 +8,7 @@ export interface User {
   id: string;
   displayName: string;
   email: string;
+  duesPaidStatus?: 'Paid' | 'Unpaid';
 }
 
 export interface Constructor {
