@@ -19,7 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
   return (
     <div className="max-w-5xl mx-auto">
       <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center">Home Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <NavTile
           icon={PicksIcon}
           title="Weekly Picks"

@@ -1,6 +1,6 @@
 import { db } from './firebase.ts';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
-import { PickSelection, User, RaceResults } from '../types.ts';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { PickSelection, User, RaceResults, Donation } from '../types.ts';
 import { User as FirebaseUser } from 'firebase/auth';
 
 // User Profile Management
@@ -118,6 +118,57 @@ export const saveRaceResults = async (results: RaceResults) => {
     // Fix: Added missing opening brace for the catch block to correct the syntax.
     } catch (error) {
         console.error("Error saving race results", error);
+        throw error;
+    }
+};
+
+// Donation Management
+/**
+ * SIMULATES A SERVER-SIDE CLOUD FUNCTION.
+ * In a real application, this logic would live in a secure backend environment
+ * (e.g., a Firebase Callable Function) and would be triggered by the client
+ * after receiving a success token from a payment provider like Stripe.
+ * The function would first verify the payment with the provider before writing to Firestore.
+ * Storing a donation record directly from the client is insecure.
+ */
+export const createDonationRecord = async (
+    uid: string,
+    donationData: Omit<Donation, 'id' | 'userId' | 'createdAt' | 'status'>
+): Promise<string> => {
+    if (!uid) throw new Error("User is not authenticated.");
+    const donationsCollectionRef = collection(db, 'users', uid, 'donations');
+    
+    const newDonation = {
+        ...donationData,
+        userId: uid,
+        status: 'succeeded',
+        createdAt: serverTimestamp(),
+    };
+    
+    try {
+        const docRef = await addDoc(donationsCollectionRef, newDonation);
+        console.log("Donation record created successfully:", docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error creating donation record:", error);
+        throw error;
+    }
+};
+
+export const getUserDonations = async (uid: string): Promise<Donation[]> => {
+    if (!uid) return [];
+    const donationsCollectionRef = collection(db, 'users', uid, 'donations');
+    const q = query(donationsCollectionRef, orderBy('createdAt', 'desc'));
+    
+    try {
+        const querySnapshot = await getDocs(q);
+        const donations: Donation[] = [];
+        querySnapshot.forEach((doc) => {
+            donations.push({ id: doc.id, ...doc.data() } as Donation);
+        });
+        return donations;
+    } catch (error) {
+        console.error("Error fetching user donations:", error);
         throw error;
     }
 };

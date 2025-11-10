@@ -306,11 +306,10 @@ const App: React.FC = () => {
         </div>
 
         {/* Bottom Nav for Mobile */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 flex justify-around md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid grid-cols-5 md:hidden">
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={TrophyIcon} label="Points" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />

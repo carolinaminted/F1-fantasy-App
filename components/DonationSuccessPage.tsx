@@ -17,15 +17,23 @@ const DonationSuccessPage: React.FC<DonationSuccessPageProps> = ({ amount, setAc
                 </div>
                 <h1 className="text-3xl font-bold text-pure-white mb-4">Thank You!</h1>
                 <p className="text-highlight-silver mb-6">
-                    Your generous donation of <span className="font-bold text-pure-white">${amount.toFixed(2)}</span> has been received.
+                    Your generous donation of <span className="font-bold text-pure-white">${amount.toFixed(2)}</span> has been recorded.
                     A confirmation has been sent to your email.
                 </p>
-                <button
-                    onClick={() => setActivePage('home')}
-                    className="w-full font-bold text-lg text-pure-white bg-primary-red rounded-lg py-3 transition-colors hover:opacity-90"
-                >
-                    Back to Dashboard
-                </button>
+                <div className="space-y-3">
+                    <button
+                        onClick={() => setActivePage('donate')}
+                        className="w-full font-bold text-lg text-pure-white bg-primary-red rounded-lg py-3 transition-colors hover:opacity-90"
+                    >
+                        View Donation History
+                    </button>
+                    <button
+                        onClick={() => setActivePage('home')}
+                        className="w-full font-bold text-lg text-highlight-silver bg-carbon-black/50 rounded-lg py-3 transition-colors hover:bg-carbon-black"
+                    >
+                        Back to Dashboard
+                    </button>
+                </div>
             </div>
         </div>
     );
