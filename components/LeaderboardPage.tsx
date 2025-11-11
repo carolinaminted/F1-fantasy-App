@@ -51,6 +51,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
   const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
   const [isDriversExpanded, setIsDriversExpanded] = useState(false);
   const [isFastestLapExpanded, setIsFastestLapExpanded] = useState(false);
+  const [isBottom5Expanded, setIsBottom5Expanded] = useState(false);
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
@@ -212,8 +213,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
                 </div>
                 
                 <div>
-                    <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Bottom 5 Principals</h4>
-                    <BarChart data={bottom5} />
+                    <button
+                        onClick={() => setIsBottom5Expanded(!isBottom5Expanded)}
+                        className="w-full flex justify-between items-center"
+                        aria-expanded={isBottom5Expanded}
+                    >
+                        <span className="w-6 h-6"></span> {/* Spacer for centering */}
+                        <span className="text-xl font-semibold text-primary-red">Bottom 5 Principals</span>
+                        <ChevronDownIcon className={`w-6 h-6 text-highlight-silver transition-transform ${isBottom5Expanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isBottom5Expanded && (
+                        <div className="mt-4">
+                            <BarChart data={bottom5} />
+                        </div>
+                    )}
                 </div>
                 
                 <div>
