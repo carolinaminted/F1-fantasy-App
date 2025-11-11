@@ -131,7 +131,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
             <div className="mt-2">
               {isSubmitted ? (
-                <span className="text-xs font-bold uppercase tracking-wider bg-highlight-silver/20 text-ghost-white px-3 py-1 rounded-full">Submitted</span>
+                <span className="text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
               ) : (
                 <span className="text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
               )}
