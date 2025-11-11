@@ -36,8 +36,10 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
     return (
         <div className="max-w-7xl mx-auto text-pure-white">
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Grand Prix Results</h1>
-            <p className="text-center text-highlight-silver mb-8">Browse official results for the season.</p>
+            <p className="text-center text-highlight-silver mb-6">Browse official results for the season.</p>
             
+            <IconLegend />
+
             <div className="mb-6">
                 <input
                     type="text"
@@ -89,6 +91,15 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
 };
 
 // --- Sub-components for GpResultsPage ---
+
+const IconLegend: React.FC = () => (
+    <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-xs text-highlight-silver mb-6 md:hidden">
+        <div className="flex items-center gap-1.5"><CheckeredFlagIcon className="w-4 h-4" /> Race</div>
+        <div className="flex items-center gap-1.5"><PolePositionIcon className="w-4 h-4" /> Quali</div>
+        <div className="flex items-center gap-1.5"><SprintIcon className="w-4 h-4" /> Sprint</div>
+        <div className="flex items-center gap-1.5"><FastestLapIcon className="w-4 h-4" /> Fastest Lap</div>
+    </div>
+);
 
 interface EventItemProps {
     event: Event;
@@ -151,18 +162,19 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results }) => {
     
     return (
         <div>
-            <div className="flex items-center justify-center border-b border-accent-gray/50 mb-4 overflow-x-auto">
+            <div className="flex items-center justify-around md:justify-center border-b border-accent-gray/50 mb-4">
                 {tabs.map(tab => (
                      <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
+                        aria-label={tab.label}
+                        className={`flex items-center gap-2 px-3 md:px-4 py-2 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
                             activeTab === tab.id
                                 ? 'border-primary-red text-pure-white'
                                 : 'border-transparent text-highlight-silver hover:text-pure-white'
                         }`}
                     >
-                        <tab.icon className="w-5 h-5"/> {tab.label}
+                        <tab.icon className="w-5 h-5"/> <span className="hidden md:inline">{tab.label}</span>
                     </button>
                 ))}
             </div>
