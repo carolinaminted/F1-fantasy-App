@@ -54,23 +54,20 @@ export interface RaceResults {
   [eventId: string]: EventResult;
 }
 
+// Fix: Add and export the Donation interface. This type was missing, causing import errors in donation-related components.
+export interface Donation {
+  id: string;
+  userId: string;
+  amount: number; // in cents
+  currency: string;
+  createdAt: { seconds: number; nanoseconds: number };
+  methodType: string;
+  cardLast4?: string;
+  providerTxnId: string;
+  status: string;
+}
+
 export interface UsageRollup {
     teams: { [id: string]: number };
     drivers: { [id: string]: number };
-}
-
-export interface Donation {
-    id: string;
-    userId: string;
-    amount: number; // in cents
-    currency: string;
-    methodType: "card" | "wallet" | "bank";
-    cardLast4?: string;
-    provider: string;
-    providerTxnId: string;
-    status: "succeeded" | "pending" | "failed" | "refunded";
-    createdAt: { seconds: number; nanoseconds: number; }; // Firestore Timestamp structure
-    eventId?: string;
-    taxReceiptRef?: string;
-    notes?: string;
 }
