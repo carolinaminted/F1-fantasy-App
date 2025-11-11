@@ -48,6 +48,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
   const [isLoading, setIsLoading] = useState(true);
   const [isStandingsExpanded, setIsStandingsExpanded] = useState(false);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [isTop5Expanded, setIsTop5Expanded] = useState(true);
   const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
   const [isDriversExpanded, setIsDriversExpanded] = useState(false);
   const [isFastestLapExpanded, setIsFastestLapExpanded] = useState(false);
@@ -163,15 +164,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
             
             {/* Main Content: Full Standings */}
             <div className="lg:col-span-3">
-                <button
-                    onClick={() => setIsStandingsExpanded(!isStandingsExpanded)}
-                    className="w-full flex justify-between items-center p-2 rounded-md hover:bg-accent-gray/50 lg:hidden mb-4"
-                    aria-expanded={isStandingsExpanded}
-                    aria-controls="full-standings-table"
-                >
-                    <h3 className="text-2xl font-bold text-primary-red">Full Standings</h3>
-                    <ChevronDownIcon className={`w-8 h-8 transition-transform ${isStandingsExpanded ? 'rotate-180' : ''}`} />
-                </button>
+                <div className="lg:hidden mb-4">
+                    <button
+                        onClick={() => setIsStandingsExpanded(!isStandingsExpanded)}
+                        className="w-full flex justify-between items-center p-2 rounded-md hover:bg-accent-gray/50"
+                        aria-expanded={isStandingsExpanded}
+                        aria-controls="full-standings-table"
+                    >
+                        <span className="w-8 h-8"></span>{/* Spacer for centering */}
+                        <h3 className="text-2xl font-bold text-primary-red">Full Standings</h3>
+                        <ChevronDownIcon className={`w-8 h-8 transition-transform ${isStandingsExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                </div>
                 
                 <h3 className="hidden lg:block text-2xl font-bold mb-4 text-primary-red text-center">Full Standings</h3>
                 
@@ -208,8 +212,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
             {/* Sidebar: Top 5 & Stats */}
             <div className="lg:col-span-2 space-y-12">
                 <div>
-                    <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Top 5 Principals</h4>
-                    <BarChart data={top5} />
+                    <button
+                        onClick={() => setIsTop5Expanded(!isTop5Expanded)}
+                        className="w-full flex justify-between items-center"
+                        aria-expanded={isTop5Expanded}
+                    >
+                        <span className="w-6 h-6"></span> {/* Spacer for centering */}
+                        <span className="text-xl font-semibold text-primary-red">Top 5 Principals</span>
+                        <ChevronDownIcon className={`w-6 h-6 text-highlight-silver transition-transform ${isTop5Expanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isTop5Expanded && (
+                        <div className="mt-4">
+                            <BarChart data={top5} />
+                        </div>
+                    )}
                 </div>
                 
                 <div>
