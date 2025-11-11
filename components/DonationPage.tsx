@@ -147,6 +147,21 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
         <div className="max-w-5xl mx-auto space-y-12">
             <div>
                 <h1 className="text-3xl font-bold text-center mb-8">Make a Donation</h1>
+
+                <div className="bg-accent-gray/30 backdrop-blur-sm p-6 rounded-lg ring-1 ring-pure-white/10 text-center mb-6">
+                    <h2 className="text-xl font-semibold text-pure-white">Donate directly to Victory Junction</h2>
+                    <a 
+                        href="https://victoryjunction.org/donate-online/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-block bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105"
+                    >
+                        Donate Now
+                    </a>
+                </div>
+
+                <p className="text-center text-highlight-silver mb-8">... or contribute to the league's operational costs below ...</p>
+                
                 <main className="bg-accent-gray/50 backdrop-blur-sm p-6 md:p-8 rounded-lg ring-1 ring-pure-white/10">
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
                         {/* Left Column: Amount Selection */}
