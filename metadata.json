@@ -1,5 +1,5 @@
 {
-  "name": "F1 Fantasy League Manager",
+  "name": "Formula Fantasy One League",
   "description": "A web application for Formula 1 fantasy league members to submit their weekly picks, track scores, and view league standings. It features real-time usage limits and countdowns to race lock-in times.",
   "requestFramePermissions": []
 }

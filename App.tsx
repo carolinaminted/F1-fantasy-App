@@ -9,6 +9,7 @@ import AdminPage from './components/AdminPage.tsx';
 import FormLockPage from './components/FormLockPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
+import ManageUsersPage from './components/ManageUsersPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
@@ -96,7 +97,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock' | 'dues-status'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -256,6 +257,8 @@ const App: React.FC = () => {
                 return <FormLockPage formLocks={formLocks} onToggleLock={handleToggleFormLock} setAdminSubPage={setAdminSubPage} />;
             case 'dues-status':
                 return <DuesStatusManagerPage setAdminSubPage={setAdminSubPage} />;
+            case 'manage-users':
+                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }

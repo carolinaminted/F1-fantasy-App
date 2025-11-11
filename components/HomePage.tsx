@@ -13,7 +13,13 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks }) => {
-  const [selectedEvent, setSelectedEvent] = useState<Event>(EVENTS[0]);
+  // Default to the oldest event that hasn't been submitted yet.
+  const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
+    // Find the first event in the chronological list that doesn't have a corresponding pick submission.
+    const oldestUnsubmitted = EVENTS.find(event => !seasonPicks[event.id]);
+    // If all events have picks, default to the first event in the season.
+    return oldestUnsubmitted || EVENTS[0];
+  });
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS);
 
   return (

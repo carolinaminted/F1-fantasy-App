@@ -5,7 +5,7 @@ import { LockIcon } from './icons/LockIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'results' | 'form-lock' | 'dues-status') => void;
+    setAdminSubPage: (page: 'results' | 'form-lock' | 'dues-status' | 'manage-users') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -32,6 +32,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Dues Status Manager"
                     description="Update the dues paid status for league members."
                     onClick={() => setAdminSubPage('dues-status')}
+                />
+                <AdminTile
+                    icon={ProfileIcon}
+                    title="Manage Users"
+                    description="Search and view user profiles."
+                    onClick={() => setAdminSubPage('manage-users')}
                 />
             </div>
         </div>
