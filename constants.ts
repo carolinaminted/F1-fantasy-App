@@ -46,6 +46,7 @@ export const DRIVERS: Driver[] = [
   { id: 'bor', name: 'Gabriel Bortoleto', constructorId: 'kick_sauber', class: EntityClass.B },
   // Alpine (B)
   { id: 'gas', name: 'Pierre Gasly', constructorId: 'alpine', class: EntityClass.B },
+  { id: 'col', name: 'Franco Colapinto', constructorId: 'alpine', class: EntityClass.B },
   // Racing Bulls (B)
   { id: 'had', name: 'Isack Hadjar', constructorId: 'racing_bulls', class: EntityClass.B },
   { id: 'law', name: 'Liam Lawson', constructorId: 'racing_bulls', class: EntityClass.B },
