@@ -1,14 +1,13 @@
 import React from 'react';
 import { POINTS_SYSTEM } from '../constants.ts';
-import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 
 const PointsCategoryCard: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
-    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
-        <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-3">
+    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 text-center">
+        <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center justify-center gap-3">
             <Icon className="w-6 h-6 text-primary-red" />
             {title}
         </h3>
@@ -17,18 +16,18 @@ const PointsCategoryCard: React.FC<{ title: string; icon: React.FC<any>; childre
 );
 
 const PointsList: React.FC<{ points: number[] }> = ({ points }) => (
-    <ol className="list-decimal list-inside space-y-1 text-ghost-white">
+    <div className="space-y-1 text-ghost-white inline-block text-left">
         {points.map((p, i) => (
-            <li key={i}>
+            <div key={i}>
                 Position {i + 1}: <span className="font-bold text-pure-white">{p} points</span>
-            </li>
+            </div>
         ))}
-    </ol>
+    </div>
 );
 
 const PointsTransparency: React.FC = () => {
     return (
-        <div className="max-w-7xl mx-auto text-pure-white">
+        <div className="max-w-5xl mx-auto text-pure-white">
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Points System</h1>
             <p className="text-center text-highlight-silver mb-8">Understand how your fantasy team scores points each race weekend.</p>
 
@@ -44,22 +43,21 @@ const PointsTransparency: React.FC = () => {
                 </PointsCategoryCard>
 
                 <PointsCategoryCard title="GP Qualifying" icon={PolePositionIcon}>
-                    <p className="text-sm text-highlight-silver mb-3">Bonus points for the top 3 in Grand Prix qualifying.</p>
+                    <p className="text-sm text-highlight-silver mb-3">Awarded for the top 3 in Grand Prix + Sprint qualifying events</p>
                     <PointsList points={POINTS_SYSTEM.gpQualifying} />
-                     <p className="text-sm text-highlight-silver mt-3">The same points are awarded for Sprint Qualifying during Sprint weekends.</p>
                 </PointsCategoryCard>
                 
                 <PointsCategoryCard title="Fastest Lap" icon={FastestLapIcon}>
-                    <p className="text-sm text-highlight-silver mb-3">A bonus for picking the driver who sets the fastest lap of the Grand Prix.</p>
+                    <p className="text-sm text-highlight-silver mb-3">Awarded for picking the driver who sets the fastest lap of the Grand Prix qualifying</p>
                     <p className="text-2xl font-bold text-pure-white">{POINTS_SYSTEM.fastestLap} points</p>
                 </PointsCategoryCard>
             </div>
             
-            <div className="mt-12 bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+            <div className="mt-6 bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
                 <h2 className="text-2xl font-bold text-center mb-4">How It Adds Up</h2>
                 <div className="space-y-4 text-highlight-silver">
                     <p>
-                        <strong className="text-ghost-white">Team Points:</strong> For each of your chosen teams, you score the total points earned by *both* of that constructor's drivers in a session (e.g., if you pick Ferrari, you get Leclerc's points + Hamilton's points).
+                        <strong className="text-ghost-white">Team Points:</strong> For each of your chosen teams, you score the total points earned by <em className="italic">both</em> of that constructor's drivers in a session (e.g., if you pick Ferrari, you get Leclerc's points + Hamilton's points).
                     </p>
                      <p>
                         <strong className="text-ghost-white">Driver Points:</strong> For each of your chosen drivers, you score the points they earn individually.
