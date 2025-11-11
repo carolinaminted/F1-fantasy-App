@@ -207,8 +207,9 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
                                 <button
                                     type="button"
                                     onClick={() => setDonorInfoOpen(!donorInfoOpen)}
-                                    className="w-full flex justify-between items-center text-left text-xl font-semibold text-primary-red"
+                                    className="w-full flex justify-between items-center text-xl font-semibold text-primary-red"
                                 >
+                                    <span className="w-6 h-6"></span>
                                     <span className="relative pr-3">
                                         Donor Information
                                         {!isDonorInfoValid && <RequiredIndicator />}
@@ -232,8 +233,9 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
                                 <button
                                     type="button"
                                     onClick={() => setPaymentInfoOpen(!paymentInfoOpen)}
-                                    className="w-full flex justify-between items-center text-left text-xl font-semibold text-primary-red"
+                                    className="w-full flex justify-between items-center text-xl font-semibold text-primary-red"
                                 >
+                                    <span className="w-6 h-6"></span>
                                     <span className="relative pr-3">
                                         Payment Information
                                         {!isPaymentInfoValid && <RequiredIndicator />}
