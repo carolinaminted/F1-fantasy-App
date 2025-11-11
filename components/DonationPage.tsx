@@ -15,6 +15,9 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
 
                 <div className="bg-accent-gray/30 backdrop-blur-sm p-6 rounded-lg ring-1 ring-pure-white/10 text-center mb-6">
                     <h2 className="text-xl font-semibold text-pure-white">Donate directly to Victory Junction</h2>
+                    <p className="text-highlight-silver text-sm mt-2 max-w-xl mx-auto">
+                        Give kids with complex medical needs the chance to experience camp adventures like zip lining, archery, and fishing in a safe, barrier-free environment where they can grow and thrive.
+                    </p>
                     <a 
                         href="https://victoryjunction.org/donate-online/"
                         target="_blank"
