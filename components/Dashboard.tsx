@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page } from '../App.tsx';
 import { User } from '../types.ts';
@@ -7,6 +8,7 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 
 interface DashboardProps {
   user: User | null;
@@ -31,6 +33,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
           title="League Dashboard"
           description="View league wide standings with visuals and metrics"
           onClick={() => setActivePage('leaderboard')}
+        />
+        <NavTile
+          icon={CheckeredFlagIcon}
+          title="Grand Prix Results"
+          description="Browse official results for all race weekends"
+          onClick={() => setActivePage('gp-results')}
         />
         <NavTile
           icon={ProfileIcon}
