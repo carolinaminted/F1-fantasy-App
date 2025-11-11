@@ -93,10 +93,10 @@ const NavTile: React.FC<NavTileProps> = ({ icon: Icon, title, description, onCli
     <button
       onClick={onClick}
       aria-label={`${title}: ${description}`}
-      className="group rounded-xl p-4 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red"
+      className="group rounded-xl p-5 md:p-6 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red"
     >
-      <Icon className="w-10 h-10 text-primary-red transition-colors duration-300 mb-2" />
-      <h3 className="text-base font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300">{title}</h3>
+      <Icon className="w-12 h-12 md:w-14 md:h-14 text-primary-red transition-colors duration-300 mb-2" />
+      <h3 className="text-lg md:text-xl font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300">{title}</h3>
     </button>
   );
 };
