@@ -9,13 +9,14 @@ interface DonationPageProps {
 
 const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
     return (
-        <div className="max-w-5xl mx-auto space-y-12">
-            <div>
-                <h1 className="text-3xl font-bold text-center mb-8">Make a Donation</h1>
+        <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-center mb-8">Make a Donation</h1>
 
-                <div className="bg-accent-gray/30 backdrop-blur-sm p-6 rounded-lg ring-1 ring-pure-white/10 text-center mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] md:gap-8 items-stretch">
+                {/* Victory Junction Tile */}
+                <div className="bg-accent-gray/30 backdrop-blur-sm p-6 rounded-lg ring-1 ring-pure-white/10 text-center flex flex-col h-full">
                     <h2 className="text-xl font-semibold text-pure-white">Donate directly to Victory Junction</h2>
-                    <p className="text-highlight-silver text-sm mt-2 max-w-xl mx-auto">
+                    <p className="text-highlight-silver text-sm mt-2 max-w-xl mx-auto flex-grow">
                         Give kids with complex medical needs the chance to experience camp adventures like zip lining, archery, and fishing in a safe, barrier-free environment where they can grow and thrive.
                     </p>
                     <a 
@@ -28,11 +29,15 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                     </a>
                 </div>
 
-                <p className="text-center text-highlight-silver mb-8">... or ...</p>
+                {/* Separator */}
+                <div className="flex items-center justify-center my-6 md:my-0">
+                    <span className="text-center text-highlight-silver">... or ...</span>
+                </div>
                 
-                <main className="bg-accent-gray/50 backdrop-blur-sm p-6 md:p-8 rounded-lg ring-1 ring-pure-white/10 text-center">
+                {/* League Operational Costs Tile */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm p-6 md:p-8 rounded-lg ring-1 ring-pure-white/10 text-center flex flex-col h-full">
                     <h2 className="text-xl font-semibold text-pure-white">Contribute to League Operational Costs</h2>
-                    <p className="text-highlight-silver text-sm mt-2 mb-4">Your contribution helps cover hosting fees and keeps the league running smoothly for the season. Thank you for your support!</p>
+                    <p className="text-highlight-silver text-sm mt-2 mb-4 flex-grow">Your contribution helps cover hosting fees and keeps the league running smoothly for the season. Thank you for your support!</p>
                      <a 
                         href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=jhouser1988@gmail.com&item_name=F1+Fantasy+League+Operational+Costs&currency_code=USD"
                         target="_blank"
@@ -44,7 +49,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                     <p className="text-xs text-highlight-silver/50 mt-4">
                         Note: You will be redirected to PayPal's secure website
                     </p>
-                </main>
+                </div>
             </div>
         </div>
     );
