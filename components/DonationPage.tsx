@@ -27,6 +27,9 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                     >
                         Donate Now
                     </a>
+                    <p className="text-xs text-highlight-silver/50 mt-4">
+                        Note: You will be redirected to Victory Junction Camp donation website
+                    </p>
                 </div>
 
                 {/* Separator */}
