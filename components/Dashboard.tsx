@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Page } from '../App.tsx';
 import { User } from '../types.ts';
@@ -53,12 +54,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
           description="Learn how fantasy points are calculated"
           onClick={() => setActivePage('points')}
         />
-        <NavTile
-          icon={DuesIcon}
-          title="Pay Dues"
-          description="Pay your league dues for the current season"
-          onClick={() => setActivePage('duesPayment')}
-        />
+        {(!user || user.duesPaidStatus !== 'Paid') && (
+          <NavTile
+            icon={DuesIcon}
+            title="Pay Dues"
+            description="Pay your league dues for the current season"
+            onClick={() => setActivePage('duesPayment')}
+          />
+        )}
         <NavTile
           icon={DonationIcon}
           title="Donate"

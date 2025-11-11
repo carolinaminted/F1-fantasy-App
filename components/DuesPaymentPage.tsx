@@ -92,7 +92,7 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
                     <button
                         onClick={handlePay}
                         disabled={isProcessing}
-                        className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 text-pure-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-blue-500/20 disabled:bg-accent-gray disabled:cursor-wait"
+                        className="w-full flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:cursor-wait"
                     >
                         <PayPalIcon className="w-6 h-6" />
                         {isProcessing ? 'Processing...' : 'Pay with PayPal'}
