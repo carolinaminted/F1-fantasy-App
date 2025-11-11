@@ -132,6 +132,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
     isCurrentUser: u.id === currentUser?.id,
   })), [leaderboardData, currentUser]);
 
+  const bottom5 = useMemo(() => leaderboardData.slice(-5).reverse().map(u => ({
+    label: u.displayName,
+    value: u.points,
+    isCurrentUser: u.id === currentUser?.id,
+  })), [leaderboardData, currentUser]);
+
 
   const UsageList: React.FC<{ items: { name: string; count: number }[] }> = ({ items }) => (
     <ul className="space-y-2">
@@ -203,6 +209,11 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
                 <div>
                     <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Top 5 Principals</h4>
                     <BarChart data={top5} />
+                </div>
+                
+                <div>
+                    <h4 className="text-xl font-semibold mb-4 text-primary-red text-center">Bottom 5 Principals</h4>
+                    <BarChart data={bottom5} />
                 </div>
                 
                 <div>
