@@ -44,12 +44,13 @@ interface LeaderboardPageProps {
 
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResults}) => {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
-  const [leagueUsageData, setLeagueUsageData] = useState<{ mostUsedTeams: any[], mostUsedDrivers: any[] }>({ mostUsedTeams: [], mostUsedDrivers: [] });
+  const [leagueUsageData, setLeagueUsageData] = useState<{ mostUsedTeams: any[], mostUsedDrivers: any[], mostUsedFastestLaps: any[] }>({ mostUsedTeams: [], mostUsedDrivers: [], mostUsedFastestLaps: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isStandingsExpanded, setIsStandingsExpanded] = useState(false);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
   const [isDriversExpanded, setIsDriversExpanded] = useState(false);
+  const [isFastestLapExpanded, setIsFastestLapExpanded] = useState(false);
 
   useEffect(() => {
     const fetchLeaderboardData = async () => {
@@ -73,6 +74,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
       // Calculate league usage
       const teamUsage: { [id: string]: number } = {};
       const driverUsage: { [id: string]: number } = {};
+      const fastestLapUsage: { [id: string]: number } = {};
       Object.values(allPicks).forEach(userPicks => {
         Object.values(userPicks).forEach(eventPicks => {
           [...(eventPicks.aTeams || []), eventPicks.bTeam].forEach(id => {
@@ -81,6 +83,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
           [...(eventPicks.aDrivers || []), ...(eventPicks.bDrivers || [])].forEach(id => {
             if (id) driverUsage[id] = (driverUsage[id] || 0) + 1;
           });
+          if (eventPicks.fastestLap) {
+            fastestLapUsage[eventPicks.fastestLap] = (fastestLapUsage[eventPicks.fastestLap] || 0) + 1;
+          }
         });
       });
 
@@ -91,8 +96,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
       const mostUsedDrivers = Object.entries(driverUsage)
         .map(([id, count]) => ({ id, name: DRIVERS.find(d => d.id === id)?.name || id, count }))
         .sort((a, b) => b.count - a.count);
+
+      const mostUsedFastestLaps = Object.entries(fastestLapUsage)
+        .map(([id, count]) => ({ id, name: DRIVERS.find(d => d.id === id)?.name || id, count }))
+        .sort((a, b) => b.count - a.count);
       
-      setLeagueUsageData({ mostUsedTeams, mostUsedDrivers });
+      setLeagueUsageData({ mostUsedTeams, mostUsedDrivers, mostUsedFastestLaps });
 
       setIsLoading(false);
     };
@@ -227,6 +236,22 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
                             {isDriversExpanded && (
                                 <div className="mt-4">
                                     <UsageList items={leagueUsageData.mostUsedDrivers} />
+                                </div>
+                            )}
+                        </div>
+                         <div>
+                            <button
+                                onClick={() => setIsFastestLapExpanded(!isFastestLapExpanded)}
+                                className="w-full flex justify-between items-center"
+                                aria-expanded={isFastestLapExpanded}
+                            >
+                                <span className="w-6 h-6"></span> {/* Spacer for centering */}
+                                <span className="text-xl font-semibold text-primary-red">Popular Fastest Lap Picks</span>
+                                <ChevronDownIcon className={`w-6 h-6 text-highlight-silver transition-transform ${isFastestLapExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            {isFastestLapExpanded && (
+                                <div className="mt-4">
+                                    <UsageList items={leagueUsageData.mostUsedFastestLaps} />
                                 </div>
                             )}
                         </div>
