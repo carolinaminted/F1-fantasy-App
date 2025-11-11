@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page } from '../App.tsx';
 import { User } from '../types.ts';
@@ -7,6 +8,7 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 
 interface DashboardProps {
   user: User | null;
@@ -17,20 +19,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
   const isAdmin = user?.email === 'admin@fantasy.f1';
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center">Home Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center">Home</h1>
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
         <NavTile
           icon={PicksIcon}
-          title="Grand Prix Picks"
+          title="Picks"
           description="Submit or edit picks for any active grand prix"
           onClick={() => setActivePage('picks')}
         />
         <NavTile
           icon={LeaderboardIcon}
-          title="League Dashboard"
+          title="Leaderboard"
           description="View league wide standings with visuals and metrics"
           onClick={() => setActivePage('leaderboard')}
+        />
+        <NavTile
+          icon={CheckeredFlagIcon}
+          title="Results"
+          description="Browse official results for all race weekends"
+          onClick={() => setActivePage('gp-results')}
         />
         <NavTile
           icon={ProfileIcon}
@@ -40,13 +48,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
         />
         <NavTile
           icon={TrophyIcon}
-          title="Scoring System"
+          title="Scoring"
           description="Learn how fantasy points are calculated"
           onClick={() => setActivePage('points')}
         />
         <NavTile
           icon={DonationIcon}
-          title="Donate Now"
+          title="Donate"
           description="Donate to Victory Junction to support campers"
           onClick={() => setActivePage('donate')}
         />
@@ -74,11 +82,11 @@ const NavTile: React.FC<NavTileProps> = ({ icon: Icon, title, description, onCli
   return (
     <button
       onClick={onClick}
-      className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 text-left ring-1 ring-pure-white/10 hover:ring-primary-red transition-all duration-300 transform hover:-translate-y-1"
+      aria-label={`${title}: ${description}`}
+      className="group rounded-xl p-4 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red"
     >
-      <Icon className="w-10 h-10 text-primary-red mb-4" />
-      <h3 className="text-xl font-bold text-pure-white mb-2">{title}</h3>
-      <p className="text-highlight-silver">{description}</p>
+      <Icon className="w-10 h-10 text-highlight-silver group-hover:text-primary-red transition-colors duration-300 mb-2" />
+      <h3 className="text-base font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300">{title}</h3>
     </button>
   );
 };

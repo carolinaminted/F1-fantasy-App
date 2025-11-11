@@ -407,7 +407,7 @@ const CollapsibleUsageList: React.FC<{
   usageData: { [id: string]: number };
   limit: number;
 }> = ({ title, entities, usageData, limit }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="h-full flex flex-col">

@@ -181,19 +181,6 @@ service cloud.firestore {
        allow write: if isOwner(userId);
     }
 
-    // --- Donation Records (Subcollection of Users) ---
-    // A user can only read their own donation records.
-    // For this prototype, we allow a user to create their own donation record.
-    // In a production app, this should be locked down (`allow create: if false;`)
-    // and writes should only happen from a trusted backend server or Cloud Function.
-    match /users/{userId}/donations/{donationId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId)
-                      && request.resource.data.userId == userId
-                      && request.resource.data.createdAt == request.time;
-        allow update, delete: if false; // Client cannot modify or delete records.
-    }
-
     // --- Global App State ---
     // App-wide settings, like form locks and race results.
     // Allow any authenticated user to read these documents.
