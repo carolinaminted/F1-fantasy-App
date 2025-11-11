@@ -53,9 +53,9 @@ const PointsTransparency: React.FC = () => {
                 </PointsCategoryCard>
             </div>
             
-            <div className="mt-6 bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+            <div className="mt-6 bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 text-center">
                 <h2 className="text-2xl font-bold text-center mb-4">How It Adds Up</h2>
-                <div className="space-y-4 text-highlight-silver">
+                <div className="space-y-4 text-highlight-silver max-w-3xl mx-auto">
                     <p>
                         <strong className="text-ghost-white">Team Points:</strong> For each of your chosen teams, you score the total points earned by <em className="italic">both</em> of that constructor's drivers in a session (e.g., if you pick Ferrari, you get Leclerc's points + Hamilton's points).
                     </p>
