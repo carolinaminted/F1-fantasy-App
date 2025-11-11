@@ -8,6 +8,7 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
+import { DuesIcon } from './icons/DuesIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 
 interface DashboardProps {
@@ -51,6 +52,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
           title="Scoring"
           description="Learn how fantasy points are calculated"
           onClick={() => setActivePage('points')}
+        />
+        <NavTile
+          icon={DuesIcon}
+          title="Pay Dues"
+          description="Pay your league dues for the current season"
+          onClick={() => setActivePage('duesPayment')}
         />
         <NavTile
           icon={DonationIcon}

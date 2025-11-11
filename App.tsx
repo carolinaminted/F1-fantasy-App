@@ -12,6 +12,7 @@ import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
+import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import { User, PickSelection, RaceResults } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
@@ -30,7 +31,7 @@ import { onSnapshot, doc } from 'firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment';
 
 
 // New SideNavItem component for desktop sidebar
@@ -244,6 +245,9 @@ const App: React.FC = () => {
         return <PointsTransparency />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
+      case 'duesPayment':
+        if(user) return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
+        return null;
       case 'admin':
         if (user?.email !== 'admin@fantasy.f1') {
             return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins

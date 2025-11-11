@@ -1,6 +1,12 @@
 // Fix: Add a detailed points system and mock race results to enable dynamic scoring calculations.
 import { Constructor, Driver, EntityClass, Event, PickSelection, User, RaceResults } from './types';
 
+export const LEAGUE_DUES_AMOUNT = 25; // in USD
+export const CURRENT_SEASON = '2025';
+export const PAYPAL_DONATION_URL = 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=jhouser1988%40gmail.com&item_name=F1+Fantasy+League+Operational+Costs&currency_code=USD';
+export const PAYPAL_PAY_DUES_URL = 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=jhouser1988%40gmail.com&item_name=Formula+Fantasy+One+Pay+Dues&currency_code=USD';
+
+
 export const CONSTRUCTORS: Constructor[] = [
   // Class A
   { id: 'ferrari', name: 'Ferrari', class: EntityClass.A },

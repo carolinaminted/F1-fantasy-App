@@ -1,6 +1,7 @@
 import React from 'react';
 import { User } from '../types.ts';
 import { Page } from '../App.tsx';
+import { PAYPAL_DONATION_URL } from '../constants.ts';
 
 interface DonationPageProps {
   user: User | null;
@@ -42,7 +43,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                     <h2 className="text-xl font-semibold text-pure-white">Contribute to League Operational Costs</h2>
                     <p className="text-highlight-silver text-sm mt-2 mb-4 flex-grow">Your contribution helps cover hosting fees and keeps the league running smoothly for the season. Thank you for your support!</p>
                      <a 
-                        href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=jhouser1988@gmail.com&item_name=F1+Fantasy+League+Operational+Costs&currency_code=USD"
+                        href={PAYPAL_DONATION_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-4 inline-block bg-blue-600 hover:bg-blue-500 text-pure-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105"

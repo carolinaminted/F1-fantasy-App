@@ -134,6 +134,7 @@ After creating the database, you need to manually create the collections your ap
     - Click **"Next"**.
     - For Document ID, enter `form_locks`.
     - You don't need to add any fields. Click **"Save"** to create an empty document. This will be populated by the admin panel.
+4. **`dues_payments` Collection:** Click **+ Start collection**, enter `dues_payments` as the Collection ID. You don't need to add a document.
 
 ### 3. Configure Security Rules
 Once your database is created, you need to update the security rules to allow users to create their own profiles and save their weekly picks.
@@ -179,6 +180,14 @@ service cloud.firestore {
     match /userPicks/{userId} {
        allow read: if true;
        allow write: if isOwner(userId);
+    }
+    
+    // --- Dues Payments ---
+    // Allow users to create their own payment initiation records.
+    // Admins can read all records for reconciliation.
+    match /dues_payments/{paymentId} {
+      allow read: if isAdmin();
+      allow create: if isOwner(request.resource.data.uid);
     }
 
     // --- Global App State ---
