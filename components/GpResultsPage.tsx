@@ -14,7 +14,7 @@ interface GpResultsPageProps {
 
 const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+    const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
     const filteredEvents = useMemo(() => {
         if (!searchTerm.trim()) {
@@ -27,16 +27,18 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
         );
     }, [searchTerm]);
 
-    const toggleEvent = (eventId: string) => {
-        setExpandedEventId(prev => (prev === eventId ? null : eventId));
+    const handleEventSelect = (eventId: string) => {
+        setSelectedEventId(prev => (prev === eventId ? null : eventId));
     };
+    
+    const selectedEvent = useMemo(() => EVENTS.find(e => e.id === selectedEventId), [selectedEventId]);
 
     return (
         <div className="max-w-7xl mx-auto text-pure-white">
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Grand Prix Results</h1>
             <p className="text-center text-highlight-silver mb-8">Browse official results for the season.</p>
             
-            <div className="mb-6 sticky top-0 z-10 bg-carbon-black/80 backdrop-blur-md py-4 -mx-4 px-4 md:relative md:bg-transparent md:backdrop-blur-none md:p-0 md:m-0">
+            <div className="mb-6">
                 <input
                     type="text"
                     aria-label="Search for an event"
@@ -47,21 +49,40 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
                 />
             </div>
             
-            <div className="space-y-2">
-                {filteredEvents.map(event => (
-                    <EventItem
-                        key={event.id}
-                        event={event}
-                        results={raceResults[event.id]}
-                        isExpanded={expandedEventId === event.id}
-                        onToggle={() => toggleEvent(event.id)}
-                    />
-                ))}
-                {filteredEvents.length === 0 && (
-                    <div className="text-center py-12 bg-accent-gray/30 rounded-lg">
-                        <p className="text-highlight-silver">No events match your search.</p>
+            <div className="grid grid-cols-1 md:grid-cols-5 md:gap-8">
+                {/* Master List (Left Column on Desktop) */}
+                <div className="space-y-2 md:col-span-2">
+                    {filteredEvents.map(event => (
+                        <EventItem
+                            key={event.id}
+                            event={event}
+                            results={raceResults[event.id]}
+                            isExpanded={selectedEventId === event.id}
+                            isSelected={selectedEventId === event.id}
+                            onSelect={() => handleEventSelect(event.id)}
+                        />
+                    ))}
+                    {filteredEvents.length === 0 && (
+                        <div className="text-center py-12 bg-accent-gray/30 rounded-lg">
+                            <p className="text-highlight-silver">No events match your search.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Detail Pane (Right Column on Desktop) */}
+                <div className="hidden md:block md:col-span-3">
+                    <div className="sticky top-8">
+                        {selectedEvent ? (
+                             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 p-4">
+                                <EventDetails event={selectedEvent} results={raceResults[selectedEvent.id]} />
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-96 bg-accent-gray/20 rounded-lg">
+                                <p className="text-highlight-silver text-lg">Select an event to view results.</p>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
@@ -73,17 +94,18 @@ interface EventItemProps {
     event: Event;
     results: EventResult | undefined;
     isExpanded: boolean;
-    onToggle: () => void;
+    isSelected: boolean;
+    onSelect: () => void;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, onToggle }) => {
+const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, isSelected, onSelect }) => {
     const hasResults = !!results && results.grandPrixFinish?.some(r => r);
 
     return (
-        <div className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+        <div className={`rounded-lg overflow-hidden transition-all duration-300 ${isSelected ? 'ring-2 ring-primary-red' : 'ring-1 ring-pure-white/10'}`}>
             <button 
                 className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors"
-                onClick={onToggle}
+                onClick={onSelect}
                 aria-expanded={isExpanded}
             >
                 <div>
@@ -96,11 +118,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, onTog
                     ) : (
                          <span className="text-xs font-bold uppercase tracking-wider bg-carbon-black/50 text-highlight-silver px-3 py-1 rounded-full hidden sm:block">Pending</span>
                     )}
-                    <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <ChevronDownIcon className={`w-6 h-6 transition-transform md:hidden ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
             </button>
             {isExpanded && (
-                <div className="p-4 border-t border-accent-gray/50">
+                <div className="p-4 border-t border-accent-gray/50 md:hidden">
                     <EventDetails event={event} results={results} />
                 </div>
             )}
@@ -134,7 +156,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results }) => {
                      <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors border-b-2 ${
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
                             activeTab === tab.id
                                 ? 'border-primary-red text-pure-white'
                                 : 'border-transparent text-highlight-silver hover:text-pure-white'
@@ -161,7 +183,7 @@ interface ResultTableProps {
 }
 
 const ResultTable: React.FC<ResultTableProps> = ({ title, results }) => {
-    if (!results || results.length === 0) {
+    if (!results || results.length === 0 || results.every(r => r === null)) {
         return <p className="text-center text-highlight-silver py-4">No data for this session.</p>;
     }
     
