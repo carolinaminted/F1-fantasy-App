@@ -41,7 +41,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
 
-    const presetAmounts = [25, 50, 100, 250];
+    const presetAmounts = [5, 10, 25, 50, 100];
     
     const finalAmount = isCustom ? (parseFloat(customAmount) || 0) : amount;
 
@@ -166,9 +166,9 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage, onDona
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
                         {/* Left Column: Amount Selection */}
                         <div className="space-y-4">
-                            <h2 className="text-xl font-semibold text-primary-red">Choose an Amount</h2>
+                            <h2 className="text-xl font-semibold text-primary-red text-center">Choose an Amount</h2>
                             <p className="text-highlight-silver text-sm">Your generous contribution helps support the league and cover operational costs for the season.</p>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 gap-3">
                                 {presetAmounts.map(preset => (
                                     <button
                                         key={preset}
