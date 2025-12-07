@@ -12,6 +12,7 @@ import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
+import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import { User, PickSelection, RaceResults } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
@@ -30,7 +31,7 @@ import { onSnapshot, doc } from 'firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment';
 
 
 // New SideNavItem component for desktop sidebar
@@ -105,57 +106,52 @@ const App: React.FC = () => {
   useEffect(() => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};
+    let unsubscribeProfile = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       // Clean up previous listeners before setting new ones or logging out
       unsubscribeResults();
       unsubscribeLocks();
+      unsubscribeProfile();
 
       setIsLoading(true);
       if (firebaseUser) {
-        // User is authenticated, it's safe to set up listeners now.
+        // Listen to global app state
         const resultsRef = doc(db, 'app_state', 'race_results');
         unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
           if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
             setRaceResults(docSnap.data() as RaceResults);
           } else {
-            console.log("No race results in Firestore. Seeding with initial data.");
+            console.log("No race results found. Seeding with initial data.");
             saveRaceResults(RACE_RESULTS);
           }
-        }, (error) => {
-            console.error("Firestore listener error (race_results):", error);
-        });
+        }, (error) => console.error("Firestore listener error (race_results):", error));
 
         const locksRef = doc(db, 'app_state', 'form_locks');
         unsubscribeLocks = onSnapshot(locksRef, (docSnap) => {
             if (docSnap.exists()) {
                 setFormLocks(docSnap.data());
             } else {
-                console.log("Form locks document not found in Firestore. Creating a new one.");
+                console.log("Form locks not found. Creating a new one.");
                 saveFormLocks({});
             }
-        }, (error) => {
-            console.error("Firestore listener error (form_locks):", error);
+        }, (error) => console.error("Firestore listener error (form_locks):", error));
+
+        // Listen to user-specific data in real-time
+        const profileRef = doc(db, 'users', firebaseUser.uid);
+        unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
+          if (profileSnap.exists()) {
+            const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
+            const userPicks = await getUserPicks(firebaseUser.uid);
+            setUser(userProfile);
+            setSeasonPicks(userPicks);
+            setIsAuthenticated(true);
+          } else {
+            console.log("User profile not found. This may occur briefly during sign-up. Waiting for creation...");
+            // To prevent a user from being stuck, we could add a timeout here to log them out if a profile is never found.
+            // For now, we rely on onSnapshot to fire again. If it never does, the user is not fully authenticated and will see the login screen.
+          }
         });
-
-        // Continue with fetching profile and picks
-        let userProfile = await getUserProfile(firebaseUser.uid);
-        if (!userProfile) {
-          console.log("Profile not found on initial load, retrying for new user...");
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          userProfile = await getUserProfile(firebaseUser.uid);
-        }
-
-        if (userProfile) {
-          const userPicks = await getUserPicks(firebaseUser.uid);
-          setUser(userProfile);
-          setSeasonPicks(userPicks);
-          setIsAuthenticated(true);
-        } else {
-          console.error("User profile document not found after retry. Forcing logout.");
-          await signOut(auth);
-          // The 'else' block below will handle state cleanup.
-        }
       } else {
         // User logged out, clear all state
         setUser(null);
@@ -171,6 +167,7 @@ const App: React.FC = () => {
       unsubscribeAuth();
       unsubscribeResults();
       unsubscribeLocks();
+      unsubscribeProfile();
     };
   }, []);
 
@@ -244,6 +241,14 @@ const App: React.FC = () => {
         return <PointsTransparency />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
+      case 'duesPayment':
+        if(user) {
+            if (user.duesPaidStatus === 'Paid') {
+                return <Dashboard user={user} setActivePage={navigateToPage} />;
+            }
+            return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
+        }
+        return null;
       case 'admin':
         if (user?.email !== 'admin@fantasy.f1') {
             return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins

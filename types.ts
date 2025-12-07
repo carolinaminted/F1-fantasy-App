@@ -67,6 +67,17 @@ export interface Donation {
   status: string;
 }
 
+export interface DuesPaymentInitiation {
+  id: string; // Firestore document ID
+  uid: string;
+  email: string;
+  amount: number; // in cents
+  season: string;
+  memo: string;
+  status: 'initiated';
+  createdAt: { seconds: number; nanoseconds: number };
+}
+
 export interface UsageRollup {
     teams: { [id: string]: number };
     drivers: { [id: string]: number };

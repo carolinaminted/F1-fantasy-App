@@ -1,6 +1,6 @@
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from 'firebase/firestore';
 // Fix: Import the newly created Donation type.
 import { PickSelection, User, RaceResults, Donation } from '../types.ts';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -136,4 +136,33 @@ export const getUserDonations = async (uid: string): Promise<Donation[]> => {
         ...doc.data()
     } as Donation));
     return donations;
+};
+
+export const logDuesPaymentInitiation = async (
+    user: User, 
+    amountInDollars: number, 
+    season: string, 
+    memo: string
+) => {
+    if (!user) throw new Error("User must be logged in to initiate a payment.");
+    
+    const duesPaymentData = {
+        uid: user.id,
+        email: user.email,
+        amount: amountInDollars * 100, // store in cents
+        season,
+        memo,
+        status: 'initiated' as const,
+        createdAt: Timestamp.now(),
+    };
+
+    try {
+        const duesCollectionRef = collection(db, 'dues_payments');
+        const docRef = await addDoc(duesCollectionRef, duesPaymentData);
+        console.log("Dues payment initiation logged with ID: ", docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error logging dues payment initiation:", error);
+        throw error;
+    }
 };

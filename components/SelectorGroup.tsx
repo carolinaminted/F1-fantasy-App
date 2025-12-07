@@ -47,13 +47,14 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                 key={option.id}
                 onClick={handleSelect}
                 className={`
-                  p-4 rounded-lg border-2 text-center transition-all
-                  ${isModalOptionDisabled ? 'bg-accent-gray opacity-40 cursor-not-allowed' : 'bg-carbon-black border-accent-gray hover:border-primary-red cursor-pointer'}
+                  option-card flex flex-col items-center justify-center text-center gap-1 h-28 rounded-xl px-4
+                  transition-all
+                  ${isModalOptionDisabled ? 'bg-accent-gray opacity-40 cursor-not-allowed border-2 border-transparent' : 'bg-carbon-black border-2 border-accent-gray hover:border-primary-red cursor-pointer'}
                 `}
               >
-                <p className="font-semibold text-pure-white">{option.name}</p>
-                <p className="text-sm text-highlight-silver">{usageCount} / {limit} used</p>
-                {!canSelect && <p className="text-xs text-primary-red mt-1">Limit Reached</p>}
+                <span className="option-label font-semibold whitespace-normal break-words">{option.name}</span>
+                <span className="option-usage text-xs opacity-70 leading-none">{usageCount} / {limit} used</span>
+                {!canSelect && <span className="text-xs text-primary-red mt-1">Limit Reached</span>}
               </div>
             );
           })}
