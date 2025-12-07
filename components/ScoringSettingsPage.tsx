@@ -23,6 +23,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ currentConfig
         index: number,
         value: string
     ) => {
+        if (value.length > 4) return;
         const numValue = parseInt(value) || 0;
         setConfig(prev => {
             const currentArray = prev[category] as number[];
@@ -33,6 +34,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ currentConfig
     };
 
     const handleScalarChange = (value: string) => {
+        if (value.length > 4) return;
         const numValue = parseInt(value) || 0;
         setConfig(prev => ({ ...prev, fastestLap: numValue }));
     };
@@ -74,6 +76,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ currentConfig
                             type="number" 
                             value={config.fastestLap}
                             onChange={(e) => handleScalarChange(e.target.value)}
+                            max="9999"
                             className="w-24 bg-carbon-black border border-accent-gray rounded-md py-2 px-3 text-pure-white focus:ring-primary-red focus:border-primary-red"
                         />
                     </div>
@@ -132,6 +135,7 @@ const PointArraySection: React.FC<{
                         type="number" 
                         value={val}
                         onChange={(e) => onChange(idx, e.target.value)}
+                        max="9999"
                         className="w-16 bg-carbon-black border border-accent-gray rounded-md py-2 px-2 text-center text-pure-white focus:ring-primary-red focus:border-primary-red"
                     />
                 </div>
