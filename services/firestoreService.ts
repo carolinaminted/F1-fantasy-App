@@ -1,9 +1,11 @@
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from 'firebase/firestore';
+// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
 import { PickSelection, User, RaceResults, Donation } from '../types.ts';
-import { User as FirebaseUser } from 'firebase/auth';
+// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { User as FirebaseUser } from '@firebase/auth';
 
 // User Profile Management
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string }) => {

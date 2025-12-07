@@ -1,7 +1,8 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
+// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { initializeApp } from "@firebase/app";
+import { getAuth } from "@firebase/auth";
+import { getFirestore } from "@firebase/firestore";
+import { getAnalytics } from "@firebase/analytics";
 import { firebaseConfig } from '../firebaseConfig.ts';
 
 // Initialize Firebase
