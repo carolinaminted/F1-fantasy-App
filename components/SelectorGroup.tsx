@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { EntityClass } from '../types.ts';
 import { SelectorCard } from './PicksForm.tsx';
@@ -71,17 +72,17 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                           'grid-cols-1 md:grid-cols-3';
 
   return (
-    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
-      <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
-        <Icon className={`w-6 h-6 ${entityClass === EntityClass.A ? 'text-primary-red' : 'text-highlight-silver'}`} />
-        {title} <span className="text-highlight-silver font-normal text-base">({slots} required)</span>
+    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10">
+      <h3 className="text-lg font-bold text-pure-white mb-3 flex items-center gap-2">
+        <Icon className={`w-5 h-5 ${entityClass === EntityClass.A ? 'text-primary-red' : 'text-highlight-silver'}`} />
+        {title} <span className="text-highlight-silver font-normal text-sm">({slots} required)</span>
       </h3>
-      <div className={`grid ${gridLayoutClass} gap-4`}>
+      <div className={`grid ${gridLayoutClass} gap-3`}>
         {Array.from({ length: slots }).map((_, index) => {
           const selectedId = selected[index];
           const selectedOption = options.find(o => o.id === selectedId);
           const usage = selectedOption ? `${getUsage(selectedOption.id, entityType)} / ${limit} used` : '';
-          const placeholderText = title.endsWith('s') ? title.slice(0, -1) : title;
+          const placeholderText = entityType === 'teams' ? 'Team' : 'Driver';
           
           return (
             <SelectorCard
