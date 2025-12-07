@@ -22,7 +22,9 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         const fetchUsers = async () => {
             setIsLoading(true);
             const users = await getAllUsers();
-            setAllUsers(users.filter(u => u.email !== 'admin@fantasy.f1')); // Exclude admin
+            // We include admins now so we can edit their status if needed, but filtering out the super-admin might still be wise for safety or display.
+            // Keeping the filter for the main super-admin to avoid accidental self-lockout.
+            setAllUsers(users.filter(u => u.email !== 'admin@fantasy.f1')); 
             setIsLoading(false);
         };
         fetchUsers();
@@ -39,6 +41,11 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         ).sort((a, b) => a.displayName.localeCompare(b.displayName));
     }, [searchTerm, allUsers]);
 
+    const handleUserUpdate = (updatedUser: User) => {
+        setAllUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        setSelectedUser(updatedUser);
+    };
+
     if (selectedUser) {
         return (
             <div className="max-w-7xl mx-auto">
@@ -51,7 +58,12 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                         Back to User List
                     </button>
                 </div>
-                <AdminUserProfileView targetUser={selectedUser} raceResults={raceResults} pointsSystem={pointsSystem} />
+                <AdminUserProfileView 
+                    targetUser={selectedUser} 
+                    raceResults={raceResults} 
+                    pointsSystem={pointsSystem} 
+                    onUpdateUser={handleUserUpdate}
+                />
             </div>
         );
     }
@@ -91,6 +103,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                 <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Name</th>
                                 <th className="p-4 text-sm font-semibold uppercase text-highlight-silver hidden md:table-cell">Email</th>
                                 <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Dues Status</th>
+                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Role</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -111,11 +124,18 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                             {user.duesPaidStatus || 'Unpaid'}
                                         </span>
                                     </td>
+                                    <td className="p-4 text-center">
+                                        {user.isAdmin ? (
+                                            <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-primary-red text-pure-white">Admin</span>
+                                        ) : (
+                                            <span className="text-highlight-silver text-xs">User</span>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                             {filteredUsers.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} className="text-center p-8 text-highlight-silver">
+                                    <td colSpan={4} className="text-center p-8 text-highlight-silver">
                                         No users found for "{searchTerm}".
                                     </td>
                                 </tr>

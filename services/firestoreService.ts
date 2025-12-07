@@ -59,6 +59,17 @@ export const updateUserDuesStatus = async (uid: string, status: 'Paid' | 'Unpaid
     }
 };
 
+export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
+    const userRef = doc(db, 'users', uid);
+    try {
+        await updateDoc(userRef, { isAdmin });
+        console.log(`Admin status for user ${uid} updated to ${isAdmin}`);
+    } catch (error) {
+        console.error("Error updating admin status", error);
+        throw error;
+    }
+};
+
 export const getAllUsers = async (): Promise<User[]> => {
     const usersCollection = collection(db, 'users');
     const usersSnapshot = await getDocs(usersCollection);

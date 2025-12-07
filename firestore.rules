@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -14,7 +15,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Check if user is the designated admin
+    // Check if user is the designated admin (legacy or flag based if token supported it, but here we check data/email)
+    // Note: In rules we stick to the hardcoded email or trusted claims. 
+    // For simplicity here, we stick to the hardcoded email for CRITICAL write access if not using custom claims.
+    // However, if we trust the app to set isAdmin, we can use that for UI, but rules should ideally rely on something secure.
+    // For this implementation, we will allow the designated super-admin email to modify 'isAdmin'.
     function isAdmin() {
       return isSignedIn() && request.auth.token.email == 'admin@fantasy.f1';
     }
@@ -30,10 +35,10 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       
       // Update rules:
-      // 1. Owner can update fields EXCEPT 'duesPaidStatus'
-      // 2. Admin can update ONLY 'duesPaidStatus'
-      allow update: if (isOwner(userId) && !('duesPaidStatus' in request.resource.data.diff(resource.data).changedKeys())) ||
-                     (isAdmin() && request.resource.data.diff(resource.data).changedKeys().hasOnly(['duesPaidStatus']));
+      // 1. Owner can update fields EXCEPT 'duesPaidStatus' and 'isAdmin'
+      // 2. Admin can update ONLY 'duesPaidStatus' and 'isAdmin'
+      allow update: if (isOwner(userId) && !('duesPaidStatus' in request.resource.data.diff(resource.data).changedKeys()) && !('isAdmin' in request.resource.data.diff(resource.data).changedKeys())) ||
+                     (isAdmin() && request.resource.data.diff(resource.data).changedKeys().hasOnly(['duesPaidStatus', 'isAdmin']));
       
       // Subcollection: Donations
       match /donations/{donationId} {

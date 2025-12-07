@@ -65,6 +65,11 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
   );
 };
 
+const isUserAdmin = (user: User | null) => {
+    if (!user) return false;
+    return !!user.isAdmin || user.email === 'admin@fantasy.f1';
+};
+
 // New SideNav component for desktop view
 const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
     <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0">
@@ -80,7 +85,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             <SideNavItem icon={CheckeredFlagIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
-            {user?.email === 'admin@fantasy.f1' && (
+            {isUserAdmin(user) && (
               <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
         </nav>
@@ -267,7 +272,7 @@ const App: React.FC = () => {
         }
         return null;
       case 'admin':
-        if (user?.email !== 'admin@fantasy.f1') {
+        if (!isUserAdmin(user)) {
             return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins
         }
         switch (adminSubPage) {
@@ -342,12 +347,12 @@ const App: React.FC = () => {
         </div>
 
         {/* Bottom Nav for Mobile */}
-        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${user?.email === 'admin@fantasy.f1' ? 'grid-cols-5' : 'grid-cols-4'} md:hidden`}>
+        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-            {user?.email === 'admin@fantasy.f1' && (
+            {isUserAdmin(user) && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
         </nav>

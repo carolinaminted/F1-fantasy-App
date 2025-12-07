@@ -10,6 +10,7 @@ export interface User {
   displayName: string;
   email: string;
   duesPaidStatus?: 'Paid' | 'Unpaid';
+  isAdmin?: boolean;
 }
 
 export interface Constructor {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page } from '../App.tsx';
 import { User } from '../types.ts';
@@ -16,7 +17,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
-  const isAdmin = user?.email === 'admin@fantasy.f1';
+  const isAdmin = user && (!!user.isAdmin || user.email === 'admin@fantasy.f1');
 
   return (
     <div className="max-w-4xl mx-auto pt-8">
