@@ -1,3 +1,4 @@
+
 // Fix: Create types definitions for the application.
 export enum EntityClass {
   A = 'A',
@@ -81,4 +82,12 @@ export interface DuesPaymentInitiation {
 export interface UsageRollup {
     teams: { [id: string]: number };
     drivers: { [id: string]: number };
+}
+
+export interface PointsSystem {
+  grandPrixFinish: number[];
+  sprintFinish: number[];
+  fastestLap: number;
+  gpQualifying: number[];
+  sprintQualifying: number[];
 }

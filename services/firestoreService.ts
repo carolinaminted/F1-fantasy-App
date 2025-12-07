@@ -1,9 +1,10 @@
+
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
-import { PickSelection, User, RaceResults, Donation } from '../types.ts';
+import { PickSelection, User, RaceResults, Donation, PointsSystem } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
 
@@ -122,6 +123,18 @@ export const saveRaceResults = async (results: RaceResults) => {
     // Fix: Added missing opening brace for the catch block to correct the syntax.
     } catch (error) {
         console.error("Error saving race results", error);
+        throw error;
+    }
+};
+
+// Points System Management
+export const savePointsSystem = async (pointsSystem: PointsSystem) => {
+    const configRef = doc(db, 'app_state', 'scoring_config');
+    try {
+        await setDoc(configRef, pointsSystem);
+        console.log("Points system configuration saved successfully.");
+    } catch (error) {
+        console.error("Error saving points system configuration", error);
         throw error;
     }
 };

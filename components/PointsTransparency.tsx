@@ -1,9 +1,14 @@
+
 import React from 'react';
-import { POINTS_SYSTEM } from '../constants.ts';
+import { PointsSystem } from '../types.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
+
+interface PointsTransparencyProps {
+    pointsSystem: PointsSystem;
+}
 
 const PointsCategoryCard: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
     <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 text-center">
@@ -25,7 +30,7 @@ const PointsList: React.FC<{ points: number[] }> = ({ points }) => (
     </div>
 );
 
-const PointsTransparency: React.FC = () => {
+const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem }) => {
     return (
         <div className="max-w-5xl mx-auto text-pure-white">
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Points System</h1>
@@ -34,22 +39,22 @@ const PointsTransparency: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <PointsCategoryCard title="Grand Prix Finish" icon={CheckeredFlagIcon}>
                     <p className="text-sm text-highlight-silver mb-3">Points are awarded for the top 10 finishers in the main race.</p>
-                    <PointsList points={POINTS_SYSTEM.grandPrixFinish} />
+                    <PointsList points={pointsSystem.grandPrixFinish} />
                 </PointsCategoryCard>
                 
                 <PointsCategoryCard title="Sprint Race Finish" icon={SprintIcon}>
                     <p className="text-sm text-highlight-silver mb-3">Awarded for the top 8 finishers in Sprint events.</p>
-                    <PointsList points={POINTS_SYSTEM.sprintFinish} />
+                    <PointsList points={pointsSystem.sprintFinish} />
                 </PointsCategoryCard>
 
                 <PointsCategoryCard title="GP Qualifying" icon={PolePositionIcon}>
                     <p className="text-sm text-highlight-silver mb-3">Awarded for the top 3 in Grand Prix + Sprint qualifying events</p>
-                    <PointsList points={POINTS_SYSTEM.gpQualifying} />
+                    <PointsList points={pointsSystem.gpQualifying} />
                 </PointsCategoryCard>
                 
                 <PointsCategoryCard title="Fastest Lap" icon={FastestLapIcon}>
                     <p className="text-sm text-highlight-silver mb-3">Awarded for picking the driver who sets the fastest lap of the Grand Prix qualifying</p>
-                    <p className="text-2xl font-bold text-pure-white">{POINTS_SYSTEM.fastestLap} points</p>
+                    <p className="text-2xl font-bold text-pure-white">{pointsSystem.fastestLap} points</p>
                 </PointsCategoryCard>
             </div>
             

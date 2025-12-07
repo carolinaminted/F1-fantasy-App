@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, RaceResults } from '../types.ts';
+import { User, RaceResults, PointsSystem } from '../types.ts';
 import { getAllUsers } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -8,9 +9,10 @@ import AdminUserProfileView from './AdminUserProfileView.tsx';
 interface ManageUsersPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
     raceResults: RaceResults;
+    pointsSystem: PointsSystem;
 }
 
-const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults }) => {
+const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem }) => {
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +51,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                         Back to User List
                     </button>
                 </div>
-                <AdminUserProfileView targetUser={selectedUser} raceResults={raceResults} />
+                <AdminUserProfileView targetUser={selectedUser} raceResults={raceResults} pointsSystem={pointsSystem} />
             </div>
         );
     }

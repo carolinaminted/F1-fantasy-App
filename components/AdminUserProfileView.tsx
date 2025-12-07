@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { User, PickSelection, RaceResults } from '../types.ts';
+import { User, PickSelection, RaceResults, PointsSystem } from '../types.ts';
 import { getUserPicks } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
@@ -7,9 +8,10 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 interface AdminUserProfileViewProps {
     targetUser: User;
     raceResults: RaceResults;
+    pointsSystem: PointsSystem;
 }
 
-const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults }) => {
+const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults, pointsSystem }) => {
     const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
     const [isLoading, setIsLoading] = useState(true);
 
@@ -41,6 +43,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 user={targetUser} 
                 seasonPicks={seasonPicks} 
                 raceResults={raceResults} 
+                pointsSystem={pointsSystem}
             />
         </div>
     );

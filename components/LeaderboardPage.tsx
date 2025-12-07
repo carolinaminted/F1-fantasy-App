@@ -1,7 +1,8 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { CONSTRUCTORS, DRIVERS } from '../constants.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
-import { User, RaceResults, PickSelection } from '../types.ts';
+import { User, RaceResults, PickSelection, PointsSystem } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
@@ -40,9 +41,10 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
 interface LeaderboardPageProps {
   currentUser: User | null;
   raceResults: RaceResults;
+  pointsSystem: PointsSystem;
 }
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResults}) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResults, pointsSystem}) => {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leagueUsageData, setLeagueUsageData] = useState<{ mostUsedTeams: any[], mostUsedDrivers: any[], mostUsedFastestLaps: any[] }>({ mostUsedTeams: [], mostUsedDrivers: [], mostUsedFastestLaps: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +63,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
       
       const scoredUsers = users.map((user) => {
         const userPicks = allPicks[user.id] || {};
-        const { totalPoints } = calculateScoreRollup(userPicks, raceResults);
+        const { totalPoints } = calculateScoreRollup(userPicks, raceResults, pointsSystem);
         return {
           ...user,
           points: totalPoints,
@@ -109,7 +111,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({currentUser, raceResul
     };
 
     fetchLeaderboardData();
-  }, [raceResults]);
+  }, [raceResults, pointsSystem]);
 
   const sortedLeaderboardData = useMemo(() => {
     const dataToSort = [...leaderboardData];

@@ -1,9 +1,10 @@
+
 // Fix: Implement the ProfilePage component to display user stats and picks history.
 import React, { useState } from 'react';
-import { User, PickSelection, RaceResults, EntityClass, EventResult } from '../types.ts';
+import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculatePointsForEvent } from '../services/scoringService.ts';
-import { EVENTS, CONSTRUCTORS, DRIVERS, POINTS_SYSTEM } from '../constants.ts';
+import { EVENTS, CONSTRUCTORS, DRIVERS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -16,6 +17,7 @@ interface ProfilePageProps {
   user: User;
   seasonPicks: { [eventId: string]: PickSelection };
   raceResults: RaceResults;
+  pointsSystem: PointsSystem;
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -47,8 +49,8 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({
   );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults }) => {
-  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults);
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem }) => {
+  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   
@@ -80,24 +82,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             const results = raceResults[event.id];
             const eventEntries: React.ReactNode[] = [];
             let pointSource: (string | null)[] | undefined;
-            let pointSystem: number[];
+            let pointSystemArr: number[];
 
             switch(category) {
                 case 'gp':
                     title = 'Grand Prix Points Breakdown';
                     pointSource = results.grandPrixFinish;
-                    pointSystem = POINTS_SYSTEM.grandPrixFinish;
+                    pointSystemArr = pointsSystem.grandPrixFinish;
                     break;
                 case 'sprint':
                     title = 'Sprint Race Points Breakdown';
                     pointSource = results.sprintFinish;
-                    pointSystem = POINTS_SYSTEM.sprintFinish;
+                    pointSystemArr = pointsSystem.sprintFinish;
                     if (!event.hasSprint) return;
                     break;
                 case 'quali':
                     title = 'GP Qualifying Points Breakdown';
                     pointSource = results.gpQualifying;
-                    pointSystem = POINTS_SYSTEM.gpQualifying;
+                    pointSystemArr = pointsSystem.gpQualifying;
                     break;
                 case 'fl':
                     title = 'Fastest Lap Points Breakdown';
@@ -108,10 +110,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
             if (category === 'fl') {
                 if (picks.fastestLap) {
-                    const points = (picks.fastestLap === results.fastestLap) ? POINTS_SYSTEM.fastestLap : 0;
+                    const points = (picks.fastestLap === results.fastestLap) ? pointsSystem.fastestLap : 0;
                     eventEntries.push(<li key="fl">{getEntityName(picks.fastestLap)}: <span className="font-semibold">{points} pts</span></li>);
                 }
-            } else if (pointSource && pointSystem) {
+            } else if (pointSource && pointSystemArr) {
                 const allPickedTeams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
                 const allPickedDrivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
 
@@ -119,14 +121,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     let teamPoints = 0;
                     DRIVERS.forEach(driver => {
                         if (driver.constructorId === teamId) {
-                            teamPoints += getDriverPoints(driver.id, pointSource, pointSystem);
+                            teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr);
                         }
                     });
                     eventEntries.push(<li key={`team-${teamId}`}>{getEntityName(teamId)}: <span className="font-semibold">{teamPoints} pts</span></li>);
                 });
 
                 allPickedDrivers.forEach(driverId => {
-                    const driverPoints = getDriverPoints(driverId, pointSource, pointSystem);
+                    const driverPoints = getDriverPoints(driverId, pointSource, pointSystemArr);
                     eventEntries.push(<li key={`driver-${driverId}`}>{getEntityName(driverId)}: <span className="font-semibold">{driverPoints} pts</span></li>);
                 });
             }
@@ -161,23 +163,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     let title = '';
     const eventEntries: React.ReactNode[] = [];
     let pointSource: (string | null)[] | undefined;
-    let pointSystem: number[];
+    let pointSystemArr: number[];
 
     switch(category) {
         case 'gp':
             title = `${event.name} - GP Points`;
             pointSource = results.grandPrixFinish;
-            pointSystem = POINTS_SYSTEM.grandPrixFinish;
+            pointSystemArr = pointsSystem.grandPrixFinish;
             break;
         case 'sprint':
             title = `${event.name} - Sprint Points`;
             pointSource = results.sprintFinish;
-            pointSystem = POINTS_SYSTEM.sprintFinish;
+            pointSystemArr = pointsSystem.sprintFinish;
             break;
         case 'quali':
             title = `${event.name} - Quali Points`;
             pointSource = results.gpQualifying;
-            pointSystem = POINTS_SYSTEM.gpQualifying;
+            pointSystemArr = pointsSystem.gpQualifying;
             break;
         case 'fl':
             title = `${event.name} - Fastest Lap`;
@@ -186,10 +188,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
     if (category === 'fl') {
         if (picks.fastestLap) {
-            const points = (picks.fastestLap === results.fastestLap) ? POINTS_SYSTEM.fastestLap : 0;
+            const points = (picks.fastestLap === results.fastestLap) ? pointsSystem.fastestLap : 0;
             eventEntries.push(<li key={`fl-${picks.fastestLap}`}>{getEntityName(picks.fastestLap)}: <span className="font-semibold">{points} pts</span></li>);
         }
-    } else if (pointSource && pointSystem) {
+    } else if (pointSource && pointSystemArr) {
         const allPickedTeams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
         const allPickedDrivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
 
@@ -197,14 +199,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             let teamPoints = 0;
             DRIVERS.forEach(driver => {
                 if (driver.constructorId === teamId) {
-                    teamPoints += getDriverPoints(driver.id, pointSource, pointSystem);
+                    teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr);
                 }
             });
             eventEntries.push(<li key={`team-${teamId}`}>{getEntityName(teamId)}: <span className="font-semibold">{teamPoints} pts</span></li>);
         });
 
         allPickedDrivers.forEach(driverId => {
-            const driverPoints = getDriverPoints(driverId, pointSource, pointSystem);
+            const driverPoints = getDriverPoints(driverId, pointSource, pointSystemArr);
             eventEntries.push(<li key={`driver-${driverId}`}>{getEntityName(driverId)}: <span className="font-semibold">{driverPoints} pts</span></li>);
         });
     }
@@ -307,7 +309,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     const results = raceResults[event.id];
                     if (!picks) return null;
 
-                    const eventPoints = results ? calculatePointsForEvent(picks, results) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
+                    const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
                     const isExpanded = expandedEvent === event.id;
 
                     return (

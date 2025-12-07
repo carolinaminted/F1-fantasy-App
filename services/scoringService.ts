@@ -1,5 +1,6 @@
-import { DRIVERS, POINTS_SYSTEM } from '../constants';
-import { PickSelection, RaceResults, EventResult, UsageRollup } from '../types';
+
+import { DRIVERS } from '../constants';
+import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem } from '../types';
 
 export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelection }): UsageRollup => {
     const teams: { [id: string]: number } = {};
@@ -23,7 +24,8 @@ const getDriverPoints = (driverId: string | null, results: (string | null)[] | u
 
 export const calculatePointsForEvent = (
   picks: PickSelection,
-  results: EventResult
+  results: EventResult,
+  pointsSystem: PointsSystem
 ) => {
     let teamGrandPrixPoints = 0;
     let driverGrandPrixPoints = 0;
@@ -42,13 +44,13 @@ export const calculatePointsForEvent = (
     allPickedTeams.forEach(teamId => {
         DRIVERS.forEach(driver => {
             if (driver.constructorId === teamId) {
-                teamGrandPrixPoints += getDriverPoints(driver.id, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
+                teamGrandPrixPoints += getDriverPoints(driver.id, results.grandPrixFinish, pointsSystem.grandPrixFinish);
                 if (results.sprintFinish) {
-                    teamSprintPoints += getDriverPoints(driver.id, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
+                    teamSprintPoints += getDriverPoints(driver.id, results.sprintFinish, pointsSystem.sprintFinish);
                 }
-                teamGpQualifyingPoints += getDriverPoints(driver.id, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
+                teamGpQualifyingPoints += getDriverPoints(driver.id, results.gpQualifying, pointsSystem.gpQualifying);
                 if (results.sprintQualifying) {
-                    teamSprintQualifyingPoints += getDriverPoints(driver.id, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
+                    teamSprintQualifyingPoints += getDriverPoints(driver.id, results.sprintQualifying, pointsSystem.sprintQualifying);
                 }
             }
         });
@@ -56,19 +58,19 @@ export const calculatePointsForEvent = (
 
     // --- Driver Points (Additive) ---
     allPickedDrivers.forEach(driverId => {
-        driverGrandPrixPoints += getDriverPoints(driverId, results.grandPrixFinish, POINTS_SYSTEM.grandPrixFinish);
+        driverGrandPrixPoints += getDriverPoints(driverId, results.grandPrixFinish, pointsSystem.grandPrixFinish);
         if (results.sprintFinish) {
-            driverSprintPoints += getDriverPoints(driverId, results.sprintFinish, POINTS_SYSTEM.sprintFinish);
+            driverSprintPoints += getDriverPoints(driverId, results.sprintFinish, pointsSystem.sprintFinish);
         }
-        driverGpQualifyingPoints += getDriverPoints(driverId, results.gpQualifying, POINTS_SYSTEM.gpQualifying);
+        driverGpQualifyingPoints += getDriverPoints(driverId, results.gpQualifying, pointsSystem.gpQualifying);
         if (results.sprintQualifying) {
-            driverSprintQualifyingPoints += getDriverPoints(driverId, results.sprintQualifying, POINTS_SYSTEM.sprintQualifying);
+            driverSprintQualifyingPoints += getDriverPoints(driverId, results.sprintQualifying, pointsSystem.sprintQualifying);
         }
     });
 
     // --- Fastest Lap ---
     if (picks.fastestLap === results.fastestLap) {
-        fastestLapPoints = POINTS_SYSTEM.fastestLap;
+        fastestLapPoints = pointsSystem.fastestLap;
     }
 
     const grandPrixPoints = teamGrandPrixPoints + driverGrandPrixPoints;
@@ -83,7 +85,8 @@ export const calculatePointsForEvent = (
 
 export const calculateScoreRollup = (
   seasonPicks: { [eventId: string]: PickSelection },
-  raceResults: RaceResults
+  raceResults: RaceResults,
+  pointsSystem: PointsSystem
 ) => {
     let grandPrixPoints = 0;
     let sprintPoints = 0;
@@ -96,7 +99,7 @@ export const calculateScoreRollup = (
       const results: EventResult | undefined = raceResults[eventId];
       if (!results) return; // No results for this event yet
 
-      const eventPoints = calculatePointsForEvent(picks, results);
+      const eventPoints = calculatePointsForEvent(picks, results, pointsSystem);
       
       grandPrixPoints += eventPoints.grandPrixPoints;
       sprintPoints += eventPoints.sprintPoints;

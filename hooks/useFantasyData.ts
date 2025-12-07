@@ -1,12 +1,14 @@
+
 // Fix: Add score calculation logic to process picks against race results and a points system.
 import { useMemo, useCallback } from 'react';
 import { CONSTRUCTORS, DRIVERS, USAGE_LIMITS } from '../constants.ts';
-import { EntityClass, PickSelection, RaceResults } from '../types.ts';
+import { EntityClass, PickSelection, RaceResults, PointsSystem } from '../types.ts';
 import { calculateUsageRollup, calculateScoreRollup } from '../services/scoringService.ts';
 
 const useFantasyData = (
     seasonPicks: { [eventId: string]: PickSelection },
-    raceResults: RaceResults
+    raceResults: RaceResults,
+    pointsSystem: PointsSystem
 ) => {
   const data = useMemo(() => {
     const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
@@ -17,7 +19,7 @@ const useFantasyData = (
   }, []);
 
   const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks), [seasonPicks]);
-  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults), [seasonPicks, raceResults]);
+  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults, pointsSystem), [seasonPicks, raceResults, pointsSystem]);
 
 
   const getUsage = useCallback((id: string, type: 'teams' | 'drivers'): number => {

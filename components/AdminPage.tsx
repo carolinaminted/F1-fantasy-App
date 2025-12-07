@@ -1,11 +1,13 @@
+
 import React from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'results' | 'form-lock' | 'dues-status' | 'manage-users') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -38,6 +40,18 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Manage Users"
                     description="Search and view user profiles."
                     onClick={() => setAdminSubPage('manage-users')}
+                />
+                <AdminTile
+                    icon={TrophyIcon}
+                    title="Scoring Settings"
+                    description="Configure points awarded for race results."
+                    onClick={() => setAdminSubPage('scoring')}
+                />
+                 <AdminTile
+                    icon={TrophyIcon}
+                    title="Scoring Simulator"
+                    description="Run 100-season audit to verify data integrity."
+                    onClick={() => setAdminSubPage('simulation')}
                 />
             </div>
         </div>

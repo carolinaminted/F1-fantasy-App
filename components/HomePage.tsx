@@ -1,8 +1,9 @@
+
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState } from 'react';
 import PicksForm from './PicksForm.tsx';
 import { EVENTS, RACE_RESULTS } from '../constants.ts';
-import { Event, PickSelection, User } from '../types.ts';
+import { Event, PickSelection, User, PointsSystem } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 
 interface HomePageProps {
@@ -10,9 +11,10 @@ interface HomePageProps {
   seasonPicks: { [eventId: string]: PickSelection };
   onPicksSubmit: (eventId: string, picks: PickSelection) => void;
   formLocks: { [eventId: string]: boolean };
+  pointsSystem: PointsSystem;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem }) => {
   // Default to the oldest event that hasn't been submitted yet.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
     // Find the first event in the chronological list that doesn't have a corresponding pick submission.
@@ -20,7 +22,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     // If all events have picks, default to the first event in the season.
     return oldestUnsubmitted || EVENTS[0];
   });
-  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS);
+  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4">

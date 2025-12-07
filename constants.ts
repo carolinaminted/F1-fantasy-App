@@ -1,5 +1,6 @@
+
 // Fix: Add a detailed points system and mock race results to enable dynamic scoring calculations.
-import { Constructor, Driver, EntityClass, Event, PickSelection, User, RaceResults } from './types';
+import { Constructor, Driver, EntityClass, Event, PickSelection, User, RaceResults, PointsSystem } from './types';
 
 export const LEAGUE_DUES_AMOUNT = 25; // in USD
 export const CURRENT_SEASON = '2025';
@@ -97,7 +98,7 @@ export const USAGE_LIMITS = {
   [EntityClass.B]: { teams: 5, drivers: 5 },
 };
 
-export const POINTS_SYSTEM = {
+export const DEFAULT_POINTS_SYSTEM: PointsSystem = {
   grandPrixFinish: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
   sprintFinish: [8, 7, 6, 5, 4, 3, 2, 1],
   fastestLap: 3,
