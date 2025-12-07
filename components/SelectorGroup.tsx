@@ -48,7 +48,7 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                 key={option.id}
                 onClick={handleSelect}
                 className={`
-                  option-card flex flex-col items-center justify-center text-center gap-1 h-28 rounded-xl px-4
+                  option-card flex flex-col items-center justify-center text-center gap-1 h-20 rounded-xl px-2
                   transition-all
                   ${isModalOptionDisabled ? 'bg-accent-gray opacity-40 cursor-not-allowed border-2 border-transparent' : 'bg-carbon-black border-2 border-accent-gray hover:border-primary-red cursor-pointer'}
                 `}
@@ -72,12 +72,12 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                           'grid-cols-1 md:grid-cols-3';
 
   return (
-    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10">
-      <h3 className="text-lg font-bold text-pure-white mb-3 flex items-center gap-2">
+    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-3 ring-1 ring-pure-white/10">
+      <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2">
         <Icon className={`w-5 h-5 ${entityClass === EntityClass.A ? 'text-primary-red' : 'text-highlight-silver'}`} />
         {title} <span className="text-highlight-silver font-normal text-sm">({slots} required)</span>
       </h3>
-      <div className={`grid ${gridLayoutClass} gap-3`}>
+      <div className={`grid ${gridLayoutClass} gap-2`}>
         {Array.from({ length: slots }).map((_, index) => {
           const selectedId = selected[index];
           const selectedOption = options.find(o => o.id === selectedId);

@@ -125,8 +125,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-6">
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div className="flex-grow text-center md:text-left">
             <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>
             <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
@@ -151,9 +151,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Left Column: Teams */}
-            <div className="space-y-6">
+            <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Teams"
                     slots={2}
@@ -183,7 +183,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 />
             </div>
             {/* Right Column: Drivers */}
-            <div className="space-y-6">
+            <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Drivers"
                     slots={3}
@@ -214,8 +214,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </div>
         </div>
         
-         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10">
-              <h3 className="text-lg font-bold text-pure-white mb-3 flex items-center gap-2">
+         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-3 ring-1 ring-pure-white/10">
+              <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2">
                   <FastestLapIcon className="w-5 h-5 text-primary-red" />
                   Fastest Lap
               </h3>
@@ -227,7 +227,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                       isDropdown={true}
                       options={allDrivers}
                       onSelect={(value) => handleSelect('fastestLap', value)}
-                      placeholder="Fastest Lap Driver"
+                      placeholder="Driver"
                       disabled={isFormLockedForStatus}
                   />
               </div>
@@ -277,7 +277,7 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                     value={option?.id || ''}
                     onChange={(e) => onSelect(e.target.value || null)}
                     disabled={disabled}
-                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-2 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed"
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-2 px-4 text-sm text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed"
                 >
                     <option value="">{placeholder}</option>
                     {options.map(opt => (
@@ -297,16 +297,16 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
         <div 
             onClick={disabled ? undefined : onClick}
             className={`
-                p-2 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
-                transition-all duration-200 min-h-[5rem]
+                p-1.5 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
+                transition-all duration-200 min-h-[3.5rem]
                 ${isSelected ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver'}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
         >
-            <p className={`font-bold text-base md:text-lg leading-tight ${isSelected ? 'text-pure-white' : 'text-ghost-white'}`}>
+            <p className={`font-bold text-sm md:text-base leading-tight ${isSelected ? 'text-pure-white' : 'text-ghost-white'}`}>
                 {option ? option.name : placeholder}
             </p>
-            {usage && <p className={`text-xs mt-1 ${isSelected ? 'text-primary-red' : 'text-highlight-silver'}`}>{usage}</p>}
+            {usage && <p className={`text-[10px] md:text-xs mt-0.5 ${isSelected ? 'text-primary-red' : 'text-highlight-silver'}`}>{usage}</p>}
         </div>
     );
 };
