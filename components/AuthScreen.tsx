@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { auth } from '../services/firebase.ts';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser } from 'firebase/auth';
+// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser } from '@firebase/auth';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 
 const AuthScreen: React.FC = () => {

@@ -26,8 +26,10 @@ import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { CheckeredFlagIcon } from './components/icons/CheckeredFlagIcon.tsx';
 import { RACE_RESULTS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { onSnapshot, doc } from 'firebase/firestore';
+// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { onAuthStateChanged, signOut } from '@firebase/auth';
+// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults } from './services/firestoreService.ts';
 
 
@@ -48,33 +50,33 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
   return (
     <button
       onClick={() => setActivePage(page)}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 w-full text-left ${
+      className={`flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 w-full text-left ${
         isActive
           ? 'bg-accent-gray text-pure-white font-semibold'
           : 'text-highlight-silver hover:bg-accent-gray/50 hover:text-pure-white'
       }`}
     >
-      <Icon className={`w-6 h-6 flex-shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
-      <span className="text-sm font-medium">{label}</span>
+      <Icon className={`w-8 h-8 flex-shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
+      <span className="text-base font-medium">{label}</span>
     </button>
   );
 };
 
 // New SideNav component for desktop view
 const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
-    <aside className="hidden md:flex flex-col w-56 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0">
-        <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer pt-2 pb-4 mb-4">
-           <F1CarIcon className="w-8 h-8 text-primary-red" />
-           <span className="font-bold text-xl">F1 Fantasy</span>
+    <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0">
+        <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4">
+           <F1CarIcon className="w-12 h-12 text-primary-red" />
+           <span className="font-bold text-2xl truncate">{user?.displayName}</span>
         </div>
         <nav className="flex-grow space-y-1">
             <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={CheckeredFlagIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             {user?.email === 'admin@fantasy.f1' && (
               <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
@@ -82,8 +84,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
          {user && (
            <div className="mt-auto flex-shrink-0">
              <div className="pt-4 border-t border-accent-gray/50">
-                <p className="font-semibold text-pure-white truncate">{user.displayName}</p>
-                 <button onClick={handleLogout} className="text-sm text-highlight-silver hover:text-primary-red w-full text-left">
+                 <button onClick={handleLogout} className="text-lg font-semibold text-highlight-silver hover:text-primary-red w-full text-left transition-colors">
                     Log Out
                  </button>
              </div>
@@ -287,17 +288,27 @@ const App: React.FC = () => {
 
       <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden">
         {/* Header for Mobile */}
-        <header className="relative py-4 px-6 flex items-center justify-between bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden">
-         <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer">
-           <F1CarIcon className="w-8 h-8 text-primary-red" />
-           <span className="font-bold text-xl">F1 Fantasy</span>
-         </div>
-         {user && (
-           <div className="text-right">
-             <p className="font-semibold">{user.displayName}</p>
-             <button onClick={handleLogout} className="text-sm text-highlight-silver hover:text-pure-white">
+        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden">
+         {user ? (
+           <>
+             {/* LEFT: icon */}
+             <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">
+               <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
+             </div>
+             {/* CENTER: user name */}
+             <div className="text-center justify-self-center">
+                <span className="font-semibold text-lg truncate">{user.displayName}</span>
+             </div>
+             {/* RIGHT: log out */}
+             <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors justify-self-end">
                Log Out
              </button>
+           </>
+         ) : (
+           // Fallback for logged-out state (original behavior)
+           <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer col-span-3 justify-center">
+             <F1CarIcon className="w-10 h-10 text-primary-red" />
+             <span className="font-bold text-xl">F1 Fantasy</span>
            </div>
          )}
         </header>

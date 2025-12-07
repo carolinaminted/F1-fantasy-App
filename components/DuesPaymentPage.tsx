@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { User } from '../types.ts';
 import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
-import { DuesIcon } from './icons/DuesIcon.tsx';
+import { PaymentIcon } from './icons/PaymentIcon.tsx';
 import { CopyIcon } from './icons/CopyIcon.tsx';
 import { PayPalIcon } from './icons/PayPalIcon.tsx';
 import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, PAYPAL_PAY_DUES_URL } from '../constants.ts';
@@ -59,7 +59,7 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
 
             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 md:p-8 ring-1 ring-pure-white/10">
                 <div className="text-center mb-6">
-                    <DuesIcon className="w-16 h-16 text-primary-red mx-auto mb-4"/>
+                    <PaymentIcon className="w-16 h-16 text-primary-red mx-auto mb-4"/>
                     <h1 className="text-3xl font-bold">Pay League Dues</h1>
                     <p className="text-highlight-silver mt-1">Settle your dues for the {CURRENT_SEASON} season.</p>
                 </div>

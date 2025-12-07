@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { Page } from '../App.tsx';
 import { User } from '../types.ts';
@@ -21,8 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
   const isAdmin = user?.email === 'admin@fantasy.f1';
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center">Home</h1>
+    <div className="max-w-4xl mx-auto pt-8">
       <div className="grid grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
         <NavTile
           icon={PicksIcon}
@@ -37,16 +34,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
           onClick={() => setActivePage('leaderboard')}
         />
         <NavTile
-          icon={CheckeredFlagIcon}
-          title="Results"
-          description="Browse official results for all race weekends"
-          onClick={() => setActivePage('gp-results')}
-        />
-        <NavTile
           icon={ProfileIcon}
           title="Profile"
           description="View your information, picks, and scoring breakdowns"
           onClick={() => setActivePage('profile')}
+        />
+        <NavTile
+          icon={CheckeredFlagIcon}
+          title="Results"
+          description="Browse official results for all race weekends"
+          onClick={() => setActivePage('gp-results')}
         />
         <NavTile
           icon={TrophyIcon}
@@ -93,10 +90,10 @@ const NavTile: React.FC<NavTileProps> = ({ icon: Icon, title, description, onCli
     <button
       onClick={onClick}
       aria-label={`${title}: ${description}`}
-      className="group rounded-xl p-5 md:p-6 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red"
+      className="group rounded-xl p-4 md:p-6 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red"
     >
-      <Icon className="w-12 h-12 md:w-14 md:h-14 text-primary-red transition-colors duration-300 mb-2" />
-      <h3 className="text-lg md:text-xl font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300">{title}</h3>
+      <Icon className="w-16 h-16 md:w-20 md:h-20 text-primary-red transition-colors duration-300 mb-3" />
+      <h3 className="text-xl md:text-2xl font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300">{title}</h3>
     </button>
   );
 };
