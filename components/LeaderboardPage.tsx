@@ -17,6 +17,7 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 // --- Shared Types & Helpers ---
 
 type ViewState = 'menu' | 'standings' | 'popular' | 'insights';
+const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
 interface ProcessedUser extends User {
     points: number;
@@ -156,13 +157,11 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
         if (timeRange === '60') relevantEvents = EVENTS.slice(0, 5);
         if (timeRange === '90') relevantEvents = EVENTS.slice(0, 8);
         
-        // Note: In a real app with past dates, we would filter EVENTS.filter(e => e.date > now - days).
-        // Since our mock events are in 2025, "All" vs "First Few" serves the visual purpose.
-        
         const relevantEventIds = new Set(relevantEvents.map(e => e.id));
 
         Object.values(allPicks).forEach(userPicks => {
             Object.entries(userPicks).forEach(([eventId, picks]) => {
+                // Ignore picks that aren't in the current calendar or selected range
                 if (!relevantEventIds.has(eventId)) return;
 
                 const teams = [...picks.aTeams, picks.bTeam].filter(Boolean) as string[];
@@ -229,6 +228,8 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
         
         const findMax = (key: keyof ProcessedUser['breakdown']) => {
             const sorted = [...users].sort((a, b) => b.breakdown[key] - a.breakdown[key]);
+            // Ensure there is actually a score > 0
+            if (sorted[0].breakdown[key] === 0) return null;
             return { user: sorted[0], score: sorted[0].breakdown[key] };
         };
 
@@ -240,17 +241,21 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
         };
     }, [users]);
 
-    if (!superlatives) return <div className="text-center p-8">Not enough data for insights.</div>;
-
-    const Card: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } }> = ({ title, icon: Icon, data }) => (
+    const Card: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
          <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex items-center gap-4">
             <div className="bg-carbon-black p-3 rounded-full text-primary-red">
                 <Icon className="w-8 h-8" />
             </div>
             <div>
                 <p className="text-xs font-bold text-highlight-silver uppercase tracking-wider">{title}</p>
-                <p className="text-xl font-bold text-pure-white truncate max-w-[150px]">{data.user.displayName}</p>
-                <p className="text-sm text-primary-red font-mono">{data.score} pts</p>
+                {data ? (
+                    <>
+                        <p className="text-xl font-bold text-pure-white truncate max-w-[150px]">{data.user.displayName}</p>
+                        <p className="text-sm text-primary-red font-mono">{data.score} pts</p>
+                    </>
+                ) : (
+                    <p className="text-sm text-highlight-silver italic mt-1">No data yet</p>
+                )}
             </div>
         </div>
     );
@@ -260,36 +265,46 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
             <h2 className="text-2xl font-bold text-pure-white">Season Insights & Trends</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives.gp} />
-                <Card title="Qualifying King" icon={PolePositionIcon} data={superlatives.quali} />
-                <Card title="Sprint Specialist" icon={SprintIcon} data={superlatives.sprint} />
-                <Card title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives.fl} />
+                <Card title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
+                <Card title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
+                <Card title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} />
+                <Card title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
 
-            {/* Top 3 Breakdown Chart */}
+            {/* Top 5 Breakdown Chart */}
             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
                 <h3 className="text-lg font-bold text-pure-white mb-6">Top 5 Breakdown by Category</h3>
-                <div className="space-y-6">
-                    {users.slice(0, 5).map(user => (
-                        <div key={user.id}>
-                            <div className="flex justify-between text-sm mb-1">
-                                <span className="font-bold text-ghost-white">{user.displayName}</span>
-                                <span className="font-mono text-highlight-silver">{user.points} pts</span>
+                {users.length === 0 ? (
+                    <p className="text-highlight-silver text-center">No data available.</p>
+                ) : (
+                    <div className="space-y-6">
+                        {users.slice(0, 5).map(user => (
+                            <div key={user.id}>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="font-bold text-ghost-white">{user.displayName}</span>
+                                    <span className="font-mono text-highlight-silver">{user.points} pts</span>
+                                </div>
+                                <div className="flex h-3 rounded-full overflow-hidden bg-carbon-black">
+                                    {user.points > 0 ? (
+                                        <>
+                                            <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.points) * 100}%` }} />
+                                            <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.points) * 100}%` }} />
+                                            <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.points) * 100}%` }} />
+                                            <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.points) * 100}%` }} />
+                                        </>
+                                    ) : (
+                                        <div className="w-full h-full bg-accent-gray opacity-20"></div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex h-3 rounded-full overflow-hidden bg-carbon-black">
-                                <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.points) * 100}%` }} />
-                                <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.points) * 100}%` }} />
-                                <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.points) * 100}%` }} />
-                                <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.points) * 100}%` }} />
-                            </div>
-                        </div>
-                    ))}
-                    <div className="flex gap-4 justify-center mt-4 text-xs text-highlight-silver">
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-primary-red rounded-sm"></div> Race</div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded-sm"></div> Quali</div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded-sm"></div> Sprint</div>
-                         <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> FL</div>
+                        ))}
                     </div>
+                )}
+                <div className="flex gap-4 justify-center mt-4 text-xs text-highlight-silver">
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-primary-red rounded-sm"></div> Race</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded-sm"></div> Quali</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded-sm"></div> Sprint</div>
+                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> FL</div>
                 </div>
             </div>
         </div>
@@ -313,24 +328,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
         const processed = users.map(user => {
             const userPicks = picksData[user.id] || {};
-            const breakdown = { gp: 0, quali: 0, sprint: 0, fl: 0 };
             
-            // Calculate breakdown
-            Object.entries(userPicks).forEach(([eventId, pick]) => {
-                const results = raceResults[eventId];
-                if (!results) return;
-                
-                // Note: We need granular points from scoring service, but calculateScoreRollup aggregates.
-                // We will re-implement a lightweight granular calc here or assume `calculatePointsForEvent` logic is simple enough to mimic aggregation if needed.
-                // Actually, let's just use the rollup service for total, and do a quick granular summation here for insights.
-                // Re-using specific event calc is safer but requires import. It's imported in `scoringService`.
-                // For this hub, let's stick to the rollup for total points to ensure consistency, 
-                // and approximate the breakdown if we can't easily export granular logic without a huge diff.
-                // Wait, `calculateScoreRollup` returns { totalPoints, grandPrixPoints, sprintPoints... }! Perfect.
-                
-                // Wait, `calculateScoreRollup` takes ALL picks. So we just call it once per user.
-            });
-            
+            // Use the centralized scoring service logic which handles event filtering automatically
             const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem);
 
             return {

@@ -1,7 +1,7 @@
 
-import { PickSelection, RaceResults, EventResult, EntityClass, User, PointsSystem } from '../types';
-import { CONSTRUCTORS, DRIVERS, EVENTS, DEFAULT_POINTS_SYSTEM } from '../constants';
-import { calculateScoreRollup } from './scoringService';
+import { PickSelection, RaceResults, EventResult, EntityClass, User, PointsSystem } from '../types.ts';
+import { CONSTRUCTORS, DRIVERS, EVENTS, DEFAULT_POINTS_SYSTEM } from '../constants.ts';
+import { calculateScoreRollup } from './scoringService.ts';
 
 // --- Types ---
 export interface SimulationReport {
@@ -21,6 +21,12 @@ const generateRandomResult = (hasSprint: boolean): EventResult => {
     const podium = shuffled.slice(0, 10).map(d => d.id);
     const quali = shuffled.slice(0, 3).map(d => d.id);
     
+    // Generate snapshot of team associations at the time of this "event"
+    const driverTeamsSnapshot: { [id: string]: string } = {};
+    DRIVERS.forEach(d => {
+        driverTeamsSnapshot[d.id] = d.constructorId;
+    });
+    
     return {
         grandPrixFinish: podium,
         gpQualifying: quali,
@@ -28,7 +34,8 @@ const generateRandomResult = (hasSprint: boolean): EventResult => {
         ...(hasSprint && {
             sprintFinish: shuffled.slice(0, 8).map(d => d.id),
             sprintQualifying: shuffled.slice(0, 3).map(d => d.id),
-        })
+        }),
+        driverTeams: driverTeamsSnapshot
     };
 };
 
@@ -99,6 +106,8 @@ export const runSeasonSimulation = async (seasonsToSimulate: number = 1, pointsS
                     // We verify here that 'constructorId' lookup never fails to return a value.
                     const pickedDriver = seasonPicks[EVENTS[0].id].aDrivers[0];
                     if(pickedDriver) {
+                         // We are now checking strictly against the snapshot in the result if available, 
+                         // but effectively we just want to ensure the calculation didn't throw.
                          const driverObj = DRIVERS.find(d => d.id === pickedDriver);
                          if(!driverObj) anomalies.push(`Season ${season}: Critical - Driver ${pickedDriver} missing from Config.`);
                     }

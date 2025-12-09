@@ -50,6 +50,7 @@ export interface EventResult {
   fastestLap: string | null;
   sprintFinish?: (string | null)[];
   sprintQualifying?: (string | null)[];
+  driverTeams?: { [driverId: string]: string }; // Snapshot of driver-team mapping at event time
 }
 
 export interface RaceResults {

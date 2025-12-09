@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
 import { RaceResults, Event, EventResult } from '../types.ts';
-import { EVENTS } from '../constants.ts';
+import { EVENTS, DRIVERS } from '../constants.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
@@ -23,7 +24,19 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
     const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
         try {
-            await onResultsUpdate(eventId, results);
+            // Snapshot current driver-team mapping to ensure historical accuracy
+            // This freezes the grid state at the time of the event
+            const driverTeamsSnapshot: { [driverId: string]: string } = {};
+            DRIVERS.forEach(d => {
+                driverTeamsSnapshot[d.id] = d.constructorId;
+            });
+
+            const resultsWithSnapshot = {
+                ...results,
+                driverTeams: driverTeamsSnapshot
+            };
+
+            await onResultsUpdate(eventId, resultsWithSnapshot);
             // On desktop, keep the form open for potential further edits. On mobile, close it.
             if (window.innerWidth < 768) {
                 setSelectedEventId(null);
