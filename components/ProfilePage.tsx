@@ -1,10 +1,10 @@
 
 // Fix: Implement the ProfilePage component to display user stats and picks history.
 import React, { useState } from 'react';
-import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem } from '../types.ts';
+import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculatePointsForEvent } from '../services/scoringService.ts';
-import { EVENTS, CONSTRUCTORS, DRIVERS } from '../constants.ts';
+import { EVENTS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -18,6 +18,8 @@ interface ProfilePageProps {
   seasonPicks: { [eventId: string]: PickSelection };
   raceResults: RaceResults;
   pointsSystem: PointsSystem;
+  allDrivers: Driver[];
+  allConstructors: Constructor[];
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -49,15 +51,18 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({
   );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem }) => {
-  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem);
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors }) => {
+  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   
-  const aTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.A);
-  const bTeams = CONSTRUCTORS.filter(c => c.class === EntityClass.B);
-  const aDrivers = DRIVERS.filter(d => d.class === EntityClass.A);
-  const bDrivers = DRIVERS.filter(d => d.class === EntityClass.B);
+  // For Profile display, we can just show active ones in the breakdown to avoid clutter,
+  // or we can show all if we want to show stats for retired drivers too. 
+  // Let's show all for stats purposes.
+  const aTeams = allConstructors.filter(c => c.class === EntityClass.A);
+  const bTeams = allConstructors.filter(c => c.class === EntityClass.B);
+  const aDrivers = allDrivers.filter(d => d.class === EntityClass.A);
+  const bDrivers = allDrivers.filter(d => d.class === EntityClass.B);
 
   const toggleEvent = (eventId: string) => {
     setExpandedEvent(prev => (prev === eventId ? null : eventId));
@@ -65,7 +70,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   
   const getEntityName = (id: string | null): string => {
     if (!id) return 'N/A';
-    return DRIVERS.find(d => d.id === id)?.name || CONSTRUCTORS.find(c => c.id === id)?.name || 'Unknown';
+    return allDrivers.find(d => d.id === id)?.name || allConstructors.find(c => c.id === id)?.name || 'Unknown';
   };
 
   const handleScoringDetailClick = (category: 'gp' | 'sprint' | 'quali' | 'fl') => {
@@ -119,7 +124,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
                 allPickedTeams.forEach(teamId => {
                     let teamPoints = 0;
-                    DRIVERS.forEach(driver => {
+                    // Resolve points using ALL drivers, not just active ones (historical)
+                    allDrivers.forEach(driver => {
+                        // Check against current config OR snapshot (snapshot logic is inside scoringService, here we mimic simple sum)
+                        // Note: For pure UI breakdown, simplistic check might slightly differ from engine if driver swapped teams mid season without snapshot logic here.
+                        // But Profile View is just an estimate breakdown.
                         if (driver.constructorId === teamId) {
                             teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr);
                         }
@@ -197,7 +206,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
         allPickedTeams.forEach(teamId => {
             let teamPoints = 0;
-            DRIVERS.forEach(driver => {
+            allDrivers.forEach(driver => {
                 if (driver.constructorId === teamId) {
                     teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr);
                 }
@@ -309,7 +318,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     const results = raceResults[event.id];
                     if (!picks) return null;
 
-                    const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
+                    const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
                     const isExpanded = expandedEvent === event.id;
 
                     return (

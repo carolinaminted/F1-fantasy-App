@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Event, EventResult, Driver } from '../types.ts';
-import { DRIVERS } from '../constants.ts';
 
 interface ResultsFormProps {
     event: Event;
     currentResults?: EventResult;
     onSave: (eventId: string, results: EventResult) => Promise<boolean>;
+    allDrivers: Driver[];
 }
 
 const emptyResults = (event: Event): EventResult => ({
@@ -19,7 +20,7 @@ const emptyResults = (event: Event): EventResult => ({
 });
 
 
-const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave }) => {
+const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers }) => {
     const [results, setResults] = useState<EventResult>(currentResults || emptyResults(event));
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success'>('idle');
 
@@ -59,7 +60,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         }
     };
 
-    const driverOptions = DRIVERS.map(d => ({ value: d.id, label: d.name }));
+    const driverOptions = allDrivers.map(d => ({ value: d.id, label: d.name }));
 
     const buttonContent = {
         idle: 'Save Results',

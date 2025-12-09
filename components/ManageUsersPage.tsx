@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, RaceResults, PointsSystem } from '../types.ts';
+import { User, RaceResults, PointsSystem, Driver, Constructor } from '../types.ts';
 import { getAllUsers } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -10,9 +10,11 @@ interface ManageUsersPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
     raceResults: RaceResults;
     pointsSystem: PointsSystem;
+    allDrivers: Driver[];
+    allConstructors: Constructor[];
 }
 
-const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem }) => {
+const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem, allDrivers, allConstructors }) => {
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +65,8 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     raceResults={raceResults} 
                     pointsSystem={pointsSystem} 
                     onUpdateUser={handleUserUpdate}
+                    allDrivers={allDrivers}
+                    allConstructors={allConstructors}
                 />
             </div>
         );

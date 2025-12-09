@@ -11,13 +11,14 @@ import FormLockPage from './components/FormLockPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
+import ManageEntitiesPage from './components/ManageEntitiesPage.tsx'; // New
 import AdminSimulationPage from './components/AdminSimulationPage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
-import { User, PickSelection, RaceResults, PointsSystem } from './types.ts';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -27,13 +28,13 @@ import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { CheckeredFlagIcon } from './components/icons/CheckeredFlagIcon.tsx';
-import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM } from './constants.ts';
+import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onAuthStateChanged, signOut } from '@firebase/auth';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, savePointsSystem } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, savePointsSystem, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment';
@@ -107,12 +108,16 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [pointsSystem, setPointsSystem] = useState<PointsSystem>(DEFAULT_POINTS_SYSTEM);
   
+  // Dynamic Entities State
+  const [allDrivers, setAllDrivers] = useState<Driver[]>(DRIVERS);
+  const [allConstructors, setAllConstructors] = useState<Constructor[]>(CONSTRUCTORS);
+
   useEffect(() => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};
@@ -128,6 +133,18 @@ const App: React.FC = () => {
 
       setIsLoading(true);
       if (firebaseUser) {
+        // Load Dynamic Entities (Drivers/Teams)
+        // We do this once on mount/auth. No need for realtime listener for now (admin change requires refresh for others is acceptable)
+        // Or we could attach a listener if needed. For now, fetch once.
+        const entities = await getLeagueEntities();
+        if (entities) {
+            setAllDrivers(entities.drivers);
+            setAllConstructors(entities.constructors);
+        } else {
+            // Seed DB if empty
+            await saveLeagueEntities(DRIVERS, CONSTRUCTORS);
+        }
+
         // Listen to global app state
         const resultsRef = doc(db, 'app_state', 'race_results');
         unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
@@ -179,6 +196,9 @@ const App: React.FC = () => {
         setRaceResults({});
         setFormLocks({});
         setPointsSystem(DEFAULT_POINTS_SYSTEM);
+        // Reset to default constants
+        setAllDrivers(DRIVERS);
+        setAllConstructors(CONSTRUCTORS);
         setIsAuthenticated(false);
       }
       setIsLoading(false);
@@ -238,6 +258,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleEntitiesUpdate = (newDrivers: Driver[], newConstructors: Constructor[]) => {
+    setAllDrivers(newDrivers);
+    setAllConstructors(newConstructors);
+  };
+
   const navigateToPage = (page: Page) => {
     if (page === 'admin' && activePage !== 'admin') {
       setAdminSubPage('dashboard');
@@ -250,14 +275,14 @@ const App: React.FC = () => {
       case 'home':
         return <Dashboard user={user} setActivePage={navigateToPage} />;
       case 'picks':
-        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={pointsSystem} />;
+        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         return null;
       case 'leaderboard':
-        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={pointsSystem} />;
+        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'gp-results':
-        return <GpResultsPage raceResults={raceResults} />;
+        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={pointsSystem} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         return null; // Should not happen if authenticated
       case 'points':
         return <PointsTransparency pointsSystem={pointsSystem} />;
@@ -279,17 +304,19 @@ const App: React.FC = () => {
             case 'dashboard':
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
             case 'results':
-                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} />;
+                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} />;
             case 'form-lock':
                 return <FormLockPage formLocks={formLocks} onToggleLock={handleToggleFormLock} setAdminSubPage={setAdminSubPage} />;
             case 'dues-status':
                 return <DuesStatusManagerPage setAdminSubPage={setAdminSubPage} />;
             case 'manage-users':
-                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={pointsSystem} />;
+                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
             case 'simulation':
                 return <AdminSimulationPage setAdminSubPage={setAdminSubPage} pointsSystem={pointsSystem} />;
             case 'scoring':
                 return <ScoringSettingsPage currentConfig={pointsSystem} setAdminSubPage={setAdminSubPage} />;
+            case 'entities':
+                return <ManageEntitiesPage setAdminSubPage={setAdminSubPage} currentDrivers={allDrivers} currentConstructors={allConstructors} onUpdateEntities={handleEntitiesUpdate} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }

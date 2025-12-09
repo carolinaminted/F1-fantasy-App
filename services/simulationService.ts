@@ -89,7 +89,7 @@ export const runSeasonSimulation = async (seasonsToSimulate: number = 1, pointsS
 
             // Calculate Score
             try {
-                const score = calculateScoreRollup(seasonPicks, seasonResults, pointsSystem);
+                const score = calculateScoreRollup(seasonPicks, seasonResults, pointsSystem, DRIVERS);
                 
                 // Audit Logic: Sanity Check
                 if (Number.isNaN(score.totalPoints)) {

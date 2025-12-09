@@ -1,6 +1,6 @@
 
-import { DRIVERS, EVENTS } from '../constants.ts';
-import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem } from '../types.ts';
+import { EVENTS } from '../constants.ts';
+import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor } from '../types.ts';
 
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
@@ -30,12 +30,12 @@ const getDriverPoints = (driverId: string | null, results: (string | null)[] | u
 export const calculatePointsForEvent = (
   picks: PickSelection,
   results: EventResult,
-  pointsSystem: PointsSystem
+  pointsSystem: PointsSystem,
+  driversList: Driver[]
 ) => {
     // --- Data structures to hold points per entity ---
     const teamScores: Record<string, { gp: number, sprint: number, gpQuali: number, sprintQuali: number }> = {};
-    const driverScores: Record<string, { gp: number, sprint: number, gpQuali: number, sprintQuali: number }> = {};
-
+    
     // Helper: Initialize score object if missing
     const initTeamScore = (id: string) => {
         if (!teamScores[id]) teamScores[id] = { gp: 0, sprint: 0, gpQuali: 0, sprintQuali: 0 };
@@ -47,14 +47,12 @@ export const calculatePointsForEvent = (
         if (results.driverTeams && results.driverTeams[driverId]) {
             return results.driverTeams[driverId];
         }
-        // Priority 2: Fallback to static config (current config)
-        return DRIVERS.find(d => d.id === driverId)?.constructorId;
+        // Priority 2: Fallback to dynamic driver list passed in
+        return driversList.find(d => d.id === driverId)?.constructorId;
     };
 
     // --- 1. SCAN RESULTS & AWARD POINTS TO TEAMS ---
     // Instead of iterating user picks, we iterate the RESULTS.
-    // If a driver finishes P1, we find their team and give that team P1 points.
-    // The user receives these points only if they picked that team.
 
     const awardTeamPoints = (driverId: string | null, posIndex: number, pointsArray: number[], type: 'gp'|'sprint'|'gpQuali'|'sprintQuali') => {
         if (!driverId) return;
@@ -98,7 +96,7 @@ export const calculatePointsForEvent = (
         }
     });
 
-    // Sum Driver Points (Direct lookup still works best for drivers as they don't change IDs)
+    // Sum Driver Points
     let driverGrandPrixPoints = 0;
     let driverSprintPoints = 0;
     let driverGpQualifyingPoints = 0;
@@ -135,7 +133,8 @@ export const calculatePointsForEvent = (
 export const calculateScoreRollup = (
   seasonPicks: { [eventId: string]: PickSelection },
   raceResults: RaceResults,
-  pointsSystem: PointsSystem
+  pointsSystem: PointsSystem,
+  driversList: Driver[]
 ) => {
     let grandPrixPoints = 0;
     let sprintPoints = 0;
@@ -143,7 +142,6 @@ export const calculateScoreRollup = (
     let gpQualifyingPoints = 0;
     let sprintQualifyingPoints = 0;
 
-    
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
       // Filter: Only include events that are in the current season configuration
       if (!CURRENT_EVENT_IDS.has(eventId)) return;
@@ -151,7 +149,7 @@ export const calculateScoreRollup = (
       const results: EventResult | undefined = raceResults[eventId];
       if (!results) return; // No results for this event yet
 
-      const eventPoints = calculatePointsForEvent(picks, results, pointsSystem);
+      const eventPoints = calculatePointsForEvent(picks, results, pointsSystem, driversList);
       
       grandPrixPoints += eventPoints.grandPrixPoints;
       sprintPoints += eventPoints.sprintPoints;

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import PicksForm from './PicksForm.tsx';
 import { EVENTS, RACE_RESULTS } from '../constants.ts';
-import { Event, PickSelection, User, PointsSystem } from '../types.ts';
+import { Event, PickSelection, User, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 
 interface HomePageProps {
@@ -12,9 +12,11 @@ interface HomePageProps {
   onPicksSubmit: (eventId: string, picks: PickSelection) => void;
   formLocks: { [eventId: string]: boolean };
   pointsSystem: PointsSystem;
+  allDrivers: Driver[];
+  allConstructors: Constructor[];
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors }) => {
   // Default to the oldest event that hasn't been submitted yet.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
     // Find the first event in the chronological list that doesn't have a corresponding pick submission.
@@ -22,7 +24,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     // If all events have picks, default to the first event in the season.
     return oldestUnsubmitted || EVENTS[0];
   });
-  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem);
+  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4">

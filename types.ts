@@ -17,6 +17,7 @@ export interface Constructor {
   id: string;
   name: string;
   class: EntityClass;
+  isActive: boolean;
 }
 
 export interface Driver {
@@ -24,6 +25,7 @@ export interface Driver {
   name: string;
   constructorId: string;
   class: EntityClass;
+  isActive: boolean;
 }
 
 export interface Event {

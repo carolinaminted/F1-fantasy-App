@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { RaceResults, Event, EventResult, Driver as DriverType, Constructor } from '../types.ts';
-import { EVENTS, DRIVERS, CONSTRUCTORS } from '../constants.ts';
+import { EVENTS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -10,9 +10,11 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 
 interface GpResultsPageProps {
   raceResults: RaceResults;
+  allDrivers: DriverType[];
+  allConstructors: Constructor[];
 }
 
-const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
+const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -62,6 +64,8 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
                             isExpanded={selectedEventId === event.id}
                             isSelected={selectedEventId === event.id}
                             onSelect={() => handleEventSelect(event.id)}
+                            allDrivers={allDrivers}
+                            allConstructors={allConstructors}
                         />
                     ))}
                     {filteredEvents.length === 0 && (
@@ -76,7 +80,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults }) => {
                     <div className="sticky top-8">
                         {selectedEvent ? (
                              <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 p-4">
-                                <EventDetails event={selectedEvent} results={raceResults[selectedEvent.id]} />
+                                <EventDetails event={selectedEvent} results={raceResults[selectedEvent.id]} allDrivers={allDrivers} allConstructors={allConstructors} />
                             </div>
                         ) : (
                             <div className="flex items-center justify-center h-96 bg-accent-gray/20 rounded-lg">
@@ -107,9 +111,11 @@ interface EventItemProps {
     isExpanded: boolean;
     isSelected: boolean;
     onSelect: () => void;
+    allDrivers: DriverType[];
+    allConstructors: Constructor[];
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, isSelected, onSelect }) => {
+const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, isSelected, onSelect, allDrivers, allConstructors }) => {
     const hasResults = !!results && results.grandPrixFinish?.some(r => r);
 
     return (
@@ -134,7 +140,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, isSel
             </button>
             {isExpanded && (
                 <div className="p-4 border-t border-accent-gray/50 md:hidden">
-                    <EventDetails event={event} results={results} />
+                    <EventDetails event={event} results={results} allDrivers={allDrivers} allConstructors={allConstructors} />
                 </div>
             )}
         </div>
@@ -144,9 +150,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, results, isExpanded, isSel
 interface EventDetailsProps {
     event: Event;
     results: EventResult | undefined;
+    allDrivers: DriverType[];
+    allConstructors: Constructor[];
 }
 
-const EventDetails: React.FC<EventDetailsProps> = ({ event, results }) => {
+const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers, allConstructors }) => {
     const [activeTab, setActiveTab] = useState('race');
 
     if (!results || !results.grandPrixFinish?.some(r => r)) {
@@ -180,10 +188,10 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results }) => {
             </div>
             
             <div>
-                {activeTab === 'race' && <ResultTable title="Grand Prix Results" results={results.grandPrixFinish} />}
-                {activeTab === 'quali' && <ResultTable title="Qualifying Results" results={results.gpQualifying} />}
-                {activeTab === 'sprint' && event.hasSprint && <ResultTable title="Sprint Race Results" results={results.sprintFinish} />}
-                {activeTab === 'fastestlap' && <FastestLapDisplay driverId={results.fastestLap} />}
+                {activeTab === 'race' && <ResultTable title="Grand Prix Results" results={results.grandPrixFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
+                {activeTab === 'quali' && <ResultTable title="Qualifying Results" results={results.gpQualifying} allDrivers={allDrivers} allConstructors={allConstructors} />}
+                {activeTab === 'sprint' && event.hasSprint && <ResultTable title="Sprint Race Results" results={results.sprintFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
+                {activeTab === 'fastestlap' && <FastestLapDisplay driverId={results.fastestLap} allDrivers={allDrivers} />}
             </div>
         </div>
     );
@@ -192,16 +200,18 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results }) => {
 interface ResultTableProps {
     title: string;
     results: (string | null)[] | undefined;
+    allDrivers: DriverType[];
+    allConstructors: Constructor[];
 }
 
-const ResultTable: React.FC<ResultTableProps> = ({ title, results }) => {
+const ResultTable: React.FC<ResultTableProps> = ({ title, results, allDrivers, allConstructors }) => {
     if (!results || results.length === 0 || results.every(r => r === null)) {
         return <p className="text-center text-highlight-silver py-4">No data for this session.</p>;
     }
     
     const getEntity = (driverId: string): { driver: DriverType | undefined, constructor: Constructor | undefined } => {
-        const driver = DRIVERS.find(d => d.id === driverId);
-        const constructor = CONSTRUCTORS.find(c => c.id === driver?.constructorId);
+        const driver = allDrivers.find(d => d.id === driverId);
+        const constructor = allConstructors.find(c => c.id === driver?.constructorId);
         return { driver, constructor };
     };
 
@@ -237,11 +247,11 @@ const ResultTable: React.FC<ResultTableProps> = ({ title, results }) => {
     );
 };
 
-const FastestLapDisplay: React.FC<{ driverId: string | null | undefined }> = ({ driverId }) => {
+const FastestLapDisplay: React.FC<{ driverId: string | null | undefined; allDrivers: DriverType[] }> = ({ driverId, allDrivers }) => {
     if (!driverId) {
         return <p className="text-center text-highlight-silver py-4">Fastest lap data not available.</p>;
     }
-    const driver = DRIVERS.find(d => d.id === driverId);
+    const driver = allDrivers.find(d => d.id === driverId);
 
     return (
         <div className="text-center py-8">

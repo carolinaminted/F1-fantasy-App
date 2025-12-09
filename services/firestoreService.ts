@@ -4,7 +4,7 @@ import { db } from './firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
-import { PickSelection, User, RaceResults, Donation, PointsSystem } from '../types.ts';
+import { PickSelection, User, RaceResults, Donation, PointsSystem, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
 
@@ -146,6 +146,27 @@ export const savePointsSystem = async (pointsSystem: PointsSystem) => {
         console.log("Points system configuration saved successfully.");
     } catch (error) {
         console.error("Error saving points system configuration", error);
+        throw error;
+    }
+};
+
+// League Entities (Drivers/Teams) Management
+export const getLeagueEntities = async (): Promise<{ drivers: Driver[]; constructors: Constructor[] } | null> => {
+    const entitiesRef = doc(db, 'app_state', 'entities');
+    const snapshot = await getDoc(entitiesRef);
+    if (snapshot.exists()) {
+        return snapshot.data() as { drivers: Driver[]; constructors: Constructor[] };
+    }
+    return null;
+};
+
+export const saveLeagueEntities = async (drivers: Driver[], constructors: Constructor[]) => {
+    const entitiesRef = doc(db, 'app_state', 'entities');
+    try {
+        await setDoc(entitiesRef, { drivers, constructors });
+        console.log("League entities saved successfully.");
+    } catch (error) {
+        console.error("Error saving league entities", error);
         throw error;
     }
 };

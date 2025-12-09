@@ -1,6 +1,6 @@
 
 // Fix: Add a detailed points system and mock race results to enable dynamic scoring calculations.
-import { Constructor, Driver, EntityClass, Event, PickSelection, User, RaceResults, PointsSystem } from './types';
+import { Constructor, Driver, EntityClass, Event, PickSelection, User, RaceResults, PointsSystem } from './types.ts';
 
 export const LEAGUE_DUES_AMOUNT = 25; // in USD
 export const CURRENT_SEASON = '2026';
@@ -10,54 +10,54 @@ export const PAYPAL_PAY_DUES_URL = 'https://www.paypal.com/cgi-bin/webscr?cmd=_d
 
 export const CONSTRUCTORS: Constructor[] = [
   // Class A
-  { id: 'ferrari', name: 'Ferrari', class: EntityClass.A },
-  { id: 'mclaren', name: 'McLaren', class: EntityClass.A },
-  { id: 'red_bull', name: 'Red Bull Racing', class: EntityClass.A },
-  { id: 'mercedes', name: 'Mercedes', class: EntityClass.A },
-  { id: 'williams', name: 'Williams', class: EntityClass.A },
+  { id: 'ferrari', name: 'Ferrari', class: EntityClass.A, isActive: true },
+  { id: 'mclaren', name: 'McLaren', class: EntityClass.A, isActive: true },
+  { id: 'red_bull', name: 'Red Bull Racing', class: EntityClass.A, isActive: true },
+  { id: 'mercedes', name: 'Mercedes', class: EntityClass.A, isActive: true },
+  { id: 'williams', name: 'Williams', class: EntityClass.A, isActive: true }, // Promoted to A
   // Class B
-  { id: 'aston_martin', name: 'Aston Martin', class: EntityClass.B },
-  { id: 'audi', name: 'Audi F1 Team', class: EntityClass.B },
-  { id: 'alpine', name: 'Alpine', class: EntityClass.B },
-  { id: 'racing_bulls', name: 'Racing Bulls', class: EntityClass.B },
-  { id: 'haas', name: 'Haas F1 Team', class: EntityClass.B },
-  { id: 'cadillac', name: 'Cadillac F1 Team', class: EntityClass.B },
+  { id: 'aston_martin', name: 'Aston Martin', class: EntityClass.B, isActive: true }, // Demoted to B
+  { id: 'audi', name: 'Audi F1 Team', class: EntityClass.B, isActive: true }, // Rebrand from Sauber
+  { id: 'alpine', name: 'Alpine', class: EntityClass.B, isActive: true },
+  { id: 'racing_bulls', name: 'Racing Bulls', class: EntityClass.B, isActive: true },
+  { id: 'haas', name: 'Haas F1 Team', class: EntityClass.B, isActive: true },
+  { id: 'cadillac', name: 'Cadillac F1 Team', class: EntityClass.B, isActive: true }, // New Team
 ];
 
 export const DRIVERS: Driver[] = [
   // Ferrari (A)
-  { id: 'lec', name: 'Charles Leclerc', constructorId: 'ferrari', class: EntityClass.A },
-  { id: 'ham', name: 'Lewis Hamilton', constructorId: 'ferrari', class: EntityClass.A },
+  { id: 'lec', name: 'Charles Leclerc', constructorId: 'ferrari', class: EntityClass.A, isActive: true },
+  { id: 'ham', name: 'Lewis Hamilton', constructorId: 'ferrari', class: EntityClass.A, isActive: true },
   // McLaren (A)
-  { id: 'nor', name: 'Lando Norris', constructorId: 'mclaren', class: EntityClass.A },
-  { id: 'pia', name: 'Oscar Piastri', constructorId: 'mclaren', class: EntityClass.A },
+  { id: 'nor', name: 'Lando Norris', constructorId: 'mclaren', class: EntityClass.A, isActive: true },
+  { id: 'pia', name: 'Oscar Piastri', constructorId: 'mclaren', class: EntityClass.A, isActive: true },
   // Red Bull (A)
-  { id: 'ver', name: 'Max Verstappen', constructorId: 'red_bull', class: EntityClass.A },
-  { id: 'law', name: 'Liam Lawson', constructorId: 'red_bull', class: EntityClass.A },
+  { id: 'ver', name: 'Max Verstappen', constructorId: 'red_bull', class: EntityClass.A, isActive: true },
+  { id: 'law', name: 'Liam Lawson', constructorId: 'red_bull', class: EntityClass.A, isActive: true },
   // Mercedes (A)
-  { id: 'rus', name: 'George Russell', constructorId: 'mercedes', class: EntityClass.A },
-  { id: 'ant', name: 'Andrea Kimi Antonelli', constructorId: 'mercedes', class: EntityClass.A },
+  { id: 'rus', name: 'George Russell', constructorId: 'mercedes', class: EntityClass.A, isActive: true },
+  { id: 'ant', name: 'Andrea Kimi Antonelli', constructorId: 'mercedes', class: EntityClass.A, isActive: true },
   // Williams (A)
-  { id: 'alb', name: 'Alexander Albon', constructorId: 'williams', class: EntityClass.A },
-  { id: 'sai', name: 'Carlos Sainz Jr.', constructorId: 'williams', class: EntityClass.A },
+  { id: 'alb', name: 'Alexander Albon', constructorId: 'williams', class: EntityClass.A, isActive: true },
+  { id: 'sai', name: 'Carlos Sainz Jr.', constructorId: 'williams', class: EntityClass.A, isActive: true },
   // Aston Martin (B)
-  { id: 'alo', name: 'Fernando Alonso', constructorId: 'aston_martin', class: EntityClass.B },
-  { id: 'str', name: 'Lance Stroll', constructorId: 'aston_martin', class: EntityClass.B },
+  { id: 'alo', name: 'Fernando Alonso', constructorId: 'aston_martin', class: EntityClass.B, isActive: true },
+  { id: 'str', name: 'Lance Stroll', constructorId: 'aston_martin', class: EntityClass.B, isActive: true },
   // Audi (B)
-  { id: 'hul', name: 'Nico Hulkenberg', constructorId: 'audi', class: EntityClass.B },
-  { id: 'bor', name: 'Gabriel Bortoleto', constructorId: 'audi', class: EntityClass.B },
+  { id: 'hul', name: 'Nico Hulkenberg', constructorId: 'audi', class: EntityClass.B, isActive: true },
+  { id: 'bor', name: 'Gabriel Bortoleto', constructorId: 'audi', class: EntityClass.B, isActive: true },
   // Alpine (B)
-  { id: 'gas', name: 'Pierre Gasly', constructorId: 'alpine', class: EntityClass.B },
-  { id: 'doo', name: 'Jack Doohan', constructorId: 'alpine', class: EntityClass.B },
+  { id: 'gas', name: 'Pierre Gasly', constructorId: 'alpine', class: EntityClass.B, isActive: true },
+  { id: 'doo', name: 'Jack Doohan', constructorId: 'alpine', class: EntityClass.B, isActive: true },
   // Racing Bulls (B)
-  { id: 'tsu', name: 'Yuki Tsunoda', constructorId: 'racing_bulls', class: EntityClass.B },
-  { id: 'had', name: 'Isack Hadjar', constructorId: 'racing_bulls', class: EntityClass.B },
+  { id: 'tsu', name: 'Yuki Tsunoda', constructorId: 'racing_bulls', class: EntityClass.B, isActive: true },
+  { id: 'had', name: 'Isack Hadjar', constructorId: 'racing_bulls', class: EntityClass.B, isActive: true },
   // Haas (B)
-  { id: 'oco', name: 'Esteban Ocon', constructorId: 'haas', class: EntityClass.B },
-  { id: 'bea', name: 'Oliver Bearman', constructorId: 'haas', class: EntityClass.B },
+  { id: 'oco', name: 'Esteban Ocon', constructorId: 'haas', class: EntityClass.B, isActive: true },
+  { id: 'bea', name: 'Oliver Bearman', constructorId: 'haas', class: EntityClass.B, isActive: true },
   // Cadillac (B)
-  { id: 'her', name: 'Colton Herta', constructorId: 'cadillac', class: EntityClass.B },
-  { id: 'pow', name: 'Pato O\'Ward', constructorId: 'cadillac', class: EntityClass.B },
+  { id: 'her', name: 'Colton Herta', constructorId: 'cadillac', class: EntityClass.B, isActive: true },
+  { id: 'pow', name: 'Pato O\'Ward', constructorId: 'cadillac', class: EntityClass.B, isActive: true },
 ];
 
 const createEventDate = (dateString: string) => {

@@ -5,9 +5,10 @@ import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -17,6 +18,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 <AdminIcon className="w-8 h-8"/> Admin Dashboard
             </h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <AdminTile
+                    icon={TeamIcon}
+                    title="Manage Drivers & Teams"
+                    description="Update the active grid, transfers, and classes."
+                    onClick={() => setAdminSubPage('entities')}
+                />
                 <AdminTile
                     icon={LeaderboardIcon}
                     title="Results Entry"

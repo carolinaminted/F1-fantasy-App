@@ -1,8 +1,8 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { CONSTRUCTORS, DRIVERS, EVENTS } from '../constants.ts';
+import { EVENTS } from '../constants.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
-import { User, RaceResults, PickSelection, PointsSystem, Event } from '../types.ts';
+import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
@@ -34,10 +34,12 @@ interface LeaderboardPageProps {
   currentUser: User | null;
   raceResults: RaceResults;
   pointsSystem: PointsSystem;
+  allDrivers: Driver[];
+  allConstructors: Constructor[];
 }
 
-const getEntityName = (id: string) => {
-    return DRIVERS.find(d => d.id === id)?.name || CONSTRUCTORS.find(c => c.id === id)?.name || id;
+const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constructor[]) => {
+    return allDrivers.find(d => d.id === id)?.name || allConstructors.find(c => c.id === id)?.name || id;
 };
 
 // --- Sub-Components ---
@@ -142,7 +144,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     );
 };
 
-const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } } }> = ({ allPicks }) => {
+const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ allPicks, allDrivers, allConstructors }) => {
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all'); // mapped to event counts
 
     const stats = useMemo(() => {
@@ -174,7 +176,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
 
         const sortAndMap = (counts: { [id: string]: number }) => 
             Object.entries(counts)
-                .map(([id, val]) => ({ label: getEntityName(id), value: val }))
+                .map(([id, val]) => ({ label: getEntityName(id, allDrivers, allConstructors), value: val }))
                 .sort((a, b) => b.value - a.value)
                 .slice(0, 5);
 
@@ -182,7 +184,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
             teams: sortAndMap(teamCounts),
             drivers: sortAndMap(driverCounts)
         };
-    }, [allPicks, timeRange]);
+    }, [allPicks, timeRange, allDrivers, allConstructors]);
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -313,7 +315,7 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
 
 // --- Main Page ---
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem }) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors }) => {
   const [view, setView] = useState<ViewState>('menu');
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
@@ -330,7 +332,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
             const userPicks = picksData[user.id] || {};
             
             // Use the centralized scoring service logic which handles event filtering automatically
-            const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem);
+            const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
 
             return {
                 ...user,
@@ -353,7 +355,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         setIsLoading(false);
     };
     loadData();
-  }, [raceResults, pointsSystem]);
+  }, [raceResults, pointsSystem, allDrivers]);
 
 
   if (isLoading) {
@@ -410,7 +412,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           </div>
 
           {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
-          {view === 'popular' && <PopularityView allPicks={allPicks} />}
+          {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} />}
           {view === 'insights' && <InsightsView users={processedUsers} />}
       </div>
   );

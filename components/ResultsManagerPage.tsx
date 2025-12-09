@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { RaceResults, Event, EventResult } from '../types.ts';
-import { EVENTS, DRIVERS } from '../constants.ts';
+import { RaceResults, Event, EventResult, Driver } from '../types.ts';
+import { EVENTS } from '../constants.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
@@ -10,11 +10,12 @@ interface ResultsManagerPageProps {
     raceResults: RaceResults;
     onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
     setAdminSubPage: (page: 'dashboard') => void;
+    allDrivers: Driver[];
 }
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('all');
 
@@ -27,7 +28,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             // Snapshot current driver-team mapping to ensure historical accuracy
             // This freezes the grid state at the time of the event
             const driverTeamsSnapshot: { [driverId: string]: string } = {};
-            DRIVERS.forEach(d => {
+            allDrivers.forEach(d => {
                 driverTeamsSnapshot[d.id] = d.constructorId;
             });
 
@@ -139,6 +140,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                                 event={event}
                                                 currentResults={raceResults[event.id]}
                                                 onSave={handleSave}
+                                                allDrivers={allDrivers}
                                             />
                                         </div>
                                     )}
@@ -163,6 +165,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                     event={selectedEvent}
                                     currentResults={raceResults[selectedEvent.id]}
                                     onSave={handleSave}
+                                    allDrivers={allDrivers}
                                 />
                             </div>
                         ) : (
