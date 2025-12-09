@@ -7,7 +7,6 @@ import ProfilePage from './components/ProfilePage.tsx';
 import LeaderboardPage from './components/LeaderboardPage.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import AdminPage from './components/AdminPage.tsx';
-import FormLockPage from './components/FormLockPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
@@ -108,7 +107,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -134,8 +133,6 @@ const App: React.FC = () => {
       setIsLoading(true);
       if (firebaseUser) {
         // Load Dynamic Entities (Drivers/Teams)
-        // We do this once on mount/auth. No need for realtime listener for now (admin change requires refresh for others is acceptable)
-        // Or we could attach a listener if needed. For now, fetch once.
         const entities = await getLeagueEntities();
         if (entities) {
             setAllDrivers(entities.drivers);
@@ -217,7 +214,6 @@ const App: React.FC = () => {
     if (!user) return;
     try {
       await saveUserPicks(user.id, eventId, picks);
-      // Refresh picks from DB to ensure UI consistency
       const updatedPicks = await getUserPicks(user.id);
       setSeasonPicks(updatedPicks);
       alert(`Picks for ${eventId} submitted successfully!`);
@@ -239,22 +235,21 @@ const App: React.FC = () => {
       await saveRaceResults(newResults);
     } catch (error) {
       console.error("Failed to save race results:", error);
-      throw error; // Re-throw for the caller to handle
+      throw error;
     }
   };
   
   const handleToggleFormLock = async (eventId: string) => {
-    const originalLocks = { ...formLocks }; // Keep a copy of the original state
+    const originalLocks = { ...formLocks };
     const newLocks = { ...formLocks, [eventId]: !formLocks[eventId] };
     setFormLocks(newLocks); // Optimistic UI update
 
     try {
       await saveFormLocks(newLocks);
-      alert(`Form for event ${eventId} has been ${newLocks[eventId] ? 'LOCKED' : 'UNLOCKED'}.`);
     } catch (error) {
       console.error("Failed to save form locks:", error);
       alert(`Error: Could not update lock status for ${eventId}. Reverting change.`);
-      setFormLocks(originalLocks); // Revert the UI state on failure
+      setFormLocks(originalLocks);
     }
   };
 
@@ -283,7 +278,7 @@ const App: React.FC = () => {
         return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
-        return null; // Should not happen if authenticated
+        return null;
       case 'points':
         return <PointsTransparency pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'donate':
@@ -298,15 +293,13 @@ const App: React.FC = () => {
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} />; // Redirect non-admins
+            return <Dashboard user={user} setActivePage={navigateToPage} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
             case 'results':
-                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} />;
-            case 'form-lock':
-                return <FormLockPage formLocks={formLocks} onToggleLock={handleToggleFormLock} setAdminSubPage={setAdminSubPage} />;
+                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} formLocks={formLocks} onToggleLock={handleToggleFormLock} />;
             case 'dues-status':
                 return <DuesStatusManagerPage setAdminSubPage={setAdminSubPage} />;
             case 'manage-users':
@@ -335,29 +328,22 @@ const App: React.FC = () => {
 
   const appContent = (
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
-      {/* Sidebar for Desktop */}
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
-
       <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden">
-        {/* Header for Mobile */}
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden">
          {user ? (
            <>
-             {/* LEFT: icon */}
              <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">
                <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
              </div>
-             {/* CENTER: user name */}
              <div className="text-center justify-self-center">
                 <span className="font-semibold text-lg truncate">{user.displayName}</span>
              </div>
-             {/* RIGHT: log out */}
              <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors justify-self-end">
                Log Out
              </button>
            </>
          ) : (
-           // Fallback for logged-out state (original behavior)
            <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer col-span-3 justify-center">
              <F1CarIcon className="w-10 h-10 text-primary-red" />
              <span className="font-bold text-xl">F1 Fantasy</span>
@@ -365,7 +351,6 @@ const App: React.FC = () => {
          )}
         </header>
 
-        {/* Main Content (scrollable) */}
         <div className="relative flex-1 overflow-y-auto pb-24 md:pb-8">
             <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
             <main className="relative p-4 md:p-8">
@@ -373,7 +358,6 @@ const App: React.FC = () => {
             </main>
         </div>
 
-        {/* Bottom Nav for Mobile */}
         <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />

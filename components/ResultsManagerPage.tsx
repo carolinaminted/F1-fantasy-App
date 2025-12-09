@@ -11,11 +11,13 @@ interface ResultsManagerPageProps {
     onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
     setAdminSubPage: (page: 'dashboard') => void;
     allDrivers: Driver[];
+    formLocks: { [eventId: string]: boolean };
+    onToggleLock: (eventId: string) => void;
 }
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('all');
 
@@ -25,8 +27,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
     const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
         try {
-            // Snapshot current driver-team mapping to ensure historical accuracy
-            // This freezes the grid state at the time of the event
             const driverTeamsSnapshot: { [driverId: string]: string } = {};
             allDrivers.forEach(d => {
                 driverTeamsSnapshot[d.id] = d.constructorId;
@@ -38,7 +38,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             };
 
             await onResultsUpdate(eventId, resultsWithSnapshot);
-            // On desktop, keep the form open for potential further edits. On mobile, close it.
             if (window.innerWidth < 768) {
                 setSelectedEventId(null);
             }
@@ -52,7 +51,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
         if (!results) return false;
-        // A more robust check for any piece of result data
         const hasGpFinish = results.grandPrixFinish?.some(pos => !!pos);
         const hasFastestLap = !!results.fastestLap;
         const hasSprintFinish = results.sprintFinish?.some(pos => !!pos);
@@ -105,7 +103,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             </div>
             
             <div className="flex flex-col md:flex-row md:gap-8">
-                {/* Event List (Left Column on Desktop) */}
+                {/* Event List */}
                 <div className="w-full md:w-2/5 lg:w-1/3">
                     <div className="flex items-center justify-center gap-2 mb-6 p-2 rounded-lg bg-accent-gray/50 w-fit mx-auto md:w-full">
                         <FilterButton label="Show All" value="all" current={filter} onClick={setFilter} />
@@ -116,6 +114,8 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                         {filteredEvents.map(event => {
                             const isSelected = selectedEventId === event.id;
                             const hasResults = checkHasResults(event);
+                            const isLocked = formLocks[event.id];
+
                             return (
                                 <div key={event.id} className={`bg-accent-gray/50 backdrop-blur-sm rounded-lg overflow-hidden transition-all duration-300 ${isSelected ? 'ring-2 ring-primary-red' : 'ring-1 ring-pure-white/10'}`}>
                                     <div 
@@ -123,7 +123,10 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                         onClick={() => handleSelectEvent(event.id)}
                                     >
                                         <div>
-                                            <h2 className={`text-lg font-bold ${isSelected ? 'text-primary-red' : ''}`}>R{event.round}: {event.name}</h2>
+                                            <div className="flex items-center gap-2">
+                                                <h2 className={`text-lg font-bold ${isSelected ? 'text-primary-red' : ''}`}>R{event.round}: {event.name}</h2>
+                                                {isLocked && <span className="text-[10px] bg-primary-red/20 text-primary-red px-2 rounded font-bold uppercase">Locked</span>}
+                                            </div>
                                             <p className="text-sm text-highlight-silver">{event.country}</p>
                                         </div>
                                         <div className="flex items-center gap-4">
@@ -141,6 +144,8 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                                 currentResults={raceResults[event.id]}
                                                 onSave={handleSave}
                                                 allDrivers={allDrivers}
+                                                isLocked={!!formLocks[event.id]}
+                                                onToggleLock={() => onToggleLock(event.id)}
                                             />
                                         </div>
                                     )}
@@ -155,7 +160,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     </div>
                 </div>
 
-                {/* Form Display (Right Column on Desktop) */}
+                {/* Form Display */}
                 <div className="hidden md:block w-full md:w-3/5 lg:w-2/3">
                     <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 sticky top-8">
                         {selectedEvent ? (
@@ -166,6 +171,8 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                     currentResults={raceResults[selectedEvent.id]}
                                     onSave={handleSave}
                                     allDrivers={allDrivers}
+                                    isLocked={!!formLocks[selectedEvent.id]}
+                                    onToggleLock={() => onToggleLock(selectedEvent.id)}
                                 />
                             </div>
                         ) : (

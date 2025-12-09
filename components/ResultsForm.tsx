@@ -7,6 +7,8 @@ interface ResultsFormProps {
     currentResults?: EventResult;
     onSave: (eventId: string, results: EventResult) => Promise<boolean>;
     allDrivers: Driver[];
+    isLocked: boolean;
+    onToggleLock: () => void;
 }
 
 const emptyResults = (event: Event): EventResult => ({
@@ -20,13 +22,13 @@ const emptyResults = (event: Event): EventResult => ({
 });
 
 
-const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers }) => {
+const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers, isLocked, onToggleLock }) => {
     const [results, setResults] = useState<EventResult>(currentResults || emptyResults(event));
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success'>('idle');
 
     useEffect(() => {
         setResults(currentResults || emptyResults(event));
-        setSaveState('idle'); // Reset on event/results change
+        setSaveState('idle'); 
     }, [currentResults, event]);
 
     const handleSelect = (category: keyof EventResult, value: string | null, index: number) => {
@@ -56,7 +58,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                 setSaveState('idle');
             }, 2000);
         } else {
-            setSaveState('idle'); // Parent shows error, so we just reset
+            setSaveState('idle'); 
         }
     };
 
@@ -76,7 +78,19 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 text-pure-white">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-4 mb-4">
+                <button
+                    type="button"
+                    onClick={onToggleLock}
+                    className={`font-bold py-2 px-6 rounded-lg transition-colors duration-200 text-pure-white border-2 ${
+                        isLocked 
+                        ? 'bg-carbon-black border-green-600 hover:bg-green-600/20 text-green-500' 
+                        : 'bg-carbon-black border-primary-red hover:bg-primary-red/20 text-primary-red'
+                    }`}
+                >
+                    {isLocked ? 'Unlock Picks' : 'Lock Picks'}
+                </button>
+
                 <button
                     type="submit"
                     disabled={saveState !== 'idle'}
