@@ -88,7 +88,8 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     };
 
     return (
-        <div className="h-[100dvh] flex flex-col max-w-7xl mx-auto text-pure-white overflow-hidden p-2 md:p-4">
+        // Mobile: Min-height screen, normal flow. Desktop: Fixed height, hidden overflow.
+        <div className="flex flex-col max-w-7xl mx-auto text-pure-white p-2 md:p-4 min-h-screen md:h-screen md:overflow-hidden">
             <div className="flex items-center justify-between mb-2 md:mb-4 flex-shrink-0">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
@@ -136,10 +137,11 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                 </div>
             </div>
 
-            {/* Main Form Area - Expands to fill remaining height */}
-            <div className="flex-1 min-h-0 w-full max-w-6xl mx-auto">
+            {/* Main Form Area */}
+            {/* Mobile: Standard block. Desktop: Flex-1 to fill remaining height, min-h-0 to allow inner scroll */}
+            <div className="w-full max-w-6xl mx-auto md:flex-1 md:min-h-0 md:flex md:flex-col pb-8 md:pb-0">
                 {selectedEvent ? (
-                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-4 ring-1 ring-pure-white/10 h-full flex flex-col">
+                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-4 ring-1 ring-pure-white/10 md:h-full md:flex md:flex-col">
                         <ResultsForm
                             event={selectedEvent}
                             currentResults={raceResults[selectedEvent.id]}
@@ -150,7 +152,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                         />
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
+                    <div className="flex flex-col items-center justify-center h-64 md:h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
                         <AdminIcon className="w-12 h-12 text-accent-gray mb-4" />
                         <h3 className="text-lg font-bold text-highlight-silver mb-2">No Event Selected</h3>
                         <p className="text-highlight-silver/70 text-sm">Select an event from the dropdown above.</p>

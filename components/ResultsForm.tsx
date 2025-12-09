@@ -167,9 +167,10 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     );
 
     return (
-        <form onSubmit={handleSubmit} className="text-pure-white h-full flex flex-col overflow-hidden">
-            {/* Header: Wrapping enabled for mobile friendliness */}
-            <div className="flex flex-wrap md:flex-nowrap justify-between items-center mb-2 md:mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0 gap-y-3">
+        // Mobile: h-auto (flow), Desktop: h-full + overflow hidden
+        <form onSubmit={handleSubmit} className="text-pure-white flex flex-col md:h-full md:overflow-hidden">
+            {/* Header: Sticky on Mobile to keep actions visible */}
+            <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-2 md:mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -225,8 +226,9 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                 </div>
             </div>
 
-            {/* Content Body - Vertically Scrollable on Mobile */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
+            {/* Content Body */}
+            {/* Mobile: Standard vertical flow. Desktop: Flex-1, scrollable interior */}
+            <div className="md:flex-1 md:min-h-0 md:flex md:flex-col md:overflow-y-auto">
                 
                 {!event.hasSprint ? (
                     /* Standard Layout for Non-Sprint Events */
