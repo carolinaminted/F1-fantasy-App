@@ -88,8 +88,9 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     };
 
     return (
-        // Mobile: Min-height screen, normal flow. Desktop: Fixed height, hidden overflow.
-        <div className="flex flex-col max-w-7xl mx-auto text-pure-white p-2 md:p-4 min-h-screen md:h-screen md:overflow-hidden">
+        // Desktop: Calculated height (100vh - 6rem padding) to fit exactly in App shell without scrolling the page.
+        // Mobile: Natural height to allow standard page scrolling.
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white p-2 md:p-0 md:h-[calc(100vh-6rem)] md:overflow-hidden">
             <div className="flex items-center justify-between mb-2 md:mb-4 flex-shrink-0">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
@@ -138,7 +139,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             </div>
 
             {/* Main Form Area */}
-            {/* Mobile: Standard block. Desktop: Flex-1 to fill remaining height, min-h-0 to allow inner scroll */}
+            {/* Mobile: Standard block, auto height. Desktop: Flex-1, hidden overflow (internal scroll in form) */}
             <div className="w-full max-w-6xl mx-auto md:flex-1 md:min-h-0 md:flex md:flex-col pb-8 md:pb-0">
                 {selectedEvent ? (
                     <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-4 ring-1 ring-pure-white/10 md:h-full md:flex md:flex-col">

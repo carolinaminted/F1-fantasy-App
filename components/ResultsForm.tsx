@@ -81,8 +81,9 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     };
 
     // Responsive Grid: 1 column on mobile, 12 columns on large screens
+    // Mobile height: auto (grow). Desktop height: full (fit).
     const renderGpContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto md:h-full">
             {/* Quali Section */}
             <div className="lg:col-span-3 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-2">Qualifying</h4>
@@ -113,7 +114,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     );
 
     const renderSprintContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto md:h-full">
              {/* Sprint Quali */}
             <div className="lg:col-span-3 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-2">Sprint Quali</h4>
@@ -170,7 +171,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         // Mobile: h-auto (flow), Desktop: h-full + overflow hidden
         <form onSubmit={handleSubmit} className="text-pure-white flex flex-col md:h-full md:overflow-hidden">
             {/* Header: Sticky on Mobile to keep actions visible */}
-            <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-2 md:mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0">
+            <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-2 md:mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -293,7 +294,7 @@ const ResultGroup: React.FC<ResultGroupProps> = ({ positions, selected, onSelect
     const gridClass = cols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1';
     
     return (
-        <div className={`grid gap-x-4 gap-y-2 h-full content-start ${gridClass}`}>
+        <div className={`grid gap-x-4 gap-y-2 h-auto md:h-full content-start ${gridClass}`}>
             {Array.from({ length: positions }).map((_, i) => {
                 const otherSelectedIds = selected.filter((id, index) => index !== i && id !== null);
                 return (

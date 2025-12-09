@@ -180,14 +180,17 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             <tr>
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Name</th>
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Class</th>
-                                {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Team</th>}
+                                {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Team</th>}
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center hidden md:table-cell">Active</th>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {getFilteredEntities().map((entity) => (
-                                <tr key={entity.id} className="border-t border-accent-gray/50 hover:bg-pure-white/5">
+                                <tr 
+                                    key={entity.id} 
+                                    onClick={() => openModal(entity)}
+                                    className="border-t border-accent-gray/50 hover:bg-pure-white/5 cursor-pointer"
+                                >
                                     <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
                                     <td className="p-4">
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${entity.class === EntityClass.A ? 'bg-yellow-600 text-pure-white' : 'bg-blue-900 text-blue-100'}`}>
@@ -195,20 +198,20 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                         </span>
                                     </td>
                                     {activeTab === 'drivers' && (
-                                        <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">
+                                        <td className="p-4 text-sm text-highlight-silver">
                                             {constructors.find(c => c.id === (entity as Driver).constructorId)?.name || (entity as Driver).constructorId}
                                         </td>
                                     )}
                                     <td className="p-4 text-center hidden md:table-cell">
                                          <button 
-                                            onClick={() => toggleActive(entity.id, activeTab)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleActive(entity.id, activeTab);
+                                            }}
                                             className={`px-3 py-1 rounded-full text-xs font-bold w-20 ${entity.isActive ? 'bg-green-600/80 text-pure-white' : 'bg-red-900/50 text-red-200'}`}
                                          >
                                             {entity.isActive ? 'Active' : 'Inactive'}
                                          </button>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button onClick={() => openModal(entity)} className="text-highlight-silver hover:text-pure-white underline text-sm">Edit</button>
                                     </td>
                                 </tr>
                             ))}
