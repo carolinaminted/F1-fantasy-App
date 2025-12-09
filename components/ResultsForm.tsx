@@ -27,12 +27,14 @@ const emptyResults = (event: Event): EventResult => ({
 const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers, isLocked, onToggleLock }) => {
     const [results, setResults] = useState<EventResult>(currentResults || emptyResults(event));
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success'>('idle');
-    const [activeSession, setActiveSession] = useState<'gp' | 'sprint'>('gp');
+    // Default to null so both are collapsed initially
+    const [activeSession, setActiveSession] = useState<'gp' | 'sprint' | null>(null);
 
     useEffect(() => {
         setResults(currentResults || emptyResults(event));
         setSaveState('idle'); 
-        setActiveSession('gp'); // Reset to GP on event change
+        // Reset to collapsed (null) whenever the event changes
+        setActiveSession(null); 
     }, [currentResults, event]);
 
     const handleSelect = (category: keyof EventResult, value: string | null, index: number) => {
@@ -241,7 +243,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 title="Grand Prix Session" 
                                 icon={CheckeredFlagIcon} 
                                 isActive={activeSession === 'gp'} 
-                                onClick={() => setActiveSession('gp')} 
+                                onClick={() => setActiveSession(activeSession === 'gp' ? null : 'gp')} 
                             />
                             {activeSession === 'gp' && (
                                 <div className="flex-1 bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 rounded-b-xl mb-2 min-h-0">
@@ -256,7 +258,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 title="Sprint Session" 
                                 icon={SprintIcon} 
                                 isActive={activeSession === 'sprint'} 
-                                onClick={() => setActiveSession('sprint')} 
+                                onClick={() => setActiveSession(activeSession === 'sprint' ? null : 'sprint')} 
                             />
                             {activeSession === 'sprint' && (
                                 <div className="flex-1 bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 rounded-b-xl mb-2 min-h-0">
