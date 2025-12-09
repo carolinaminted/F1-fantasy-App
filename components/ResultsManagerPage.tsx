@@ -76,7 +76,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         return (
             <button
                 onClick={() => onClick(value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex-1 md:flex-none ${
+                className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors flex-1 ${
                     isActive
                         ? 'bg-primary-red text-pure-white'
                         : 'bg-carbon-black text-highlight-silver hover:bg-carbon-black/80'
@@ -88,22 +88,24 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     };
 
     return (
-        <div className="h-[calc(100vh-80px)] flex flex-col max-w-7xl mx-auto text-pure-white overflow-hidden p-4">
-            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div className="h-[100dvh] flex flex-col max-w-7xl mx-auto text-pure-white overflow-hidden p-2 md:p-4">
+            <div className="flex items-center justify-between mb-2 md:mb-4 flex-shrink-0">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors text-sm"
+                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors text-sm py-2"
                 >
                     <BackIcon className="w-4 h-4" />
                     Back
                 </button>
-                <h1 className="text-2xl font-bold flex items-center gap-2 text-right">
-                    Results Manager <AdminIcon className="w-6 h-6"/>
+                <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-right">
+                    <span className="hidden md:inline">Results Manager</span>
+                    <span className="md:hidden">Results</span>
+                    <AdminIcon className="w-6 h-6"/>
                 </h1>
             </div>
             
             {/* Control Bar */}
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-3 mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-center justify-between flex-shrink-0">
+            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-3 mb-2 md:mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center justify-between flex-shrink-0">
                 <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
                     <FilterButton label="All" value="all" current={filter} onClick={setFilter} />
                     <FilterButton label="Done" value="added" current={filter} onClick={setFilter} />
@@ -114,7 +116,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     <select
                         value={selectedEventId}
                         onChange={(e) => setSelectedEventId(e.target.value)}
-                        className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-2 pl-4 pr-10 text-pure-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer"
+                        className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-2.5 pl-4 pr-10 text-pure-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer"
                     >
                         <option value="" disabled>Select an event...</option>
                         {filteredEvents.map(event => {
@@ -137,7 +139,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             {/* Main Form Area - Expands to fill remaining height */}
             <div className="flex-1 min-h-0 w-full max-w-6xl mx-auto">
                 {selectedEvent ? (
-                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 h-full flex flex-col">
+                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-4 ring-1 ring-pure-white/10 h-full flex flex-col">
                         <ResultsForm
                             event={selectedEvent}
                             currentResults={raceResults[selectedEvent.id]}
@@ -148,7 +150,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                         />
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray">
+                    <div className="flex flex-col items-center justify-center h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
                         <AdminIcon className="w-12 h-12 text-accent-gray mb-4" />
                         <h3 className="text-lg font-bold text-highlight-silver mb-2">No Event Selected</h3>
                         <p className="text-highlight-silver/70 text-sm">Select an event from the dropdown above.</p>

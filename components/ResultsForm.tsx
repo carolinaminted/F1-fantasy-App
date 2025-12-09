@@ -80,6 +80,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         success: 'bg-green-600',
     };
 
+    // Responsive Grid: 1 column on mobile, 12 columns on large screens
     const renderGpContent = () => (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
             {/* Quali Section */}
@@ -104,7 +105,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         selected={results.grandPrixFinish}
                         onSelect={(val, idx) => handleSelect('grandPrixFinish', val, idx)}
                         options={driverOptions}
-                        cols={2}
+                        cols={2} // Switch ResultGroup internal cols based on logic below
                     />
                 </div>
             </div>
@@ -167,12 +168,12 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     return (
         <form onSubmit={handleSubmit} className="text-pure-white h-full flex flex-col overflow-hidden">
-            {/* Fixed Header */}
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0">
-                <div className="flex items-center gap-4">
-                    <div>
+            {/* Header: Wrapping enabled for mobile friendliness */}
+            <div className="flex flex-wrap md:flex-nowrap justify-between items-center mb-2 md:mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0 gap-y-3">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="flex-1">
                         <div className="flex items-center gap-2">
-                            <h2 className="text-xl font-bold">{event.name}</h2>
+                            <h2 className="text-lg md:text-xl font-bold truncate">{event.name}</h2>
                             {isLocked && (
                                 <span className="bg-primary-red/20 text-primary-red px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-primary-red/20">
                                     Locked
@@ -181,10 +182,13 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         </div>
                         <p className="text-xs text-highlight-silver">{event.country} • Round {event.round}</p>
                     </div>
-                    {/* Inline Fastest Lap to save vertical space */}
-                    <div className="pl-4 border-l border-accent-gray/50">
+                </div>
+
+                <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                     {/* Fastest Lap Input */}
+                     <div className="flex-1 md:flex-none md:pl-4 md:border-l border-accent-gray/50">
                         <label className="text-[10px] font-bold text-primary-red uppercase block mb-0.5">Fastest Lap</label>
-                        <div className="w-40">
+                        <div className="w-full md:w-40">
                              <SelectDriver
                                 value={results.fastestLap}
                                 onChange={handleFastestLapSelect}
@@ -195,37 +199,38 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                             />
                         </div>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={onToggleLock}
-                        className={`font-bold py-1.5 px-3 rounded text-xs border transition-colors ${
-                            isLocked 
-                            ? 'bg-transparent border-green-600 text-green-500 hover:bg-green-600/10' 
-                            : 'bg-transparent border-primary-red text-primary-red hover:bg-primary-red/10'
-                        }`}
-                    >
-                        {isLocked ? 'Unlock' : 'Lock'}
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={onToggleLock}
+                            className={`font-bold py-1.5 px-3 rounded text-xs border transition-colors h-[34px] ${
+                                isLocked 
+                                ? 'bg-transparent border-green-600 text-green-500 hover:bg-green-600/10' 
+                                : 'bg-transparent border-primary-red text-primary-red hover:bg-primary-red/10'
+                            }`}
+                        >
+                            {isLocked ? 'Unlock' : 'Lock'}
+                        </button>
 
-                    <button
-                        type="submit"
-                        disabled={saveState !== 'idle'}
-                        className={`font-bold py-1.5 px-4 rounded text-xs text-pure-white transition-colors min-w-[100px] ${buttonClasses[saveState]}`}
-                    >
-                        {buttonContent[saveState]}
-                    </button>
+                        <button
+                            type="submit"
+                            disabled={saveState !== 'idle'}
+                            className={`font-bold py-1.5 px-4 rounded text-xs text-pure-white transition-colors min-w-[100px] h-[34px] ${buttonClasses[saveState]}`}
+                        >
+                            {buttonContent[saveState]}
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Content Body - No Scroll */}
-            <div className="flex-1 min-h-0 flex flex-col">
+            {/* Content Body - Vertically Scrollable on Mobile */}
+            <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
                 
                 {!event.hasSprint ? (
                     /* Standard Layout for Non-Sprint Events */
-                    <section className="flex-1 bg-carbon-black/40 rounded-xl p-4 border border-pure-white/5 flex flex-col">
+                    <section className="flex-none lg:flex-1 bg-carbon-black/40 rounded-xl p-4 border border-pure-white/5 flex flex-col">
                         <div className="flex items-center gap-2 mb-4 border-b border-accent-gray/30 pb-2 flex-shrink-0">
                              <CheckeredFlagIcon className="w-5 h-5 text-primary-red" />
                              <h3 className="font-bold text-sm uppercase tracking-wider text-pure-white">Grand Prix Session</h3>
@@ -238,7 +243,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     /* Accordion Layout for Sprint Events */
                     <>
                         {/* GP Section */}
-                        <div className={`flex flex-col transition-all duration-300 ${activeSession === 'gp' ? 'flex-1 min-h-0' : 'flex-none'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${activeSession === 'gp' ? 'flex-none lg:flex-1' : 'flex-none'}`}>
                             <AccordionHeader 
                                 title="Grand Prix Session" 
                                 icon={CheckeredFlagIcon} 
@@ -253,7 +258,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         </div>
 
                         {/* Sprint Section */}
-                        <div className={`flex flex-col transition-all duration-300 ${activeSession === 'sprint' ? 'flex-1 min-h-0' : 'flex-none'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${activeSession === 'sprint' ? 'flex-none lg:flex-1' : 'flex-none'}`}>
                             <AccordionHeader 
                                 title="Sprint Session" 
                                 icon={SprintIcon} 
@@ -282,8 +287,11 @@ interface ResultGroupProps {
 }
 
 const ResultGroup: React.FC<ResultGroupProps> = ({ positions, selected, onSelect, options, cols = 1 }) => {
+    // Dynamic cols: If 2 cols requested, stack to 1 on mobile, 2 on md
+    const gridClass = cols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1';
+    
     return (
-        <div className={`grid gap-x-4 gap-y-2 h-full content-start ${cols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+        <div className={`grid gap-x-4 gap-y-2 h-full content-start ${gridClass}`}>
             {Array.from({ length: positions }).map((_, i) => {
                 const otherSelectedIds = selected.filter((id, index) => index !== i && id !== null);
                 return (
@@ -319,7 +327,7 @@ const SelectDriver: React.FC<SelectDriverProps> = ({ value, onChange, options, l
             <select
                 value={value || ''}
                 onChange={e => onChange(e.target.value || null)}
-                className={`w-full bg-carbon-black border border-accent-gray rounded px-2 text-pure-white focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-primary-red appearance-none truncate ${compact ? 'py-1 text-xs h-7' : 'py-2 text-sm'}`}
+                className={`w-full bg-carbon-black border border-accent-gray rounded px-2 text-pure-white focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-primary-red appearance-none truncate ${compact ? 'py-1 text-xs h-8' : 'py-2 text-sm'}`}
             >
                 <option value="">{placeholder}</option>
                 {options.map(opt => (
