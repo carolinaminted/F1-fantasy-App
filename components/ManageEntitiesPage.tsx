@@ -5,7 +5,6 @@ import { saveLeagueEntities } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
-import { DRIVERS, CONSTRUCTORS } from '../constants.ts';
 
 interface ManageEntitiesPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -19,6 +18,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
     const [drivers, setDrivers] = useState<Driver[]>(currentDrivers);
     const [constructors, setConstructors] = useState<Constructor[]>(currentConstructors);
     const [isSaving, setIsSaving] = useState(false);
+    const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
     
     // Modal State
     const [showModal, setShowModal] = useState(false);
@@ -66,25 +66,6 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         }
     };
 
-    const handleReset = async () => {
-        if (!window.confirm("WARNING: This will overwrite all Drivers and Teams in the database with the official 2026 Default Roster. Any custom drivers will be lost. Continue?")) {
-            return;
-        }
-        setIsSaving(true);
-        try {
-            await saveLeagueEntities(DRIVERS, CONSTRUCTORS);
-            onUpdateEntities(DRIVERS, CONSTRUCTORS);
-            setDrivers(DRIVERS);
-            setConstructors(CONSTRUCTORS);
-            alert("Roster reset to official 2026 defaults!");
-        } catch (e) {
-            console.error(e);
-            alert("Failed to reset roster.");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -124,6 +105,15 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         }
     };
 
+    const getFilteredEntities = () => {
+        const source = activeTab === 'drivers' ? drivers : constructors;
+        return source.filter(entity => {
+            if (filterStatus === 'active') return entity.isActive;
+            if (filterStatus === 'inactive') return !entity.isActive;
+            return true;
+        });
+    };
+
     return (
         <div className="max-w-6xl mx-auto text-pure-white">
             <div className="flex items-center justify-between mb-8">
@@ -135,14 +125,6 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                     Back
                 </button>
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={handleReset}
-                        disabled={isSaving}
-                        className="bg-accent-gray text-highlight-silver hover:text-pure-white hover:bg-carbon-black border border-accent-gray font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50"
-                        title="Reset database to match source code constants"
-                    >
-                        Reset to Official 2026 Roster
-                    </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
@@ -169,9 +151,26 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             </div>
 
             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                <div className="p-4 flex justify-between items-center bg-carbon-black/50">
+                <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50">
                     <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
-                    <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-500 text-pure-white px-4 py-1.5 rounded text-sm font-bold">
+                    
+                    <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1">
+                        {(['all', 'active', 'inactive'] as const).map((status) => (
+                            <button
+                                key={status}
+                                onClick={() => setFilterStatus(status)}
+                                className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors ${
+                                    filterStatus === status 
+                                    ? 'bg-primary-red text-pure-white' 
+                                    : 'text-highlight-silver hover:text-pure-white'
+                                }`}
+                            >
+                                {status}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-500 text-pure-white px-4 py-1.5 rounded text-sm font-bold w-full md:w-auto">
                         + Add New
                     </button>
                 </div>
@@ -181,13 +180,13 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             <tr>
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Name</th>
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Class</th>
-                                {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Team</th>}
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center">Active</th>
+                                {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Team</th>}
+                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center hidden md:table-cell">Active</th>
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {(activeTab === 'drivers' ? drivers : constructors).map((entity) => (
+                            {getFilteredEntities().map((entity) => (
                                 <tr key={entity.id} className="border-t border-accent-gray/50 hover:bg-pure-white/5">
                                     <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
                                     <td className="p-4">
@@ -196,11 +195,11 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                         </span>
                                     </td>
                                     {activeTab === 'drivers' && (
-                                        <td className="p-4 text-sm text-highlight-silver">
+                                        <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">
                                             {constructors.find(c => c.id === (entity as Driver).constructorId)?.name || (entity as Driver).constructorId}
                                         </td>
                                     )}
-                                    <td className="p-4 text-center">
+                                    <td className="p-4 text-center hidden md:table-cell">
                                          <button 
                                             onClick={() => toggleActive(entity.id, activeTab)}
                                             className={`px-3 py-1 rounded-full text-xs font-bold w-20 ${entity.isActive ? 'bg-green-600/80 text-pure-white' : 'bg-red-900/50 text-red-200'}`}
