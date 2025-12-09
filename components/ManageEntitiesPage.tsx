@@ -5,6 +5,7 @@ import { saveLeagueEntities } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
+import { DRIVERS, CONSTRUCTORS } from '../constants.ts';
 
 interface ManageEntitiesPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -65,6 +66,25 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         }
     };
 
+    const handleReset = async () => {
+        if (!window.confirm("WARNING: This will overwrite all Drivers and Teams in the database with the official 2026 Default Roster. Any custom drivers will be lost. Continue?")) {
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await saveLeagueEntities(DRIVERS, CONSTRUCTORS);
+            onUpdateEntities(DRIVERS, CONSTRUCTORS);
+            setDrivers(DRIVERS);
+            setConstructors(CONSTRUCTORS);
+            alert("Roster reset to official 2026 defaults!");
+        } catch (e) {
+            console.error(e);
+            alert("Failed to reset roster.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -115,6 +135,14 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                     Back
                 </button>
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleReset}
+                        disabled={isSaving}
+                        className="bg-accent-gray text-highlight-silver hover:text-pure-white hover:bg-carbon-black border border-accent-gray font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50"
+                        title="Reset database to match source code constants"
+                    >
+                        Reset to Official 2026 Roster
+                    </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
