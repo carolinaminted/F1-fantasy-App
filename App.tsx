@@ -27,7 +27,7 @@ import { LeaderboardIcon } from './components/icons/LeaderboardIcon.tsx';
 import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
-import { CheckeredFlagIcon } from './components/icons/CheckeredFlagIcon.tsx';
+import { TrackIcon } from './components/icons/TrackIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -83,7 +83,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={ProfileIcon} label="My Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={CheckeredFlagIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={TrackIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
@@ -285,7 +285,7 @@ const App: React.FC = () => {
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         return null; // Should not happen if authenticated
       case 'points':
-        return <PointsTransparency pointsSystem={pointsSystem} />;
+        return <PointsTransparency pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':

@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
-import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
+import { TrackIcon } from './icons/TrackIcon.tsx';
 
 interface AdminPageProps {
     setAdminSubPage: (page: 'dashboard' | 'results' | 'form-lock' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities') => void;
@@ -25,7 +25,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     onClick={() => setAdminSubPage('entities')}
                 />
                 <AdminTile
-                    icon={LeaderboardIcon}
+                    icon={TrackIcon}
                     title="Results Entry"
                     description="Update and manage race results for each event."
                     onClick={() => setAdminSubPage('results')}

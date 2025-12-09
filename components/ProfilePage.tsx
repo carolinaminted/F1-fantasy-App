@@ -1,10 +1,11 @@
 
 // Fix: Implement the ProfilePage component to display user stats and picks history.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculatePointsForEvent } from '../services/scoringService.ts';
 import { EVENTS } from '../constants.ts';
+import { updateUserProfile } from '../services/firestoreService.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -55,6 +56,49 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
+
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ displayName: user.displayName, email: user.email });
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    // Update local state if user prop changes (e.g. external update)
+    if (!isEditingProfile) {
+        setProfileForm({ displayName: user.displayName, email: user.email });
+    }
+  }, [user, isEditingProfile]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileError(null);
+
+    // Basic Validation
+    if (!profileForm.displayName.trim()) {
+        setProfileError("Display name cannot be empty.");
+        return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profileForm.email)) {
+        setProfileError("Please enter a valid email address.");
+        return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+        await updateUserProfile(user.id, {
+            displayName: profileForm.displayName,
+            email: profileForm.email
+        });
+        setIsEditingProfile(false);
+    } catch (error) {
+        console.error(error);
+        setProfileError("Failed to update profile. Please try again.");
+    } finally {
+        setIsSavingProfile(false);
+    }
+  };
   
   // For Profile display, we can just show active ones in the breakdown to avoid clutter,
   // or we can show all if we want to show stats for retired drivers too. 
@@ -245,6 +289,77 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 Dues: {user.duesPaidStatus || 'Unpaid'}
             </span>
         </div>
+      </div>
+
+      {/* Profile Info Section */}
+      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 relative">
+        <div className="flex flex-col items-center justify-center mb-6">
+            <h2 className="text-2xl font-bold text-center mb-1">Profile Information</h2>
+            {!isEditingProfile && (
+                <button 
+                    onClick={() => setIsEditingProfile(true)}
+                    className="text-sm text-primary-red hover:text-pure-white font-bold transition-colors"
+                >
+                    Edit Details
+                </button>
+            )}
+        </div>
+        
+        {isEditingProfile ? (
+            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto">
+                <div>
+                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</label>
+                    <input 
+                        type="text" 
+                        value={profileForm.displayName} 
+                        onChange={e => setProfileForm(prev => ({...prev, displayName: e.target.value}))}
+                        className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Email Address</label>
+                    <input 
+                        type="email" 
+                        value={profileForm.email} 
+                        onChange={e => setProfileForm(prev => ({...prev, email: e.target.value}))}
+                        className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
+                    />
+                </div>
+                {profileError && <p className="text-primary-red text-sm text-center">{profileError}</p>}
+                
+                <div className="flex gap-3 pt-2 justify-center">
+                    <button 
+                        type="button" 
+                        onClick={() => {
+                            setIsEditingProfile(false); 
+                            setProfileForm({ displayName: user.displayName, email: user.email });
+                            setProfileError(null);
+                        }}
+                        className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white bg-transparent border border-accent-gray rounded hover:border-highlight-silver transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        disabled={isSavingProfile}
+                        className="px-4 py-2 text-sm font-bold text-pure-white bg-primary-red hover:bg-red-600 rounded transition-colors disabled:opacity-50"
+                    >
+                        {isSavingProfile ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </div>
+            </form>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto text-center">
+                 <div>
+                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</p>
+                    <p className="text-lg font-semibold">{user.displayName}</p>
+                </div>
+                <div>
+                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Email Address</p>
+                    <p className="text-lg font-semibold">{user.email}</p>
+                </div>
+            </div>
+        )}
       </div>
 
       {/* Scoring Breakdown Section */}

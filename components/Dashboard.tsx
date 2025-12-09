@@ -9,7 +9,7 @@ import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
-import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
+import { TrackIcon } from './icons/TrackIcon.tsx';
 
 interface DashboardProps {
   user: User | null;
@@ -41,7 +41,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
           onClick={() => setActivePage('profile')}
         />
         <NavTile
-          icon={CheckeredFlagIcon}
+          icon={TrackIcon}
           title="Results"
           description="Browse official results for all race weekends"
           onClick={() => setActivePage('gp-results')}

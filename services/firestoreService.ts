@@ -48,6 +48,17 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
     return null;
 };
 
+export const updateUserProfile = async (uid: string, data: { displayName: string; email: string }) => {
+    const userRef = doc(db, 'users', uid);
+    try {
+        await updateDoc(userRef, data);
+        console.log(`Profile updated for user ${uid}`);
+    } catch (error) {
+        console.error("Error updating user profile", error);
+        throw error;
+    }
+};
+
 export const updateUserDuesStatus = async (uid: string, status: 'Paid' | 'Unpaid') => {
     const userRef = doc(db, 'users', uid);
     try {
