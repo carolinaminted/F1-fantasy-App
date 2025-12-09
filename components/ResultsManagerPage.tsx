@@ -102,15 +102,15 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                 </h1>
             </div>
             
-            <div className="flex flex-col md:flex-row md:gap-8">
-                {/* Event List */}
-                <div className="w-full md:w-2/5 lg:w-1/3">
-                    <div className="flex items-center justify-center gap-2 mb-6 p-2 rounded-lg bg-accent-gray/50 w-fit mx-auto md:w-full">
-                        <FilterButton label="Show All" value="all" current={filter} onClick={setFilter} />
-                        <FilterButton label="Results Added" value="added" current={filter} onClick={setFilter} />
-                        <FilterButton label="Needs Results" value="pending" current={filter} onClick={setFilter} />
+            <div className="flex flex-col md:flex-row md:gap-8 items-start">
+                {/* Event List - Sticky Sidebar */}
+                <div className="w-full md:w-2/5 lg:w-1/3 sticky top-4 h-[calc(100vh-2rem)] flex flex-col">
+                    <div className="flex-none flex items-center justify-center gap-2 mb-4 p-2 rounded-lg bg-accent-gray/50 w-fit mx-auto md:w-full">
+                        <FilterButton label="All" value="all" current={filter} onClick={setFilter} />
+                        <FilterButton label="Done" value="added" current={filter} onClick={setFilter} />
+                        <FilterButton label="Todo" value="pending" current={filter} onClick={setFilter} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
                         {filteredEvents.map(event => {
                             const isSelected = selectedEventId === event.id;
                             const hasResults = checkHasResults(event);
@@ -160,9 +160,9 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     </div>
                 </div>
 
-                {/* Form Display */}
+                {/* Form Display - Natural Height */}
                 <div className="hidden md:block w-full md:w-3/5 lg:w-2/3">
-                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 sticky top-8">
+                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
                         {selectedEvent ? (
                             <div>
                                 <h2 className="text-2xl font-bold mb-4">Manage Results: {selectedEvent.name}</h2>
