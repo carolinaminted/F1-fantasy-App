@@ -299,7 +299,7 @@ const App: React.FC = () => {
       case 'gp-results':
         return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
         return null;
       case 'points':
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;

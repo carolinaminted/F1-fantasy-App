@@ -15,6 +15,7 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import type { Page } from '../App.tsx';
 
 interface ProfilePageProps {
   user: User;
@@ -23,6 +24,7 @@ interface ProfilePageProps {
   pointsSystem: PointsSystem;
   allDrivers: Driver[];
   allConstructors: Constructor[];
+  setActivePage?: (page: Page) => void;
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -62,7 +64,7 @@ const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon:
     </div>
 );
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -311,13 +313,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
         <div className="flex flex-col justify-center items-center gap-2 mb-8">
             <p className="text-center text-xl text-highlight-silver">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
-            <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
-                (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                ? 'bg-green-600/80 text-pure-white'
-                : 'bg-primary-red/80 text-pure-white'
-            }`}>
+            <button 
+                onClick={() => setActivePage && setActivePage('duesPayment')}
+                disabled={!setActivePage}
+                className={`px-3 py-1 text-xs font-bold uppercase rounded-full transition-transform hover:scale-105 ${
+                    (user.duesPaidStatus || 'Unpaid') === 'Paid'
+                    ? 'bg-green-600/80 text-pure-white'
+                    : 'bg-primary-red/80 text-pure-white'
+                } ${setActivePage ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+            >
                 Dues: {user.duesPaidStatus || 'Unpaid'}
-            </span>
+            </button>
         </div>
       </div>
 
