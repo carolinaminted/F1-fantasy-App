@@ -113,28 +113,21 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const handleArrayChange = (
         category: keyof PointsSystem,
         index: number,
-        value: string
+        value: number
     ) => {
-        if (!editForm) return;
-        if (value.length > 4) return;
-        const numValue = parseInt(value) || 0;
-        
         setEditForm(prev => {
             if (!prev) return null;
             const currentArray = prev.config[category] as number[];
             const newArray = [...currentArray];
-            newArray[index] = numValue;
+            newArray[index] = value;
             return { ...prev, config: { ...prev.config, [category]: newArray } };
         });
     };
 
-    const handleScalarChange = (value: string) => {
-        if (!editForm) return;
-        if (value.length > 4) return;
-        const numValue = parseInt(value) || 0;
+    const handleScalarChange = (value: number) => {
         setEditForm(prev => {
             if (!prev) return null;
-            return { ...prev, config: { ...prev.config, fastestLap: numValue } };
+            return { ...prev, config: { ...prev.config, fastestLap: value } };
         });
     };
 
@@ -243,12 +236,10 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                     <h3 className="font-bold text-highlight-silver mb-2">Fastest Lap Bonus</h3>
                                     <div className="flex items-center gap-4">
                                         <label className="text-sm font-bold text-ghost-white">Points:</label>
-                                        <input 
-                                            type="number" 
+                                        <ScoringInput 
                                             value={editForm.config.fastestLap}
-                                            onChange={(e) => handleScalarChange(e.target.value)}
-                                            max="9999"
-                                            className="w-24 bg-carbon-black border border-accent-gray rounded-md py-2 px-3 text-pure-white focus:ring-primary-red focus:border-primary-red"
+                                            onChange={handleScalarChange}
+                                            className="w-24 bg-carbon-black border border-accent-gray rounded-md py-2 px-3 text-pure-white focus:ring-primary-red focus:border-primary-red text-center font-bold"
                                         />
                                     </div>
                                 </div>
@@ -292,7 +283,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
 const PointArraySection: React.FC<{
     title: string;
     values: number[];
-    onChange: (index: number, value: string) => void;
+    onChange: (index: number, value: number) => void;
 }> = ({ title, values, onChange }) => (
     <div>
         <h3 className="font-bold text-highlight-silver mb-2">{title}</h3>
@@ -300,11 +291,9 @@ const PointArraySection: React.FC<{
             {values.map((val, idx) => (
                 <div key={idx} className="flex flex-col items-center">
                     <label className="text-[10px] text-highlight-silver mb-1">P{idx + 1}</label>
-                    <input 
-                        type="number" 
+                    <ScoringInput 
                         value={val}
-                        onChange={(e) => onChange(idx, e.target.value)}
-                        max="9999"
+                        onChange={(newVal) => onChange(idx, newVal)}
                         className="w-14 bg-carbon-black border border-accent-gray rounded-md py-1 px-1 text-center text-sm text-pure-white focus:ring-primary-red focus:border-primary-red"
                     />
                 </div>
@@ -312,5 +301,49 @@ const PointArraySection: React.FC<{
         </div>
     </div>
 );
+
+// Enhanced Input Component
+const ScoringInput: React.FC<{
+    value: number;
+    onChange: (val: number) => void;
+    className?: string;
+}> = ({ value, onChange, className }) => {
+    // Local string state to handle empty inputs or typing
+    const [localStr, setLocalStr] = useState(value.toString());
+
+    // Sync local state if parent value changes externally
+    useEffect(() => {
+        setLocalStr(value.toString());
+    }, [value]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newVal = e.target.value;
+        // Allow empty string to let user clear input
+        if (newVal === '') {
+            setLocalStr('');
+            onChange(0); // Optional: treat empty as 0 in state, or handle validity elsewhere
+            return;
+        }
+
+        // Only allow numeric input
+        if (/^\d*$/.test(newVal)) {
+            // Remove leading zeros for display, unless it's just "0"
+            const cleanStr = newVal.replace(/^0+/, '') || '0';
+            setLocalStr(cleanStr);
+            onChange(parseInt(cleanStr, 10));
+        }
+    };
+
+    return (
+        <input
+            type="text"
+            inputMode="numeric"
+            value={localStr}
+            onChange={handleChange}
+            onFocus={(e) => e.target.select()} // Seamless select on click
+            className={`${className} appearance-none`} // Ensure CSS reset
+        />
+    );
+};
 
 export default ScoringSettingsPage;
