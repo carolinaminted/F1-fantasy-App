@@ -4,7 +4,7 @@ import { db } from './firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
-import { PickSelection, User, RaceResults, Donation, PointsSystem, Driver, Constructor } from '../types.ts';
+import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
 
@@ -152,13 +152,13 @@ export const saveRaceResults = async (results: RaceResults) => {
 };
 
 // Points System Management
-export const savePointsSystem = async (pointsSystem: PointsSystem) => {
+export const saveScoringSettings = async (settings: ScoringSettingsDoc) => {
     const configRef = doc(db, 'app_state', 'scoring_config');
     try {
-        await setDoc(configRef, pointsSystem);
-        console.log("Points system configuration saved successfully.");
+        await setDoc(configRef, settings);
+        console.log("Scoring settings saved successfully.");
     } catch (error) {
-        console.error("Error saving points system configuration", error);
+        console.error("Error saving scoring settings", error);
         throw error;
     }
 };

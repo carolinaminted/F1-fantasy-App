@@ -56,6 +56,7 @@ export interface EventResult {
   sprintFinish?: (string | null)[];
   sprintQualifying?: (string | null)[];
   driverTeams?: { [driverId: string]: string }; // Snapshot of driver-team mapping at event time
+  scoringSnapshot?: PointsSystem; // Snapshot of points rules used for this result
 }
 
 export interface RaceResults {
@@ -97,4 +98,15 @@ export interface PointsSystem {
   fastestLap: number;
   gpQualifying: number[];
   sprintQualifying: number[];
+}
+
+export interface ScoringProfile {
+  id: string;
+  name: string;
+  config: PointsSystem;
+}
+
+export interface ScoringSettingsDoc {
+  activeProfileId: string;
+  profiles: ScoringProfile[];
 }

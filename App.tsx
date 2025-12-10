@@ -1,6 +1,6 @@
 
 // Fix: Implement the main App component to provide structure, state management, and navigation.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AuthScreen from './components/AuthScreen.tsx';
 import HomePage from './components/HomePage.tsx';
 import ProfilePage from './components/ProfilePage.tsx';
@@ -10,13 +10,12 @@ import AdminPage from './components/AdminPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
 import ManageEntitiesPage from './components/ManageEntitiesPage.tsx'; // New
-import AdminSimulationPage from './components/AdminSimulationPage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
-import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor } from './types.ts';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -32,7 +31,7 @@ import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from '@firebase/auth';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, savePointsSystem, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment';
@@ -106,12 +105,24 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'simulation' | 'scoring' | 'entities'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
-  const [pointsSystem, setPointsSystem] = useState<PointsSystem>(DEFAULT_POINTS_SYSTEM);
   
+  // Scoring State
+  const defaultSettings: ScoringSettingsDoc = {
+      activeProfileId: 'default',
+      profiles: [{ id: 'default', name: 'Default System', config: DEFAULT_POINTS_SYSTEM }]
+  };
+  const [scoringSettings, setScoringSettings] = useState<ScoringSettingsDoc>(defaultSettings);
+  
+  // Derived state for the currently active points system used across the app (unless overridden by historical snapshot)
+  const activePointsSystem = useMemo(() => {
+      const profile = scoringSettings.profiles.find(p => p.id === scoringSettings.activeProfileId);
+      return profile ? profile.config : DEFAULT_POINTS_SYSTEM;
+  }, [scoringSettings]);
+
   // Dynamic Entities State
   const [allDrivers, setAllDrivers] = useState<Driver[]>(DRIVERS);
   const [allConstructors, setAllConstructors] = useState<Constructor[]>(CONSTRUCTORS);
@@ -165,10 +176,22 @@ const App: React.FC = () => {
         const pointsRef = doc(db, 'app_state', 'scoring_config');
         unsubscribePoints = onSnapshot(pointsRef, (docSnap) => {
             if (docSnap.exists()) {
-                setPointsSystem(docSnap.data() as PointsSystem);
+                const data = docSnap.data();
+                // Check if data is in old format (PointsSystem) or new format (ScoringSettingsDoc)
+                if (data.profiles && Array.isArray(data.profiles)) {
+                    setScoringSettings(data as ScoringSettingsDoc);
+                } else {
+                    // Migration: If we find a legacy single config, wrap it in a profile
+                    console.log("Migrating legacy scoring config to profiles...");
+                    const migratedSettings: ScoringSettingsDoc = {
+                        activeProfileId: 'legacy',
+                        profiles: [{ id: 'legacy', name: 'Legacy Config', config: data as PointsSystem }]
+                    };
+                    setScoringSettings(migratedSettings);
+                }
             } else {
                 console.log("Points system config not found. Seeding default.");
-                savePointsSystem(DEFAULT_POINTS_SYSTEM);
+                saveScoringSettings(defaultSettings);
             }
         }, (error) => console.error("Firestore listener error (scoring_config):", error));
 
@@ -191,7 +214,7 @@ const App: React.FC = () => {
         setSeasonPicks({});
         setRaceResults({});
         setFormLocks({});
-        setPointsSystem(DEFAULT_POINTS_SYSTEM);
+        setScoringSettings(defaultSettings);
         // Reset to default constants
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
@@ -269,17 +292,17 @@ const App: React.FC = () => {
       case 'home':
         return <Dashboard user={user} setActivePage={navigateToPage} />;
       case 'picks':
-        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         return null;
       case 'leaderboard':
-        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'gp-results':
         return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         return null;
       case 'points':
-        return <PointsTransparency pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':
@@ -298,13 +321,11 @@ const App: React.FC = () => {
             case 'dashboard':
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
             case 'results':
-                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} formLocks={formLocks} onToggleLock={handleToggleFormLock} />;
+                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} formLocks={formLocks} onToggleLock={handleToggleFormLock} activePointsSystem={activePointsSystem} />;
             case 'manage-users':
-                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
-            case 'simulation':
-                return <AdminSimulationPage setAdminSubPage={setAdminSubPage} pointsSystem={pointsSystem} />;
+                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
             case 'scoring':
-                return <ScoringSettingsPage currentConfig={pointsSystem} setAdminSubPage={setAdminSubPage} />;
+                return <ScoringSettingsPage settings={scoringSettings} setAdminSubPage={setAdminSubPage} />;
             case 'entities':
                 return <ManageEntitiesPage setAdminSubPage={setAdminSubPage} currentDrivers={allDrivers} currentConstructors={allConstructors} onUpdateEntities={handleEntitiesUpdate} />;
             default:

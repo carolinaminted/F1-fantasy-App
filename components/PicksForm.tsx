@@ -268,7 +268,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
       </form>
       {modalContent && (
         <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-[999] p-4" onClick={() => setModalContent(null)}>
-          <div className="bg-accent-gray rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-accent-gray rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               {modalContent}
           </div>
         </div>

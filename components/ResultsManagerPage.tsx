@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { RaceResults, Event, EventResult, Driver } from '../types.ts';
+import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
 import { EVENTS } from '../constants.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
@@ -14,11 +14,12 @@ interface ResultsManagerPageProps {
     allDrivers: Driver[];
     formLocks: { [eventId: string]: boolean };
     onToggleLock: (eventId: string) => void;
+    activePointsSystem: PointsSystem; // New prop
 }
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock, activePointsSystem }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [filter, setFilter] = useState<FilterType>('all');
 
@@ -51,14 +52,20 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
     const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
         try {
+            // Snapshot 1: Driver Teams (Existing)
             const driverTeamsSnapshot: { [driverId: string]: string } = {};
             allDrivers.forEach(d => {
                 driverTeamsSnapshot[d.id] = d.constructorId;
             });
 
+            // Snapshot 2: Scoring Rules (New)
+            // We inject the CURRENT active rules into this result record.
+            // This ensures if we change rules later, this race's points are locked in history.
+            
             const resultsWithSnapshot = {
                 ...results,
-                driverTeams: driverTeamsSnapshot
+                driverTeams: driverTeamsSnapshot,
+                scoringSnapshot: activePointsSystem,
             };
 
             await onResultsUpdate(eventId, resultsWithSnapshot);
@@ -151,6 +158,9 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                             isLocked={!!formLocks[selectedEvent.id]}
                             onToggleLock={() => onToggleLock(selectedEvent.id)}
                         />
+                        <p className="text-center text-[10px] text-highlight-silver mt-2">
+                            Saving results will lock in the <strong>Active Scoring Profile</strong> rules for this race.
+                        </p>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-64 md:h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">

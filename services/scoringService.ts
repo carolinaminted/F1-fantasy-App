@@ -30,9 +30,14 @@ const getDriverPoints = (driverId: string | null, results: (string | null)[] | u
 export const calculatePointsForEvent = (
   picks: PickSelection,
   results: EventResult,
-  pointsSystem: PointsSystem,
+  activeSystem: PointsSystem,
   driversList: Driver[]
 ) => {
+    // --- SCORING SNAPSHOT LOGIC ---
+    // If the result has a specific scoring snapshot saved, use it.
+    // Otherwise, fallback to the currently active system passed in.
+    const pointsSystem = results.scoringSnapshot || activeSystem;
+
     // --- Data structures to hold points per entity ---
     const teamScores: Record<string, { gp: number, sprint: number, gpQuali: number, sprintQuali: number }> = {};
     

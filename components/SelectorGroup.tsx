@@ -57,10 +57,14 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
   const openModal = (index: number) => {
     if (disabled) return;
     const placeholderText = title.endsWith('s') ? title.slice(0, -1) : title;
+    
+    // Drivers get 4 columns, Teams get 3 columns on desktop
+    const gridCols = entityType === 'drivers' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3';
+
     const modalBody = (
       <div className="p-6">
         <h4 className="text-2xl font-bold mb-4">Select {placeholderText}</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className={`grid ${gridCols} gap-4`}>
           {options.map(option => {
             const isSelected = selected.includes(option.id);
             const canSelect = hasRemaining(option.id, entityType);

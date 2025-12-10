@@ -7,7 +7,7 @@ import { TeamIcon } from './icons/TeamIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'simulation' | 'scoring' | 'entities') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -40,12 +40,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Scoring Settings"
                     description="Configure points awarded for race results."
                     onClick={() => setAdminSubPage('scoring')}
-                />
-                 <AdminTile
-                    icon={TrophyIcon}
-                    title="Scoring Simulator"
-                    description="Run 100-season audit to verify data integrity."
-                    onClick={() => setAdminSubPage('simulation')}
                 />
             </div>
         </div>
