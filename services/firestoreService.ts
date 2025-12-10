@@ -9,14 +9,14 @@ import { PickSelection, User, RaceResults, Donation, PointsSystem, Driver, Const
 import { User as FirebaseUser } from '@firebase/auth';
 
 // User Profile Management
-export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string }) => {
+export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string }) => {
     if (!userAuth) return;
     const userRef = doc(db, 'users', userAuth.uid);
     const snapshot = await getDoc(userRef);
 
     if (!snapshot.exists()) {
         const { email } = userAuth;
-        const { displayName } = additionalData;
+        const { displayName, firstName, lastName } = additionalData;
         const userPicksRef = doc(db, 'userPicks', userAuth.uid); // Reference to the picks document
 
         try {
@@ -24,6 +24,8 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
             await setDoc(userRef, {
                 displayName,
                 email,
+                firstName,
+                lastName,
                 duesPaidStatus: 'Unpaid',
             });
 
@@ -48,7 +50,7 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
     return null;
 };
 
-export const updateUserProfile = async (uid: string, data: { displayName: string; email: string }) => {
+export const updateUserProfile = async (uid: string, data: { displayName: string; email: string; firstName?: string; lastName?: string }) => {
     const userRef = doc(db, 'users', uid);
     try {
         await updateDoc(userRef, data);

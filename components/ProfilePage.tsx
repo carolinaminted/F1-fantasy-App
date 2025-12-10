@@ -59,14 +59,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ displayName: user.displayName, email: user.email });
+  const [profileForm, setProfileForm] = useState({ 
+      displayName: user.displayName, 
+      email: user.email,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '' 
+  });
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     // Update local state if user prop changes (e.g. external update)
     if (!isEditingProfile) {
-        setProfileForm({ displayName: user.displayName, email: user.email });
+        setProfileForm({ 
+            displayName: user.displayName, 
+            email: user.email,
+            firstName: user.firstName || '',
+            lastName: user.lastName || ''
+        });
     }
   }, [user, isEditingProfile]);
 
@@ -75,6 +85,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setProfileError(null);
 
     // Basic Validation
+    if (!profileForm.firstName.trim()) {
+        setProfileError("First name is required.");
+        return;
+    }
+    if (!profileForm.lastName.trim()) {
+        setProfileError("Last name is required.");
+        return;
+    }
     if (!profileForm.displayName.trim()) {
         setProfileError("Display name cannot be empty.");
         return;
@@ -89,7 +107,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     try {
         await updateUserProfile(user.id, {
             displayName: profileForm.displayName,
-            email: profileForm.email
+            email: profileForm.email,
+            firstName: profileForm.firstName,
+            lastName: profileForm.lastName
         });
         setIsEditingProfile(false);
     } catch (error) {
@@ -307,12 +327,37 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         
         {isEditingProfile ? (
             <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">First Name</label>
+                        <input 
+                            type="text" 
+                            value={profileForm.firstName} 
+                            onChange={e => setProfileForm(prev => ({...prev, firstName: e.target.value}))}
+                            placeholder="Required"
+                            required
+                            className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Last Name</label>
+                        <input 
+                            type="text" 
+                            value={profileForm.lastName} 
+                            onChange={e => setProfileForm(prev => ({...prev, lastName: e.target.value}))}
+                            placeholder="Required"
+                            required
+                            className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
+                        />
+                    </div>
+                </div>
                 <div>
                     <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</label>
                     <input 
                         type="text" 
                         value={profileForm.displayName} 
                         onChange={e => setProfileForm(prev => ({...prev, displayName: e.target.value}))}
+                        required
                         className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                     />
                 </div>
@@ -322,6 +367,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                         type="email" 
                         value={profileForm.email} 
                         onChange={e => setProfileForm(prev => ({...prev, email: e.target.value}))}
+                        required
                         className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                     />
                 </div>
@@ -332,7 +378,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                         type="button" 
                         onClick={() => {
                             setIsEditingProfile(false); 
-                            setProfileForm({ displayName: user.displayName, email: user.email });
+                            setProfileForm({ 
+                                displayName: user.displayName, 
+                                email: user.email,
+                                firstName: user.firstName || '',
+                                lastName: user.lastName || ''
+                            });
                             setProfileError(null);
                         }}
                         className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white bg-transparent border border-accent-gray rounded hover:border-highlight-silver transition-colors"
@@ -350,6 +401,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             </form>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto text-center">
+                 <div>
+                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">First Name</p>
+                    <p className="text-lg font-semibold">{user.firstName || '-'}</p>
+                </div>
+                <div>
+                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Last Name</p>
+                    <p className="text-lg font-semibold">{user.lastName || '-'}</p>
+                </div>
                  <div>
                     <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</p>
                     <p className="text-lg font-semibold">{user.displayName}</p>

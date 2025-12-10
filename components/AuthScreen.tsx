@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { auth } from '../services/firebase.ts';
@@ -11,6 +12,8 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,6 +23,8 @@ const AuthScreen: React.FC = () => {
       setPassword('password123');
     } else {
       const randomId = Math.floor(Math.random() * 1000);
+      setFirstName('Test');
+      setLastName('Principal');
       setDisplayName('Test Principal');
       setEmail(`test.user.${randomId}@fantasy.f1`);
       setPassword('password123');
@@ -45,7 +50,17 @@ const AuthScreen: React.FC = () => {
               setIsLoading(false);
           }
       } else {
-          if (!displayName) {
+          if (!firstName.trim()) {
+              setError('First Name is required.');
+              setIsLoading(false);
+              return;
+          }
+          if (!lastName.trim()) {
+              setError('Last Name is required.');
+              setIsLoading(false);
+              return;
+          }
+          if (!displayName.trim()) {
               setError('Please enter a display name.');
               setIsLoading(false);
               return;
@@ -59,7 +74,7 @@ const AuthScreen: React.FC = () => {
               const userCredential = await createUserWithEmailAndPassword(auth, email, password);
               const user = userCredential.user;
               try {
-                  await createUserProfileDocument(user, { displayName });
+                  await createUserProfileDocument(user, { displayName, firstName, lastName });
                   // On success, the onAuthStateChanged listener handles the redirect, so we don't reset loading state.
               } catch (profileError) {
                   // This is a critical failure: auth user was created, but firestore profile was not.
@@ -98,21 +113,55 @@ const AuthScreen: React.FC = () => {
         
         <form className="space-y-4" onSubmit={handleSubmit}>
           {!isLogin && (
-            <div>
-              <label className="text-sm font-bold text-ghost-white" htmlFor="displayName">Display Name</label>
-              <input 
-                type="text" 
-                id="displayName"
-                value={displayName}
-                onChange={(e) => {
-                    setDisplayName(e.target.value);
-                    setError(null);
-                }}
-                placeholder="e.g. Awesome Racing"
-                required
-                className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
-              />
-            </div>
+            <>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-sm font-bold text-ghost-white" htmlFor="firstName">First Name</label>
+                        <input 
+                            type="text" 
+                            id="firstName"
+                            value={firstName}
+                            onChange={(e) => {
+                                setFirstName(e.target.value);
+                                setError(null);
+                            }}
+                            placeholder="John"
+                            required
+                            className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-bold text-ghost-white" htmlFor="lastName">Last Name</label>
+                        <input 
+                            type="text" 
+                            id="lastName"
+                            value={lastName}
+                            onChange={(e) => {
+                                setLastName(e.target.value);
+                                setError(null);
+                            }}
+                            placeholder="Doe"
+                            required
+                            className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+                        />
+                    </div>
+                </div>
+                <div>
+                <label className="text-sm font-bold text-ghost-white" htmlFor="displayName">Display Name</label>
+                <input 
+                    type="text" 
+                    id="displayName"
+                    value={displayName}
+                    onChange={(e) => {
+                        setDisplayName(e.target.value);
+                        setError(null);
+                    }}
+                    placeholder="e.g. Awesome Racing"
+                    required
+                    className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+                />
+                </div>
+            </>
           )}
           <div>
             <label className="text-sm font-bold text-ghost-white" htmlFor="email">Email Address</label>
