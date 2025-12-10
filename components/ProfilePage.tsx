@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculatePointsForEvent } from '../services/scoringService.ts';
-import { EVENTS } from '../constants.ts';
+import { EVENTS, CONSTRUCTORS } from '../constants.ts';
 import { updateUserProfile } from '../services/firestoreService.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -38,19 +38,26 @@ interface ModalData {
     content: React.ReactNode;
 }
 
-const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({ label, used, limit }) => {
+const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?: string }> = ({ label, used, limit, color }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
+  const barColor = color || '#DA291C';
+
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-semibold text-ghost-white">{label}</span>
+        <div className="flex items-center gap-2">
+            {color && <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style={{ backgroundColor: color }} />}
+            <span className="text-sm font-semibold text-ghost-white">{label}</span>
+        </div>
         <span className="text-sm font-mono text-highlight-silver">{used} / {limit}</span>
       </div>
-      <div className="w-full bg-carbon-black rounded-full h-2.5">
+      <div className="w-full bg-carbon-black rounded-full h-2.5 ring-1 ring-pure-white/5 overflow-hidden">
         <div 
-          className="bg-primary-red h-2.5 rounded-full" 
-          style={{ width: `${percentage}%` }}
-        ></div>
+          className="h-2.5 rounded-full transition-all duration-500 relative" 
+          style={{ width: `${percentage}%`, backgroundColor: barColor }}
+        >
+             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent"></div>
+        </div>
       </div>
     </div>
   );
@@ -139,6 +146,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const bTeams = allConstructors.filter(c => c.class === EntityClass.B);
   const aDrivers = allDrivers.filter(d => d.class === EntityClass.A);
   const bDrivers = allDrivers.filter(d => d.class === EntityClass.B);
+
+  // Helper to resolve team color safely (DB vs Constants)
+  const getTeamColor = (teamId: string | undefined) => {
+      if (!teamId) return undefined;
+      // Try dynamic list first (if user updated colors in Admin)
+      const dynamicTeam = allConstructors.find(c => c.id === teamId);
+      if (dynamicTeam?.color) return dynamicTeam.color;
+      // Fallback to constants
+      return CONSTRUCTORS.find(c => c.id === teamId)?.color;
+  };
 
   const toggleEvent = (eventId: string) => {
     setExpandedEvent(prev => (prev === eventId ? null : eventId));
@@ -305,6 +322,45 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setModalData({ title, content: finalContent });
   };
 
+  const handleUsageDetailClick = (entityId: string, entityName: string) => {
+    const usageEvents = EVENTS.filter(event => {
+        const picks = seasonPicks[event.id];
+        if (!picks) return false;
+        
+        // Check if entityId is in any of the pick arrays
+        const allPicked = [
+            ...picks.aTeams, 
+            picks.bTeam, 
+            ...picks.aDrivers, 
+            ...picks.bDrivers
+        ].filter(Boolean); // Filter nulls
+        
+        return allPicked.includes(entityId);
+    });
+    
+    const content = (
+        <div className="space-y-4">
+             <p className="text-highlight-silver text-sm">You have selected <span className="text-pure-white font-bold">{entityName}</span> for the following events:</p>
+             {usageEvents.length > 0 ? (
+                <ul className="space-y-2">
+                    {usageEvents.map(e => (
+                        <li key={e.id} className="p-3 bg-carbon-black/50 rounded flex justify-between items-center border border-pure-white/5">
+                            <span className="font-semibold text-ghost-white">R{e.round}: {e.name}</span>
+                            <span className="text-xs text-highlight-silver">{e.country}</span>
+                        </li>
+                    ))}
+                </ul>
+             ) : (
+                 <div className="p-4 text-center bg-carbon-black/30 rounded border border-dashed border-accent-gray">
+                     <p className="text-highlight-silver">No selections made yet.</p>
+                 </div>
+             )}
+        </div>
+    );
+    
+    setModalData({ title: `Usage History: ${entityName}`, content });
+  };
+
 
   return (
     <>
@@ -425,69 +481,82 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         )}
       </div>
 
-      {/* Scoring Breakdown Section */}
-      <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-        <h2 className="text-2xl font-bold mb-6 text-center">Scoring Breakdown</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
-            <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">Grand Prix</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
-            </button>
-            <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">Sprint Race</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
-            </button>
-            <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">Fastest Lap</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
-            </button>
-            <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                <p className="text-sm text-highlight-silver">GP Quali</p>
-                <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
-            </button>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Selection Counts Section */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
-          <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-              <CollapsibleUsageList
-                  title="Class A Teams"
-                  entities={aTeams}
-                  usageData={usageRollup.teams}
-                  limit={getLimit(EntityClass.A, 'teams')}
-              />
-              <CollapsibleUsageList
-                  title="Class B Teams"
-                  entities={bTeams}
-                  usageData={usageRollup.teams}
-                  limit={getLimit(EntityClass.B, 'teams')}
-              />
-              <CollapsibleUsageList
-                  title="Class A Drivers"
-                  entities={aDrivers}
-                  usageData={usageRollup.drivers}
-                  limit={getLimit(EntityClass.A, 'drivers')}
-              />
-              <CollapsibleUsageList
-                  title="Class B Drivers"
-                  entities={bDrivers}
-                  usageData={usageRollup.drivers}
-                  limit={getLimit(EntityClass.B, 'drivers')}
-              />
+        {/* Left Column: Scoring Breakdown & Selection Counts */}
+        <div className="space-y-8">
+            
+            {/* Scoring Breakdown Section */}
+            <div>
+                <h2 className="text-2xl font-bold mb-4 text-center">Scoring Breakdown</h2>
+                <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                            <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                            <p className="text-sm text-highlight-silver">Grand Prix</p>
+                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
+                        </button>
+                        <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                            <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                            <p className="text-sm text-highlight-silver">Sprint Race</p>
+                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
+                        </button>
+                        <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                            <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                            <p className="text-sm text-highlight-silver">Fastest Lap</p>
+                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
+                        </button>
+                        <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                            <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                            <p className="text-sm text-highlight-silver">GP Quali</p>
+                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
+                        </button>
+                    </div>
+                </div>
             </div>
-          </div>
+
+            {/* Selection Counts Section */}
+            <div>
+            <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
+            <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <CollapsibleUsageList
+                    title="Class A Teams"
+                    entities={aTeams.map(t => ({ id: t.id, name: t.name, color: getTeamColor(t.id) }))}
+                    usageData={usageRollup.teams}
+                    limit={getLimit(EntityClass.A, 'teams')}
+                    onItemClick={handleUsageDetailClick}
+                />
+                <CollapsibleUsageList
+                    title="Class B Teams"
+                    entities={bTeams.map(t => ({ id: t.id, name: t.name, color: getTeamColor(t.id) }))}
+                    usageData={usageRollup.teams}
+                    limit={getLimit(EntityClass.B, 'teams')}
+                    onItemClick={handleUsageDetailClick}
+                />
+                <CollapsibleUsageList
+                    title="Class A Drivers"
+                    entities={aDrivers.map(d => {
+                        return { id: d.id, name: d.name, color: getTeamColor(d.constructorId) };
+                    })}
+                    usageData={usageRollup.drivers}
+                    limit={getLimit(EntityClass.A, 'drivers')}
+                    onItemClick={handleUsageDetailClick}
+                />
+                <CollapsibleUsageList
+                    title="Class B Drivers"
+                    entities={bDrivers.map(d => {
+                        return { id: d.id, name: d.name, color: getTeamColor(d.constructorId) };
+                    })}
+                    usageData={usageRollup.drivers}
+                    limit={getLimit(EntityClass.B, 'drivers')}
+                    onItemClick={handleUsageDetailClick}
+                />
+                </div>
+            </div>
+            </div>
         </div>
 
-
-        {/* Picks History Section */}
+        {/* Right Column: Picks History Section */}
         <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
             <div className="space-y-2">
@@ -592,10 +661,11 @@ const PointChip: React.FC<PointChipProps> = ({ icon: Icon, label, points = 0 }) 
 
 const CollapsibleUsageList: React.FC<{
   title: string;
-  entities: { id: string; name: string }[];
+  entities: { id: string; name: string; color?: string }[];
   usageData: { [id: string]: number };
   limit: number;
-}> = ({ title, entities, usageData, limit }) => {
+  onItemClick: (id: string, name: string) => void;
+}> = ({ title, entities, usageData, limit, onItemClick }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -611,12 +681,18 @@ const CollapsibleUsageList: React.FC<{
       {isOpen && (
         <div className="mt-3 space-y-3 flex-grow">
           {entities.map(e => (
-            <UsageMeter
-              key={e.id}
-              label={e.name}
-              used={usageData[e.id] || 0}
-              limit={limit}
-            />
+            <button
+                key={e.id}
+                onClick={() => onItemClick(e.id, e.name)}
+                className="w-full text-left transition-transform hover:scale-[1.01] hover:bg-pure-white/5 rounded-lg p-1.5 -mx-1.5 focus:outline-none focus:ring-1 focus:ring-pure-white/20 group"
+            >
+                <UsageMeter
+                  label={e.name}
+                  used={usageData[e.id] || 0}
+                  limit={limit}
+                  color={e.color}
+                />
+            </button>
           ))}
         </div>
       )}

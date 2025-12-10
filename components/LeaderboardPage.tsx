@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { EVENTS } from '../constants.ts';
+import { EVENTS, CONSTRUCTORS } from '../constants.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
@@ -65,18 +65,24 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
     const maxValue = max || Math.max(...data.map(d => d.value), 1);
     return (
         <div className="space-y-3">
-            {data.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-sm">
-                    <span className="w-32 text-right truncate font-semibold text-highlight-silver">{item.label}</span>
-                    <div className="flex-1 h-4 bg-carbon-black rounded-full overflow-hidden">
-                        <div 
-                            className={`h-full rounded-full ${item.color || 'bg-primary-red'}`} 
-                            style={{ width: `${(item.value / maxValue) * 100}%` }} 
-                        />
+            {data.map((item, idx) => {
+                const isHex = item.color?.startsWith('#');
+                return (
+                    <div key={idx} className="flex items-center gap-3 text-sm">
+                        <span className="w-32 text-right truncate font-semibold text-highlight-silver">{item.label}</span>
+                        <div className="flex-1 h-4 bg-carbon-black rounded-full overflow-hidden">
+                            <div 
+                                className={`h-full rounded-full ${!item.color ? 'bg-primary-red' : (isHex ? '' : item.color)}`} 
+                                style={{ 
+                                    width: `${(item.value / maxValue) * 100}%`,
+                                    backgroundColor: isHex ? item.color : undefined 
+                                }} 
+                            />
+                        </div>
+                        <span className="w-12 font-bold text-pure-white text-right">{item.value}</span>
                     </div>
-                    <span className="w-12 font-bold text-pure-white text-right">{item.value}</span>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };
@@ -176,17 +182,34 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
             });
         });
 
-        const sortAndMap = (counts: { [id: string]: number }, order: 'desc' | 'asc', color?: string) => 
+        // Helper to find color
+        const getColor = (id: string, type: 'team' | 'driver') => {
+            if (type === 'team') {
+                const team = allConstructors.find(c => c.id === id);
+                return team?.color || CONSTRUCTORS.find(c => c.id === id)?.color;
+            } else {
+                const driver = allDrivers.find(d => d.id === id);
+                if (!driver) return undefined;
+                const team = allConstructors.find(c => c.id === driver.constructorId);
+                return team?.color || CONSTRUCTORS.find(c => c.id === driver.constructorId)?.color;
+            }
+        };
+
+        const sortAndMap = (counts: { [id: string]: number }, order: 'desc' | 'asc', type: 'team' | 'driver') => 
             Object.entries(counts)
-                .map(([id, val]) => ({ label: getEntityName(id, allDrivers, allConstructors), value: val, color }))
+                .map(([id, val]) => ({ 
+                    label: getEntityName(id, allDrivers, allConstructors), 
+                    value: val, 
+                    color: getColor(id, type)
+                }))
                 .sort((a, b) => order === 'desc' ? b.value - a.value : a.value - b.value)
                 .slice(0, 5);
 
         return {
-            teams: sortAndMap(teamCounts, 'desc'),
-            leastTeams: sortAndMap(teamCounts, 'asc', 'bg-blue-600'),
-            drivers: sortAndMap(driverCounts, 'desc'),
-            leastDrivers: sortAndMap(driverCounts, 'asc', 'bg-blue-600')
+            teams: sortAndMap(teamCounts, 'desc', 'team'),
+            leastTeams: sortAndMap(teamCounts, 'asc', 'team'),
+            drivers: sortAndMap(driverCounts, 'desc', 'driver'),
+            leastDrivers: sortAndMap(driverCounts, 'asc', 'driver')
         };
     }, [allPicks, timeRange, allDrivers, allConstructors]);
 
@@ -377,10 +400,27 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             }
         });
 
+        // Helper to find color
+        const getColor = (id: string, type: 'team' | 'driver') => {
+            if (type === 'team') {
+                const team = allConstructors.find(c => c.id === id);
+                return team?.color || CONSTRUCTORS.find(c => c.id === id)?.color;
+            } else {
+                const driver = allDrivers.find(d => d.id === id);
+                if (!driver) return undefined;
+                const team = allConstructors.find(c => c.id === driver.constructorId);
+                return team?.color || CONSTRUCTORS.find(c => c.id === driver.constructorId)?.color;
+            }
+        };
+
         // Format
-        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, limit?: number, color?: string) => {
+        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, type: 'team' | 'driver', limit?: number) => {
             return Object.keys(source)
-                .map(id => ({ label: nameFn(id), value: valueFn(id), color }))
+                .map(id => ({ 
+                    label: nameFn(id), 
+                    value: valueFn(id), 
+                    color: getColor(id, type)
+                }))
                 .sort((a, b) => b.value - a.value)
                 .filter(item => item.value > 0)
                 .slice(0, limit);
@@ -389,11 +429,11 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
         const getName = (id: string) => getEntityName(id, allDrivers, allConstructors);
 
         return {
-            teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, undefined, 'bg-primary-red'),
-            driversTotal: formatData(driverScores, (id) => driverScores[id].total, getName, 10, 'bg-primary-red'),
-            driversSprint: formatData(driverScores, (id) => driverScores[id].sprint, getName, 5, 'bg-yellow-500'),
-            driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 5, 'bg-blue-500'),
-            driversFL: formatData(driverScores, (id) => driverScores[id].fl, getName, 5, 'bg-purple-500'),
+            teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, 'team'),
+            driversTotal: formatData(driverScores, (id) => driverScores[id].total, getName, 'driver', 10),
+            driversSprint: formatData(driverScores, (id) => driverScores[id].sprint, getName, 'driver', 5),
+            driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 'driver', 5),
+            driversFL: formatData(driverScores, (id) => driverScores[id].fl, getName, 'driver', 5),
         };
 
     }, [raceResults, pointsSystem, allDrivers, allConstructors]);
