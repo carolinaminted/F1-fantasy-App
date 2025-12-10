@@ -57,6 +57,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
         initialPicksForEvent={seasonPicks[selectedEvent.id]}
         onPicksSubmit={onPicksSubmit}
         formLocks={formLocks}
+        allConstructors={allConstructors}
         {...fantasyData}
       />
     </div>

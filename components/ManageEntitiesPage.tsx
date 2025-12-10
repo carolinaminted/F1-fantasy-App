@@ -30,6 +30,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
     const [formClass, setFormClass] = useState<EntityClass>(EntityClass.A);
     const [formTeamId, setFormTeamId] = useState('');
     const [formIsActive, setFormIsActive] = useState(true);
+    const [formColor, setFormColor] = useState('#FFFFFF');
 
     const openModal = (entity?: Driver | Constructor) => {
         if (entity) {
@@ -40,6 +41,8 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             setFormIsActive(entity.isActive);
             if (activeTab === 'drivers') {
                 setFormTeamId((entity as Driver).constructorId);
+            } else {
+                setFormColor((entity as Constructor).color || '#FFFFFF');
             }
         } else {
             setEditEntityId(null);
@@ -48,6 +51,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             setFormClass(EntityClass.A);
             setFormIsActive(true);
             setFormTeamId(constructors[0]?.id || '');
+            setFormColor('#FFFFFF');
         }
         setShowModal(true);
     };
@@ -87,7 +91,8 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                 id: editEntityId || formId.toLowerCase().replace(/\s+/g, '_'),
                 name: formName,
                 class: formClass,
-                isActive: formIsActive
+                isActive: formIsActive,
+                color: formColor
             };
              setConstructors(prev => {
                 if (editEntityId) return prev.map(c => c.id === editEntityId ? newConstructor : c);
@@ -116,15 +121,15 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
 
     return (
         <div className="max-w-6xl mx-auto text-pure-white">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
+                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors self-start md:self-auto"
                 >
                     <BackIcon className="w-5 h-5" />
                     Back
                 </button>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full md:w-auto justify-end">
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
@@ -181,6 +186,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Name</th>
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Class</th>
                                 {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Team</th>}
+                                {activeTab === 'teams' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Color</th>}
                                 <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center hidden md:table-cell">Active</th>
                             </tr>
                         </thead>
@@ -200,6 +206,17 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                     {activeTab === 'drivers' && (
                                         <td className="p-4 text-sm text-highlight-silver">
                                             {constructors.find(c => c.id === (entity as Driver).constructorId)?.name || (entity as Driver).constructorId}
+                                        </td>
+                                    )}
+                                    {activeTab === 'teams' && (
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-2">
+                                                <div 
+                                                    className="w-4 h-4 rounded-full border border-white/20" 
+                                                    style={{ backgroundColor: (entity as Constructor).color }}
+                                                />
+                                                <span className="text-xs text-highlight-silver">{(entity as Constructor).color}</span>
+                                            </div>
                                         </td>
                                     )}
                                     <td className="p-4 text-center hidden md:table-cell">
@@ -223,7 +240,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-accent-gray rounded-lg max-w-md w-full p-6 ring-1 ring-pure-white/20">
+                    <div className="bg-accent-gray rounded-lg max-w-md w-full p-6 ring-1 ring-pure-white/20 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-2xl font-bold mb-4">{editEntityId ? 'Edit Entity' : 'Add New Entity'}</h3>
                         <form onSubmit={handleFormSubmit} className="space-y-4">
                             <div>
@@ -268,6 +285,26 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                     >
                                         {constructors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
+                                </div>
+                            )}
+                            {activeTab === 'teams' && (
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Team Color</label>
+                                    <div className="flex gap-2 items-center">
+                                        <input 
+                                            type="color" 
+                                            value={formColor} 
+                                            onChange={e => setFormColor(e.target.value)}
+                                            className="w-10 h-10 rounded border-none cursor-pointer"
+                                        />
+                                        <input 
+                                            type="text"
+                                            value={formColor}
+                                            onChange={e => setFormColor(e.target.value)}
+                                            className="flex-1 bg-carbon-black border border-accent-gray rounded p-2 text-pure-white"
+                                            placeholder="#RRGGBB"
+                                        />
+                                    </div>
                                 </div>
                             )}
                              <div className="flex items-center gap-2">

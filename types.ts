@@ -20,6 +20,7 @@ export interface Constructor {
   name: string;
   class: EntityClass;
   isActive: boolean;
+  color: string; // New: Team branding color
 }
 
 export interface Driver {

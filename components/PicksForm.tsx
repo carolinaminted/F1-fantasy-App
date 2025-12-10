@@ -5,6 +5,7 @@ import SelectorGroup from './SelectorGroup.tsx';
 import { SubmitIcon } from './icons/SubmitIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
+import { CONSTRUCTORS } from '../constants.ts';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -25,6 +26,7 @@ interface PicksFormProps {
   aDrivers: Driver[];
   bDrivers: Driver[];
   allDrivers: Driver[];
+  allConstructors: Constructor[]; // Need this for color lookups in children
   getUsage: (id: string, type: 'teams' | 'drivers') => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
   hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
@@ -41,6 +43,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   aDrivers,
   bDrivers,
   allDrivers,
+  allConstructors,
   getUsage,
   getLimit,
   hasRemaining
@@ -91,6 +94,19 @@ const PicksForm: React.FC<PicksFormProps> = ({
     } else {
         alert("Please complete all selections before submitting.");
     }
+  };
+  
+  // Resolve fastest lap color
+  const getFastestLapColor = () => {
+      if(!picks.fastestLap) return undefined;
+      const driver = allDrivers.find(d => d.id === picks.fastestLap);
+      if(!driver) return undefined;
+      let constructor = allConstructors.find(c => c.id === driver.constructorId);
+      // Fallback to constants if color missing
+      if (!constructor?.color) {
+          constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
+      }
+      return constructor?.color;
   };
 
   if (isLockedByAdmin && !isEditing) {
@@ -166,6 +182,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="teams"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
 
                 <SelectorGroup
@@ -180,6 +197,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="teams"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
             </div>
             {/* Right Column: Drivers */}
@@ -196,6 +214,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="drivers"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
                 
                 <SelectorGroup
@@ -210,6 +229,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="drivers"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
             </div>
         </div>
@@ -229,6 +249,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                       onSelect={(value) => handleSelect('fastestLap', value)}
                       placeholder="Driver"
                       disabled={isFormLockedForStatus}
+                      color={getFastestLapColor()}
                   />
               </div>
          </div>
@@ -267,9 +288,25 @@ interface SelectorCardProps {
     placeholder?: string;
     usage?: string;
     disabled?: boolean;
+    color?: string;
 }
 
-export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled }) => {
+export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled, color }) => {
+    
+    // Helper to add alpha to hex for background
+    const hexToRgba = (hex: string, alpha: number) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const cardStyle: React.CSSProperties = isSelected && color ? {
+        borderColor: color,
+        backgroundColor: hexToRgba(color, 0.2),
+        boxShadow: `0 10px 15px -3px ${hexToRgba(color, 0.2)}`
+    } : {};
+    
     if (isDropdown && options && onSelect) {
         return (
             <div className="relative">
@@ -277,7 +314,8 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                     value={option?.id || ''}
                     onChange={(e) => onSelect(e.target.value || null)}
                     disabled={disabled}
-                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-2 px-4 text-sm text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed"
+                    style={color && isSelected ? { borderColor: color, boxShadow: `0 0 0 1px ${color}` } : {}}
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-2 px-4 text-sm text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed transition-all"
                 >
                     <option value="">{placeholder}</option>
                     {options.map(opt => (
@@ -296,17 +334,19 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
     return (
         <div 
             onClick={disabled ? undefined : onClick}
+            style={cardStyle}
             className={`
                 p-1.5 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
                 transition-all duration-200 min-h-[3.5rem]
-                ${isSelected ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver'}
+                ${isSelected && !color ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : ''}
+                ${!isSelected ? 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver' : ''}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
         >
             <p className={`font-bold text-sm md:text-base leading-tight ${isSelected ? 'text-pure-white' : 'text-ghost-white'}`}>
                 {option ? option.name : placeholder}
             </p>
-            {usage && <p className={`text-[10px] md:text-xs mt-0.5 ${isSelected ? 'text-primary-red' : 'text-highlight-silver'}`}>{usage}</p>}
+            {usage && <p className={`text-[10px] md:text-xs mt-0.5 ${isSelected ? (color ? 'text-pure-white' : 'text-primary-red') : 'text-highlight-silver'}`}>{usage}</p>}
         </div>
     );
 };

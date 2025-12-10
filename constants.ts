@@ -10,18 +10,18 @@ export const PAYPAL_PAY_DUES_URL = 'https://www.paypal.com/cgi-bin/webscr?cmd=_d
 
 export const CONSTRUCTORS: Constructor[] = [
   // Class A
-  { id: 'mclaren', name: 'McLaren', class: EntityClass.A, isActive: true },
-  { id: 'mercedes', name: 'Mercedes', class: EntityClass.A, isActive: true },
-  { id: 'red_bull', name: 'Red Bull Racing', class: EntityClass.A, isActive: true },
-  { id: 'ferrari', name: 'Ferrari', class: EntityClass.A, isActive: true },
-  { id: 'williams', name: 'Williams', class: EntityClass.A, isActive: true },
+  { id: 'mclaren', name: 'McLaren', class: EntityClass.A, isActive: true, color: '#FF8000' }, // Papaya Orange
+  { id: 'mercedes', name: 'Mercedes', class: EntityClass.A, isActive: true, color: '#27F4D2' }, // Petronas Cyan
+  { id: 'red_bull', name: 'Red Bull Racing', class: EntityClass.A, isActive: true, color: '#3671C6' }, // Racing Blue
+  { id: 'ferrari', name: 'Ferrari', class: EntityClass.A, isActive: true, color: '#E8002D' }, // Corsa Red
+  { id: 'williams', name: 'Williams', class: EntityClass.A, isActive: true, color: '#64C4FF' }, // Heritage Blue
   // Class B
-  { id: 'racing_bulls', name: 'Racing Bulls', class: EntityClass.B, isActive: true },
-  { id: 'aston_martin', name: 'Aston Martin', class: EntityClass.B, isActive: true },
-  { id: 'haas', name: 'Haas F1 Team', class: EntityClass.B, isActive: true },
-  { id: 'audi', name: 'Audi F1 Team', class: EntityClass.B, isActive: true },
-  { id: 'alpine', name: 'Alpine', class: EntityClass.B, isActive: true },
-  { id: 'cadillac', name: 'Cadillac F1 Team', class: EntityClass.B, isActive: true },
+  { id: 'racing_bulls', name: 'Racing Bulls', class: EntityClass.B, isActive: true, color: '#6692FF' }, // Motion Blue
+  { id: 'aston_martin', name: 'Aston Martin', class: EntityClass.B, isActive: true, color: '#229971' }, // British Racing Green
+  { id: 'haas', name: 'Haas F1 Team', class: EntityClass.B, isActive: true, color: '#B6BABD' }, // VF Grey
+  { id: 'audi', name: 'Audi F1 Team', class: EntityClass.B, isActive: true, color: '#F20505' }, // Audi Sport Red
+  { id: 'alpine', name: 'Alpine', class: EntityClass.B, isActive: true, color: '#0090FF' }, // French Blue
+  { id: 'cadillac', name: 'Cadillac F1 Team', class: EntityClass.B, isActive: true, color: '#FCD12A' }, // Emblem Gold
 ];
 
 export const DRIVERS: Driver[] = [
