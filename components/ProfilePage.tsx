@@ -13,6 +13,8 @@ import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
+import { DriverIcon } from './icons/DriverIcon.tsx';
+import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ProfilePageProps {
   user: User;
@@ -51,6 +53,14 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; }> = ({
     </div>
   );
 };
+
+const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon: Icon, label, value }) => (
+    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-black/50 w-full h-full min-h-[120px] ring-1 ring-pure-white/5 hover:bg-pure-white/5 transition-all duration-200">
+        <Icon className="w-8 h-8 text-primary-red mb-3" />
+        <span className="text-xs font-bold uppercase text-highlight-silver mb-1">{label}</span>
+        <span className="font-bold text-lg text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
+    </div>
+);
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
@@ -312,13 +322,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       {/* Profile Info Section */}
-      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 relative">
+      <div className="rounded-lg p-6 ring-1 ring-pure-white/10 relative">
         <div className="flex flex-col items-center justify-center mb-6">
-            <h2 className="text-2xl font-bold text-center mb-1">Profile Information</h2>
+            <h2 className="text-2xl font-bold text-center mb-2">Profile Information</h2>
             {!isEditingProfile && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-sm text-primary-red hover:text-pure-white font-bold transition-colors"
+                    className="text-lg text-primary-red hover:text-pure-white font-bold transition-colors"
                 >
                     Edit Details
                 </button>
@@ -326,7 +336,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
         
         {isEditingProfile ? (
-            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto">
+            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-accent-gray/50 backdrop-blur-sm p-6 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">First Name</label>
@@ -400,23 +410,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto text-center">
-                 <div>
-                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">First Name</p>
-                    <p className="text-lg font-semibold">{user.firstName || '-'}</p>
-                </div>
-                <div>
-                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Last Name</p>
-                    <p className="text-lg font-semibold">{user.lastName || '-'}</p>
-                </div>
-                 <div>
-                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</p>
-                    <p className="text-lg font-semibold">{user.displayName}</p>
-                </div>
-                <div>
-                    <p className="text-xs font-bold uppercase text-highlight-silver mb-1">Email Address</p>
-                    <p className="text-lg font-semibold">{user.email}</p>
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto">
+                <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
+                <InfoCard icon={DriverIcon} label="First Name" value={user.firstName || '-'} />
+                <InfoCard icon={DriverIcon} label="Last Name" value={user.lastName || '-'} />
+                <InfoCard icon={ProfileIcon} label="Email" value={user.email} />
             </div>
         )}
       </div>
