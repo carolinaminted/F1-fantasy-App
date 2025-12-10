@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { EVENTS } from '../constants.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
-import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor } from '../types.ts';
+import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
@@ -13,10 +13,11 @@ import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
 
 // --- Shared Types & Helpers ---
 
-type ViewState = 'menu' | 'standings' | 'popular' | 'insights';
+type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
 interface ProcessedUser extends User {
@@ -73,7 +74,7 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
                             style={{ width: `${(item.value / maxValue) * 100}%` }} 
                         />
                     </div>
-                    <span className="w-12 font-bold text-pure-white">{item.value}</span>
+                    <span className="w-12 font-bold text-pure-white text-right">{item.value}</span>
                 </div>
             ))}
         </div>
@@ -149,13 +150,14 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
 
     const stats = useMemo(() => {
         const teamCounts: { [id: string]: number } = {};
+        allConstructors.forEach(c => teamCounts[c.id] = 0);
+
         const driverCounts: { [id: string]: number } = {};
+        allDrivers.forEach(d => driverCounts[d.id] = 0);
 
         // Determine relevant events based on "Time Range"
-        // 30 days ~= 2-3 races, 60 ~= 4-5, 90 ~= 6-7.
-        // We will simply take the LAST N events from the EVENTS list.
         let relevantEvents: Event[] = EVENTS;
-        if (timeRange === '30') relevantEvents = EVENTS.slice(0, 3); // Simulating "Recent" (First 3 for demo data since future dates)
+        if (timeRange === '30') relevantEvents = EVENTS.slice(0, 3); 
         if (timeRange === '60') relevantEvents = EVENTS.slice(0, 5);
         if (timeRange === '90') relevantEvents = EVENTS.slice(0, 8);
         
@@ -169,20 +171,22 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
                 const teams = [...picks.aTeams, picks.bTeam].filter(Boolean) as string[];
                 const drivers = [...picks.aDrivers, picks.bDrivers].filter(Boolean) as string[];
 
-                teams.forEach(t => teamCounts[t] = (teamCounts[t] || 0) + 1);
-                drivers.forEach(d => driverCounts[d] = (driverCounts[d] || 0) + 1);
+                teams.forEach(t => { if(teamCounts[t] !== undefined) teamCounts[t]++ });
+                drivers.forEach(d => { if(driverCounts[d] !== undefined) driverCounts[d]++ });
             });
         });
 
-        const sortAndMap = (counts: { [id: string]: number }) => 
+        const sortAndMap = (counts: { [id: string]: number }, order: 'desc' | 'asc', color?: string) => 
             Object.entries(counts)
-                .map(([id, val]) => ({ label: getEntityName(id, allDrivers, allConstructors), value: val }))
-                .sort((a, b) => b.value - a.value)
+                .map(([id, val]) => ({ label: getEntityName(id, allDrivers, allConstructors), value: val, color }))
+                .sort((a, b) => order === 'desc' ? b.value - a.value : a.value - b.value)
                 .slice(0, 5);
 
         return {
-            teams: sortAndMap(teamCounts),
-            drivers: sortAndMap(driverCounts)
+            teams: sortAndMap(teamCounts, 'desc'),
+            leastTeams: sortAndMap(teamCounts, 'asc', 'bg-blue-600'),
+            drivers: sortAndMap(driverCounts, 'desc'),
+            leastDrivers: sortAndMap(driverCounts, 'asc', 'bg-blue-600')
         };
     }, [allPicks, timeRange, allDrivers, allConstructors]);
 
@@ -215,6 +219,17 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
                     <SimpleBarChart data={stats.drivers} />
                 </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Teams</h3>
+                    <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
+                </div>
+                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Drivers</h3>
+                    <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
+                </div>
+            </div>
             
             <div className="bg-accent-gray/30 p-4 rounded-lg text-center text-sm text-highlight-silver">
                 Data reflects locked-in selections for {timeRange === 'all' ? 'the entire season' : `the last ${timeRange === '30' ? '3' : timeRange === '60' ? '5' : '8'} race events`}.
@@ -230,7 +245,6 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
         
         const findMax = (key: keyof ProcessedUser['breakdown']) => {
             const sorted = [...users].sort((a, b) => b.breakdown[key] - a.breakdown[key]);
-            // Ensure there is actually a score > 0
             if (sorted[0].breakdown[key] === 0) return null;
             return { user: sorted[0], score: sorted[0].breakdown[key] };
         };
@@ -273,7 +287,6 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
                 <Card title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
 
-            {/* Top 5 Breakdown Chart */}
             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
                 <h3 className="text-lg font-bold text-pure-white mb-6">Top 5 Breakdown by Category</h3>
                 {users.length === 0 ? (
@@ -313,6 +326,146 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
     );
 };
 
+const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
+    
+    const stats = useMemo(() => {
+        // Init scores
+        const driverScores: Record<string, { total: number; sprint: number; fl: number; quali: number }> = {};
+        const teamScores: Record<string, number> = {};
+
+        allDrivers.forEach(d => driverScores[d.id] = { total: 0, sprint: 0, fl: 0, quali: 0 });
+        allConstructors.forEach(c => teamScores[c.id] = 0);
+
+        // Process Results
+        Object.values(raceResults).forEach((results: EventResult) => {
+            if (!results) return;
+
+            const addPoints = (driverId: string | null, pts: number, category: 'race' | 'sprint' | 'quali' | 'fl' = 'race') => {
+                if (!driverId) return;
+                
+                // Add to driver
+                if (driverScores[driverId]) {
+                    driverScores[driverId].total += pts;
+                    if (category === 'sprint') driverScores[driverId].sprint += pts;
+                    if (category === 'quali') driverScores[driverId].quali += pts;
+                }
+
+                // Add to team
+                const driver = allDrivers.find(d => d.id === driverId);
+                const teamId = results.driverTeams?.[driverId] || driver?.constructorId;
+                
+                if (teamId && teamScores[teamId] !== undefined) {
+                    teamScores[teamId] += pts;
+                }
+            };
+
+            // GP Finish
+            results.grandPrixFinish.forEach((did, idx) => addPoints(did, pointsSystem.grandPrixFinish[idx] || 0, 'race'));
+            // Sprint Finish
+            results.sprintFinish?.forEach((did, idx) => addPoints(did, pointsSystem.sprintFinish[idx] || 0, 'sprint'));
+            // GP Quali
+            results.gpQualifying.forEach((did, idx) => addPoints(did, pointsSystem.gpQualifying[idx] || 0, 'quali'));
+            // Sprint Quali
+            results.sprintQualifying?.forEach((did, idx) => addPoints(did, pointsSystem.sprintQualifying[idx] || 0, 'quali'));
+            
+            // Fastest Lap
+            if (results.fastestLap) {
+                addPoints(results.fastestLap, pointsSystem.fastestLap, 'fl');
+                if (driverScores[results.fastestLap]) {
+                    driverScores[results.fastestLap].fl += 1; // Count wins
+                }
+            }
+        });
+
+        // Format
+        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, limit?: number, color?: string) => {
+            return Object.keys(source)
+                .map(id => ({ label: nameFn(id), value: valueFn(id), color }))
+                .sort((a, b) => b.value - a.value)
+                .filter(item => item.value > 0)
+                .slice(0, limit);
+        };
+
+        const getName = (id: string) => getEntityName(id, allDrivers, allConstructors);
+
+        return {
+            teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, undefined, 'bg-primary-red'),
+            driversTotal: formatData(driverScores, (id) => driverScores[id].total, getName, 10, 'bg-primary-red'),
+            driversSprint: formatData(driverScores, (id) => driverScores[id].sprint, getName, 5, 'bg-yellow-500'),
+            driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 5, 'bg-blue-500'),
+            driversFL: formatData(driverScores, (id) => driverScores[id].fl, getName, 5, 'bg-purple-500'),
+        };
+
+    }, [raceResults, pointsSystem, allDrivers, allConstructors]);
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 className="text-2xl font-bold text-pure-white">Driver & Team Points</h2>
+                <div className="text-sm text-highlight-silver bg-accent-gray/30 px-3 py-1 rounded-full border border-pure-white/10">
+                    Based on Official Race Results
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Constructors Total */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <TeamIcon className="w-5 h-5 text-primary-red"/> Constructor Standings
+                    </h3>
+                    {stats.teamsTotal.length > 0 ? (
+                        <SimpleBarChart data={stats.teamsTotal} />
+                    ) : <p className="text-highlight-silver italic">No points scored yet.</p>}
+                </div>
+
+                {/* Drivers Total */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <CheckeredFlagIcon className="w-5 h-5 text-primary-red"/> Top 10 Drivers (Total)
+                    </h3>
+                    {stats.driversTotal.length > 0 ? (
+                        <SimpleBarChart data={stats.driversTotal} />
+                    ) : <p className="text-highlight-silver italic">No points scored yet.</p>}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Drivers Sprint */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <SprintIcon className="w-5 h-5 text-yellow-500"/> Top 5 Sprint Performers
+                    </h3>
+                    {stats.driversSprint.length > 0 ? (
+                        <SimpleBarChart data={stats.driversSprint} />
+                    ) : <p className="text-highlight-silver italic">No sprint points scored yet.</p>}
+                </div>
+
+                {/* Drivers Qualifying */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <PolePositionIcon className="w-5 h-5 text-blue-500"/> Top 5 Qualifying Performers
+                    </h3>
+                    {stats.driversQuali.length > 0 ? (
+                        <SimpleBarChart data={stats.driversQuali} />
+                    ) : <p className="text-highlight-silver italic">No qualifying points scored yet.</p>}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Fastest Laps */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <FastestLapIcon className="w-5 h-5 text-purple-500"/> Fastest Lap Kings (Wins)
+                    </h3>
+                    {stats.driversFL.length > 0 ? (
+                        <SimpleBarChart data={stats.driversFL} max={Math.max(...stats.driversFL.map(d => d.value), 3)} />
+                    ) : <p className="text-highlight-silver italic">No fastest laps recorded yet.</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Main Page ---
 
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors }) => {
@@ -321,7 +474,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  // Data Fetching & Processing
   useEffect(() => {
     const loadData = async () => {
         setIsLoading(true);
@@ -330,8 +482,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
         const processed = users.map(user => {
             const userPicks = picksData[user.id] || {};
-            
-            // Use the centralized scoring service logic which handles event filtering automatically
             const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
 
             return {
@@ -347,7 +497,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
             };
         });
 
-        // Sort and Rank
         processed.sort((a, b) => b.points - a.points);
         processed.forEach((u, i) => u.rank = i + 1);
 
@@ -367,15 +516,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       );
   }
 
-  // --- Render Logic ---
-
   if (view === 'menu') {
       return (
           <div className="max-w-7xl mx-auto animate-fade-in">
               <h1 className="text-4xl font-bold text-center text-pure-white mb-2">Leaderboard Hub</h1>
               <p className="text-center text-highlight-silver mb-12">Analyze league performance and trends.</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <NavTile 
                     icon={LeaderboardIcon} 
                     title="Standings" 
@@ -387,6 +534,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                     title="Popular Picks" 
                     desc="See which drivers and teams are trending this season." 
                     onClick={() => setView('popular')} 
+                  />
+                   <NavTile 
+                    icon={TeamIcon} 
+                    title="Teams & Driver Results" 
+                    desc="Real-world performance breakdown by points." 
+                    onClick={() => setView('entities')} 
                   />
                   <NavTile 
                     icon={LightbulbIcon} 
@@ -414,6 +567,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
           {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} />}
           {view === 'insights' && <InsightsView users={processedUsers} />}
+          {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
       </div>
   );
 };

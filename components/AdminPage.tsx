@@ -7,7 +7,7 @@ import { TeamIcon } from './icons/TeamIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'simulation' | 'scoring' | 'entities') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -31,14 +31,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 />
                 <AdminTile
                     icon={ProfileIcon}
-                    title="Dues Status Manager"
-                    description="Update the dues paid status for league members."
-                    onClick={() => setAdminSubPage('dues-status')}
-                />
-                <AdminTile
-                    icon={ProfileIcon}
                     title="Manage Users"
-                    description="Search and view user profiles."
+                    description="Search users, manage dues, and view profiles."
                     onClick={() => setAdminSubPage('manage-users')}
                 />
                 <AdminTile

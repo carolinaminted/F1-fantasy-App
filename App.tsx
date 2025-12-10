@@ -8,7 +8,6 @@ import LeaderboardPage from './components/LeaderboardPage.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import AdminPage from './components/AdminPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
-import DuesStatusManagerPage from './components/DuesStatusManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
 import ManageEntitiesPage from './components/ManageEntitiesPage.tsx'; // New
 import AdminSimulationPage from './components/AdminSimulationPage.tsx';
@@ -107,7 +106,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'dues-status' | 'manage-users' | 'simulation' | 'scoring' | 'entities'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'simulation' | 'scoring' | 'entities'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -300,8 +299,6 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
             case 'results':
                 return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} formLocks={formLocks} onToggleLock={handleToggleFormLock} />;
-            case 'dues-status':
-                return <DuesStatusManagerPage setAdminSubPage={setAdminSubPage} />;
             case 'manage-users':
                 return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
             case 'simulation':
