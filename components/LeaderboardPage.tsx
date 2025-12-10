@@ -538,7 +538,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                    <NavTile 
                     icon={TeamIcon} 
                     title="Teams & Driver Results" 
-                    desc="Real-world performance breakdown by points." 
+                    desc="Real-world performance breakdown with our league scoring system." 
                     onClick={() => setView('entities')} 
                   />
                   <NavTile 
