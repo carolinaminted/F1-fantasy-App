@@ -1,5 +1,4 @@
 
-// Fix: Implement the ProfilePage component to display user stats and picks history.
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -15,6 +14,7 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { AdminIcon } from './icons/AdminIcon.tsx';
 import type { Page } from '../App.tsx';
 
 interface ProfilePageProps {
@@ -25,6 +25,8 @@ interface ProfilePageProps {
   allDrivers: Driver[];
   allConstructors: Constructor[];
   setActivePage?: (page: Page) => void;
+  // New Prop: If present, enables penalty management UI
+  onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -71,7 +73,66 @@ const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon:
     </div>
 );
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage }) => {
+// Admin Penalty Control Component
+const PenaltyManager: React.FC<{ 
+    eventId: string; 
+    currentPenalty: number; 
+    currentReason?: string;
+    onSave: (eventId: string, penalty: number, reason: string) => Promise<void>; 
+}> = ({ eventId, currentPenalty, currentReason, onSave }) => {
+    const [penaltyPercent, setPenaltyPercent] = useState(currentPenalty * 100);
+    const [reason, setReason] = useState(currentReason || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        await onSave(eventId, penaltyPercent / 100, reason);
+        setIsSaving(false);
+    };
+
+    return (
+        <div className="mt-4 p-4 bg-red-900/20 border border-primary-red/30 rounded-lg">
+            <h4 className="flex items-center gap-2 text-sm font-bold text-primary-red uppercase mb-3">
+                <AdminIcon className="w-4 h-4" /> Admin Penalty Tribunal
+            </h4>
+            <div className="space-y-3">
+                <div>
+                    <label className="block text-xs font-bold text-highlight-silver mb-1">Penalty Deduction (%)</label>
+                    <div className="flex items-center gap-3">
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={penaltyPercent}
+                            onChange={(e) => setPenaltyPercent(Number(e.target.value))}
+                            className="flex-1 accent-primary-red"
+                        />
+                        <span className="font-mono font-bold text-pure-white w-12 text-right">{penaltyPercent}%</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-highlight-silver mb-1">Reason / Infraction</label>
+                    <input 
+                        type="text" 
+                        value={reason} 
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="e.g. Late Submission"
+                        className="w-full bg-carbon-black border border-accent-gray rounded px-2 py-1 text-sm text-pure-white"
+                    />
+                </div>
+                <button 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-1.5 px-4 rounded text-xs transition-colors disabled:opacity-50"
+                >
+                    {isSaving ? 'Applying Penalty...' : 'Apply Penalty Judgment'}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -387,7 +448,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       <div className="rounded-lg p-6 ring-1 ring-pure-white/10 relative">
         <div className="flex flex-col items-center justify-center mb-6">
             <h2 className="text-2xl font-bold text-center mb-2">Profile Information</h2>
-            {!isEditingProfile && (
+            {!isEditingProfile && setActivePage && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
                     className="text-lg text-primary-red hover:text-pure-white font-bold transition-colors"
@@ -472,7 +533,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                 <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
                 <InfoCard icon={DriverIcon} label="First Name" value={user.firstName || '-'} />
                 <InfoCard icon={DriverIcon} label="Last Name" value={user.lastName || '-'} />
@@ -565,18 +626,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     const results = raceResults[event.id];
                     if (!picks) return null;
 
-                    const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0 };
+                    const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0, penaltyPoints: 0 };
                     const isExpanded = expandedEvent === event.id;
+                    const hasPenalty = picks.penalty && picks.penalty > 0;
+                    
+                    // Net points calculation for display
+                    const rawPoints = eventPoints.totalPoints + (eventPoints.penaltyPoints || 0);
 
                     return (
-                        <div key={event.id} className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                            <button className="w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors" onClick={() => toggleEvent(event.id)}>
+                        <div key={event.id} className="relative rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                             {/* Penalty Badge Overlay */}
+                             {hasPenalty && (
+                                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 -rotate-6 border-4 border-red-500 text-red-500 font-black text-xl px-4 py-1 opacity-80 pointer-events-none z-10 whitespace-nowrap">
+                                    PENALTY APPLIED (-{(picks.penalty! * 100).toFixed(0)}%)
+                                </div>
+                            )}
+
+                            <button className={`w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors ${hasPenalty ? 'bg-red-900/10' : ''}`} onClick={() => toggleEvent(event.id)}>
                                 <div>
                                     <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
                                     <p className="text-sm text-highlight-silver">{event.country}</p>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <span className="font-bold text-xl">{eventPoints.totalPoints} PTS</span>
+                                    <div className="text-right">
+                                        <span className="font-bold text-xl block">{eventPoints.totalPoints} PTS</span>
+                                        {hasPenalty && <span className="text-xs text-red-400 block font-bold">Adjusted</span>}
+                                    </div>
                                     <ChevronDownIcon className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
                             </button>
@@ -601,7 +676,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                 {results && (
                                     <div className="mt-4 pt-4 border-t border-accent-gray/50">
                                         <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
-                                        <div className="flex justify-around flex-wrap gap-4">
+                                        <div className="flex justify-around flex-wrap gap-4 mb-4">
                                                 <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
                                                     <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
                                                 </button>
@@ -618,7 +693,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                                     <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
                                                 </button>
                                         </div>
+                                        
+                                        {/* Penalty Breakdown Display */}
+                                        {hasPenalty && (
+                                            <div className="bg-red-900/20 border border-red-500/30 p-3 rounded-lg text-center mb-4">
+                                                <p className="text-highlight-silver text-xs uppercase font-bold mb-1">Score Adjustment</p>
+                                                <div className="flex justify-center items-center gap-2 text-sm">
+                                                    <span>{rawPoints} (Raw)</span>
+                                                    <span>-</span>
+                                                    <span className="text-red-400 font-bold">{eventPoints.penaltyPoints} (Penalty)</span>
+                                                    <span>=</span>
+                                                    <span className="text-pure-white font-bold">{eventPoints.totalPoints} Pts</span>
+                                                </div>
+                                                {picks.penaltyReason && <p className="text-xs text-red-300 mt-1 italic">"{picks.penaltyReason}"</p>}
+                                            </div>
+                                        )}
                                     </div>
+                                )}
+                                
+                                {/* Admin Controls (Only visible if prop provided) */}
+                                {onUpdatePenalty && (
+                                    <PenaltyManager 
+                                        eventId={event.id} 
+                                        currentPenalty={picks.penalty || 0}
+                                        currentReason={picks.penaltyReason}
+                                        onSave={onUpdatePenalty}
+                                    />
                                 )}
                                 </div>
                             )}

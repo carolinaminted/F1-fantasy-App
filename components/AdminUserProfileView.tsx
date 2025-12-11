@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor } from '../types.ts';
-import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus } from '../services/firestoreService.ts';
+import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus, updatePickPenalty } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
@@ -71,6 +71,25 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
             setIsDuesPaidState(targetUser.duesPaidStatus === 'Paid'); // Revert
         } finally {
             setIsSavingDues(false);
+        }
+    };
+
+    const handlePenaltyUpdate = async (eventId: string, penalty: number, reason: string) => {
+        try {
+            await updatePickPenalty(targetUser.id, eventId, penalty, reason);
+            // Update local state to reflect change immediately in the UI
+            setSeasonPicks(prev => ({
+                ...prev,
+                [eventId]: {
+                    ...prev[eventId],
+                    penalty,
+                    penaltyReason: reason
+                }
+            }));
+            alert("Penalty applied successfully.");
+        } catch (error) {
+            console.error("Failed to update penalty", error);
+            alert("Failed to apply penalty. Please try again.");
         }
     };
 
@@ -177,6 +196,8 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
             <div className="bg-accent-gray p-3 rounded-lg text-center ring-1 ring-primary-red mb-6">
                 <p className="font-bold text-ghost-white">Impersonation View · <span className="text-highlight-silver">Read-Only</span></p>
             </div>
+            
+            {/* Pass the penalty update callback to enable admin controls inside ProfilePage */}
             <ProfilePage 
                 user={targetUser} 
                 seasonPicks={seasonPicks} 
@@ -184,6 +205,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 pointsSystem={pointsSystem}
                 allDrivers={allDrivers}
                 allConstructors={allConstructors}
+                onUpdatePenalty={handlePenaltyUpdate}
             />
         </div>
     );

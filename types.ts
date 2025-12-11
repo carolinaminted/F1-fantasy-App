@@ -47,6 +47,8 @@ export interface PickSelection {
   aDrivers: (string | null)[];
   bDrivers: (string | null)[];
   fastestLap: string | null;
+  penalty?: number; // 0.0 to 1.0 (e.g. 0.2 for 20%)
+  penaltyReason?: string;
 }
 
 export interface EventResult {
@@ -109,4 +111,14 @@ export interface ScoringProfile {
 export interface ScoringSettingsDoc {
   activeProfileId: string;
   profiles: ScoringProfile[];
+}
+
+export interface EventPointsBreakdown {
+    totalPoints: number;
+    grandPrixPoints: number;
+    sprintPoints: number;
+    fastestLapPoints: number;
+    gpQualifyingPoints: number;
+    sprintQualifyingPoints: number;
+    penaltyPoints: number; // New field
 }

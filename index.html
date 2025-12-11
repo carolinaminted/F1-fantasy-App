@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>F1 Fantasy League Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -27,6 +27,8 @@
     <style>
       body {
         font-family: 'Exo 2', sans-serif;
+        /* Prevent elastic scrolling/bouncing on iOS for a native app feel */
+        overscroll-behavior-y: none;
       }
       @keyframes pulse-red {
         0%, 100% {

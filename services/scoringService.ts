@@ -1,6 +1,6 @@
 
 import { EVENTS } from '../constants.ts';
-import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor } from '../types.ts';
+import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor, EventPointsBreakdown } from '../types.ts';
 
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
@@ -32,7 +32,7 @@ export const calculatePointsForEvent = (
   results: EventResult,
   activeSystem: PointsSystem,
   driversList: Driver[]
-) => {
+): EventPointsBreakdown => {
     // --- SCORING SNAPSHOT LOGIC ---
     // If the result has a specific scoring snapshot saved, use it.
     // Otherwise, fallback to the currently active system passed in.
@@ -130,9 +130,19 @@ export const calculatePointsForEvent = (
     const gpQualifyingPoints = teamGpQualifyingPoints + driverGpQualifyingPoints;
     const sprintQualifyingPoints = teamSprintQualifyingPoints + driverSprintQualifyingPoints;
 
-    const totalPoints = grandPrixPoints + sprintPoints + gpQualifyingPoints + sprintQualifyingPoints + fastestLapPoints;
+    const rawTotal = grandPrixPoints + sprintPoints + gpQualifyingPoints + sprintQualifyingPoints + fastestLapPoints;
 
-    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints };
+    // --- 3. APPLY PENALTIES ---
+    // If penalty exists (0.2 for 20%), deduct from total
+    let penaltyPoints = 0;
+    let totalPoints = rawTotal;
+
+    if (picks.penalty && picks.penalty > 0) {
+        penaltyPoints = Math.ceil(rawTotal * picks.penalty); // Use ceil to be strict (round up the penalty)
+        totalPoints = rawTotal - penaltyPoints;
+    }
+
+    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints };
 };
 
 export const calculateScoreRollup = (
@@ -146,6 +156,8 @@ export const calculateScoreRollup = (
     let fastestLapPoints = 0;
     let gpQualifyingPoints = 0;
     let sprintQualifyingPoints = 0;
+    let penaltyPoints = 0;
+    let totalPoints = 0;
 
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
       // Filter: Only include events that are in the current season configuration
@@ -161,9 +173,9 @@ export const calculateScoreRollup = (
       fastestLapPoints += eventPoints.fastestLapPoints;
       gpQualifyingPoints += eventPoints.gpQualifyingPoints;
       sprintQualifyingPoints += eventPoints.sprintQualifyingPoints;
+      penaltyPoints += eventPoints.penaltyPoints;
+      totalPoints += eventPoints.totalPoints;
     });
 
-    const totalPoints = grandPrixPoints + sprintPoints + fastestLapPoints + gpQualifyingPoints + sprintQualifyingPoints;
-
-    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints };
+    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints };
 };

@@ -108,6 +108,22 @@ export const saveUserPicks = async (uid: string, eventId: string, picks: PickSel
     }
 };
 
+// New: Update a penalty for a specific pick without overwriting selections
+export const updatePickPenalty = async (uid: string, eventId: string, penalty: number, reason: string) => {
+    const picksRef = doc(db, 'userPicks', uid);
+    try {
+        // Use dot notation to update nested fields in Firestore map
+        await updateDoc(picksRef, {
+            [`${eventId}.penalty`]: penalty,
+            [`${eventId}.penaltyReason`]: reason
+        });
+        console.log(`Penalty updated for ${eventId} user ${uid}`);
+    } catch (error) {
+        console.error("Error updating penalty", error);
+        throw error;
+    }
+};
+
 // For Leaderboard
 export const getAllUsersAndPicks = async () => {
     const usersCollection = collection(db, 'users');
