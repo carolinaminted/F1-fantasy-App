@@ -237,22 +237,25 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
     
     return (
         <div>
-            {/* Tabs */}
-            <div className="flex items-center justify-start md:justify-center overflow-x-auto border-b border-accent-gray/50 mb-8 pb-1 scrollbar-hide">
-                <div className="flex gap-2 md:gap-8 px-2">
+            {/* Tabs: Grid on Mobile (2 columns), Flex on Desktop */}
+            <div className="mb-6 md:mb-8">
+                <div className="grid grid-cols-2 md:flex md:justify-center gap-3 md:gap-8 border-b-0 md:border-b border-accent-gray/50 pb-0 md:pb-1">
                 {tabs.map(tab => (
                      <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         aria-label={tab.label}
-                        className={`flex items-center gap-2 px-6 py-3 text-sm md:text-base font-bold transition-all border-b-2 whitespace-nowrap ${
-                            activeTab === tab.id
-                                ? 'border-primary-red text-pure-white'
-                                : 'border-transparent text-highlight-silver hover:text-pure-white hover:bg-pure-white/5 rounded-t-lg'
-                        }`}
+                        className={`
+                            flex items-center justify-center gap-2 px-3 py-3 text-sm md:text-base font-bold transition-all rounded-lg md:rounded-b-none md:rounded-t-lg border md:border-0
+                            ${
+                                activeTab === tab.id
+                                    ? 'bg-primary-red/20 border-primary-red text-pure-white shadow-[0_0_10px_rgba(218,41,28,0.2)] md:shadow-none md:bg-transparent md:border-b-2 md:text-pure-white'
+                                    : 'bg-carbon-black/40 border-pure-white/10 text-highlight-silver hover:text-pure-white hover:bg-pure-white/5 md:bg-transparent md:border-transparent md:border-b-2'
+                            }
+                        `}
                     >
-                        <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-primary-red' : ''}`}/> 
-                        <span>{tab.label}</span>
+                        <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-primary-red' : 'text-current md:text-highlight-silver'}`}/> 
+                        <span className={activeTab === tab.id ? 'text-pure-white' : ''}>{tab.label}</span>
                     </button>
                 ))}
                 </div>
