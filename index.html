@@ -45,6 +45,11 @@
       }
       .option-card { line-height: 1.2; }
       .option-label { text-wrap: balance; }
+      
+      /* Safe Area Utilities for Mobile */
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
     </style>
     <!-- Add Babel Standalone for in-browser JSX/TSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>

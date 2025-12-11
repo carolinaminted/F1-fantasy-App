@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import SelectorGroup from './SelectorGroup.tsx';
@@ -148,27 +149,25 @@ const PicksForm: React.FC<PicksFormProps> = ({
   return (
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
+        {/* Compact Event Header for Mobile */}
         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div className="flex-grow text-center md:text-left">
-            <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>
-            <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
+            <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country}</p>
             <div className="mt-2">
               {isSubmitted ? (
-                <span className="text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
               ) : (
-                <span className="text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
               )}
             </div>
           </div>
-          <div className="text-center">
-              <p className="text-sm uppercase tracking-wider font-semibold text-highlight-silver">
+          <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0">
+              <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
                   {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
               </p>
-              <p className={`text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
+              <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
                   {isFormLockedForStatus ? "LOCKED" : "OPEN"}
-              </p>
-               <p className="text-xs text-highlight-silver opacity-70">
-                  {isFormLockedForStatus ? "Submissions Closed" : "Submissions are available"}
               </p>
           </div>
         </div>
@@ -267,20 +266,32 @@ const PicksForm: React.FC<PicksFormProps> = ({
               </div>
          </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end pt-2 pb-safe">
           <button
             type="submit"
             disabled={!isSelectionComplete() || isFormLockedForStatus}
-            className="flex items-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
           >
             <SubmitIcon className="w-5 h-5" />
             Lock In Picks
           </button>
         </div>
       </form>
+      
+      {/* Bottom Sheet / Modal */}
       {modalContent && (
-        <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-[999] p-4" onClick={() => setModalContent(null)}>
-          <div className="bg-accent-gray rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="fixed inset-0 bg-carbon-black/80 flex items-end md:items-center justify-center z-[999] md:p-4 pb-safe md:pb-4" 
+          onClick={() => setModalContent(null)}
+        >
+          <div 
+            className="bg-accent-gray rounded-t-2xl md:rounded-lg w-full md:max-w-3xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto animate-slide-up shadow-2xl ring-1 ring-pure-white/10" 
+            onClick={(e) => e.stopPropagation()}
+          >
+              {/* Drag Handle for Mobile */}
+              <div className="md:hidden w-full flex justify-center pt-3 pb-1" onClick={() => setModalContent(null)}>
+                  <div className="w-12 h-1.5 bg-pure-white/20 rounded-full"></div>
+              </div>
               {modalContent}
           </div>
         </div>

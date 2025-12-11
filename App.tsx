@@ -375,14 +375,23 @@ const App: React.FC = () => {
          )}
         </header>
 
-        <div className="relative flex-1 overflow-y-auto pb-24 md:pb-8">
+        {/* 
+          Main Content Container
+          Added 'pb-[5rem] pb-safe' to account for mobile bottom nav + safe area
+        */}
+        <div className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
             <div className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none fixed" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
             <main className="relative p-4 md:p-8 min-h-full">
                 {renderPage()}
             </main>
         </div>
 
-        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden z-50`}>
+        {/* 
+            Mobile Bottom Navigation
+            Added 'pb-safe' (padding-bottom env(safe-area-inset-bottom))
+            Added stronger glassmorphism 'bg-carbon-black/90'
+        */}
+        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden z-50 pb-safe`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
@@ -417,10 +426,10 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, page, activePage, 
   return (
     <button
       onClick={() => setActivePage(page)}
-      className={`flex flex-col items-center justify-center w-full pt-3 pb-2 transition-colors duration-200 ${isActive ? 'text-primary-red' : 'text-highlight-silver hover:text-pure-white'}`}
+      className={`flex flex-col items-center justify-center w-full pt-3 pb-2 transition-colors duration-200 active:scale-95 ${isActive ? 'text-primary-red' : 'text-highlight-silver hover:text-pure-white'}`}
     >
       <Icon className="w-6 h-6 mb-1" />
-      <span className="text-xs font-medium">{label}</span>
+      <span className="text-[10px] font-medium tracking-tight">{label}</span>
     </button>
   );
 };

@@ -20,57 +20,58 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setActivePage }) => {
   const isAdmin = user && (!!user.isAdmin || user.email === 'admin@fantasy.f1');
 
   return (
-    <div className="max-w-4xl mx-auto pt-8">
-      <div className="grid grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+    <div className="max-w-4xl mx-auto pt-4 md:pt-8">
+      {/* Changed grid-cols-3 to grid-cols-2 for mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <NavTile
           icon={PicksIcon}
           title="Picks"
-          description="Submit or edit picks for any active grand prix"
+          description="Submit or edit picks"
           onClick={() => setActivePage('picks')}
         />
         <NavTile
           icon={LeaderboardIcon}
-          title="Leaderboard"
-          description="View league wide standings with visuals and metrics"
+          title="Standings"
+          description="League standings"
           onClick={() => setActivePage('leaderboard')}
         />
         <NavTile
           icon={ProfileIcon}
           title="Profile"
-          description="View your information, picks, and scoring breakdowns"
+          description="Your details & scores"
           onClick={() => setActivePage('profile')}
         />
         <NavTile
           icon={TrackIcon}
           title="Results"
-          description="Browse official results for all race weekends"
+          description="Official Race Results"
           onClick={() => setActivePage('gp-results')}
         />
         <NavTile
           icon={TrophyIcon}
           title="Scoring"
-          description="Learn how fantasy points are calculated"
+          description="Rules & Point System"
           onClick={() => setActivePage('points')}
         />
         {(!user || user.duesPaidStatus !== 'Paid') && (
           <NavTile
             icon={DuesIcon}
             title="Pay Dues"
-            description="Pay your league dues for the current season"
+            description="Settle league dues"
             onClick={() => setActivePage('duesPayment')}
           />
         )}
         <NavTile
           icon={DonationIcon}
           title="Donate"
-          description="Donate to Victory Junction to support campers"
+          description="Support Victory Junction"
           onClick={() => setActivePage('donate')}
         />
         {isAdmin && (
           <NavTile
             icon={AdminIcon}
             title="Admin"
-            description="Manage GP forms, update race results, manage users, and etc"
+            description="Manage league settings"
             onClick={() => setActivePage('admin')}
           />
         )}
@@ -91,10 +92,11 @@ const NavTile: React.FC<NavTileProps> = ({ icon: Icon, title, description, onCli
     <button
       onClick={onClick}
       aria-label={`${title}: ${description}`}
-      className="group rounded-xl p-4 md:p-6 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red"
+      className="group bg-accent-gray/30 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center aspect-square ring-1 ring-pure-white/5 hover:ring-primary-red focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-carbon-black focus:ring-primary-red active:scale-95"
     >
-      <Icon className="w-16 h-16 md:w-20 md:h-20 text-primary-red transition-colors duration-300 mb-3" />
-      <h3 className="text-xl md:text-2xl font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300">{title}</h3>
+      <Icon className="w-12 h-12 md:w-20 md:h-20 text-primary-red transition-colors duration-300 mb-3" />
+      <h3 className="text-lg md:text-2xl font-bold text-ghost-white group-hover:text-primary-red transition-colors duration-300 leading-tight">{title}</h3>
+      <p className="text-xs text-highlight-silver mt-1 hidden md:block">{description}</p>
     </button>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Donation } from '../types.ts';
 import { getUserDonations } from '../services/firestoreService.ts';
@@ -48,16 +49,44 @@ const DonationsHistoryPage: React.FC<DonationsHistoryPageProps> = ({ user }) => 
     const formatDate = (timestamp: { seconds: number }) => {
         return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric',
         });
     };
+
+    const DonationCard: React.FC<{ donation: Donation }> = ({ donation }) => (
+        <div 
+            onClick={() => setSelectedDonation(donation)}
+            className="bg-accent-gray/50 rounded-lg p-4 mb-3 border border-pure-white/5 active:bg-pure-white/10"
+        >
+            <div className="flex justify-between items-start mb-2">
+                <div>
+                    <h3 className="font-bold text-pure-white text-lg">${(donation.amount / 100).toFixed(2)}</h3>
+                    <p className="text-highlight-silver text-sm">{formatDate(donation.createdAt)}</p>
+                </div>
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-green-600/80 text-pure-white">
+                    {donation.status}
+                </span>
+            </div>
+             <div className="flex justify-between items-center text-xs text-highlight-silver mt-2">
+                 <span>{donation.methodType}</span>
+                 {donation.providerTxnId && <span className="font-mono opacity-50">#{donation.providerTxnId.slice(-6)}</span>}
+             </div>
+        </div>
+    );
 
     return (
         <>
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center">Donation History</h1>
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                
+                {/* Mobile View */}
+                <div className="md:hidden">
+                    {donations.map(donation => <DonationCard key={donation.id} donation={donation} />)}
+                </div>
+
+                {/* Desktop View */}
+                <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-carbon-black/50">

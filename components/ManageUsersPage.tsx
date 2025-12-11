@@ -54,7 +54,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                  <div className="mb-4">
                     <button 
                         onClick={() => setSelectedUser(null)} 
-                        className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
+                        className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors py-2"
                     >
                         <BackIcon className="w-5 h-5" />
                         Back to User List
@@ -72,9 +72,35 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         );
     }
 
+    // Sub-component for Mobile Card
+    const UserCard: React.FC<{ user: User }> = ({ user }) => (
+        <div 
+            onClick={() => setSelectedUser(user)}
+            className="bg-accent-gray/50 rounded-lg p-4 mb-3 border border-pure-white/5 active:bg-pure-white/10"
+        >
+            <div className="flex justify-between items-start mb-2">
+                <div>
+                    <h3 className="font-bold text-pure-white text-lg">{user.displayName}</h3>
+                    <p className="text-highlight-silver text-sm">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</p>
+                </div>
+                {user.isAdmin && <span className="bg-primary-red text-pure-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Admin</span>}
+            </div>
+            <div className="flex justify-between items-center mt-3 border-t border-pure-white/5 pt-3">
+                 <span className="text-xs text-highlight-silver uppercase tracking-wider">Status</span>
+                 <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                    (user.duesPaidStatus || 'Unpaid') === 'Paid'
+                    ? 'bg-green-600/80 text-pure-white'
+                    : 'bg-primary-red/80 text-pure-white'
+                }`}>
+                    {user.duesPaidStatus || 'Unpaid'}
+                </span>
+            </div>
+        </div>
+    );
+
     return (
         <div className="max-w-7xl mx-auto text-pure-white">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6 md:mb-8">
                 <button 
                     onClick={() => setAdminSubPage('dashboard')}
                     className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
@@ -82,7 +108,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     <BackIcon className="w-5 h-5" />
                     Back
                 </button>
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-right">
+                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-right">
                     Manage Users <ProfileIcon className="w-8 h-8"/>
                 </h1>
             </div>
@@ -93,60 +119,69 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red"
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none"
                 />
             </div>
 
             {isLoading ? (
                 <p className="text-center text-highlight-silver">Loading users...</p>
             ) : (
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-carbon-black/50">
-                            <tr>
-                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Name</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver hidden md:table-cell">Email</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Dues Status</th>
-                                <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Role</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers.map(user => (
-                                <tr 
-                                    key={user.id} 
-                                    className="border-t border-accent-gray/50 hover:bg-accent-gray/70 cursor-pointer"
-                                    onClick={() => setSelectedUser(user)}
-                                >
-                                    <td className="p-4 font-semibold">{user.displayName}</td>
-                                    <td className="p-4 text-highlight-silver hidden md:table-cell">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</td>
-                                    <td className="p-4 text-center">
-                                         <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
-                                            (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                                            ? 'bg-green-600/80 text-pure-white'
-                                            : 'bg-primary-red/80 text-pure-white'
-                                        }`}>
-                                            {user.duesPaidStatus || 'Unpaid'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        {user.isAdmin ? (
-                                            <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-primary-red text-pure-white">Admin</span>
-                                        ) : (
-                                            <span className="text-highlight-silver text-xs">User</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredUsers.length === 0 && (
+                <>
+                    {/* Mobile View */}
+                    <div className="md:hidden">
+                        {filteredUsers.map(user => <UserCard key={user.id} user={user} />)}
+                        {filteredUsers.length === 0 && <p className="text-center text-highlight-silver py-8">No users found.</p>}
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-carbon-black/50">
                                 <tr>
-                                    <td colSpan={4} className="text-center p-8 text-highlight-silver">
-                                        No users found for "{searchTerm}".
-                                    </td>
+                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Name</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver hidden md:table-cell">Email</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Dues Status</th>
+                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Role</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {filteredUsers.map(user => (
+                                    <tr 
+                                        key={user.id} 
+                                        className="border-t border-accent-gray/50 hover:bg-accent-gray/70 cursor-pointer"
+                                        onClick={() => setSelectedUser(user)}
+                                    >
+                                        <td className="p-4 font-semibold">{user.displayName}</td>
+                                        <td className="p-4 text-highlight-silver hidden md:table-cell">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</td>
+                                        <td className="p-4 text-center">
+                                             <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                (user.duesPaidStatus || 'Unpaid') === 'Paid'
+                                                ? 'bg-green-600/80 text-pure-white'
+                                                : 'bg-primary-red/80 text-pure-white'
+                                            }`}>
+                                                {user.duesPaidStatus || 'Unpaid'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            {user.isAdmin ? (
+                                                <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-primary-red text-pure-white">Admin</span>
+                                            ) : (
+                                                <span className="text-highlight-silver text-xs">User</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredUsers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="text-center p-8 text-highlight-silver">
+                                            No users found for "{searchTerm}".
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
         </div>
     );

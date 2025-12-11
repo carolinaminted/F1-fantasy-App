@@ -29,6 +29,7 @@ interface ProcessedUser extends User {
         sprint: number;
         fl: number;
     };
+    displayRank?: number;
 }
 
 interface LeaderboardPageProps {
@@ -69,8 +70,8 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
                 const isHex = item.color?.startsWith('#');
                 return (
                     <div key={idx} className="flex items-center gap-3 text-sm">
-                        <span className="w-32 text-right truncate font-semibold text-highlight-silver">{item.label}</span>
-                        <div className="flex-1 h-4 bg-carbon-black rounded-full overflow-hidden">
+                        <span className="w-24 md:w-32 text-right truncate font-semibold text-highlight-silver text-xs md:text-sm">{item.label}</span>
+                        <div className="flex-1 h-3 md:h-4 bg-carbon-black rounded-full overflow-hidden">
                             <div 
                                 className={`h-full rounded-full ${!item.color ? 'bg-primary-red' : (isHex ? '' : item.color)}`} 
                                 style={{ 
@@ -79,7 +80,7 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
                                 }} 
                             />
                         </div>
-                        <span className="w-12 font-bold text-pure-white text-right">{item.value}</span>
+                        <span className="w-8 md:w-12 font-bold text-pure-white text-right text-xs md:text-sm">{item.value}</span>
                     </div>
                 );
             })}
@@ -103,6 +104,29 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
         return result.map((u, i) => ({ ...u, displayRank: i + 1 }));
     }, [users, searchTerm, sortOrder]);
 
+    const UserCard: React.FC<{ user: ProcessedUser }> = ({ user }) => (
+        <div className={`bg-accent-gray/50 rounded-lg p-4 flex items-center justify-between border ${user.id === currentUser?.id ? 'border-primary-red bg-primary-red/10' : 'border-pure-white/5'}`}>
+            <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-lg ${
+                    user.displayRank === 1 ? 'bg-yellow-500 text-black' :
+                    user.displayRank === 2 ? 'bg-gray-300 text-black' :
+                    user.displayRank === 3 ? 'bg-orange-600 text-white' :
+                    'bg-carbon-black text-highlight-silver border border-pure-white/10'
+                }`}>
+                    {user.displayRank}
+                </div>
+                <div>
+                    <h3 className="font-bold text-pure-white leading-tight">{user.displayName}</h3>
+                    {user.id === currentUser?.id && <span className="text-[10px] text-primary-red uppercase font-bold tracking-wider">You</span>}
+                </div>
+            </div>
+            <div className="text-right">
+                <span className="block font-mono font-bold text-xl text-primary-red">{user.points}</span>
+                <span className="text-[10px] text-highlight-silver uppercase tracking-wider">PTS</span>
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6 animate-fade-in">
              <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -112,11 +136,22 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     placeholder="Search principals..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full md:w-64 bg-carbon-black/70 border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red"
+                    className="w-full md:w-64 bg-carbon-black/70 border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
                 />
             </div>
 
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+            {/* Mobile: Vertical Card List */}
+            <div className="md:hidden space-y-3">
+                {filteredAndSorted.map(user => (
+                    <UserCard key={user.id} user={user} />
+                ))}
+                {filteredAndSorted.length === 0 && (
+                     <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">No principals found.</div>
+                )}
+            </div>
+
+            {/* Desktop: Table View */}
+            <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-carbon-black/50">
                         <tr>
@@ -217,12 +252,12 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
         <div className="space-y-8 animate-fade-in">
              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 className="text-2xl font-bold text-pure-white">Popular Picks Analysis</h2>
-                <div className="flex bg-accent-gray rounded-lg p-1">
+                <div className="flex bg-accent-gray rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
                          <button
                             key={range}
                             onClick={() => setTimeRange(range)}
-                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${
+                            className={`px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-colors whitespace-nowrap flex-1 ${
                                 timeRange === range ? 'bg-primary-red text-pure-white' : 'text-highlight-silver hover:text-pure-white'
                             }`}
                         >
@@ -338,11 +373,11 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
                         ))}
                     </div>
                 )}
-                <div className="flex gap-4 justify-center mt-4 text-xs text-highlight-silver">
+                <div className="flex gap-4 justify-center mt-4 text-xs text-highlight-silver flex-wrap">
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-primary-red rounded-sm"></div> Race</div>
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded-sm"></div> Quali</div>
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded-sm"></div> Sprint</div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> FL</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> FL</div>
                 </div>
             </div>
         </div>
@@ -442,7 +477,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
         <div className="space-y-8 animate-fade-in">
              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 className="text-2xl font-bold text-pure-white">Driver & Team Points</h2>
-                <div className="text-sm text-highlight-silver bg-accent-gray/30 px-3 py-1 rounded-full border border-pure-white/10">
+                <div className="text-sm text-highlight-silver bg-accent-gray/30 px-3 py-1 rounded-full border border-pure-white/10 text-center">
                     Based on Official Race Results
                 </div>
             </div>
@@ -518,9 +553,21 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
     const loadData = async () => {
         setIsLoading(true);
         const { users, allPicks: picksData } = await getAllUsersAndPicks();
-        setAllPicks(picksData);
+        
+        // Filter out the global admin account from leaderboard data
+        const validUsers = users.filter(u => u.email !== 'admin@fantasy.f1');
 
-        const processed = users.map(user => {
+        // Filter picks to match valid users (for PopularityView)
+        const validPicks: { [uid: string]: { [eid: string]: PickSelection } } = {};
+        validUsers.forEach(u => {
+            if (picksData[u.id]) {
+                validPicks[u.id] = picksData[u.id];
+            }
+        });
+
+        setAllPicks(validPicks);
+
+        const processed = validUsers.map(user => {
             const userPicks = picksData[user.id] || {};
             const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
 
@@ -558,11 +605,11 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   if (view === 'menu') {
       return (
-          <div className="max-w-7xl mx-auto animate-fade-in">
-              <h1 className="text-4xl font-bold text-center text-pure-white mb-2">Leaderboard Hub</h1>
-              <p className="text-center text-highlight-silver mb-12">Analyze league performance and trends.</p>
+          <div className="max-w-7xl mx-auto animate-fade-in pt-4">
+              <h1 className="text-3xl md:text-4xl font-bold text-center text-pure-white mb-2">Leaderboard Hub</h1>
+              <p className="text-center text-highlight-silver mb-8 md:mb-12">Analyze league performance and trends.</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                   <NavTile 
                     icon={LeaderboardIcon} 
                     title="Standings" 
@@ -594,10 +641,10 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   return (
       <div className="max-w-7xl mx-auto">
-          <div className="mb-6 flex items-center">
+          <div className="mb-4 md:mb-6 flex items-center">
               <button 
                 onClick={() => setView('menu')}
-                className="flex items-center gap-2 text-highlight-silver hover:text-primary-red transition-colors font-bold"
+                className="flex items-center gap-2 text-highlight-silver hover:text-primary-red transition-colors font-bold py-2"
               >
                   <BackIcon className="w-5 h-5" />
                   Back to Hub
