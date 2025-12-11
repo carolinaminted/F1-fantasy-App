@@ -73,7 +73,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
     <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0">
         <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4">
            <F1CarIcon className="w-12 h-12 text-primary-red" />
-           <span className="font-bold text-2xl truncate">{user?.displayName}</span>
+           <span className="font-bold text-lg truncate">{user?.displayName}</span>
         </div>
         <nav className="flex-grow space-y-1">
             <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
