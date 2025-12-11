@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
-import { auth } from '../services/firebase.ts';
+import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
+import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 
 const AuthScreen: React.FC = () => {
@@ -71,41 +72,84 @@ const AuthScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-        // Check if user exists (Best effort based on Firebase config)
+        // Check if user exists
         const methods = await fetchSignInMethodsForEmail(auth, email);
         if (methods.length > 0) {
             setIsLoading(false);
             return setError("An account with this email already exists. Please log in.");
         }
 
-        const code = generateCode();
-        setGeneratedCode(code);
-        
-        // --- MOCK EMAIL SERVICE ---
-        // In a production environment, you would call a Cloud Function here (e.g., SendGrid/AWS SES).
-        await new Promise(r => setTimeout(r, 1000)); // Simulate network delay
-        console.log(`[MOCK EMAILER] Sending verification code ${code} to ${email}`);
-        alert(`DEMO MODE: Your verification code is ${code}\n\n(This would be sent via email in production)`);
-        // --------------------------
+        // --- ATTEMPT REAL CLOUD FUNCTION ---
+        try {
+            console.log("Attempting to call backend 'sendVerificationCode'...");
+            const sendVerificationCode = httpsCallable(functions, 'sendVerificationCode');
+            const result = await sendVerificationCode({ email });
+            // If we reach here, the backend successfully sent an email.
+            // For security, the backend might handle the code storage, 
+            // but for this hybrid implementation, we might receive a hash or status.
+            console.log("Backend response:", result.data);
+            
+            // If backend handles generation, we shouldn't rely on client gen.
+            // However, to keep the UI flows compatible during development:
+            // We assume the backend succeeded.
+            setSignupStep('code');
 
-        setSignupStep('code');
+        } catch (backendError: any) {
+             console.warn("Backend function failed or not deployed. Falling back to DEMO MODE.", backendError);
+             
+             // --- FALLBACK: CLIENT-SIDE MOCK ---
+            const code = generateCode();
+            setGeneratedCode(code);
+            await new Promise(r => setTimeout(r, 1000)); // Simulate delay
+            alert(`DEMO MODE (Backend Unavailable): Your verification code is ${code}\n\n(Deploy functions/index.js to Firebase to enable real emails)`);
+            setSignupStep('code');
+        }
+
     } catch (err: any) {
         console.error("Verification error:", err);
-        setError("Failed to check email availability. Please try again.");
+        setError("Failed to process request. Please try again.");
     } finally {
         setIsLoading(false);
     }
   };
 
   // --- Step 2: Verify Code ---
-  const handleVerifyCode = (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
+      setIsLoading(true);
+
+      // --- ATTEMPT REAL CLOUD FUNCTION VERIFICATION ---
+      // If we are in "Real Mode", we should call a verify function.
+      // If we are in "Demo Mode", we check local state.
       
-      if (codeInput === generatedCode) {
-          setSignupStep('details');
-      } else {
-          setError("Incorrect verification code. Please check your email and try again.");
+      try {
+        if (generatedCode) {
+            // DEMO MODE CHECK
+            if (codeInput === generatedCode) {
+                setSignupStep('details');
+            } else {
+                setError("Incorrect verification code. Please check your email and try again.");
+            }
+        } else {
+            // BACKEND MODE CHECK
+            // If we didn't generate a code locally, it means the backend did.
+            try {
+                const verifyVerificationCode = httpsCallable(functions, 'verifyVerificationCode');
+                const result = await verifyVerificationCode({ email, code: codeInput });
+                
+                if ((result.data as any).valid) {
+                     setSignupStep('details');
+                } else {
+                    setError("Invalid code. Please try again.");
+                }
+            } catch (err) {
+                console.error("Verification failed", err);
+                setError("Failed to verify code with server.");
+            }
+        }
+      } finally {
+          setIsLoading(false);
       }
   };
 
@@ -236,7 +280,7 @@ const AuthScreen: React.FC = () => {
                         disabled={isLoading}
                         className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20"
                       >
-                        Verify Code
+                        {isLoading ? 'Verifying...' : 'Verify Code'}
                       </button>
                       <button
                         type="button"
