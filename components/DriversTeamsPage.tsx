@@ -112,9 +112,9 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
     };
 
     return (
-        <div className="flex flex-col text-pure-white max-w-7xl mx-auto w-full overflow-x-hidden">
+        <div className="flex flex-col text-pure-white max-w-7xl mx-auto w-full overflow-x-hidden md:h-[calc(100vh-6rem)] md:overflow-hidden">
              {/* Header */}
-             <div className="flex items-center justify-between mb-6 px-2 md:px-0">
+             <div className="flex-shrink-0 flex items-center justify-between mb-6 px-2 md:px-0 pt-4 md:pt-0">
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={() => setActivePage('home')}
@@ -132,33 +132,41 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                 </div>
             </div>
 
-            {/* Grid Area - No internal scroll, flows with page */}
-            <div className="px-1 md:px-0 pb-12">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            {/* Grid Area */}
+            <div className="flex-1 min-h-0 px-1 md:px-0 pb-12 md:pb-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start md:h-full">
                     
                     {/* Class A Column */}
-                    <div className="space-y-4">
-                        <div className="sticky top-0 z-20 bg-carbon-black/95 backdrop-blur-md py-3 border-b border-primary-red/30 mb-2 shadow-lg shadow-black/50">
+                    <div className="flex flex-col md:h-full md:bg-accent-gray/5 md:rounded-xl md:border md:border-pure-white/5 md:overflow-hidden">
+                        {/* Header */}
+                        <div className="sticky top-0 md:static z-20 bg-carbon-black/95 backdrop-blur-md py-3 px-3 border-b border-primary-red/30 mb-2 md:mb-0 shadow-lg shadow-black/50 md:shadow-none flex-shrink-0">
                             <h2 className="text-xl font-bold text-pure-white flex items-center gap-2">
                                 <span className="w-3 h-3 rounded-full bg-primary-red shadow-[0_0_8px_rgba(218,41,28,0.6)]"></span>
                                 Class A Constructors
                             </h2>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
-                            {classATeams.map(team => <TeamCard key={team.id} team={team} />)}
+                        {/* Scrollable List */}
+                        <div className="md:flex-1 md:overflow-y-auto custom-scrollbar md:p-4">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                                {classATeams.map(team => <TeamCard key={team.id} team={team} />)}
+                            </div>
                         </div>
                     </div>
 
                     {/* Class B Column */}
-                    <div className="space-y-4">
-                        <div className="sticky top-0 z-20 bg-carbon-black/95 backdrop-blur-md py-3 border-b border-blue-500/30 mb-2 shadow-lg shadow-black/50">
+                    <div className="flex flex-col md:h-full md:bg-accent-gray/5 md:rounded-xl md:border md:border-pure-white/5 md:overflow-hidden">
+                        {/* Header */}
+                        <div className="sticky top-0 md:static z-20 bg-carbon-black/95 backdrop-blur-md py-3 px-3 border-b border-blue-500/30 mb-2 md:mb-0 shadow-lg shadow-black/50 md:shadow-none flex-shrink-0">
                             <h2 className="text-xl font-bold text-pure-white flex items-center gap-2">
                                 <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
                                 Class B Constructors
                             </h2>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
-                            {classBTeams.map(team => <TeamCard key={team.id} team={team} />)}
+                        {/* Scrollable List */}
+                        <div className="md:flex-1 md:overflow-y-auto custom-scrollbar md:p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                                {classBTeams.map(team => <TeamCard key={team.id} team={team} />)}
+                            </div>
                         </div>
                     </div>
 
