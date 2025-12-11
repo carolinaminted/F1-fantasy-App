@@ -1,6 +1,6 @@
 
 // Fix: Implement the main App component to provide structure, state management, and navigation.
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
 import HomePage from './components/HomePage.tsx';
@@ -71,12 +71,20 @@ const isUserAdmin = (user: User | null) => {
     return !!user.isAdmin || user.email === 'admin@fantasy.f1';
 };
 
+const getUserRealName = (user: User | null) => {
+    if (!user) return '';
+    if (user.firstName || user.lastName) {
+        return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    }
+    return user.displayName;
+};
+
 // New SideNav component for desktop view
 const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
     <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
         <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4 flex-shrink-0">
            <F1CarIcon className="w-12 h-12 text-primary-red" />
-           <span className="font-bold text-lg truncate">{user?.displayName}</span>
+           <span className="font-bold text-lg truncate">{getUserRealName(user)}</span>
         </div>
         <nav className="flex-grow space-y-1">
             <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
@@ -113,6 +121,7 @@ const App: React.FC = () => {
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
@@ -236,6 +245,13 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Ensure scroll resets to top whenever the active page changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [activePage, adminSubPage]);
+
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
     if (!user) return;
     try {
@@ -294,7 +310,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'home':
-        return <Dashboard user={user} setActivePage={navigateToPage} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'picks':
         if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         return null;
@@ -314,14 +330,14 @@ const App: React.FC = () => {
       case 'duesPayment':
         if(user) {
             if (user.duesPaidStatus === 'Paid') {
-                return <Dashboard user={user} setActivePage={navigateToPage} />;
+                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
             }
             return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
         }
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
@@ -338,7 +354,7 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
     }
   };
   
@@ -361,7 +377,7 @@ const App: React.FC = () => {
                <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
              </div>
              <div className="text-center justify-self-center">
-                <span className="font-semibold text-lg truncate">{user.displayName}</span>
+                <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
              <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors justify-self-end">
                Log Out
@@ -379,7 +395,7 @@ const App: React.FC = () => {
           Main Content Container
           Added 'pb-[5rem] pb-safe' to account for mobile bottom nav + safe area
         */}
-        <div className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
+        <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
             <div className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none fixed" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
             <main className="relative p-4 md:p-8 min-h-full">
                 {renderPage()}
@@ -395,7 +411,7 @@ const App: React.FC = () => {
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={GarageIcon} label="Grid" page="drivers-teams" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
