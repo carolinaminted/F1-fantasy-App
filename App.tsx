@@ -1,6 +1,7 @@
 
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
 import HomePage from './components/HomePage.tsx';
 import ProfilePage from './components/ProfilePage.tsx';
@@ -9,12 +10,13 @@ import Dashboard from './components/Dashboard.tsx';
 import AdminPage from './components/AdminPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
-import ManageEntitiesPage from './components/ManageEntitiesPage.tsx'; // New
+import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
+import DriversTeamsPage from './components/DriversTeamsPage.tsx'; // New
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
@@ -25,6 +27,7 @@ import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { TrackIcon } from './components/icons/TrackIcon.tsx';
+import { GarageIcon } from './components/icons/GarageIcon.tsx'; // New
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -34,7 +37,7 @@ import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams';
 
 
 // New SideNavItem component for desktop sidebar
@@ -70,8 +73,8 @@ const isUserAdmin = (user: User | null) => {
 
 // New SideNav component for desktop view
 const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
-    <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0">
-        <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4">
+    <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
+        <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4 flex-shrink-0">
            <F1CarIcon className="w-12 h-12 text-primary-red" />
            <span className="font-bold text-lg truncate">{user?.displayName}</span>
         </div>
@@ -81,6 +84,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrackIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={GarageIcon} label="Drivers & Teams" page="drivers-teams" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
@@ -88,7 +92,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             )}
         </nav>
          {user && (
-           <div className="mt-auto flex-shrink-0">
+           <div className="mt-auto flex-shrink-0 pt-4 pb-2">
              <div className="pt-4 border-t border-accent-gray/50">
                  <button onClick={handleLogout} className="text-lg font-semibold text-highlight-silver hover:text-primary-red w-full text-left transition-colors">
                     Log Out
@@ -303,6 +307,8 @@ const App: React.FC = () => {
         return null;
       case 'points':
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+      case 'drivers-teams':
+        return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':
@@ -348,7 +354,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
       <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden">
-        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden">
+        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
            <>
              <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">
@@ -370,17 +376,17 @@ const App: React.FC = () => {
         </header>
 
         <div className="relative flex-1 overflow-y-auto pb-24 md:pb-8">
-            <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
-            <main className="relative p-4 md:p-8">
+            <div className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none fixed" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
+            <main className="relative p-4 md:p-8 min-h-full">
                 {renderPage()}
             </main>
         </div>
 
-        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden`}>
+        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/80 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden z-50`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={GarageIcon} label="Grid" page="drivers-teams" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
