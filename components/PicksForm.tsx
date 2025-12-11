@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import SelectorGroup from './SelectorGroup.tsx';
 import { SubmitIcon } from './icons/SubmitIcon.tsx';
@@ -26,7 +25,7 @@ interface PicksFormProps {
   aDrivers: Driver[];
   bDrivers: Driver[];
   allDrivers: Driver[];
-  allConstructors: Constructor[]; // Need this for color lookups in children
+  allConstructors: Constructor[];
   getUsage: (id: string, type: 'teams' | 'drivers') => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
   hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
@@ -60,6 +59,27 @@ const PicksForm: React.FC<PicksFormProps> = ({
     setPicks(savedPicks || getInitialPicks());
     setIsEditing(!savedPicks);
   }, [event.id, initialPicksForEvent]);
+
+  // Sort drivers by constructor RANK (based on constants/2025 Standings) 
+  // to pair teammates together in the grid in correct team order (McLaren -> Cadillac)
+  const sortedDrivers = useMemo(() => {
+    return [...allDrivers].sort((a, b) => {
+        const getRank = (id: string) => {
+            const idx = CONSTRUCTORS.findIndex(c => c.id === id);
+            return idx === -1 ? 999 : idx;
+        };
+
+        const teamAIndex = getRank(a.constructorId);
+        const teamBIndex = getRank(b.constructorId);
+        
+        // Sort by team rank 
+        if (teamAIndex !== teamBIndex) {
+            return teamAIndex - teamBIndex;
+        }
+        // Then by driver name
+        return a.name.localeCompare(b.name);
+    });
+  }, [allDrivers]);
 
   const handleSelect = useCallback((category: keyof PickSelection, value: string | null, index?: number) => {
     setPicks(prev => {
@@ -96,22 +116,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     }
   };
   
-  // Resolve fastest lap color
-  const getFastestLapColor = () => {
-      if(!picks.fastestLap) return undefined;
-      const driver = allDrivers.find(d => d.id === picks.fastestLap);
-      if(!driver) return undefined;
-      let constructor = allConstructors.find(c => c.id === driver.constructorId);
-      // Fallback to constants if color missing
-      if (!constructor?.color) {
-          constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
-      }
-      return constructor?.color;
-  };
-
   if (isLockedByAdmin && !isEditing) {
-    // Show a simplified lock view for non-admins if their picks are already submitted and locked
-    // The main form handles the detailed locked view while editing
     return (
         <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50">
             <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
@@ -122,6 +127,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }
 
   const isFormLockedForStatus = formLocks[event.id];
+  const hasFastestLapSelection = !!picks.fastestLap;
   
   if(!isEditing) {
     return (
@@ -168,7 +174,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Left Column: Teams */}
             <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Teams"
@@ -200,7 +205,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     allConstructors={allConstructors}
                 />
             </div>
-            {/* Right Column: Drivers */}
             <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Drivers"
@@ -239,21 +243,29 @@ const PicksForm: React.FC<PicksFormProps> = ({
                   <FastestLapIcon className="w-5 h-5 text-primary-red" />
                   Fastest Lap
               </h3>
-              <div className="grid grid-cols-1">
-                   <SelectorCard
-                      option={allDrivers.find(d => d.id === picks.fastestLap) || null}
-                      isSelected={!!picks.fastestLap}
-                      onClick={() => {}}
-                      isDropdown={true}
-                      options={allDrivers}
-                      onSelect={(value) => handleSelect('fastestLap', value)}
-                      placeholder="Driver"
-                      disabled={isFormLockedForStatus}
-                      color={getFastestLapColor()}
-                  />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                   {sortedDrivers.map(driver => {
+                       let constructor = allConstructors.find(c => c.id === driver.constructorId);
+                       if (!constructor?.color) {
+                           constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
+                       }
+                       const color = constructor?.color;
+
+                       return (
+                           <SelectorCard
+                               key={driver.id}
+                               option={driver}
+                               isSelected={picks.fastestLap === driver.id}
+                               onClick={() => handleSelect('fastestLap', driver.id)}
+                               placeholder="Driver"
+                               disabled={isFormLockedForStatus}
+                               color={color}
+                               forceColor={!hasFastestLapSelection}
+                           />
+                       );
+                   })}
               </div>
          </div>
-
 
         <div className="flex justify-end pt-2">
           <button
@@ -277,7 +289,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
   );
 };
 
-// Sub-component for a single selection card
 interface SelectorCardProps {
     option: { id: string, name: string } | null;
     isSelected: boolean;
@@ -289,11 +300,11 @@ interface SelectorCardProps {
     usage?: string;
     disabled?: boolean;
     color?: string;
+    forceColor?: boolean;
 }
 
-export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled, color }) => {
+export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled, color, forceColor }) => {
     
-    // Helper to add alpha to hex for background
     const hexToRgba = (hex: string, alpha: number) => {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
@@ -301,10 +312,12 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
 
-    const cardStyle: React.CSSProperties = isSelected && color ? {
+    const showColor = (isSelected || forceColor) && color;
+
+    const cardStyle: React.CSSProperties = showColor ? {
         borderColor: color,
-        backgroundColor: hexToRgba(color, 0.2),
-        boxShadow: `0 10px 15px -3px ${hexToRgba(color, 0.2)}`
+        backgroundColor: hexToRgba(color, isSelected ? 0.25 : 0.1),
+        boxShadow: isSelected ? `0 10px 15px -3px ${hexToRgba(color, 0.2)}` : undefined
     } : {};
     
     if (isDropdown && options && onSelect) {
@@ -339,11 +352,11 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                 p-1.5 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
                 transition-all duration-200 min-h-[3.5rem]
                 ${isSelected && !color ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : ''}
-                ${!isSelected ? 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver' : ''}
+                ${!showColor && !isSelected ? 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver' : ''}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
         >
-            <p className={`font-bold text-sm md:text-base leading-tight ${isSelected ? 'text-pure-white' : 'text-ghost-white'}`}>
+            <p className={`font-bold text-sm md:text-base leading-tight ${isSelected || forceColor ? 'text-pure-white' : 'text-ghost-white'}`}>
                 {option ? option.name : placeholder}
             </p>
             {usage && <p className={`text-[10px] md:text-xs mt-0.5 ${isSelected ? (color ? 'text-pure-white' : 'text-primary-red') : 'text-highlight-silver'}`}>{usage}</p>}
