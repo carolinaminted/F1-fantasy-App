@@ -15,7 +15,16 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
     
     // Sort and Group Entities
     const { classATeams, classBTeams } = useMemo(() => {
-        const sortedTeams = [...allConstructors].sort((a, b) => a.name.localeCompare(b.name));
+        // Helper to get rank from constants (2025 Standings Order)
+        const getTeamRank = (id: string) => {
+            const index = CONSTRUCTORS.findIndex(c => c.id === id);
+            return index === -1 ? 999 : index;
+        };
+
+        const sortedTeams = [...allConstructors].sort((a, b) => {
+             return getTeamRank(a.id) - getTeamRank(b.id);
+        });
+
         return {
             classATeams: sortedTeams.filter(c => c.class === EntityClass.A),
             classBTeams: sortedTeams.filter(c => c.class === EntityClass.B)
@@ -134,7 +143,6 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                                 <span className="w-3 h-3 rounded-full bg-primary-red shadow-[0_0_8px_rgba(218,41,28,0.6)]"></span>
                                 Class A Constructors
                             </h2>
-                            <p className="text-xs text-highlight-silver mt-1 font-mono">Select 2 Teams · Select 3 Drivers</p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
                             {classATeams.map(team => <TeamCard key={team.id} team={team} />)}
@@ -148,7 +156,6 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                                 <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
                                 Class B Constructors
                             </h2>
-                             <p className="text-xs text-highlight-silver mt-1 font-mono">Select 1 Team · Select 2 Drivers</p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
                             {classBTeams.map(team => <TeamCard key={team.id} team={team} />)}
