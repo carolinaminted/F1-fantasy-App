@@ -16,6 +16,15 @@
               'pure-white': '#FFFFFF',
               'accent-gray': '#2C2C2C',
               'highlight-silver': '#C0C0C0',
+            },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+            },
+            keyframes: {
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
             }
           }
         }
@@ -50,6 +59,15 @@
       .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
       .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
       .pt-safe { padding-top: env(safe-area-inset-top); }
+
+      /* Hide scrollbar for cleaner UI in specific containers */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
     </style>
     <!-- Add Babel Standalone for in-browser JSX/TSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
