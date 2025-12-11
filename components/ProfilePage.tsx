@@ -316,7 +316,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setModalData({ title, content: <div className="space-y-4">{detailsContent}</div> });
   };
 
-  const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl') => {
+  const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali') => {
     const event = EVENTS.find(e => e.id === eventId);
     const picks = seasonPicks[eventId];
     const results = raceResults[eventId];
@@ -326,7 +326,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     let title = '';
     const eventEntries: React.ReactNode[] = [];
     let pointSource: (string | null)[] | undefined;
-    let pointSystemArr: number[];
+    let pointSystemArr: number[] | undefined;
 
     switch(category) {
         case 'gp':
@@ -343,6 +343,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             title = `${event.name} - Quali Points`;
             pointSource = results.gpQualifying;
             pointSystemArr = pointsSystem.gpQualifying;
+            break;
+        case 'sprintQuali':
+            title = `${event.name} - Sprint Quali Points`;
+            pointSource = results.sprintQualifying;
+            pointSystemArr = pointsSystem.sprintQualifying;
             break;
         case 'fl':
             title = `${event.name} - Fastest Lap`;
@@ -362,14 +367,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             let teamPoints = 0;
             allDrivers.forEach(driver => {
                 if (driver.constructorId === teamId) {
-                    teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr);
+                    teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr!);
                 }
             });
             eventEntries.push(<li key={`team-${teamId}`}>{getEntityName(teamId)}: <span className="font-semibold">{teamPoints} pts</span></li>);
         });
 
         allPickedDrivers.forEach(driverId => {
-            const driverPoints = getDriverPoints(driverId, pointSource, pointSystemArr);
+            const driverPoints = getDriverPoints(driverId, pointSource, pointSystemArr!);
             eventEntries.push(<li key={`driver-${driverId}`}>{getEntityName(driverId)}: <span className="font-semibold">{driverPoints} pts</span></li>);
         });
     }
@@ -688,7 +693,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                                 <button onClick={() => handleEventScoringDetailClick(event.id, 'quali')} className="transition-transform transform hover:scale-105">
                                                     <PointChip icon={PolePositionIcon} label="Quali" points={eventPoints.gpQualifyingPoints} />
                                                 </button>
-                                                {event.hasSprint && results.sprintQualifying && <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />}
+                                                {event.hasSprint && results.sprintQualifying && (
+                                                    <button onClick={() => handleEventScoringDetailClick(event.id, 'sprintQuali')} className="transition-transform transform hover:scale-105">
+                                                        <PointChip icon={SprintIcon} label="Sprint Quali" points={eventPoints.sprintQualifyingPoints} />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
                                                     <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
                                                 </button>
