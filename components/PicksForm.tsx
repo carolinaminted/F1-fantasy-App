@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import SelectorGroup from './SelectorGroup.tsx';
 import { SubmitIcon } from './icons/SubmitIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
+import { CONSTRUCTORS } from '../constants.ts';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -24,6 +26,7 @@ interface PicksFormProps {
   aDrivers: Driver[];
   bDrivers: Driver[];
   allDrivers: Driver[];
+  allConstructors: Constructor[];
   getUsage: (id: string, type: 'teams' | 'drivers') => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
   hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
@@ -40,6 +43,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   aDrivers,
   bDrivers,
   allDrivers,
+  allConstructors,
   getUsage,
   getLimit,
   hasRemaining
@@ -56,6 +60,27 @@ const PicksForm: React.FC<PicksFormProps> = ({
     setPicks(savedPicks || getInitialPicks());
     setIsEditing(!savedPicks);
   }, [event.id, initialPicksForEvent]);
+
+  // Sort drivers by constructor RANK (based on constants/2025 Standings) 
+  // to pair teammates together in the grid in correct team order (McLaren -> Cadillac)
+  const sortedDrivers = useMemo(() => {
+    return [...allDrivers].sort((a, b) => {
+        const getRank = (id: string) => {
+            const idx = CONSTRUCTORS.findIndex(c => c.id === id);
+            return idx === -1 ? 999 : idx;
+        };
+
+        const teamAIndex = getRank(a.constructorId);
+        const teamBIndex = getRank(b.constructorId);
+        
+        // Sort by team rank 
+        if (teamAIndex !== teamBIndex) {
+            return teamAIndex - teamBIndex;
+        }
+        // Then by driver name
+        return a.name.localeCompare(b.name);
+    });
+  }, [allDrivers]);
 
   const handleSelect = useCallback((category: keyof PickSelection, value: string | null, index?: number) => {
     setPicks(prev => {
@@ -91,10 +116,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
         alert("Please complete all selections before submitting.");
     }
   };
-
+  
   if (isLockedByAdmin && !isEditing) {
-    // Show a simplified lock view for non-admins if their picks are already submitted and locked
-    // The main form handles the detailed locked view while editing
     return (
         <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50">
             <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
@@ -105,6 +128,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }
 
   const isFormLockedForStatus = formLocks[event.id];
+  const hasFastestLapSelection = !!picks.fastestLap;
   
   if(!isEditing) {
     return (
@@ -124,35 +148,32 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-8">
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
+        {/* Compact Event Header for Mobile */}
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div className="flex-grow text-center md:text-left">
-            <h2 className="text-3xl font-bold text-pure-white">{event.name}</h2>
-            <p className="text-highlight-silver mt-1">Round {event.round} - {event.country}</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
+            <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country}</p>
             <div className="mt-2">
               {isSubmitted ? (
-                <span className="text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
               ) : (
-                <span className="text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
               )}
             </div>
           </div>
-          <div className="text-center">
-              <p className="text-sm uppercase tracking-wider font-semibold text-highlight-silver">
+          <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0">
+              <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
                   {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
               </p>
-              <p className={`text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
+              <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
                   {isFormLockedForStatus ? "LOCKED" : "OPEN"}
-              </p>
-               <p className="text-xs text-highlight-silver opacity-70">
-                  {isFormLockedForStatus ? "Submissions Closed" : "Submissions are available"}
               </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: Teams */}
-            <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Teams"
                     slots={2}
@@ -165,6 +186,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="teams"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
 
                 <SelectorGroup
@@ -179,10 +201,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="teams"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
             </div>
-            {/* Right Column: Drivers */}
-            <div className="space-y-8">
+            <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Drivers"
                     slots={3}
@@ -195,6 +217,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="drivers"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
                 
                 <SelectorGroup
@@ -209,44 +232,66 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     entityType="drivers"
                     setModalContent={setModalContent}
                     disabled={isFormLockedForStatus}
+                    allConstructors={allConstructors}
                 />
             </div>
         </div>
         
-         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
-              <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
-                  <FastestLapIcon className="w-6 h-6 text-primary-red" />
+         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-3 ring-1 ring-pure-white/10">
+              <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2">
+                  <FastestLapIcon className="w-5 h-5 text-primary-red" />
                   Fastest Lap
               </h3>
-              <div className="grid grid-cols-1">
-                   <SelectorCard
-                      option={allDrivers.find(d => d.id === picks.fastestLap) || null}
-                      isSelected={!!picks.fastestLap}
-                      onClick={() => {}}
-                      isDropdown={true}
-                      options={allDrivers}
-                      onSelect={(value) => handleSelect('fastestLap', value)}
-                      placeholder="Fastest Lap Driver"
-                      disabled={isFormLockedForStatus}
-                  />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                   {sortedDrivers.map(driver => {
+                       let constructor = allConstructors.find(c => c.id === driver.constructorId);
+                       if (!constructor?.color) {
+                           constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
+                       }
+                       const color = constructor?.color;
+
+                       return (
+                           <SelectorCard
+                               key={driver.id}
+                               option={driver}
+                               isSelected={picks.fastestLap === driver.id}
+                               onClick={() => handleSelect('fastestLap', driver.id)}
+                               placeholder="Driver"
+                               disabled={isFormLockedForStatus}
+                               color={color}
+                               forceColor={!hasFastestLapSelection}
+                           />
+                       );
+                   })}
               </div>
          </div>
 
-
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-2 pb-safe">
           <button
             type="submit"
             disabled={!isSelectionComplete() || isFormLockedForStatus}
-            className="flex items-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
           >
             <SubmitIcon className="w-5 h-5" />
             Lock In Picks
           </button>
         </div>
       </form>
+      
+      {/* Bottom Sheet / Modal */}
       {modalContent && (
-        <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-[999] p-4" onClick={() => setModalContent(null)}>
-          <div className="bg-accent-gray rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="fixed inset-0 bg-carbon-black/80 flex items-end md:items-center justify-center z-[999] md:p-4 pb-safe md:pb-4" 
+          onClick={() => setModalContent(null)}
+        >
+          <div 
+            className="bg-accent-gray rounded-t-2xl md:rounded-lg w-full md:max-w-3xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto animate-slide-up shadow-2xl ring-1 ring-pure-white/10" 
+            onClick={(e) => e.stopPropagation()}
+          >
+              {/* Drag Handle for Mobile */}
+              <div className="md:hidden w-full flex justify-center pt-3 pb-1" onClick={() => setModalContent(null)}>
+                  <div className="w-12 h-1.5 bg-pure-white/20 rounded-full"></div>
+              </div>
               {modalContent}
           </div>
         </div>
@@ -255,7 +300,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
   );
 };
 
-// Sub-component for a single selection card
 interface SelectorCardProps {
     option: { id: string, name: string } | null;
     isSelected: boolean;
@@ -266,9 +310,27 @@ interface SelectorCardProps {
     placeholder?: string;
     usage?: string;
     disabled?: boolean;
+    color?: string;
+    forceColor?: boolean;
 }
 
-export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled }) => {
+export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled, color, forceColor }) => {
+    
+    const hexToRgba = (hex: string, alpha: number) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const showColor = (isSelected || forceColor) && color;
+
+    const cardStyle: React.CSSProperties = showColor ? {
+        borderColor: color,
+        backgroundColor: hexToRgba(color, isSelected ? 0.25 : 0.1),
+        boxShadow: isSelected ? `0 10px 15px -3px ${hexToRgba(color, 0.2)}` : undefined
+    } : {};
+    
     if (isDropdown && options && onSelect) {
         return (
             <div className="relative">
@@ -276,7 +338,8 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
                     value={option?.id || ''}
                     onChange={(e) => onSelect(e.target.value || null)}
                     disabled={disabled}
-                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed"
+                    style={color && isSelected ? { borderColor: color, boxShadow: `0 0 0 1px ${color}` } : {}}
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-2 px-4 text-sm text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none disabled:bg-accent-gray disabled:cursor-not-allowed transition-all"
                 >
                     <option value="">{placeholder}</option>
                     {options.map(opt => (
@@ -295,17 +358,19 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
     return (
         <div 
             onClick={disabled ? undefined : onClick}
+            style={cardStyle}
             className={`
-                p-4 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
-                transition-all duration-200
-                ${isSelected ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver'}
+                p-1.5 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
+                transition-all duration-200 min-h-[3.5rem]
+                ${isSelected && !color ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : ''}
+                ${!showColor && !isSelected ? 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver' : ''}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
         >
-            <p className={`font-bold text-lg ${isSelected ? 'text-pure-white' : 'text-ghost-white'}`}>
+            <p className={`font-bold text-sm md:text-base leading-tight ${isSelected || forceColor ? 'text-pure-white' : 'text-ghost-white'}`}>
                 {option ? option.name : placeholder}
             </p>
-            {usage && <p className={`text-sm mt-1 ${isSelected ? 'text-primary-red' : 'text-highlight-silver'}`}>{usage}</p>}
+            {usage && <p className={`text-[10px] md:text-xs mt-0.5 ${isSelected ? (color ? 'text-pure-white' : 'text-primary-red') : 'text-highlight-silver'}`}>{usage}</p>}
         </div>
     );
 };

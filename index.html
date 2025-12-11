@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>F1 Fantasy League Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -16,6 +16,15 @@
               'pure-white': '#FFFFFF',
               'accent-gray': '#2C2C2C',
               'highlight-silver': '#C0C0C0',
+            },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+            },
+            keyframes: {
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
             }
           }
         }
@@ -27,6 +36,8 @@
     <style>
       body {
         font-family: 'Exo 2', sans-serif;
+        /* Prevent elastic scrolling/bouncing on iOS for a native app feel */
+        overscroll-behavior-y: none;
       }
       @keyframes pulse-red {
         0%, 100% {
@@ -43,6 +54,20 @@
       }
       .option-card { line-height: 1.2; }
       .option-label { text-wrap: balance; }
+      
+      /* Safe Area Utilities for Mobile */
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
+
+      /* Hide scrollbar for cleaner UI in specific containers */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
     </style>
     <!-- Add Babel Standalone for in-browser JSX/TSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -55,11 +80,13 @@
     "firebase/app": "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js",
     "firebase/auth": "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js",
     "firebase/firestore": "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js",
+    "firebase/functions": "https://www.gstatic.com/firebasejs/9.22.0/firebase-functions.js",
     "firebase/analytics": "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js",
     "firebase/": "https://aistudiocdn.com/firebase@^12.5.0/",
     "@firebase/app": "https://aistudiocdn.com/@firebase/app@^0.14.5",
     "@firebase/auth": "https://aistudiocdn.com/@firebase/auth@^1.11.1",
     "@firebase/firestore": "https://aistudiocdn.com/@firebase/firestore@^4.9.2",
+    "@firebase/functions": "https://aistudiocdn.com/@firebase/functions@^0.11.0",
     "@firebase/analytics": "https://aistudiocdn.com/@firebase/analytics@^0.10.19"
   }
 }

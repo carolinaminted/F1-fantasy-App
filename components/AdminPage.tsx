@@ -1,11 +1,13 @@
+
 import React from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
-import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
-import { LockIcon } from './icons/LockIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
+import { TrackIcon } from './icons/TrackIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'results' | 'form-lock' | 'dues-status' | 'manage-users') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -15,29 +17,29 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 <AdminIcon className="w-8 h-8"/> Admin Dashboard
             </h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <AdminTile
+                    icon={TeamIcon}
+                    title="Manage Drivers & Teams"
+                    description="Update the active grid, transfers, and classes."
+                    onClick={() => setAdminSubPage('entities')}
+                />
                 <AdminTile
-                    icon={LeaderboardIcon}
-                    title="Results Entry"
-                    description="Update and manage race results for each event."
+                    icon={TrackIcon}
+                    title="Results & Locks Manager"
+                    description="Enter race results and lock/unlock pick forms."
                     onClick={() => setAdminSubPage('results')}
-                />
-                <AdminTile
-                    icon={LockIcon}
-                    title="Form Lock"
-                    description="Manually lock or unlock pick submission forms."
-                    onClick={() => setAdminSubPage('form-lock')}
-                />
-                <AdminTile
-                    icon={ProfileIcon}
-                    title="Dues Status Manager"
-                    description="Update the dues paid status for league members."
-                    onClick={() => setAdminSubPage('dues-status')}
                 />
                 <AdminTile
                     icon={ProfileIcon}
                     title="Manage Users"
-                    description="Search and view user profiles."
+                    description="Search users, manage dues, and view profiles."
                     onClick={() => setAdminSubPage('manage-users')}
+                />
+                <AdminTile
+                    icon={TrophyIcon}
+                    title="Scoring Settings"
+                    description="Configure points awarded for race results."
+                    onClick={() => setAdminSubPage('scoring')}
                 />
             </div>
         </div>

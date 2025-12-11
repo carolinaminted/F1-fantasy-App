@@ -1,44 +1,31 @@
-import React, { useState, useMemo } from 'react';
-import { RaceResults, Event, EventResult } from '../types.ts';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
 import { EVENTS } from '../constants.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
+import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
     onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
     setAdminSubPage: (page: 'dashboard') => void;
+    allDrivers: Driver[];
+    formLocks: { [eventId: string]: boolean };
+    onToggleLock: (eventId: string) => void;
+    activePointsSystem: PointsSystem; // New prop
 }
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage }) => {
-    const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock, activePointsSystem }) => {
+    const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [filter, setFilter] = useState<FilterType>('all');
-
-    const handleSelectEvent = (eventId: string) => {
-        setSelectedEventId(prevId => (prevId === eventId ? null : eventId));
-    };
-
-    const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
-        try {
-            await onResultsUpdate(eventId, results);
-            // On desktop, keep the form open for potential further edits. On mobile, close it.
-            if (window.innerWidth < 768) {
-                setSelectedEventId(null);
-            }
-            return true;
-        } catch (error) {
-            alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
-            return false;
-        }
-    };
 
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
         if (!results) return false;
-        // A more robust check for any piece of result data
         const hasGpFinish = results.grandPrixFinish?.some(pos => !!pos);
         const hasFastestLap = !!results.fastestLap;
         const hasSprintFinish = results.sprintFinish?.some(pos => !!pos);
@@ -57,6 +44,38 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         });
     }, [filter, raceResults]);
 
+    useEffect(() => {
+        if (selectedEventId && !filteredEvents.find(e => e.id === selectedEventId)) {
+            setSelectedEventId('');
+        }
+    }, [filter, filteredEvents, selectedEventId]);
+
+    const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
+        try {
+            // Snapshot 1: Driver Teams (Existing)
+            const driverTeamsSnapshot: { [driverId: string]: string } = {};
+            allDrivers.forEach(d => {
+                driverTeamsSnapshot[d.id] = d.constructorId;
+            });
+
+            // Snapshot 2: Scoring Rules (New)
+            // We inject the CURRENT active rules into this result record.
+            // This ensures if we change rules later, this race's points are locked in history.
+            
+            const resultsWithSnapshot = {
+                ...results,
+                driverTeams: driverTeamsSnapshot,
+                scoringSnapshot: activePointsSystem,
+            };
+
+            await onResultsUpdate(eventId, resultsWithSnapshot);
+            return true;
+        } catch (error) {
+            alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+            return false;
+        }
+    };
+
     const selectedEvent = useMemo(() => EVENTS.find(event => event.id === selectedEventId), [selectedEventId]);
 
     const FilterButton: React.FC<{label: string, value: FilterType, current: FilterType, onClick: (val: FilterType) => void}> = ({ label, value, current, onClick }) => {
@@ -64,10 +83,10 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         return (
             <button
                 onClick={() => onClick(value)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors w-full ${
+                className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors flex-1 ${
                     isActive
                         ? 'bg-primary-red text-pure-white'
-                        : 'bg-carbon-black/50 text-highlight-silver hover:bg-accent-gray'
+                        : 'bg-carbon-black text-highlight-silver hover:bg-carbon-black/80'
                 }`}
             >
                 {label}
@@ -76,89 +95,80 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     };
 
     return (
-        <div className="max-w-7xl mx-auto text-pure-white">
-            <div className="flex items-center justify-between mb-8">
+        // Desktop: Calculated height (100vh - 6rem padding) to fit exactly in App shell without scrolling the page.
+        // Mobile: Natural height to allow standard page scrolling.
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white p-2 md:p-0 md:h-[calc(100vh-6rem)] md:overflow-hidden">
+            <div className="flex items-center justify-between mb-2 md:mb-4 flex-shrink-0">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
+                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors text-sm py-2"
                 >
-                    <BackIcon className="w-5 h-5" />
+                    <BackIcon className="w-4 h-4" />
                     Back
                 </button>
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-right">
-                    Results Manager <AdminIcon className="w-8 h-8"/>
+                <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-right">
+                    <span className="hidden md:inline">Results Manager</span>
+                    <span className="md:hidden">Results</span>
+                    <AdminIcon className="w-6 h-6"/>
                 </h1>
             </div>
             
-            <div className="flex flex-col md:flex-row md:gap-8">
-                {/* Event List (Left Column on Desktop) */}
-                <div className="w-full md:w-2/5 lg:w-1/3">
-                    <div className="flex items-center justify-center gap-2 mb-6 p-2 rounded-lg bg-accent-gray/50 w-fit mx-auto md:w-full">
-                        <FilterButton label="Show All" value="all" current={filter} onClick={setFilter} />
-                        <FilterButton label="Results Added" value="added" current={filter} onClick={setFilter} />
-                        <FilterButton label="Needs Results" value="pending" current={filter} onClick={setFilter} />
-                    </div>
-                    <div className="space-y-2">
-                        {filteredEvents.map(event => {
-                            const isSelected = selectedEventId === event.id;
-                            const hasResults = checkHasResults(event);
-                            return (
-                                <div key={event.id} className={`bg-accent-gray/50 backdrop-blur-sm rounded-lg overflow-hidden transition-all duration-300 ${isSelected ? 'ring-2 ring-primary-red' : 'ring-1 ring-pure-white/10'}`}>
-                                    <div 
-                                        className="p-4 flex justify-between items-center cursor-pointer hover:bg-accent-gray/70"
-                                        onClick={() => handleSelectEvent(event.id)}
-                                    >
-                                        <div>
-                                            <h2 className={`text-lg font-bold ${isSelected ? 'text-primary-red' : ''}`}>R{event.round}: {event.name}</h2>
-                                            <p className="text-sm text-highlight-silver">{event.country}</p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            {hasResults && <span className="hidden sm:block text-xs font-bold uppercase tracking-wider bg-highlight-silver/20 text-ghost-white px-3 py-1 rounded-full">Results Added</span>}
-                                            <div className="md:hidden bg-primary-red text-pure-white font-bold py-2 px-4 rounded-lg text-sm">
-                                                {isSelected ? 'Close' : 'Manage'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Mobile expanded view */}
-                                    {isSelected && (
-                                        <div className="md:hidden p-4 border-t border-accent-gray">
-                                            <ResultsForm
-                                                event={event}
-                                                currentResults={raceResults[event.id]}
-                                                onSave={handleSave}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                        {filteredEvents.length === 0 && (
-                            <div className="text-center py-12 bg-accent-gray/30 rounded-lg">
-                                <p className="text-highlight-silver">No events match the current filter.</p>
-                            </div>
-                        )}
-                    </div>
+            {/* Control Bar */}
+            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-3 mb-2 md:mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center justify-between flex-shrink-0">
+                <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
+                    <FilterButton label="All" value="all" current={filter} onClick={setFilter} />
+                    <FilterButton label="Done" value="added" current={filter} onClick={setFilter} />
+                    <FilterButton label="Todo" value="pending" current={filter} onClick={setFilter} />
                 </div>
 
-                {/* Form Display (Right Column on Desktop) */}
-                <div className="hidden md:block w-full md:w-3/5 lg:w-2/3">
-                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 sticky top-8">
-                        {selectedEvent ? (
-                            <div>
-                                <h2 className="text-2xl font-bold mb-4">Manage Results: {selectedEvent.name}</h2>
-                                <ResultsForm
-                                    event={selectedEvent}
-                                    currentResults={raceResults[selectedEvent.id]}
-                                    onSave={handleSave}
-                                />
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-96">
-                                <p className="text-highlight-silver text-lg">Select an event from the list to manage results.</p>
-                            </div>
-                        )}
+                <div className="relative w-full md:w-80">
+                    <select
+                        value={selectedEventId}
+                        onChange={(e) => setSelectedEventId(e.target.value)}
+                        className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-2.5 pl-4 pr-10 text-pure-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer"
+                    >
+                        <option value="" disabled>Select an event...</option>
+                        {filteredEvents.map(event => {
+                            const isLocked = formLocks[event.id];
+                            const hasResults = checkHasResults(event);
+                            const statusMarker = hasResults ? '✓' : '○';
+                            return (
+                                <option key={event.id} value={event.id}>
+                                    {statusMarker} R{event.round}: {event.name} {isLocked ? '(Locked)' : ''}
+                                </option>
+                            );
+                        })}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver">
+                        <ChevronDownIcon className="w-4 h-4" />
                     </div>
                 </div>
+            </div>
+
+            {/* Main Form Area */}
+            {/* Mobile: Standard block, auto height. Desktop: Flex-1, hidden overflow (internal scroll in form) */}
+            <div className="w-full max-w-6xl mx-auto md:flex-1 md:min-h-0 md:flex md:flex-col pb-8 md:pb-0">
+                {selectedEvent ? (
+                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-4 ring-1 ring-pure-white/10 md:h-full md:flex md:flex-col">
+                        <ResultsForm
+                            event={selectedEvent}
+                            currentResults={raceResults[selectedEvent.id]}
+                            onSave={handleSave}
+                            allDrivers={allDrivers}
+                            isLocked={!!formLocks[selectedEvent.id]}
+                            onToggleLock={() => onToggleLock(selectedEvent.id)}
+                        />
+                        <p className="text-center text-[10px] text-highlight-silver mt-2">
+                            Saving results will lock in the <strong>Active Scoring Profile</strong> rules for this race.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-64 md:h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
+                        <AdminIcon className="w-12 h-12 text-accent-gray mb-4" />
+                        <h3 className="text-lg font-bold text-highlight-silver mb-2">No Event Selected</h3>
+                        <p className="text-highlight-silver/70 text-sm">Select an event from the dropdown above.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

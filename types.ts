@@ -1,3 +1,4 @@
+
 // Fix: Create types definitions for the application.
 export enum EntityClass {
   A = 'A',
@@ -8,13 +9,18 @@ export interface User {
   id: string;
   displayName: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   duesPaidStatus?: 'Paid' | 'Unpaid';
+  isAdmin?: boolean;
 }
 
 export interface Constructor {
   id: string;
   name: string;
   class: EntityClass;
+  isActive: boolean;
+  color: string; // New: Team branding color
 }
 
 export interface Driver {
@@ -22,6 +28,7 @@ export interface Driver {
   name: string;
   constructorId: string;
   class: EntityClass;
+  isActive: boolean;
 }
 
 export interface Event {
@@ -40,6 +47,8 @@ export interface PickSelection {
   aDrivers: (string | null)[];
   bDrivers: (string | null)[];
   fastestLap: string | null;
+  penalty?: number; // 0.0 to 1.0 (e.g. 0.2 for 20%)
+  penaltyReason?: string;
 }
 
 export interface EventResult {
@@ -48,6 +57,8 @@ export interface EventResult {
   fastestLap: string | null;
   sprintFinish?: (string | null)[];
   sprintQualifying?: (string | null)[];
+  driverTeams?: { [driverId: string]: string }; // Snapshot of driver-team mapping at event time
+  scoringSnapshot?: PointsSystem; // Snapshot of points rules used for this result
 }
 
 export interface RaceResults {
@@ -81,4 +92,33 @@ export interface DuesPaymentInitiation {
 export interface UsageRollup {
     teams: { [id: string]: number };
     drivers: { [id: string]: number };
+}
+
+export interface PointsSystem {
+  grandPrixFinish: number[];
+  sprintFinish: number[];
+  fastestLap: number;
+  gpQualifying: number[];
+  sprintQualifying: number[];
+}
+
+export interface ScoringProfile {
+  id: string;
+  name: string;
+  config: PointsSystem;
+}
+
+export interface ScoringSettingsDoc {
+  activeProfileId: string;
+  profiles: ScoringProfile[];
+}
+
+export interface EventPointsBreakdown {
+    totalPoints: number;
+    grandPrixPoints: number;
+    sprintPoints: number;
+    fastestLapPoints: number;
+    gpQualifyingPoints: number;
+    sprintQualifyingPoints: number;
+    penaltyPoints: number; // New field
 }
