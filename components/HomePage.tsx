@@ -17,13 +17,34 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors }) => {
-  // Default to the oldest event that hasn't been submitted yet.
+  // Default to the first upcoming (open) event.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
-    // Find the first event in the chronological list that doesn't have a corresponding pick submission.
-    const oldestUnsubmitted = EVENTS.find(event => !seasonPicks[event.id]);
-    // If all events have picks, default to the first event in the season.
-    return oldestUnsubmitted || EVENTS[0];
+    const now = Date.now();
+    
+    // 1. Priority: Find the first event that is TRULY Open (not time-locked AND not manually locked)
+    const firstOpenEvent = EVENTS.find(event => {
+        const lockTime = new Date(event.lockAtUtc).getTime();
+        const isTimeLocked = now >= lockTime;
+        const isManualLocked = !!formLocks[event.id]; // Strict boolean check
+        return !isTimeLocked && !isManualLocked;
+    });
+
+    if (firstOpenEvent) return firstOpenEvent;
+
+    // 2. Fallback: If no event is "Open" (e.g. admin locked next race early, or weekend started),
+    // find the next event based on TIME only. This ensures we show the relevant "Upcoming" race
+    // (even if it says LOCKED) rather than an old race from months ago.
+    const nextEventByTime = EVENTS.find(event => {
+        const lockTime = new Date(event.lockAtUtc).getTime();
+        return now < lockTime;
+    });
+
+    if (nextEventByTime) return nextEventByTime;
+
+    // 3. Final Fallback: End of season or valid data missing, show the last event.
+    return EVENTS[EVENTS.length - 1] || EVENTS[0];
   });
+  
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
 
   return (
@@ -41,11 +62,14 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                 }}
                 className="w-full md:w-80 bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none"
             >
-                {EVENTS.map(event => (
-                    <option key={event.id} value={event.id}>
-                       Round {event.round}: {event.name}
-                    </option>
-                ))}
+                {EVENTS.map(event => {
+                    const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+                    return (
+                        <option key={event.id} value={event.id}>
+                           {isLocked ? '🔒' : '🟢'} Round {event.round}: {event.name}
+                        </option>
+                    );
+                })}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-highlight-silver">
               <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
