@@ -1,4 +1,3 @@
-
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -113,7 +112,7 @@ export const getAllUsers = async (): Promise<User[]> => {
 };
 
 // Public Access: Fetches sanitized user details for Leaderboard from 'public_users'
-export const getAllUsersAndPicks = async () => {
+export const getAllUsersAndPicks = async (): Promise<{ users: User[], allPicks: { [userId: string]: { [eventId: string]: PickSelection } }, source: 'public' | 'private_fallback' }> => {
     try {
         const publicUsersCollection = collection(db, 'public_users');
         const userPicksCollection = collection(db, 'userPicks');
@@ -155,7 +154,7 @@ export const getAllUsersAndPicks = async () => {
 
         const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
         userPicksSnapshot.forEach(doc => {
-            allPicks[doc.id] = doc.data();
+            allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
         });
 
         return { users, allPicks, source };
@@ -169,7 +168,7 @@ export const getAllUsersAndPicks = async () => {
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {
     const picksRef = doc(db, 'userPicks', uid);
     const snapshot = await getDoc(picksRef);
-    return snapshot.exists() ? snapshot.data() : {};
+    return snapshot.exists() ? snapshot.data() as { [eventId: string]: PickSelection } : {};
 };
 
 export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdmin: boolean = false) => {
