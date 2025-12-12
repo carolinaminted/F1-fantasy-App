@@ -2,7 +2,7 @@
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -12,31 +12,32 @@ import { User as FirebaseUser } from '@firebase/auth';
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string }) => {
     if (!userAuth) return;
     const userRef = doc(db, 'users', userAuth.uid);
-    const snapshot = await getDoc(userRef);
+    const userPicksRef = doc(db, 'userPicks', userAuth.uid);
 
-    if (!snapshot.exists()) {
-        const { email } = userAuth;
-        const { displayName, firstName, lastName } = additionalData;
-        const userPicksRef = doc(db, 'userPicks', userAuth.uid); // Reference to the picks document
+    try {
+        await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) {
+                const { email } = userAuth;
+                const { displayName, firstName, lastName } = additionalData;
 
-        try {
-            // Create the user profile document
-            await setDoc(userRef, {
-                displayName,
-                email,
-                firstName,
-                lastName,
-                duesPaidStatus: 'Unpaid',
-            });
+                // Atomic write 1: User Profile
+                transaction.set(userRef, {
+                    displayName,
+                    email,
+                    firstName,
+                    lastName,
+                    duesPaidStatus: 'Unpaid',
+                });
 
-            // Create the initial empty user picks document to ensure it exists for all users
-            await setDoc(userPicksRef, {});
-
-        } catch (error) {
-            console.error("Error creating user profile or picks document", error);
-            // Re-throw the error to be handled by the calling function
-            throw error;
-        }
+                // Atomic write 2: Empty Picks Document
+                // We check availability via the transaction to ensure we don't overwrite if it was created milliseconds ago
+                transaction.set(userPicksRef, {});
+            }
+        });
+    } catch (error) {
+        console.error("Error creating user profile or picks document via transaction", error);
+        throw error;
     }
     return userRef;
 };
