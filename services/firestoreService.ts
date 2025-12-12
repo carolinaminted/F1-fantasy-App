@@ -2,7 +2,7 @@
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, writeBatch } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -12,6 +12,7 @@ import { User as FirebaseUser } from '@firebase/auth';
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string }) => {
     if (!userAuth) return;
     const userRef = doc(db, 'users', userAuth.uid);
+    const publicUserRef = doc(db, 'public_users', userAuth.uid);
     const userPicksRef = doc(db, 'userPicks', userAuth.uid);
 
     try {
@@ -21,7 +22,7 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
                 const { email } = userAuth;
                 const { displayName, firstName, lastName } = additionalData;
 
-                // Atomic write 1: User Profile
+                // Atomic write 1: Private User Profile (contains PII)
                 transaction.set(userRef, {
                     displayName,
                     email,
@@ -30,7 +31,13 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
                     duesPaidStatus: 'Unpaid',
                 });
 
-                // Atomic write 2: Empty Picks Document
+                // Atomic write 2: Public User Profile (Safe for Leaderboard)
+                transaction.set(publicUserRef, {
+                    displayName,
+                    // We can add photoURL or other non-sensitive data here later
+                });
+
+                // Atomic write 3: Empty Picks Document
                 // We check availability via the transaction to ensure we don't overwrite if it was created milliseconds ago
                 transaction.set(userPicksRef, {});
             }
@@ -53,8 +60,15 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
 
 export const updateUserProfile = async (uid: string, data: { displayName: string; email: string; firstName?: string; lastName?: string }) => {
     const userRef = doc(db, 'users', uid);
+    const publicUserRef = doc(db, 'public_users', uid);
+    
     try {
+        // Update both private and public records
         await updateDoc(userRef, data);
+        
+        // Only sync public fields
+        await setDoc(publicUserRef, { displayName: data.displayName }, { merge: true });
+        
         console.log(`Profile updated for user ${uid}`);
     } catch (error) {
         console.error("Error updating user profile", error);
@@ -84,11 +98,49 @@ export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
     }
 };
 
+// Admin Only: Fetches full user details from the secure 'users' collection
 export const getAllUsers = async (): Promise<User[]> => {
-    const usersCollection = collection(db, 'users');
-    const usersSnapshot = await getDocs(usersCollection);
-    const users: User[] = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-    return users;
+    try {
+        const usersCollection = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersCollection);
+        const users: User[] = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        return users;
+    } catch (error) {
+        console.error("Error fetching all users (Admin). Ensure you have admin privileges.", error);
+        return [];
+    }
+};
+
+// Public Access: Fetches sanitized user details for Leaderboard from 'public_users'
+export const getAllUsersAndPicks = async () => {
+    try {
+        const publicUsersCollection = collection(db, 'public_users');
+        const userPicksCollection = collection(db, 'userPicks');
+
+        const [usersSnapshot, userPicksSnapshot] = await Promise.all([
+            getDocs(publicUsersCollection),
+            getDocs(userPicksCollection)
+        ]);
+
+        // Map public users to User type (missing email/private fields is expected here)
+        const users: User[] = usersSnapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data(),
+            email: '', // Safe default
+            duesPaidStatus: undefined,
+            isAdmin: false
+        } as User));
+
+        const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
+        userPicksSnapshot.forEach(doc => {
+            allPicks[doc.id] = doc.data();
+        });
+
+        return { users, allPicks };
+    } catch (error) {
+        console.error("Error fetching leaderboard data", error);
+        return { users: [], allPicks: {} };
+    }
 };
 
 // User Picks Management
@@ -123,23 +175,6 @@ export const updatePickPenalty = async (uid: string, eventId: string, penalty: n
         console.error("Error updating penalty", error);
         throw error;
     }
-};
-
-// For Leaderboard
-export const getAllUsersAndPicks = async () => {
-    const usersCollection = collection(db, 'users');
-    const userPicksCollection = collection(db, 'userPicks');
-
-    const usersSnapshot = await getDocs(usersCollection);
-    const userPicksSnapshot = await getDocs(userPicksCollection);
-
-    const users: User[] = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-    const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
-    userPicksSnapshot.forEach(doc => {
-        allPicks[doc.id] = doc.data();
-    });
-
-    return { users, allPicks };
 };
 
 // Form Lock Management
@@ -241,5 +276,32 @@ export const logDuesPaymentInitiation = async (
     } catch (error) {
         console.error("Error logging dues payment initiation:", error);
         throw error;
+    }
+};
+
+// --- MIGRATION UTILITY ---
+// Run this ONCE to populate the public_users collection from existing users
+export const migrateUsersToPublic = async () => {
+    try {
+        const usersCollection = collection(db, 'users');
+        const snapshot = await getDocs(usersCollection);
+        
+        const batch = writeBatch(db);
+        let count = 0;
+
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const publicRef = doc(db, 'public_users', docSnap.id);
+            batch.set(publicRef, {
+                displayName: data.displayName || 'Unknown User'
+            }, { merge: true });
+            count++;
+        });
+
+        await batch.commit();
+        return { success: true, count };
+    } catch (error) {
+        console.error("Migration failed:", error);
+        return { success: false, error };
     }
 };
