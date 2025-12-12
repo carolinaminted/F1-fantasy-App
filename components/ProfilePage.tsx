@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
-import { calculatePointsForEvent } from '../services/scoringService.ts';
+import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { EVENTS, CONSTRUCTORS } from '../constants.ts';
-import { updateUserProfile } from '../services/firestoreService.ts';
+import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { db } from '../services/firebase.ts';
 import { doc, getDoc } from '@firebase/firestore';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -164,26 +164,69 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     }
   }, [user, isEditingProfile]);
 
-  // Fetch Global Rank
+  // Fetch Global Rank with Fallback
   useEffect(() => {
       const fetchRank = async () => {
+          let rankFound = null;
+
+          // 1. Try fetching from public profile (fastest, pre-calculated by Cloud Function)
           try {
               const publicRef = doc(db, 'public_users', user.id);
               const snap = await getDoc(publicRef);
               if (snap.exists() && snap.data().rank) {
-                  setGlobalRank(snap.data().rank);
+                  rankFound = snap.data().rank;
               }
           } catch (e) {
-              console.error("Failed to fetch global rank", e);
+              console.warn("Failed to fetch global rank from public profile", e);
+          }
+
+          if (rankFound) {
+              setGlobalRank(rankFound);
+              return;
+          }
+
+          // 2. Fallback: Client-side Calculation (ensure consistency with Dashboard)
+          try {
+              // Fetch all data necessary for ranking
+              const { users: allUsersList, allPicks } = await getAllUsersAndPicks();
+              
+              // Filter users similar to Leaderboard logic (exclude admin fallback user if present)
+              const validUsers = allUsersList.filter(u => u.displayName !== 'Admin Principal');
+
+              // Calculate points for everyone
+              const scores = validUsers.map(u => {
+                  // Use pre-calculated if available in public_users doc
+                  if (u.totalPoints !== undefined) {
+                      return { uid: u.id, points: u.totalPoints };
+                  }
+                  
+                  // Calculate from raw picks
+                  const userPicks = allPicks[u.id] || {};
+                  // Use the props passed to ProfilePage for the calculation context (live rules)
+                  const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+                  return { uid: u.id, points: scoreData.totalPoints };
+              });
+
+              // Sort descending
+              scores.sort((a, b) => b.points - a.points);
+
+              // Find current user's index
+              const index = scores.findIndex(s => s.uid === user.id);
+              if (index !== -1) {
+                  setGlobalRank(index + 1);
+              }
+          } catch (e) {
+              console.error("Failed to calculate fallback rank", e);
           }
       };
-      // If user object already has rank (from passed prop if available), use it, otherwise fetch
+
+      // If user object already has rank (from passed prop if available), use it, otherwise fetch/calc
       if (user.rank) {
           setGlobalRank(user.rank);
       } else {
           fetchRank();
       }
-  }, [user.id, user.rank]);
+  }, [user.id, user.rank, raceResults, pointsSystem, allDrivers]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -612,13 +655,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     <div className="grid grid-cols-2 divide-x divide-pure-white/10 bg-carbon-black/50 border-b border-pure-white/10">
                         <div className="p-6 text-center">
                             <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2">Total Points</p>
-                            <p className="text-5xl md:text-6xl font-black text-pure-white">{scoreRollup.totalPoints}</p>
+                            <p className="text-3xl md:text-4xl font-black text-pure-white">{scoreRollup.totalPoints}</p>
                         </div>
                         <div className="p-6 text-center">
                             <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 flex items-center justify-center gap-1">
                                 <TrophyIcon className="w-3 h-3 text-primary-red" /> Global Rank
                             </p>
-                            <p className="text-5xl md:text-6xl font-black text-pure-white">{globalRank ? `#${globalRank}` : '-'}</p>
+                            <p className="text-3xl md:text-4xl font-black text-pure-white">{globalRank ? `#${globalRank}` : '-'}</p>
                         </div>
                     </div>
 
