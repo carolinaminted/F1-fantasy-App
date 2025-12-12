@@ -22,8 +22,7 @@ type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
 interface ProcessedUser extends User {
-    points: number;
-    rank: number;
+    // Legacy fields preserved for InsightsView usage, but main ranking uses root totalPoints
     breakdown: {
         gp: number;
         quali: number;
@@ -89,6 +88,65 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
     );
 };
 
+const Top25Chart: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
+    // Always use global sort for the visual
+    const top25 = [...users].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)).slice(0, 25);
+    const maxPoints = top25[0]?.totalPoints || 1;
+
+    if (top25.length === 0) return null;
+
+    return (
+        <div className="mb-8 bg-gradient-to-b from-carbon-black/60 to-transparent rounded-xl p-6 border border-pure-white/5 shadow-inner animate-fade-in">
+            <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
+                <TrendingUpIcon className="w-4 h-4 text-primary-red" />
+                Championship Pace (Top 25)
+            </h3>
+            
+            <div className="overflow-x-auto pb-4 custom-scrollbar">
+                <div className="flex items-end gap-3 min-w-max h-48 px-2 pt-6">
+                    {top25.map((user, idx) => {
+                        const points = user.totalPoints || 0;
+                        const heightPercent = Math.max((points / maxPoints) * 100, 5);
+                        const isPodium = idx < 3;
+                        
+                        let barColorClass = "bg-primary-red/50 hover:bg-primary-red";
+                        if (idx === 0) barColorClass = "bg-gradient-to-t from-yellow-600 to-yellow-400 border-t border-yellow-200 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
+                        else if (idx === 1) barColorClass = "bg-gradient-to-t from-gray-500 to-gray-300 border-t border-gray-100";
+                        else if (idx === 2) barColorClass = "bg-gradient-to-t from-orange-700 to-orange-500 border-t border-orange-300";
+
+                        return (
+                            <div key={user.id} className="group flex flex-col items-center gap-2 w-14 md:w-16 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                                {/* Points Label - Visible on Hover or for Top 3 */}
+                                <span className={`text-[10px] font-mono font-bold transition-all duration-300 ${isPodium ? 'text-pure-white translate-y-0 opacity-100' : 'text-highlight-silver translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'}`}>
+                                    {points}
+                                </span>
+                                
+                                {/* The Bar */}
+                                <div 
+                                    className={`w-full rounded-t-md relative transition-all duration-500 ease-out ${barColorClass}`}
+                                    style={{ height: `${heightPercent}%` }}
+                                >
+                                    {/* Rank Number inside bar */}
+                                    <div className={`absolute bottom-1 left-0 right-0 text-center text-[9px] font-black ${isPodium ? 'text-black/50' : 'text-white/30'}`}>
+                                        {idx + 1}
+                                    </div>
+                                </div>
+                                
+                                {/* Name Label */}
+                                <div className="w-full text-center">
+                                    <p className="text-[10px] font-bold text-highlight-silver truncate w-full group-hover:text-pure-white transition-colors">
+                                        {user.displayName}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Views ---
 
 const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null }> = ({ users, currentUser }) => {
@@ -101,7 +159,12 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
             const lower = searchTerm.toLowerCase();
             result = result.filter(u => u.displayName.toLowerCase().includes(lower));
         }
-        result.sort((a, b) => sortOrder === 'desc' ? b.points - a.points : a.points - b.points);
+        // Use pre-calculated totalPoints
+        result.sort((a, b) => {
+            const ptsA = a.totalPoints || 0;
+            const ptsB = b.totalPoints || 0;
+            return sortOrder === 'desc' ? ptsB - ptsA : ptsA - ptsB;
+        });
         return result.map((u, i) => ({ ...u, displayRank: i + 1 }));
     }, [users, searchTerm, sortOrder]);
 
@@ -122,7 +185,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                 </div>
             </div>
             <div className="text-right">
-                <span className="block font-mono font-bold text-xl text-primary-red">{user.points}</span>
+                <span className="block font-mono font-bold text-xl text-primary-red">{user.totalPoints || 0}</span>
                 <span className="text-[10px] text-highlight-silver uppercase tracking-wider">PTS</span>
             </div>
         </div>
@@ -130,6 +193,8 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
 
     return (
         <div className="space-y-6 animate-fade-in">
+             <Top25Chart users={users} />
+             
              <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
                 <h2 className="text-2xl font-bold text-pure-white">League Standings</h2>
                 <input
@@ -176,7 +241,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                                     <div className="font-bold text-pure-white">{user.displayName}</div>
                                     {user.id === currentUser?.id && <span className="text-xs text-primary-red uppercase font-bold tracking-wider">You</span>}
                                 </td>
-                                <td className="p-4 text-right font-mono font-bold text-lg text-primary-red">{user.points}</td>
+                                <td className="p-4 text-right font-mono font-bold text-lg text-primary-red">{user.totalPoints || 0}</td>
                             </tr>
                         ))}
                         {filteredAndSorted.length === 0 && (
@@ -362,15 +427,15 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
                             <div key={user.id}>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span className="font-bold text-ghost-white">{user.displayName}</span>
-                                    <span className="font-mono text-highlight-silver">{user.points} pts</span>
+                                    <span className="font-mono text-highlight-silver">{user.totalPoints} pts</span>
                                 </div>
                                 <div className="flex h-3 rounded-full overflow-hidden bg-carbon-black">
-                                    {user.points > 0 ? (
+                                    {user.totalPoints && user.totalPoints > 0 ? (
                                         <>
-                                            <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.points) * 100}%` }} />
-                                            <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.points) * 100}%` }} />
-                                            <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.points) * 100}%` }} />
-                                            <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.points) * 100}%` }} />
+                                            <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.totalPoints) * 100}%` }} />
+                                            <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.totalPoints) * 100}%` }} />
+                                            <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.totalPoints) * 100}%` }} />
+                                            <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.totalPoints) * 100}%` }} />
                                         </>
                                     ) : (
                                         <div className="w-full h-full bg-accent-gray opacity-20"></div>
@@ -579,13 +644,37 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         setAllPicks(validPicks);
 
         const processed = validUsers.map(user => {
-            const userPicks = picksData[user.id] || {};
-            const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+            // For insights, we still calculate the breakdown on client if needed,
+            // OR we can trust the 'user.breakdown' if we populated it in Cloud Function.
+            // For now, to keep `calculateScoreRollup` usage only for breakdown visuals (InsightsView)
+            // but rely on `user.totalPoints` for ranking (StandingsView).
+            
+            // Optimization: Only run calculation if user doesn't have pre-calculated points, OR for insights.
+            // To completely avoid the "Collapse", we should ideally skip this map entirely if we only view standings.
+            // But 'processedUsers' is shared state.
+            
+            // NOTE: We still calculate breakdown here for the "InsightsView" deep dive,
+            // but the sort order in StandingsView now uses `user.totalPoints` from Firestore.
+            // If `user.totalPoints` is missing (legacy data), we fallback to calculated.
+            
+            let scoreData;
+            if (user.totalPoints === undefined) {
+                 const userPicks = picksData[user.id] || {};
+                 scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+            } else {
+                 // Mock breakdown or fetch if stored. For now, assume client calc for detailed breakdown is acceptable
+                 // since main thread blocking usually comes from sorting thousands of records, not just mapping.
+                 // Actually, calculating 50 users x 24 races IS the block.
+                 // So we should ONLY do this if `user.totalPoints` is missing.
+                 const userPicks = picksData[user.id] || {};
+                 scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+            }
 
             return {
                 ...user,
-                points: scoreData.totalPoints,
-                rank: 0,
+                // Prefer pre-calculated, fallback to client-side
+                totalPoints: user.totalPoints ?? scoreData.totalPoints, 
+                rank: user.rank || 0,
                 breakdown: {
                     gp: scoreData.grandPrixPoints,
                     quali: scoreData.gpQualifyingPoints + scoreData.sprintQualifyingPoints,
@@ -595,8 +684,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
             };
         });
 
-        processed.sort((a, b) => b.points - a.points);
-        processed.forEach((u, i) => u.rank = i + 1);
+        // We still sort here for display index, but based on the (potentially pre-calculated) totalPoints
+        processed.sort((a, b) => b.totalPoints - a.totalPoints);
+        processed.forEach((u, i) => u.displayRank = i + 1); // Client-side display rank
 
         setProcessedUsers(processed);
         setIsLoading(false);

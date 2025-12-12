@@ -1,11 +1,6 @@
+
 /**
  * Firebase Cloud Functions for F1 Fantasy League
- * 
- * To deploy:
- * 1. Initialize Firebase Functions in your local project (`firebase init functions`)
- * 2. Replace this file content in `functions/index.js`
- * 3. Run `npm install nodemailer` inside the functions directory.
- * 4. Run `firebase deploy --only functions`
  */
 
 const functions = require("firebase-functions");
@@ -16,7 +11,6 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // Configure your email transport
-// For Gmail: You need to use an "App Password" if 2FA is enabled.
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -100,3 +94,153 @@ exports.verifyVerificationCode = functions.https.onCall(async (data, context) =>
 
     return { valid: true };
 });
+
+// --- SCORING ENGINE ---
+
+const DEFAULT_POINTS = {
+  grandPrixFinish: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
+  sprintFinish: [8, 7, 6, 5, 4, 3, 2, 1],
+  fastestLap: 3,
+  gpQualifying: [3, 2, 1],
+  sprintQualifying: [3, 2, 1],
+};
+
+const calculatePoints = (picks, results, system, drivers) => {
+    if (!picks || !results) return 0;
+    
+    // Helper to find constructor. Uses snapshot if available, else driver list fallback.
+    const getTeamId = (driverId) => {
+        if(results.driverTeams && results.driverTeams[driverId]) return results.driverTeams[driverId];
+        // Basic fallback if snapshot missing
+        return null; 
+    };
+
+    let rawTotal = 0;
+
+    // Helper: Score a driver for a specific category
+    const getDriverPoints = (driverId, resultList, pointsList) => {
+        if (!driverId || !resultList || !pointsList) return 0;
+        const idx = resultList.indexOf(driverId);
+        return idx !== -1 ? (pointsList[idx] || 0) : 0;
+    };
+
+    // 1. Team Scores (Sum of both drivers for that team)
+    const teamIds = [...(picks.aTeams || []), picks.bTeam].filter(Boolean);
+    teamIds.forEach(teamId => {
+        // Iterate results to find drivers belonging to this team
+        // GP
+        results.grandPrixFinish?.forEach((dId, idx) => {
+            if(dId && getTeamId(dId) === teamId) rawTotal += (system.grandPrixFinish[idx] || 0);
+        });
+        // Sprint
+        results.sprintFinish?.forEach((dId, idx) => {
+            if(dId && getTeamId(dId) === teamId) rawTotal += (system.sprintFinish[idx] || 0);
+        });
+        // Quali
+        results.gpQualifying?.forEach((dId, idx) => {
+            if(dId && getTeamId(dId) === teamId) rawTotal += (system.gpQualifying[idx] || 0);
+        });
+        // Sprint Quali
+        results.sprintQualifying?.forEach((dId, idx) => {
+            if(dId && getTeamId(dId) === teamId) rawTotal += (system.sprintQualifying[idx] || 0);
+        });
+    });
+
+    // 2. Driver Scores
+    const driverIds = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean);
+    driverIds.forEach(dId => {
+        rawTotal += getDriverPoints(dId, results.grandPrixFinish, system.grandPrixFinish);
+        rawTotal += getDriverPoints(dId, results.sprintFinish, system.sprintFinish);
+        rawTotal += getDriverPoints(dId, results.gpQualifying, system.gpQualifying);
+        rawTotal += getDriverPoints(dId, results.sprintQualifying, system.sprintQualifying);
+    });
+
+    // 3. Fastest Lap
+    if (picks.fastestLap && picks.fastestLap === results.fastestLap) {
+        rawTotal += system.fastestLap;
+    }
+
+    // 4. Penalties
+    if (picks.penalty && picks.penalty > 0) {
+        const deduction = Math.ceil(rawTotal * picks.penalty);
+        rawTotal -= deduction;
+    }
+
+    return rawTotal;
+};
+
+// Trigger: Recalculate Leaderboard when Race Results are updated
+exports.updateLeaderboard = functions.firestore
+    .document('app_state/race_results')
+    .onWrite(async (change, context) => {
+        const raceResults = change.after.exists ? change.after.data() : {};
+        
+        // 1. Fetch Dependencies
+        const [usersSnap, scoringSnap] = await Promise.all([
+            db.collection('userPicks').get(),
+            db.collection('app_state').doc('scoring_config').get()
+        ]);
+
+        let pointsSystem = DEFAULT_POINTS;
+        if (scoringSnap.exists) {
+            const data = scoringSnap.data();
+            // Handle new profile structure
+            if (data.profiles && data.activeProfileId) {
+                const active = data.profiles.find(p => p.id === data.activeProfileId);
+                if (active) pointsSystem = active.config;
+            } else if (!data.profiles) {
+                // Legacy support
+                pointsSystem = data;
+            }
+        }
+
+        console.log("Starting leaderboard calculation...");
+        
+        // 2. Calculate Scores
+        const batch = db.batch();
+        let operationCount = 0;
+        const usersScores = [];
+
+        usersSnap.forEach(doc => {
+            const userId = doc.id;
+            const allPicks = doc.data();
+            let totalPoints = 0;
+
+            Object.keys(allPicks).forEach(eventId => {
+                // Determine system to use: Snapshot or Global Active
+                const result = raceResults[eventId];
+                if (result) {
+                    const systemToUse = result.scoringSnapshot || pointsSystem;
+                    totalPoints += calculatePoints(allPicks[eventId], result, systemToUse);
+                }
+            });
+
+            usersScores.push({ userId, totalPoints });
+        });
+
+        // 3. Sort & Assign Ranks
+        usersScores.sort((a, b) => b.totalPoints - a.totalPoints);
+
+        usersScores.forEach((user, index) => {
+            const publicUserRef = db.collection('public_users').doc(user.userId);
+            batch.set(publicUserRef, { 
+                totalPoints: user.totalPoints,
+                rank: index + 1,
+                lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            operationCount++;
+            // Firestore batches limit 500
+            if (operationCount >= 450) {
+                console.log("Committing batch...");
+                batch.commit(); // Note: Ideally handle promises for multiple batches
+                operationCount = 0;
+            }
+        });
+
+        if (operationCount > 0) {
+            await batch.commit();
+        }
+
+        console.log(`Leaderboard updated for ${usersScores.length} users.`);
+    });

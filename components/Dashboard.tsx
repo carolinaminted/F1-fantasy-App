@@ -62,8 +62,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [rankData, setRankData] = useState<{ rank: number | string, points: number }>({ rank: '-', points: 0 });
   
   useEffect(() => {
+    // If user already has pre-calculated rank/points, use them directly
+    if (user?.totalPoints !== undefined && user?.rank !== undefined) {
+        setRankData({
+            rank: user.rank,
+            points: user.totalPoints
+        });
+        return;
+    }
+
     if (!user || !pointsSystem || allDrivers.length === 0) return;
 
+    // Fallback: Client-side calculation if cloud data missing
     const fetchRank = async () => {
         try {
             const { users, allPicks } = await getAllUsersAndPicks();
@@ -71,6 +81,11 @@ const Dashboard: React.FC<DashboardProps> = ({
             const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
             
             const scores = validUsers.map(u => {
+                // If user has pre-calc points, use them
+                if (u.totalPoints !== undefined) {
+                    return { uid: u.id, points: u.totalPoints };
+                }
+                // Else calculate
                 const userPicks = allPicks[u.id] || {};
                 const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
                 return { uid: u.id, points: scoreData.totalPoints };
