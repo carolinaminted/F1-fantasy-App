@@ -265,7 +265,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
                 {activeTab === 'race' && <ResultTable title="Grand Prix Results" results={results.grandPrixFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'quali' && <ResultTable title="Qualifying Results" results={results.gpQualifying} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'sprint' && event.hasSprint && <ResultTable title="Sprint Race Results" results={results.sprintFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
-                {activeTab === 'fastestlap' && <FastestLapDisplay driverId={results.fastestLap} allDrivers={allDrivers} />}
+                {activeTab === 'fastestlap' && <FastestLapDisplay driverId={results.fastestLap} allDrivers={allDrivers} allConstructors={allConstructors} />}
             </div>
         </div>
     );
@@ -351,11 +351,12 @@ const ResultTable: React.FC<ResultTableProps> = ({ title, results, allDrivers, a
     );
 };
 
-const FastestLapDisplay: React.FC<{ driverId: string | null | undefined; allDrivers: DriverType[] }> = ({ driverId, allDrivers }) => {
+const FastestLapDisplay: React.FC<{ driverId: string | null | undefined; allDrivers: DriverType[]; allConstructors: Constructor[] }> = ({ driverId, allDrivers, allConstructors }) => {
     if (!driverId) {
         return <p className="text-center text-highlight-silver py-12">Fastest lap data not available.</p>;
     }
     const driver = allDrivers.find(d => d.id === driverId);
+    const constructor = allConstructors.find(c => c.id === driver?.constructorId);
 
     return (
         <div className="text-center py-16 bg-carbon-black/20 rounded-xl border border-pure-white/5">
@@ -363,7 +364,19 @@ const FastestLapDisplay: React.FC<{ driverId: string | null | undefined; allDriv
             <div className="inline-block p-6 rounded-full bg-purple-500/10 border border-purple-500/30 mb-6">
                  <FastestLapIcon className="w-16 h-16 text-purple-500" />
             </div>
-            <p className="text-4xl font-bold text-pure-white">{driver?.name || 'Unknown Driver'}</p>
+            <p className="text-4xl font-bold text-pure-white mb-3">{driver?.name || 'Unknown Driver'}</p>
+            {constructor && (
+                <span 
+                    className="inline-block px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border border-white/10"
+                    style={{ 
+                        backgroundColor: `${constructor.color || '#333'}33`, 
+                        color: constructor.color || '#ccc', 
+                        borderColor: `${constructor.color || '#333'}66` 
+                    }}
+                >
+                    {constructor.name}
+                </span>
+            )}
         </div>
     );
 };
