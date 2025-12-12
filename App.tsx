@@ -68,8 +68,7 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
 };
 
 const isUserAdmin = (user: User | null) => {
-    if (!user) return false;
-    return !!user.isAdmin || user.email === 'admin@fantasy.f1';
+    return !!user?.isAdmin;
 };
 
 const getUserRealName = (user: User | null) => {

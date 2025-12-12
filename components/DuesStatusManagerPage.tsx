@@ -20,7 +20,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
         const fetchUsers = async () => {
             setIsLoading(true);
             const users = await getAllUsers();
-            setAllUsers(users.filter(u => u.email !== 'admin@fantasy.f1')); // Exclude admin
+            setAllUsers(users); // Include all users
             setIsLoading(false);
         };
         fetchUsers();

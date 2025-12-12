@@ -58,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     pointsSystem, 
     allDrivers = [], 
 }) => {
-  const isAdmin = user && (!!user.isAdmin || user.email === 'admin@fantasy.f1');
+  const isAdmin = user && !!user.isAdmin;
   const [rankData, setRankData] = useState<{ rank: number | string, points: number }>({ rank: '-', points: 0 });
   
   useEffect(() => {
@@ -67,7 +67,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     const fetchRank = async () => {
         try {
             const { users, allPicks } = await getAllUsersAndPicks();
-            const validUsers = users.filter(u => u.email !== 'admin@fantasy.f1');
+            // Filter out Admin Principal as fallback/safety for display if needed
+            const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
             
             const scores = validUsers.map(u => {
                 const userPicks = allPicks[u.id] || {};
@@ -152,7 +153,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* Picks Section - The 'Peeking' Tile - Custom Animation to rise from bottom */}
         <div 
             onClick={() => setActivePage('picks')}
-            className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:800ms]"
+            className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/5 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:800ms]"
         >
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
                 <PicksIcon className="w-48 h-48 text-primary-red" />

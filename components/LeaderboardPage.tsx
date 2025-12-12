@@ -14,6 +14,7 @@ import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
+import { AdminIcon } from './icons/AdminIcon.tsx';
 
 // --- Shared Types & Helpers ---
 
@@ -146,7 +147,9 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     <UserCard key={user.id} user={user} />
                 ))}
                 {filteredAndSorted.length === 0 && (
-                     <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">No principals found.</div>
+                     <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">
+                        No principals found.
+                     </div>
                 )}
             </div>
 
@@ -177,7 +180,11 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                             </tr>
                         ))}
                         {filteredAndSorted.length === 0 && (
-                            <tr><td colSpan={3} className="p-8 text-center text-highlight-silver">No principals found.</td></tr>
+                            <tr>
+                                <td colSpan={3} className="p-8 text-center text-highlight-silver">
+                                    No principals found.
+                                </td>
+                            </tr>
                         )}
                     </tbody>
                 </table>
@@ -548,14 +555,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'public' | 'private_fallback'>('public');
 
   useEffect(() => {
     const loadData = async () => {
         setIsLoading(true);
-        const { users, allPicks: picksData } = await getAllUsersAndPicks();
+        // Destructure source from the service response
+        const { users, allPicks: picksData, source } = await getAllUsersAndPicks();
         
-        // Filter out the global admin account from leaderboard data
-        const validUsers = users.filter(u => u.email !== 'admin@fantasy.f1');
+        setDataSource(source || 'public');
+
+        // Filter out Admin Principal explicitly if desired, but we removed email check
+        const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
 
         // Filter picks to match valid users (for PopularityView)
         const validPicks: { [uid: string]: { [eid: string]: PickSelection } } = {};
@@ -593,6 +604,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
     loadData();
   }, [raceResults, pointsSystem, allDrivers]);
 
+  const isUserAdmin = currentUser && !!currentUser.isAdmin;
 
   if (isLoading) {
       return (
@@ -603,9 +615,30 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       );
   }
 
+  // --- CRITICAL WARNING FOR ADMINS ---
+  const MigrationWarning = () => (
+      <div className="mb-6 bg-red-900/30 border border-primary-red/50 rounded-lg p-4 flex items-start gap-4 animate-pulse-red">
+          <div className="bg-primary-red/20 p-2 rounded-full hidden md:block">
+              <AdminIcon className="w-6 h-6 text-primary-red" />
+          </div>
+          <div>
+              <h3 className="font-bold text-pure-white text-lg">⚠️ Action Required: Leaderboard Hidden for Players</h3>
+              <p className="text-sm text-highlight-silver mt-1">
+                  You are viewing <strong>fallback data</strong> (private collection). Regular users currently see an <strong>empty leaderboard</strong>.
+              </p>
+              <div className="mt-3">
+                  <span className="text-xs font-bold text-primary-red uppercase tracking-wider">Fix:</span>
+                  <span className="text-sm text-pure-white ml-2">Go to <strong>Admin &gt; Maintenance</strong> and click <strong>"Run PII Security Migration"</strong>.</span>
+              </div>
+          </div>
+      </div>
+  );
+
   if (view === 'menu') {
       return (
           <div className="max-w-7xl mx-auto animate-fade-in pt-4">
+              {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+              
               <h1 className="text-3xl md:text-4xl font-bold text-center text-pure-white mb-2">Leaderboard Hub</h1>
               <p className="text-center text-highlight-silver mb-8 md:mb-12">Analyze league performance and trends.</p>
               
@@ -641,6 +674,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   return (
       <div className="max-w-7xl mx-auto">
+          {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+
           <div className="mb-4 md:mb-6 flex items-center">
               <button 
                 onClick={() => setView('menu')}

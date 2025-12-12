@@ -2,7 +2,7 @@
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, writeBatch } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -122,8 +122,10 @@ export const getAllUsersAndPicks = async () => {
             getDocs(userPicksCollection)
         ]);
 
+        let source: 'public' | 'private_fallback' = 'public';
+
         // Map public users to User type (missing email/private fields is expected here)
-        const users: User[] = usersSnapshot.docs.map(doc => ({ 
+        let users: User[] = usersSnapshot.docs.map(doc => ({ 
             id: doc.id, 
             ...doc.data(),
             email: '', // Safe default
@@ -131,15 +133,34 @@ export const getAllUsersAndPicks = async () => {
             isAdmin: false
         } as User));
 
+        // Fallback: If public_users is empty, try fetching 'users' (Admin only will succeed/have data)
+        // This handles the case where migration hasn't run yet, allowing Admin to see data immediately.
+        if (users.length === 0) {
+            try {
+                const privateUsersCollection = collection(db, 'users');
+                const privateSnapshot = await getDocs(privateUsersCollection);
+                if (!privateSnapshot.empty) {
+                    console.warn("Leaderboard fetching from 'users' collection (Fallback). Migration recommended.");
+                    users = privateSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    } as User));
+                    source = 'private_fallback';
+                }
+            } catch (e) {
+                // Ignore permission errors (regular users cannot read 'users' collection list)
+            }
+        }
+
         const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
         userPicksSnapshot.forEach(doc => {
             allPicks[doc.id] = doc.data();
         });
 
-        return { users, allPicks };
+        return { users, allPicks, source };
     } catch (error) {
         console.error("Error fetching leaderboard data", error);
-        return { users: [], allPicks: {} };
+        return { users: [], allPicks: {}, source: 'public' };
     }
 };
 
@@ -276,32 +297,5 @@ export const logDuesPaymentInitiation = async (
     } catch (error) {
         console.error("Error logging dues payment initiation:", error);
         throw error;
-    }
-};
-
-// --- MIGRATION UTILITY ---
-// Run this ONCE to populate the public_users collection from existing users
-export const migrateUsersToPublic = async () => {
-    try {
-        const usersCollection = collection(db, 'users');
-        const snapshot = await getDocs(usersCollection);
-        
-        const batch = writeBatch(db);
-        let count = 0;
-
-        snapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            const publicRef = doc(db, 'public_users', docSnap.id);
-            batch.set(publicRef, {
-                displayName: data.displayName || 'Unknown User'
-            }, { merge: true });
-            count++;
-        });
-
-        await batch.commit();
-        return { success: true, count };
-    } catch (error) {
-        console.error("Migration failed:", error);
-        return { success: false, error };
     }
 };

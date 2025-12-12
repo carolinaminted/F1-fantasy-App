@@ -53,7 +53,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
 
   const isSubmitted = !!initialPicksForEvent;
-  const isLockedByAdmin = formLocks[event.id] && user.email !== 'admin@fantasy.f1';
+  // Admin can edit even if locked.
+  const isLockedByAdmin = formLocks[event.id] && !user.isAdmin;
 
   useEffect(() => {
     const savedPicks = initialPicksForEvent;
@@ -127,7 +128,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
     );
   }
 
-  const isFormLockedForStatus = formLocks[event.id];
+  // isFormLockedForStatus reflects UI state. 
+  // If user is Admin, they can still edit, so we don't disable the "Edit Picks" button based on this alone.
+  const isFormLockedForStatus = formLocks[event.id]; 
+  const canEditDespiteLock = !!user.isAdmin;
   const hasFastestLapSelection = !!picks.fastestLap;
   
   if(!isEditing) {
@@ -137,10 +141,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
             <button 
               onClick={() => setIsEditing(true)} 
-              disabled={isFormLockedForStatus}
+              disabled={isFormLockedForStatus && !canEditDespiteLock}
               className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed"
             >
-              {isFormLockedForStatus ? 'Editing Locked' : 'Edit Picks'}
+              {isFormLockedForStatus && !canEditDespiteLock ? 'Editing Locked' : 'Edit Picks'}
             </button>
         </div>
     );
@@ -185,7 +189,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     hasRemaining={hasRemaining}
                     entityType="teams"
                     setModalContent={setModalContent}
-                    disabled={isFormLockedForStatus}
+                    disabled={isLockedByAdmin}
                     allConstructors={allConstructors}
                 />
 
@@ -200,7 +204,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     hasRemaining={hasRemaining}
                     entityType="teams"
                     setModalContent={setModalContent}
-                    disabled={isFormLockedForStatus}
+                    disabled={isLockedByAdmin}
                     allConstructors={allConstructors}
                 />
             </div>
@@ -216,7 +220,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     hasRemaining={hasRemaining}
                     entityType="drivers"
                     setModalContent={setModalContent}
-                    disabled={isFormLockedForStatus}
+                    disabled={isLockedByAdmin}
                     allConstructors={allConstructors}
                 />
                 
@@ -231,7 +235,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     hasRemaining={hasRemaining}
                     entityType="drivers"
                     setModalContent={setModalContent}
-                    disabled={isFormLockedForStatus}
+                    disabled={isLockedByAdmin}
                     allConstructors={allConstructors}
                 />
             </div>
@@ -257,7 +261,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                                isSelected={picks.fastestLap === driver.id}
                                onClick={() => handleSelect('fastestLap', driver.id)}
                                placeholder="Driver"
-                               disabled={isFormLockedForStatus}
+                               disabled={isLockedByAdmin}
                                color={color}
                                forceColor={!hasFastestLapSelection}
                            />
@@ -269,7 +273,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         <div className="flex justify-end pt-2 pb-safe">
           <button
             type="submit"
-            disabled={!isSelectionComplete() || isFormLockedForStatus}
+            disabled={!isSelectionComplete() || isLockedByAdmin}
             className="w-full md:w-auto flex items-center justify-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
           >
             <SubmitIcon className="w-5 h-5" />

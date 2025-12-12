@@ -24,9 +24,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         const fetchUsers = async () => {
             setIsLoading(true);
             const users = await getAllUsers();
-            // We include admins now so we can edit their status if needed, but filtering out the super-admin might still be wise for safety or display.
-            // Keeping the filter for the main super-admin to avoid accidental self-lockout.
-            setAllUsers(users.filter(u => u.email !== 'admin@fantasy.f1')); 
+            setAllUsers(users); 
             setIsLoading(false);
         };
         fetchUsers();
