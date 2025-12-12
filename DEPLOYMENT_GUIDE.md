@@ -8,7 +8,7 @@ The following rules must be deployed to ensuring data privacy and integrity.
 **Key Policies:**
 1.  **Read Access:** Generally open for Leaderboard visibility, but specific user data (like donations) is restricted.
 2.  **Write Access:** Strict ownership checks (`isOwner(userId)`). Users can only modify their own data.
-3.  **Admin Privileges:** Actions are allowed if the user is `admin@fantasy.f1` OR if their user profile in Firestore has `isAdmin: true`.
+3.  **Admin Privileges:** Actions are allowed if the user's profile in Firestore has `isAdmin: true`.
 4.  **Field-Level Security:** Users cannot modify their own `duesPaidStatus` or `isAdmin` flags.
 
 ```javascript
@@ -27,17 +27,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        // Allow hardcoded super admin
-        request.auth.token.email == 'admin@fantasy.f1' ||
-        // Allow users marked as admin in Firestore
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
       );
     }
 
     // --- User Profiles ---
     match /users/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
 
       // An update is allowed if:

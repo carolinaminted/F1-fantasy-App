@@ -46,10 +46,7 @@ const AuthScreen: React.FC = () => {
   };
 
   const handleLogoClick = () => {
-    if (isLogin && !isResetting) {
-      setEmail('admin@fantasy.f1');
-      setPassword('password123');
-    } else if (!isResetting && signupStep === 'details') {
+    if (!isResetting && signupStep === 'details') {
       const randomId = Math.floor(Math.random() * 1000);
       setFirstName('Test');
       setLastName('Principal');

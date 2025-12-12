@@ -35,6 +35,7 @@ import { onAuthStateChanged, signOut } from '@firebase/auth';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
+import { useSessionGuard } from './hooks/useSessionGuard.ts';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams';
@@ -67,8 +68,7 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
 };
 
 const isUserAdmin = (user: User | null) => {
-    if (!user) return false;
-    return !!user.isAdmin || user.email === 'admin@fantasy.f1';
+    return !!user?.isAdmin;
 };
 
 const getUserRealName = (user: User | null) => {
@@ -122,6 +122,9 @@ const App: React.FC = () => {
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Implement Session Security
+  useSessionGuard(user);
   
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {

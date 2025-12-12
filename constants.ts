@@ -112,8 +112,6 @@ export const DEFAULT_POINTS_SYSTEM: PointsSystem = {
 
 export let RACE_RESULTS: RaceResults = {};
 
-export let MOCK_USERS: User[] = [
-    { id: 'user-admin', displayName: 'Admin Principal', email: 'admin@fantasy.f1' },
-];
+export let MOCK_USERS: User[] = [];
 
 export let MOCK_SEASON_PICKS: { [userId: string]: { [eventId: string]: PickSelection } } = {};

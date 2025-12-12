@@ -5,6 +5,7 @@ import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
 
 interface PointsTransparencyProps {
     pointsSystem: PointsSystem;
@@ -12,68 +13,156 @@ interface PointsTransparencyProps {
     allConstructors: Constructor[];
 }
 
-const PointsCategoryCard: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
-    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 text-center">
-        <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center justify-center gap-3">
-            <Icon className="w-6 h-6 text-primary-red" />
-            {title}
-        </h3>
-        {children}
+const PointTile: React.FC<{ rank: number; points: number; isTop?: boolean }> = ({ rank, points, isTop }) => (
+    <div className={`relative flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-300 hover:scale-105 ${isTop ? 'bg-gradient-to-b from-primary-red/10 to-transparent border-primary-red/30 shadow-[0_0_15px_rgba(218,41,28,0.1)]' : 'bg-carbon-black/20 border-pure-white/5 hover:bg-pure-white/5'}`}>
+        <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${isTop ? 'text-primary-red' : 'text-highlight-silver'}`}>
+            {rank === 1 ? 'Winner' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : `P${rank}`}
+        </span>
+        <span className="text-2xl font-black text-pure-white leading-none">{points}</span>
+        <span className="text-[8px] text-highlight-silver/50 uppercase tracking-widest mt-0.5">Points</span>
     </div>
 );
 
-const PointsList: React.FC<{ points: number[] }> = ({ points }) => (
-    <div className="space-y-1 text-ghost-white inline-block text-left">
-        {points.map((p, i) => (
-            <div key={i}>
-                Position {i + 1}: <span className="font-bold text-pure-white">{p} points</span>
+const QualiRow: React.FC<{ rank: number; points: number }> = ({ rank, points }) => (
+    <div className="flex justify-between items-center py-2 border-b border-pure-white/5 last:border-0">
+        <span className="text-highlight-silver text-sm font-mono">Q{rank}</span>
+        <span className="font-bold text-pure-white">{points} <span className="text-[10px] text-highlight-silver font-normal">pts</span></span>
+    </div>
+);
+
+const PointsCard: React.FC<{ 
+    title: string; 
+    icon: React.FC<any>; 
+    subtitle?: string;
+    className?: string;
+    headerColor?: string;
+    children: React.ReactNode;
+}> = ({ title, icon: Icon, subtitle, className, headerColor, children }) => (
+    <div className={`bg-accent-gray/30 backdrop-blur-md rounded-xl ring-1 ring-pure-white/10 flex flex-col overflow-hidden shadow-lg ${className}`}>
+        {/* Header */}
+        <div className={`px-4 py-3 flex items-center gap-3 border-b border-pure-white/5 bg-carbon-black/20 flex-shrink-0`}>
+            <div className={`p-2 rounded-lg ${headerColor || 'bg-pure-white/5 text-pure-white'}`}>
+                <Icon className="w-5 h-5" />
             </div>
-        ))}
+            <div>
+                <h3 className="text-base font-bold text-pure-white leading-none">{title}</h3>
+                {subtitle && <p className="text-[10px] text-highlight-silver mt-0.5">{subtitle}</p>}
+            </div>
+        </div>
+        {/* Body */}
+        <div className="p-4 flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
+            {children}
+        </div>
     </div>
 );
 
 const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem }) => {
+    
     return (
-        <div className="max-w-5xl mx-auto text-pure-white space-y-8">
-            <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-2 text-center">Points System</h1>
-                <p className="text-center text-highlight-silver">Understand how your fantasy team scores points.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <PointsCategoryCard title="Grand Prix Finish" icon={CheckeredFlagIcon}>
-                    <p className="text-sm text-highlight-silver mb-3">Points are awarded for the top 10 finishers in the main race.</p>
-                    <PointsList points={pointsSystem.grandPrixFinish} />
-                </PointsCategoryCard>
-                
-                <PointsCategoryCard title="Sprint Race Finish" icon={SprintIcon}>
-                    <p className="text-sm text-highlight-silver mb-3">Awarded for the top 8 finishers in Sprint events.</p>
-                    <PointsList points={pointsSystem.sprintFinish} />
-                </PointsCategoryCard>
-
-                <PointsCategoryCard title="GP Qualifying" icon={PolePositionIcon}>
-                    <p className="text-sm text-highlight-silver mb-3">Awarded for the top 3 in Grand Prix + Sprint qualifying events</p>
-                    <PointsList points={pointsSystem.gpQualifying} />
-                </PointsCategoryCard>
-                
-                <PointsCategoryCard title="Fastest Lap" icon={FastestLapIcon}>
-                    <p className="text-sm text-highlight-silver mb-3">Awarded for the driver who sets the fastest lap of the Grand Prix race.</p>
-                    <p className="text-2xl font-bold text-pure-white">{pointsSystem.fastestLap} points</p>
-                </PointsCategoryCard>
-            </div>
+        <div className="flex flex-col w-full max-w-7xl mx-auto space-y-4 pb-2 md:h-[calc(100vh-6rem)] md:overflow-hidden">
             
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 text-center">
-                <h2 className="text-2xl font-bold text-center mb-4">How It Adds Up</h2>
-                <div className="space-y-4 text-highlight-silver max-w-3xl mx-auto">
-                    <p>
-                        <strong className="text-ghost-white">Team Points:</strong> For each of your chosen teams, you score the total points earned by <em className="italic">both</em> of that constructor's drivers in a session (e.g., if you pick Ferrari, you get Leclerc's points + Hamilton's points).
-                    </p>
-                     <p>
-                        <strong className="text-ghost-white">Driver Points:</strong> For each of your chosen drivers, you score the points they earn individually.
-                    </p>
-                     <p>
-                        <strong className="text-ghost-white">Total Event Score:</strong> Your total score for an event is the sum of all your team points, all your driver points, and any fastest lap bonus points across all relevant sessions (GP, Sprint, etc.).
-                    </p>
+            {/* Page Header */}
+            <div className="flex-none text-center md:text-left flex flex-col md:flex-row items-center gap-4 border-b border-pure-white/10 pb-4">
+                <div className="bg-primary-red/10 p-3 rounded-full">
+                    <TrophyIcon className="w-8 h-8 text-primary-red" />
+                </div>
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-pure-white">Scoring System</h1>
+                    <p className="text-highlight-silver text-sm">Official point distributions for the 2026 Season.</p>
+                </div>
+            </div>
+
+            {/* Dashboard Grid - Two Columns: Left (Events) Right (Meta) */}
+            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-4">
+                
+                {/* LEFT COLUMN: RACE EVENTS (Rows for GP and Sprint) */}
+                <div className="md:col-span-9 flex flex-col gap-4 h-full min-h-0">
+                    
+                    {/* TOP: Grand Prix */}
+                    <PointsCard 
+                        title="Grand Prix" 
+                        subtitle="Sunday Feature Race (Top 10)" 
+                        icon={CheckeredFlagIcon} 
+                        className="flex-[1.3] min-h-0"
+                        headerColor="bg-primary-red text-pure-white"
+                    >
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 h-full content-center">
+                            {pointsSystem.grandPrixFinish.map((p, i) => (
+                                <PointTile key={i} rank={i + 1} points={p} isTop={i < 3} />
+                            ))}
+                        </div>
+                    </PointsCard>
+
+                    {/* BOTTOM: Sprint */}
+                    <PointsCard 
+                        title="Sprint Race" 
+                        subtitle="Saturday Sprint (Top 8)" 
+                        icon={SprintIcon} 
+                        className="flex-1 min-h-0"
+                        headerColor="bg-pure-white text-carbon-black"
+                    >
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 h-full content-center">
+                            {pointsSystem.sprintFinish.map((p, i) => (
+                                <PointTile key={i} rank={i + 1} points={p} isTop={i === 0} />
+                            ))}
+                        </div>
+                    </PointsCard>
+
+                </div>
+
+                {/* RIGHT COLUMN: SIDEBAR (Quali, Bonuses, Info) */}
+                <div className="md:col-span-3 flex flex-col gap-4 h-full min-h-0">
+                    
+                    {/* Quali */}
+                    <PointsCard 
+                        title="Qualifying" 
+                        subtitle="GP & Sprint Sessions" 
+                        icon={PolePositionIcon} 
+                        className="flex-none"
+                        headerColor="bg-blue-600 text-pure-white"
+                    >
+                        <div className="space-y-1">
+                            {pointsSystem.gpQualifying.map((p, i) => (
+                                <QualiRow key={i} rank={i + 1} points={p} />
+                            ))}
+                        </div>
+                    </PointsCard>
+
+                    {/* Fastest Lap */}
+                    <PointsCard 
+                        title="Fastest Lap" 
+                        icon={FastestLapIcon} 
+                        className="flex-none"
+                        headerColor="bg-purple-600 text-pure-white"
+                    >
+                        <div className="flex items-center justify-between py-2">
+                            <span className="text-xs text-highlight-silver uppercase tracking-wider">Bonus</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-4xl font-black text-purple-500">{pointsSystem.fastestLap}</span>
+                                <span className="text-xs text-purple-300">pts</span>
+                            </div>
+                        </div>
+                    </PointsCard>
+
+                    {/* Logic Breakdown */}
+                    <div className="bg-gradient-to-br from-carbon-black to-accent-gray/50 rounded-xl p-5 border border-pure-white/5 flex-grow flex flex-col justify-center shadow-lg min-h-0 overflow-hidden">
+                        <div className="flex flex-col gap-3 text-xs leading-relaxed text-ghost-white">
+                            <div>
+                                <span className="block text-primary-red font-bold uppercase tracking-wider mb-1">Team Score</span>
+                                <p className="opacity-80 leading-snug">Sum of <em className="text-pure-white">both</em> drivers' points for that session.</p>
+                            </div>
+                            <div>
+                                <span className="block text-blue-400 font-bold uppercase tracking-wider mb-1">Driver Score</span>
+                                <p className="opacity-80 leading-snug">Points earned individually by the driver.</p>
+                            </div>
+                        </div>
+                        <div className="pt-2 border-t border-pure-white/5 mt-3">
+                            <p className="text-[10px] text-center italic opacity-50">
+                                Total = Teams + Drivers + Bonuses - Penalties
+                            </p>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

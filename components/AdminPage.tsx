@@ -16,7 +16,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
             <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center flex items-center justify-center gap-3">
                 <AdminIcon className="w-8 h-8"/> Admin Dashboard
             </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                  <AdminTile
                     icon={TeamIcon}
                     title="Manage Drivers & Teams"
