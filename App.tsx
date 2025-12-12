@@ -17,6 +17,7 @@ import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx'; // New
+import SessionWarningModal from './components/SessionWarningModal.tsx'; // New
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
@@ -125,7 +126,7 @@ const App: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Implement Session Security
-  useSessionGuard(user);
+  const { showWarning, idleExpiryTime, continueSession } = useSessionGuard(user);
   
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
@@ -369,7 +370,7 @@ const App: React.FC = () => {
   const appContent = (
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
-      <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden">
+      <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden relative">
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
            <>
@@ -416,6 +417,14 @@ const App: React.FC = () => {
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
         </nav>
+
+        {/* Session Warning Modal */}
+        <SessionWarningModal 
+            isOpen={showWarning} 
+            expiryTime={idleExpiryTime} 
+            onContinue={continueSession} 
+            onLogout={handleLogout} 
+        />
       </div>
     </div>
   );
