@@ -703,7 +703,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
                     const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0, penaltyPoints: 0 };
                     const isExpanded = expandedEvent === event.id;
-                    const hasPenalty = picks.penalty && picks.penalty > 0;
+                    const hasPenalty = (picks.penalty || 0) > 0;
                     
                     // Net points calculation for display
                     const rawPoints = eventPoints.totalPoints + (eventPoints.penaltyPoints || 0);
