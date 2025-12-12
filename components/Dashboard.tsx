@@ -96,7 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="flex flex-col w-full min-h-screen pb-20">
       
       {/* 1. HERO SECTION - Extended Height for Apple-style Scroll */}
-      <div className="relative w-full h-[90vh] md:h-[900px] flex items-center justify-center overflow-hidden">
+      <div className="relative w-full h-[90vh] md:h-[900px] flex items-start justify-center overflow-hidden pt-24 md:pt-40">
          {/* Background Image with Parallax-like feel via fixed attachment or simple absolute positioning */}
          <div 
             className="absolute inset-0 bg-cover bg-center z-0" 
@@ -107,14 +107,19 @@ const Dashboard: React.FC<DashboardProps> = ({
          ></div>
          <div className="absolute inset-0 bg-gradient-to-t from-carbon-black via-carbon-black/50 to-transparent z-10"></div>
          
-         {/* Hero Content - Shifted up slightly to ensure spacing from tiles */}
-         <div className="relative z-20 text-center px-4 animate-fade-in-up pb-20">
-            <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
-            <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2">
-                FORMULA<br/>FANTASY ONE
-            </h1>
+         {/* Hero Content */}
+         <div className="relative z-20 text-center px-4 pb-20">
+            {/* Animated Title Block - Drives Up */}
+            <div className="animate-drive-in opacity-0">
+                <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
+                <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2">
+                    FORMULA<br/>FANTASY ONE
+                </h1>
+            </div>
+
+            {/* Animated Principal Card - Drafts behind title with delay */}
             {user ? (
-                <div className="mt-6 inline-flex flex-col items-center bg-carbon-black/60 backdrop-blur-md border border-pure-white/10 rounded-2xl p-6 shadow-2xl transform transition-transform hover:scale-105 duration-500">
+                <div className="mt-6 inline-flex flex-col items-center bg-carbon-black/60 backdrop-blur-md border border-pure-white/10 rounded-2xl p-6 shadow-2xl transform transition-transform hover:scale-105 duration-500 animate-drive-in opacity-0 [animation-delay:200ms]">
                     <p className="text-highlight-silver text-sm uppercase tracking-widest font-bold mb-1">Team Principal</p>
                     <p className="text-2xl font-bold text-pure-white mb-3">{user.displayName}</p>
                     <div className="flex items-center gap-6 border-t border-pure-white/10 pt-3">
@@ -130,12 +135,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                 </div>
             ) : (
-                <button 
-                    onClick={() => { /* Handled by Auth flow generally, but just in case */ }}
-                    className="mt-6 bg-primary-red text-pure-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform"
-                >
-                    Start Your Engine
-                </button>
+                <div className="animate-drive-in opacity-0 [animation-delay:200ms]">
+                    <button 
+                        className="mt-6 bg-primary-red text-pure-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform"
+                    >
+                        Start Your Engine
+                    </button>
+                </div>
             )}
          </div>
       </div>
@@ -143,31 +149,29 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* 2. CORE ACTION SECTIONS - Overlap (-mt-24) creates the peeking effect */}
       <div className="max-w-5xl mx-auto w-full px-4 -mt-24 relative z-30 space-y-4 md:space-y-8">
         
-        {/* Picks Section - The 'Peeking' Tile */}
-        <FadeInSection delay="0.1s">
-            <div 
-                onClick={() => setActivePage('picks')}
-                className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1"
-            >
-                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                    <PicksIcon className="w-48 h-48 text-primary-red" />
+        {/* Picks Section - The 'Peeking' Tile - Custom Animation to rise from bottom */}
+        <div 
+            onClick={() => setActivePage('picks')}
+            className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:800ms]"
+        >
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                <PicksIcon className="w-48 h-48 text-primary-red" />
+            </div>
+            <div className="relative z-10">
+                <div className="w-12 h-12 bg-primary-red/20 rounded-xl flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(218,41,28,0.3)]">
+                    <PicksIcon className="w-6 h-6 text-primary-red" />
                 </div>
-                <div className="relative z-10">
-                    <div className="w-12 h-12 bg-primary-red/20 rounded-xl flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(218,41,28,0.3)]">
-                        <PicksIcon className="w-6 h-6 text-primary-red" />
-                    </div>
-                    <h2 className="text-3xl font-bold text-pure-white mb-2 group-hover:text-primary-red transition-colors">Race Strategy</h2>
-                    <p className="text-highlight-silver max-w-md text-lg leading-relaxed">
-                        Make your team and driver selections for the upcoming Grand Prix. The grid awaits your decision.
-                    </p>
-                    <div className="mt-6 flex items-center gap-2 text-pure-white font-bold text-sm uppercase tracking-wider">
-                        Manage Picks <span className="group-hover:translate-x-1 transition-transform">→</span>
-                    </div>
+                <h2 className="text-3xl font-bold text-pure-white mb-2 group-hover:text-primary-red transition-colors">Race Strategy</h2>
+                <p className="text-highlight-silver max-w-md text-lg leading-relaxed">
+                    Make your team and driver selections for the upcoming Grand Prix. The grid awaits your decision.
+                </p>
+                <div className="mt-6 flex items-center gap-2 text-pure-white font-bold text-sm uppercase tracking-wider">
+                    Manage Picks <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </div>
             </div>
-        </FadeInSection>
+        </div>
 
-        {/* Standings Section */}
+        {/* Standings Section - Standard Fade In on Scroll */}
         <FadeInSection delay="0.2s">
              <div 
                 onClick={() => setActivePage('leaderboard')}
