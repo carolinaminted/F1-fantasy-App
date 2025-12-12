@@ -40,7 +40,7 @@ const PointsCard: React.FC<{
 }> = ({ title, icon: Icon, subtitle, className, headerColor, children }) => (
     <div className={`bg-accent-gray/30 backdrop-blur-md rounded-xl ring-1 ring-pure-white/10 flex flex-col overflow-hidden shadow-lg ${className}`}>
         {/* Header */}
-        <div className={`px-4 py-3 flex items-center gap-3 border-b border-pure-white/5 bg-carbon-black/20`}>
+        <div className={`px-4 py-3 flex items-center gap-3 border-b border-pure-white/5 bg-carbon-black/20 flex-shrink-0`}>
             <div className={`p-2 rounded-lg ${headerColor || 'bg-pure-white/5 text-pure-white'}`}>
                 <Icon className="w-5 h-5" />
             </div>
@@ -50,7 +50,7 @@ const PointsCard: React.FC<{
             </div>
         </div>
         {/* Body */}
-        <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-center">
+        <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-center min-h-0">
             {children}
         </div>
     </div>
@@ -59,7 +59,7 @@ const PointsCard: React.FC<{
 const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem }) => {
     
     return (
-        <div className="flex flex-col h-full w-full max-w-7xl mx-auto space-y-4 pb-2">
+        <div className="flex flex-col w-full max-w-7xl mx-auto space-y-4 pb-2 md:h-[calc(100vh-6rem)] md:overflow-hidden">
             
             {/* Page Header */}
             <div className="flex-none text-center md:text-left flex flex-col md:flex-row items-center gap-4 border-b border-pure-white/10 pb-4">
@@ -76,14 +76,14 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
             <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-4">
                 
                 {/* LEFT COLUMN: RACE EVENTS (Rows for GP and Sprint) */}
-                <div className="md:col-span-9 flex flex-col gap-4 h-full">
+                <div className="md:col-span-9 flex flex-col gap-4 h-full min-h-0">
                     
                     {/* TOP: Grand Prix */}
                     <PointsCard 
                         title="Grand Prix" 
                         subtitle="Sunday Feature Race (Top 10)" 
                         icon={CheckeredFlagIcon} 
-                        className="flex-[1.2]"
+                        className="flex-[1.2] min-h-0"
                         headerColor="bg-primary-red text-pure-white"
                     >
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 h-full content-center">
@@ -98,7 +98,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                         title="Sprint Race" 
                         subtitle="Saturday Sprint (Top 8)" 
                         icon={SprintIcon} 
-                        className="flex-1"
+                        className="flex-1 min-h-0"
                         headerColor="bg-pure-white text-carbon-black"
                     >
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 h-full content-center">
@@ -111,7 +111,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                 </div>
 
                 {/* RIGHT COLUMN: SIDEBAR (Quali, Bonuses, Info) */}
-                <div className="md:col-span-3 flex flex-col gap-4 h-full">
+                <div className="md:col-span-3 flex flex-col gap-4 h-full min-h-0">
                     
                     {/* Quali */}
                     <PointsCard 
@@ -145,21 +145,23 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                     </PointsCard>
 
                     {/* Logic Breakdown */}
-                    <div className="bg-gradient-to-br from-carbon-black to-accent-gray/50 rounded-xl p-5 border border-pure-white/5 flex-grow flex flex-col justify-center shadow-lg">
-                        <h4 className="text-[10px] font-bold uppercase text-highlight-silver mb-4 tracking-widest border-b border-pure-white/10 pb-2">Scoring Logic</h4>
-                        <div className="space-y-4 text-xs leading-relaxed text-ghost-white">
-                            <div>
-                                <span className="block text-primary-red font-bold uppercase tracking-wider mb-1">Team Score</span>
-                                <p className="opacity-80">Sum of <em className="text-pure-white">both</em> drivers' points for that session.</p>
-                            </div>
-                            <div>
-                                <span className="block text-blue-400 font-bold uppercase tracking-wider mb-1">Driver Score</span>
-                                <p className="opacity-80">Points earned individually by the driver.</p>
-                            </div>
-                            <div className="pt-2 mt-auto">
-                                <p className="text-[10px] text-center italic opacity-50">
-                                    Total = Teams + Drivers + Bonuses - Penalties
-                                </p>
+                    <div className="bg-gradient-to-br from-carbon-black to-accent-gray/50 rounded-xl p-5 border border-pure-white/5 flex-grow flex flex-col justify-center shadow-lg min-h-0 overflow-hidden">
+                        <div className="overflow-y-auto custom-scrollbar">
+                            <h4 className="text-[10px] font-bold uppercase text-highlight-silver mb-4 tracking-widest border-b border-pure-white/10 pb-2">Scoring Logic</h4>
+                            <div className="space-y-4 text-xs leading-relaxed text-ghost-white">
+                                <div>
+                                    <span className="block text-primary-red font-bold uppercase tracking-wider mb-1">Team Score</span>
+                                    <p className="opacity-80">Sum of <em className="text-pure-white">both</em> drivers' points for that session.</p>
+                                </div>
+                                <div>
+                                    <span className="block text-blue-400 font-bold uppercase tracking-wider mb-1">Driver Score</span>
+                                    <p className="opacity-80">Points earned individually by the driver.</p>
+                                </div>
+                                <div className="pt-2 mt-auto">
+                                    <p className="text-[10px] text-center italic opacity-50">
+                                        Total = Teams + Drivers + Bonuses - Penalties
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
