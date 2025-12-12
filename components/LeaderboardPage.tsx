@@ -15,6 +15,7 @@ import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
+import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 // --- Shared Types & Helpers ---
 
@@ -88,64 +89,103 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
     );
 };
 
-const PerformanceChart: React.FC<{ users: ProcessedUser[], title: string }> = ({ users, title }) => {
-    // Determine scale based on the visible set
+const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ users, limit }) => {
+    // We calculate maxPoints from the dataset. If empty, default to 1 to avoid /0.
     const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
 
     if (users.length === 0) return null;
 
+    // Dynamic Spacing Logic
+    // Fewer records = taller rows/gaps for visual impact
+    // More records = compact rows
+    const getRowClass = () => {
+        if (limit === 10) return 'h-14'; // Spacious for Top 10
+        if (limit === 25) return 'h-10'; // Standard for Top 25
+        return 'h-8'; // Compact for All
+    };
+    
+    const rowClass = getRowClass();
+    const containerClass = limit === 1000 ? 'max-h-[600px] overflow-y-auto pr-2 custom-scrollbar' : '';
+
     return (
         <div className="mb-8 bg-gradient-to-b from-carbon-black/60 to-transparent rounded-xl p-6 border border-pure-white/5 shadow-inner animate-fade-in">
-            <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
-                <TrendingUpIcon className="w-4 h-4 text-primary-red" />
-                {title}
-            </h3>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6 border-b border-pure-white/10 pb-4">
+                <h3 className="text-xl md:text-2xl font-black text-pure-white uppercase italic tracking-wider flex items-center gap-3">
+                    <LeaderboardIcon className="w-8 h-8 text-primary-red" />
+                    League Standings
+                </h3>
+                <div className="flex items-center gap-2 text-xs font-bold text-highlight-silver uppercase tracking-wider">
+                    <span className="hidden md:inline">Race Leader: {maxPoints} PTS</span>
+                    <CheckeredFlagIcon className="w-6 h-6 text-pure-white" />
+                </div>
+            </div>
             
-            <div className="overflow-x-auto pb-2 custom-scrollbar">
-                <div className="flex items-end gap-3 min-w-max px-2">
+            <div className={`relative ${containerClass}`}>
+                {/* Finish Line (Vertical Dashed) */}
+                <div className="absolute top-0 bottom-0 right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
+
+                <div className="space-y-1 relative z-10">
                     {users.map((user, idx) => {
                         const points = user.totalPoints || 0;
-                        // Minimum bar height 5% to show non-zero participation if needed, or 2% for 0.
-                        // Logic: If points > 0, min 5%. If 0, flat line or tiny blip.
-                        const heightPercent = points > 0 
-                            ? Math.max((points / maxPoints) * 100, 5) 
-                            : 2;
-                        
-                        const isPodium = (user.displayRank || idx + 1) <= 3;
                         const rank = user.displayRank || idx + 1;
+                        // Calculate percentage relative to max points. Min 2% so cars aren't invisible.
+                        // We reserve right-14 (~3.5rem) for the finish line area.
+                        const percent = (points / maxPoints) * 100;
                         
-                        let barColorClass = "bg-primary-red/50 hover:bg-primary-red";
-                        if (rank === 1) barColorClass = "bg-gradient-to-t from-yellow-600 to-yellow-400 border-t border-yellow-200 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
-                        else if (rank === 2) barColorClass = "bg-gradient-to-t from-gray-500 to-gray-300 border-t border-gray-100";
-                        else if (rank === 3) barColorClass = "bg-gradient-to-t from-orange-700 to-orange-500 border-t border-orange-300";
+                        // Styling for Top 3
+                        let carColor = "text-primary-red"; 
+                        let rankColor = "text-highlight-silver";
+                        
+                        if (rank === 1) {
+                            carColor = "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.6)]";
+                            rankColor = "text-yellow-400";
+                        } else if (rank === 2) {
+                            carColor = "text-gray-300 drop-shadow-[0_0_10px_rgba(209,213,219,0.6)]";
+                            rankColor = "text-gray-300";
+                        } else if (rank === 3) {
+                            carColor = "text-orange-400 drop-shadow-[0_0_10px_rgba(251,146,60,0.6)]";
+                            rankColor = "text-orange-400";
+                        }
 
                         return (
-                            <div key={user.id} className="group flex flex-col items-center gap-1 w-14 md:w-16 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                                {/* Points Label */}
-                                <span className={`text-[10px] font-mono font-bold transition-all duration-300 h-4 ${isPodium ? 'text-pure-white opacity-100' : 'text-highlight-silver opacity-0 group-hover:opacity-100'}`}>
-                                    {points}
-                                </span>
+                            <div key={user.id} className={`flex items-center gap-3 ${rowClass} group hover:bg-pure-white/5 rounded-lg px-2 transition-colors`}>
+                                {/* Rank */}
+                                <div className={`w-8 text-center font-black text-lg ${rankColor} shrink-0`}>
+                                    {rank}
+                                </div>
                                 
-                                {/* Track Area for Bar - Fixed Height ensures consistent % scaling */}
-                                <div className="h-32 w-full flex items-end justify-center bg-pure-white/5 rounded-t-md relative">
-                                     <div 
-                                        className={`w-full rounded-t-md relative transition-all duration-500 ease-out ${barColorClass}`}
-                                        style={{ height: `${heightPercent}%` }}
+                                {/* Name */}
+                                <div className="w-24 md:w-32 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                    {user.displayName}
+                                </div>
+
+                                {/* Track Lane */}
+                                <div className="flex-1 relative h-full flex items-center mx-2">
+                                    {/* Track Line */}
+                                    <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
+                                    
+                                    {/* Car Movement */}
+                                    <div 
+                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-8 md:pr-14"
+                                        style={{ width: `${percent}%` }}
                                     >
-                                        {/* Rank Number inside bar (only if bar is tall enough) */}
-                                        {heightPercent > 15 && (
-                                            <div className={`absolute bottom-1 left-0 right-0 text-center text-[9px] font-black ${isPodium ? 'text-black/50' : 'text-white/30'}`}>
-                                                {rank}
+                                        <div className="relative">
+                                            {/* Rotate F1 car to face right (it points UP by default in typical SVG, or check path) */}
+                                            {/* Based on F1CarIcon path M12 1L... it is pointing UP (y=1). Rotate 90deg to point Right. */}
+                                            <F1CarIcon className={`w-8 h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
+                                            
+                                            {/* Hover Points Tooltip */}
+                                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
+                                                {points} pts
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                {/* Name Label */}
-                                <div className="w-full text-center h-4">
-                                    <p className="text-[10px] font-bold text-highlight-silver truncate w-full group-hover:text-pure-white transition-colors">
-                                        {user.displayName}
-                                    </p>
+                                {/* Points Label (Fixed column) */}
+                                <div className="w-12 text-right font-mono font-bold text-sm text-pure-white shrink-0">
+                                    {points}
                                 </div>
                             </div>
                         );
@@ -177,16 +217,9 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
         const ranked = sorted.map((u, i) => ({ ...u, displayRank: i + 1 }));
 
         // 2. Slice for "Top N" View
-        // If sorting ASC (ascending points, lowest first), "Top N" implies "Bottom N" visually, 
-        // but typically Leaderboards just limit the view. We slice the top N from the sorted list.
         const sliced = ranked.slice(0, viewLimit);
 
-        // 3. Filter by Search (within the sliced view? Or search whole DB?)
-        // Requirement: "Toggle... will update the list and the chart... with that data set".
-        // Interpretation: The dataset IS the Top N. Search only searches within Top N?
-        // Alternative: Search searches everything, but the Toggle limits the *maximum* results shown.
-        // Let's go with: Top N is the "View Mode". Searching filters the *Scoped* list.
-        
+        // 3. Filter by Search
         const result = searchTerm 
             ? sliced.filter(u => u.displayName.toLowerCase().includes(searchTerm.toLowerCase()))
             : sliced;
@@ -225,7 +258,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
             onClick={() => setViewLimit(limit)}
             className={`px-3 py-2 text-xs md:text-sm font-bold first:rounded-l-lg last:rounded-r-lg border-y border-l last:border-r transition-colors ${
                 viewLimit === limit
-                ? 'bg-primary-red text-pure-white border-primary-red z-10'
+                ? 'bg-primary-red text-pure-white border-primary-red z-10 shadow-lg'
                 : 'bg-carbon-black text-highlight-silver border-accent-gray hover:bg-accent-gray'
             }`}
         >
@@ -235,15 +268,13 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
 
     return (
         <div className="space-y-6 animate-fade-in">
-             <PerformanceChart 
+             <RaceChart 
                 users={chartData} 
-                title={viewLimit === 1000 ? "Championship Pace (All)" : `Championship Pace (Top ${viewLimit})`} 
+                limit={viewLimit}
              />
              
-             <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                <h2 className="text-2xl font-bold text-pure-white">League Standings</h2>
-                
-                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+             <div className="flex flex-col md:flex-row gap-4 justify-end items-center bg-accent-gray/20 p-2 rounded-lg border border-pure-white/5">
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
                     {/* Limit Toggle */}
                     <div className="flex justify-center">
                         <div className="flex shadow-sm">
@@ -259,7 +290,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                         placeholder="Search current view..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full md:w-64 bg-carbon-black/70 border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
+                        className="w-full md:w-64 bg-carbon-black border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
                     />
                 </div>
             </div>
