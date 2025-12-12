@@ -88,52 +88,61 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
     );
 };
 
-const Top25Chart: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
-    // Always use global sort for the visual
-    const top25 = [...users].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)).slice(0, 25);
-    const maxPoints = top25[0]?.totalPoints || 1;
+const PerformanceChart: React.FC<{ users: ProcessedUser[], title: string }> = ({ users, title }) => {
+    // Determine scale based on the visible set
+    const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
 
-    if (top25.length === 0) return null;
+    if (users.length === 0) return null;
 
     return (
         <div className="mb-8 bg-gradient-to-b from-carbon-black/60 to-transparent rounded-xl p-6 border border-pure-white/5 shadow-inner animate-fade-in">
             <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
                 <TrendingUpIcon className="w-4 h-4 text-primary-red" />
-                Championship Pace (Top 25)
+                {title}
             </h3>
             
-            <div className="overflow-x-auto pb-4 custom-scrollbar">
-                <div className="flex items-end gap-3 min-w-max h-48 px-2 pt-6">
-                    {top25.map((user, idx) => {
+            <div className="overflow-x-auto pb-2 custom-scrollbar">
+                <div className="flex items-end gap-3 min-w-max px-2">
+                    {users.map((user, idx) => {
                         const points = user.totalPoints || 0;
-                        const heightPercent = Math.max((points / maxPoints) * 100, 5);
-                        const isPodium = idx < 3;
+                        // Minimum bar height 5% to show non-zero participation if needed, or 2% for 0.
+                        // Logic: If points > 0, min 5%. If 0, flat line or tiny blip.
+                        const heightPercent = points > 0 
+                            ? Math.max((points / maxPoints) * 100, 5) 
+                            : 2;
+                        
+                        const isPodium = (user.displayRank || idx + 1) <= 3;
+                        const rank = user.displayRank || idx + 1;
                         
                         let barColorClass = "bg-primary-red/50 hover:bg-primary-red";
-                        if (idx === 0) barColorClass = "bg-gradient-to-t from-yellow-600 to-yellow-400 border-t border-yellow-200 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
-                        else if (idx === 1) barColorClass = "bg-gradient-to-t from-gray-500 to-gray-300 border-t border-gray-100";
-                        else if (idx === 2) barColorClass = "bg-gradient-to-t from-orange-700 to-orange-500 border-t border-orange-300";
+                        if (rank === 1) barColorClass = "bg-gradient-to-t from-yellow-600 to-yellow-400 border-t border-yellow-200 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
+                        else if (rank === 2) barColorClass = "bg-gradient-to-t from-gray-500 to-gray-300 border-t border-gray-100";
+                        else if (rank === 3) barColorClass = "bg-gradient-to-t from-orange-700 to-orange-500 border-t border-orange-300";
 
                         return (
-                            <div key={user.id} className="group flex flex-col items-center gap-2 w-14 md:w-16 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                                {/* Points Label - Visible on Hover or for Top 3 */}
-                                <span className={`text-[10px] font-mono font-bold transition-all duration-300 ${isPodium ? 'text-pure-white translate-y-0 opacity-100' : 'text-highlight-silver translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'}`}>
+                            <div key={user.id} className="group flex flex-col items-center gap-1 w-14 md:w-16 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                                {/* Points Label */}
+                                <span className={`text-[10px] font-mono font-bold transition-all duration-300 h-4 ${isPodium ? 'text-pure-white opacity-100' : 'text-highlight-silver opacity-0 group-hover:opacity-100'}`}>
                                     {points}
                                 </span>
                                 
-                                {/* The Bar */}
-                                <div 
-                                    className={`w-full rounded-t-md relative transition-all duration-500 ease-out ${barColorClass}`}
-                                    style={{ height: `${heightPercent}%` }}
-                                >
-                                    {/* Rank Number inside bar */}
-                                    <div className={`absolute bottom-1 left-0 right-0 text-center text-[9px] font-black ${isPodium ? 'text-black/50' : 'text-white/30'}`}>
-                                        {idx + 1}
+                                {/* Track Area for Bar - Fixed Height ensures consistent % scaling */}
+                                <div className="h-32 w-full flex items-end justify-center bg-pure-white/5 rounded-t-md relative">
+                                     <div 
+                                        className={`w-full rounded-t-md relative transition-all duration-500 ease-out ${barColorClass}`}
+                                        style={{ height: `${heightPercent}%` }}
+                                    >
+                                        {/* Rank Number inside bar (only if bar is tall enough) */}
+                                        {heightPercent > 15 && (
+                                            <div className={`absolute bottom-1 left-0 right-0 text-center text-[9px] font-black ${isPodium ? 'text-black/50' : 'text-white/30'}`}>
+                                                {rank}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 
                                 {/* Name Label */}
-                                <div className="w-full text-center">
+                                <div className="w-full text-center h-4">
                                     <p className="text-[10px] font-bold text-highlight-silver truncate w-full group-hover:text-pure-white transition-colors">
                                         {user.displayName}
                                     </p>
@@ -149,24 +158,44 @@ const Top25Chart: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
 
 // --- Views ---
 
+type FilterLimit = 10 | 25 | 1000;
+
 const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null }> = ({ users, currentUser }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [viewLimit, setViewLimit] = useState<FilterLimit>(25);
 
-    const filteredAndSorted = useMemo(() => {
-        let result = [...users];
-        if (searchTerm) {
-            const lower = searchTerm.toLowerCase();
-            result = result.filter(u => u.displayName.toLowerCase().includes(lower));
-        }
-        // Use pre-calculated totalPoints
-        result.sort((a, b) => {
+    const { filteredAndSorted, chartData } = useMemo(() => {
+        // 1. Sort all users first (Ranking Logic)
+        const sorted = [...users].sort((a, b) => {
             const ptsA = a.totalPoints || 0;
             const ptsB = b.totalPoints || 0;
             return sortOrder === 'desc' ? ptsB - ptsA : ptsA - ptsB;
         });
-        return result.map((u, i) => ({ ...u, displayRank: i + 1 }));
-    }, [users, searchTerm, sortOrder]);
+
+        // Add display ranks based on this global sort
+        const ranked = sorted.map((u, i) => ({ ...u, displayRank: i + 1 }));
+
+        // 2. Slice for "Top N" View
+        // If sorting ASC (ascending points, lowest first), "Top N" implies "Bottom N" visually, 
+        // but typically Leaderboards just limit the view. We slice the top N from the sorted list.
+        const sliced = ranked.slice(0, viewLimit);
+
+        // 3. Filter by Search (within the sliced view? Or search whole DB?)
+        // Requirement: "Toggle... will update the list and the chart... with that data set".
+        // Interpretation: The dataset IS the Top N. Search only searches within Top N?
+        // Alternative: Search searches everything, but the Toggle limits the *maximum* results shown.
+        // Let's go with: Top N is the "View Mode". Searching filters the *Scoped* list.
+        
+        const result = searchTerm 
+            ? sliced.filter(u => u.displayName.toLowerCase().includes(searchTerm.toLowerCase()))
+            : sliced;
+
+        return { 
+            filteredAndSorted: result,
+            chartData: result // Chart reflects exactly what's in the list
+        };
+    }, [users, searchTerm, sortOrder, viewLimit]);
 
     const UserCard: React.FC<{ user: ProcessedUser }> = ({ user }) => (
         <div className={`bg-accent-gray/50 rounded-lg p-4 flex items-center justify-between border ${user.id === currentUser?.id ? 'border-primary-red bg-primary-red/10' : 'border-pure-white/5'}`}>
@@ -191,19 +220,48 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
         </div>
     );
 
+    const LimitToggle: React.FC<{ label: string; limit: FilterLimit }> = ({ label, limit }) => (
+        <button
+            onClick={() => setViewLimit(limit)}
+            className={`px-3 py-2 text-xs md:text-sm font-bold first:rounded-l-lg last:rounded-r-lg border-y border-l last:border-r transition-colors ${
+                viewLimit === limit
+                ? 'bg-primary-red text-pure-white border-primary-red z-10'
+                : 'bg-carbon-black text-highlight-silver border-accent-gray hover:bg-accent-gray'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
     return (
         <div className="space-y-6 animate-fade-in">
-             <Top25Chart users={users} />
+             <PerformanceChart 
+                users={chartData} 
+                title={viewLimit === 1000 ? "Championship Pace (All)" : `Championship Pace (Top ${viewLimit})`} 
+             />
              
              <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
                 <h2 className="text-2xl font-bold text-pure-white">League Standings</h2>
-                <input
-                    type="text"
-                    placeholder="Search principals..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full md:w-64 bg-carbon-black/70 border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
-                />
+                
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                    {/* Limit Toggle */}
+                    <div className="flex justify-center">
+                        <div className="flex shadow-sm">
+                            <LimitToggle label="Top 10" limit={10} />
+                            <LimitToggle label="Top 25" limit={25} />
+                            <LimitToggle label="All" limit={1000} />
+                        </div>
+                    </div>
+
+                    {/* Search */}
+                    <input
+                        type="text"
+                        placeholder="Search current view..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full md:w-64 bg-carbon-black/70 border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
+                    />
+                </div>
             </div>
 
             {/* Mobile: Vertical Card List */}
@@ -213,7 +271,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                 ))}
                 {filteredAndSorted.length === 0 && (
                      <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">
-                        No principals found.
+                        No principals found in this view.
                      </div>
                 )}
             </div>
@@ -247,7 +305,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                         {filteredAndSorted.length === 0 && (
                             <tr>
                                 <td colSpan={3} className="p-8 text-center text-highlight-silver">
-                                    No principals found.
+                                    No principals found in this view.
                                 </td>
                             </tr>
                         )}

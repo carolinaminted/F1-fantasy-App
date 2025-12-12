@@ -227,6 +227,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     return allDrivers.find(d => d.id === id)?.name || allConstructors.find(c => c.id === id)?.name || 'Unknown';
   };
 
+  // Logic for Dues Button Click
+  const handleDuesClick = () => {
+      if (user.duesPaidStatus === 'Paid') {
+          setModalData({
+              title: "Season Status",
+              content: (
+                  <div className="text-center py-6">
+                      <div className="bg-green-600/20 p-4 rounded-full inline-block mb-4">
+                          <CheckeredFlagIcon className="w-12 h-12 text-green-500" />
+                      </div>
+                      <h3 className="text-xl font-bold text-pure-white mb-2">All Set!</h3>
+                      <p className="text-highlight-silver">
+                          Thank you for paying your dues. Enjoy the season and good luck!
+                      </p>
+                      <button 
+                        onClick={() => setModalData(null)}
+                        className="mt-6 bg-green-600 hover:bg-green-500 text-pure-white font-bold py-2 px-6 rounded-lg w-full"
+                      >
+                          Close
+                      </button>
+                  </div>
+              )
+          });
+      } else {
+          // Navigate to Payment page
+          if (setActivePage) setActivePage('duesPayment');
+      }
+  };
+
   const handleScoringDetailClick = (category: 'gp' | 'sprint' | 'quali' | 'fl') => {
     let title = '';
     const detailsContent: React.ReactNode[] = [];
@@ -436,7 +465,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <div className="flex flex-col justify-center items-center gap-2 mb-8">
             <p className="text-center text-xl text-highlight-silver">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
             <button 
-                onClick={() => setActivePage && setActivePage('duesPayment')}
+                onClick={handleDuesClick}
                 disabled={!setActivePage}
                 className={`px-3 py-1 text-xs font-bold uppercase rounded-full transition-transform hover:scale-105 ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
