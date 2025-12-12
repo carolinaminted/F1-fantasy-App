@@ -304,6 +304,20 @@ const ResultTable: React.FC<ResultTableProps> = ({ title, results, allDrivers, a
                         if (!driverId) return null;
                         const { driver, constructor } = getEntity(driverId);
                         const isPodium = index < 3;
+                        
+                        const TeamBadge = () => (
+                            <span 
+                                className="inline-block px-2 py-1 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider border border-white/10"
+                                style={{ 
+                                    backgroundColor: `${constructor?.color || '#333'}33`, 
+                                    color: constructor?.color || '#ccc', 
+                                    borderColor: `${constructor?.color || '#333'}66` 
+                                }}
+                            >
+                                {constructor?.name || 'Unknown Team'}
+                            </span>
+                        );
+
                         return (
                             <tr key={index} className={`border-t border-pure-white/5 ${index % 2 === 0 ? 'bg-pure-white/[0.02]' : ''} hover:bg-pure-white/10 transition-colors`}>
                                 <td className="p-4 text-center">
@@ -321,15 +335,12 @@ const ResultTable: React.FC<ResultTableProps> = ({ title, results, allDrivers, a
                                 </td>
                                 <td className="p-4">
                                     <div className="font-bold text-lg text-pure-white">{driver?.name || 'Unknown Driver'}</div>
-                                    <div className="sm:hidden text-xs text-highlight-silver mt-1">{constructor?.name || 'Unknown Team'}</div>
+                                    <div className="sm:hidden mt-2">
+                                        <TeamBadge />
+                                    </div>
                                 </td>
                                 <td className="p-4 hidden sm:table-cell">
-                                    <span 
-                                        className="px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border border-white/10"
-                                        style={{ backgroundColor: `${constructor?.color || '#333'}33`, color: constructor?.color || '#ccc', borderColor: `${constructor?.color || '#333'}66` }}
-                                    >
-                                        {constructor?.name || 'Unknown Team'}
-                                    </span>
+                                    <TeamBadge />
                                 </td>
                             </tr>
                         );
