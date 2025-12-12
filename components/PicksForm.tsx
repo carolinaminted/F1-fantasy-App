@@ -110,6 +110,21 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Security: Client-side time validation
+    const lockTime = new Date(event.lockAtUtc).getTime();
+    if (Date.now() >= lockTime) {
+        if (!user.isAdmin) {
+            alert("Submissions for this event are closed.");
+            return;
+        } else {
+             // Optional: Warn admin
+             if (!confirm("Event is technically locked. Submit anyway (Admin Override)?")) {
+                 return;
+             }
+        }
+    }
+
     if(isSelectionComplete()) {
         onPicksSubmit(event.id, picks);
         setIsEditing(false);

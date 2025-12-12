@@ -258,7 +258,7 @@ const App: React.FC = () => {
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
     if (!user) return;
     try {
-      await saveUserPicks(user.id, eventId, picks);
+      await saveUserPicks(user.id, eventId, picks, !!user.isAdmin);
       const updatedPicks = await getUserPicks(user.id);
       setSeasonPicks(updatedPicks);
       alert(`Picks for ${eventId} submitted successfully!`);

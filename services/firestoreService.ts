@@ -7,6 +7,7 @@ import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, ad
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
+import { EVENTS } from '../constants.ts';
 
 // User Profile Management
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string }) => {
@@ -171,7 +172,20 @@ export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: Pi
     return snapshot.exists() ? snapshot.data() : {};
 };
 
-export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection) => {
+export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdmin: boolean = false) => {
+    // Security Validation: Check submission time
+    // Admins can bypass this check if needed
+    if (!isAdmin) {
+        const event = EVENTS.find(e => e.id === eventId);
+        if (event) {
+            const lockTime = new Date(event.lockAtUtc).getTime();
+            if (Date.now() >= lockTime) {
+                 console.warn(`Blocked late submission for ${eventId} by ${uid}`);
+                 throw new Error("Picks submission is locked for this event.");
+            }
+        }
+    }
+
     const picksRef = doc(db, 'userPicks', uid);
     try {
         await setDoc(picksRef, { [eventId]: picks }, { merge: true });
