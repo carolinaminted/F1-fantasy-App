@@ -16,6 +16,7 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 // --- Shared Types & Helpers ---
 
@@ -786,12 +787,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const isUserAdmin = currentUser && !!currentUser.isAdmin;
 
   if (isLoading) {
-      return (
-          <div className="min-h-[50vh] flex flex-col items-center justify-center text-highlight-silver">
-              <TrendingUpIcon className="w-12 h-12 text-primary-red animate-bounce mb-4" />
-              <p>Crunching the numbers...</p>
-          </div>
-      );
+      return <ListSkeleton rows={10} />;
   }
 
   // --- CRITICAL WARNING FOR ADMINS ---

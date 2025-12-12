@@ -36,6 +36,7 @@ import { onAuthStateChanged, signOut } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
+import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams';
@@ -362,11 +363,7 @@ const App: React.FC = () => {
   };
   
    if (isLoading) {
-    return (
-      <div className="min-h-screen bg-carbon-black flex items-center justify-center">
-        <F1CarIcon className="w-16 h-16 text-primary-red animate-pulse" />
-      </div>
-    );
+    return <AppSkeleton />;
   }
 
   const appContent = (

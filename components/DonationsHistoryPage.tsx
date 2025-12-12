@@ -4,6 +4,7 @@ import { User, Donation } from '../types.ts';
 import { getUserDonations } from '../services/firestoreService.ts';
 import { HistoryIcon } from './icons/HistoryIcon.tsx';
 import DonationPreviewModal from './DonationPreviewModal.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 interface DonationsHistoryPageProps {
     user: User | null;
@@ -29,7 +30,7 @@ const DonationsHistoryPage: React.FC<DonationsHistoryPageProps> = ({ user }) => 
     }, [user]);
 
     if (isLoading) {
-        return <div className="text-center text-highlight-silver">Loading donation history...</div>;
+        return <ListSkeleton />;
     }
 
     if (!user) {

@@ -5,6 +5,7 @@ import { getAllUsers } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import AdminUserProfileView from './AdminUserProfileView.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 interface ManageUsersPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -122,7 +123,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
             </div>
 
             {isLoading ? (
-                <p className="text-center text-highlight-silver">Loading users...</p>
+                <ListSkeleton />
             ) : (
                 <>
                     {/* Mobile View */}
