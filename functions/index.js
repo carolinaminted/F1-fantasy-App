@@ -5,7 +5,7 @@
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const functions = require("firebase-functions"); // Keep v1 for legacy config access
+const functions = require("firebase-functions"); // Keep v1 for legacy access if needed elsewhere
 const logger = functions.logger; // Use standard Firebase logger
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -19,7 +19,7 @@ exports.ping = onCall((request) => {
     return { message: "pong (v2)", timestamp: Date.now() };
 });
 
-// --- EMAIL VERIFICATION (Renamed to fix 409 Conflict) ---
+// --- EMAIL VERIFICATION ---
 
 exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   logger.info("EXECUTION START: sendAuthCode", { triggerData: request.data });
@@ -30,12 +30,14 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
     throw new HttpsError("invalid-argument", "Email is required");
   }
 
-  // 1. Load Config
-  const emailConfig = functions.config().email || {};
-  const gmailEmail = emailConfig.user || "your-email@gmail.com";
-  const gmailPassword = emailConfig.pass || "your-app-password";
+  // 1. Config Loading (V2 Compatible)
+  // Gen 2 functions do NOT support functions.config(). We rely on Environment Variables.
+  // To set these: Go to Google Cloud Console > Cloud Run > sendauthcode > Edit & Deploy > Variables
+  // Add EMAIL_USER and EMAIL_PASS.
   
-  // 2. Debug Config (Masked)
+  let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
+  let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
+  
   const isDefaultUser = gmailEmail === "your-email@gmail.com";
   const isDefaultPass = gmailPassword === "your-app-password";
   
@@ -48,26 +50,35 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 600000; // 10 minutes
 
+  // 2. Write to Firestore
   try {
-    // 3. Write to Firestore
-    await db.collection("email_verifications").doc(email).set({
+    // Sanitize email for doc ID
+    const docId = email.toLowerCase(); 
+    
+    await db.collection("email_verifications").doc(docId).set({
       code: code,
+      email: email, 
       expiresAt: expiresAt,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
     // --- EMERGENCY DEBUGGING LOG ---
-    // If email fails, you can find the code in your Google Cloud Logs here:
     logger.info(`>>> GENERATED CODE FOR ${email}: ${code} <<<`);
 
-    // 4. Demo Mode / Missing Config Check
-    if (isDefaultUser || isDefaultPass) {
-        logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. <<<");
-        logger.warn("To fix: Run 'firebase functions:config:set email.user=\"...\" email.pass=\"...\"' and redeploy.");
-        return { success: true, demoMode: true, code: code };
-    }
+  } catch (dbError) {
+      logger.error("❌ FIRESTORE WRITE FAILED", dbError);
+      throw new HttpsError("internal", "Database error: Unable to save verification code.");
+  }
 
-    // 5. Send Email
+  // 3. Demo Mode / Missing Config Check
+  if (isDefaultUser || isDefaultPass) {
+      logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. <<<");
+      logger.warn("To fix: Set EMAIL_USER and EMAIL_PASS environment variables in Cloud Run console.");
+      return { success: true, demoMode: true, code: code };
+  }
+
+  // 4. Send Email
+  try {
     logger.info("Initializing Nodemailer...");
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -89,28 +100,20 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
     };
 
     logger.info(`Attempting email transmission...`);
-    logger.info(`Sender: ${gmailEmail}`);
-    logger.info(`Receiver: ${email}`);
-
     const info = await transporter.sendMail(mailOptions);
     
     logger.info("✅ SMTP SUCCESS: Email sent successfully.", { 
         messageId: info.messageId,
-        response: info.response,
-        accepted: info.accepted,
-        rejected: info.rejected
+        response: info.response
     });
     return { success: true };
 
-  } catch (error) {
-    logger.error("❌ CRITICAL FAILURE in sendAuthCode", {
-        errorMessage: error.message,
-        errorCode: error.code,
-        sender: gmailEmail,
-        receiver: email,
-        stack: error.stack
+  } catch (mailError) {
+    logger.error("❌ EMAIL FAILED", {
+        errorMessage: mailError.message,
+        stack: mailError.stack
     });
-    throw new HttpsError("internal", "Failed to send email: " + error.message);
+    throw new HttpsError("internal", "Failed to send email. Please try again or contact support.");
   }
 });
 
@@ -118,13 +121,14 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
     const { email, code } = request.data;
     if (!email || !code) return { valid: false, message: "Missing data" };
 
-    const docRef = db.collection("email_verifications").doc(email);
+    const docId = email.toLowerCase();
+    const docRef = db.collection("email_verifications").doc(docId);
     const doc = await docRef.get();
 
-    if (!doc.exists) return { valid: false, message: "Code not found" };
+    if (!doc.exists) return { valid: false, message: "Code not found or expired" };
 
     const record = doc.data();
-    if (Date.now() > record.expiresAt) return { valid: false, message: "Expired" };
+    if (Date.now() > record.expiresAt) return { valid: false, message: "Code expired" };
     if (record.code !== code) return { valid: false, message: "Invalid code" };
 
     await docRef.delete();

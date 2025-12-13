@@ -111,10 +111,17 @@ const AuthScreen: React.FC = () => {
         } catch (backendError: any) {
              console.error("Cloud Function Failed:", backendError);
              
+             // Check if it's a specific logical error from our backend (e.g. database error)
+             if (backendError.code && backendError.message) {
+                 setError(`Server Error: ${backendError.message}`);
+                 // Don't fall back to offline mode if the server is explicitly telling us what's wrong
+                 setIsLoading(false);
+                 return;
+             }
+
              // --- SILENT FALLBACK: CLIENT-SIDE MOCK ---
-             // If backend fails (CORS, 403, 500), we switch to offline mode immediately
-             // without showing a blocking alert.
-             console.warn("Falling back to local demo mode due to backend error.");
+             // Only if backend is truly unreachable or CORS fails (generic errors)
+             console.warn("Falling back to local demo mode due to connection error.");
              setIsOfflineMode(true);
              
              const code = generateCode();
@@ -165,9 +172,9 @@ const AuthScreen: React.FC = () => {
             } else {
                 setError(data.message || "Invalid code. Please try again.");
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Verification failed", err);
-            setError("Failed to verify code with server. Please try again.");
+            setError(err.message || "Failed to verify code with server. Please try again.");
         }
       } finally {
           setIsLoading(false);
@@ -481,7 +488,7 @@ const AuthScreen: React.FC = () => {
             renderSignupStep()
         )}
 
-        {error && <p className="text-sm text-yellow-500 text-center pt-4 font-semibold">{error}</p>}
+        {error && <p className="text-sm text-yellow-500 text-center pt-4 font-semibold animate-pulse">{error}</p>}
         {resetMessage && <p className="text-sm text-green-500 text-center pt-4 font-bold">{resetMessage}</p>}
 
         <div className="mt-6 text-center space-y-2 border-t border-pure-white/5 pt-4">
