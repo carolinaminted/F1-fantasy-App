@@ -397,7 +397,8 @@ const App: React.FC = () => {
           Added 'pb-[5rem] pb-safe' to account for mobile bottom nav + safe area
         */}
         <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
-            <div className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none fixed" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
+            {/* Replaced broken image with CSS Class 'bg-carbon-fiber' defined in index.html */}
+            <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             <main className="relative p-4 md:p-8 min-h-full">
                 {renderPage()}
             </main>
@@ -430,7 +431,7 @@ const App: React.FC = () => {
   );
 
   const authFlow = (
-    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}>
+    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4 bg-carbon-fiber">
       <AuthScreen />
     </div>
   );
