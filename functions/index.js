@@ -31,10 +31,6 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   }
 
   // 1. Config Loading (V2 Compatible)
-  // Gen 2 functions do NOT support functions.config(). We rely on Environment Variables.
-  // To set these: Go to Google Cloud Console > Cloud Run > sendauthcode > Edit & Deploy > Variables
-  // Add EMAIL_USER and EMAIL_PASS.
-  
   let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
   let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
   
@@ -118,21 +114,40 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
 });
 
 exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
+    logger.info("EXECUTION START: verifyAuthCode", { email: request.data.email });
+
     const { email, code } = request.data;
-    if (!email || !code) return { valid: false, message: "Missing data" };
+    if (!email || !code) {
+        logger.warn("Missing data in verify request");
+        return { valid: false, message: "Missing data" };
+    }
 
     const docId = email.toLowerCase();
     const docRef = db.collection("email_verifications").doc(docId);
     const doc = await docRef.get();
 
-    if (!doc.exists) return { valid: false, message: "Code not found or expired" };
+    if (!doc.exists) {
+        logger.warn(`Verification failed: No code found for ${email}`);
+        return { valid: false, message: "Code not found or expired" };
+    }
 
     const record = doc.data();
-    if (Date.now() > record.expiresAt) return { valid: false, message: "Code expired" };
-    if (record.code !== code) return { valid: false, message: "Invalid code" };
+    
+    // Check Expiry
+    if (Date.now() > record.expiresAt) {
+        logger.warn(`Verification failed: Code expired for ${email}`);
+        return { valid: false, message: "Code expired" };
+    }
+    
+    // Check Match
+    if (record.code !== code) {
+        logger.warn(`Verification failed: Invalid code entered for ${email}`);
+        return { valid: false, message: "Invalid code" };
+    }
 
+    // Success - Clean up used code
     await docRef.delete();
-    logger.info(`Verification successful for ${email}`);
+    logger.info(`✅ VERIFICATION SUCCESSFUL for ${email}`);
     return { valid: true };
 });
 
