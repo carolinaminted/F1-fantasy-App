@@ -1,48 +1,81 @@
+
 /**
- * Firebase Cloud Functions for F1 Fantasy League
+ * Firebase Cloud Functions for F1 Fantasy League (Gen 2)
  */
 
-const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const functions = require("firebase-functions"); // Keep v1 for legacy config access
+const logger = functions.logger; // Use standard Firebase logger
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- CONFIGURATION ---
-// Replace with your actual email credentials using Firebase Environment Config for security in production
-// Command: firebase functions:config:set email.user="you@gmail.com" email.pass="app-password"
-const gmailEmail = functions.config().email ? functions.config().email.user : "your-email@gmail.com";
-const gmailPassword = functions.config().email ? functions.config().email.pass : "your-app-password";
+// --- DIAGNOSTICS ---
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: gmailEmail,
-    pass: gmailPassword,
-  },
+exports.ping = onCall((request) => {
+    return { message: "pong (v2)", timestamp: Date.now() };
 });
 
-// --- EMAIL VERIFICATION ---
+// --- EMAIL VERIFICATION (Renamed to fix 409 Conflict) ---
 
-exports.sendVerificationCode = functions.https.onCall(async (data, context) => {
-  const email = data.email;
+exports.sendAuthCode = onCall({ cors: true }, async (request) => {
+  logger.info("EXECUTION START: sendAuthCode", { triggerData: request.data });
+
+  const email = request.data.email;
   if (!email) {
-    throw new functions.https.HttpsError("invalid-argument", "Email is required");
+    logger.error("Missing email in request");
+    throw new HttpsError("invalid-argument", "Email is required");
   }
+
+  // 1. Load Config
+  const emailConfig = functions.config().email || {};
+  const gmailEmail = emailConfig.user || "your-email@gmail.com";
+  const gmailPassword = emailConfig.pass || "your-app-password";
+  
+  // 2. Debug Config (Masked)
+  const isDefaultUser = gmailEmail === "your-email@gmail.com";
+  const isDefaultPass = gmailPassword === "your-app-password";
+  
+  logger.info("SMTP Configuration Check", {
+      configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : gmailEmail,
+      configuredPass: isDefaultPass ? "DEFAULT (Not Set)" : "********",
+      isConfigValid: !isDefaultUser && !isDefaultPass
+  });
 
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 600000; // 10 minutes
 
   try {
+    // 3. Write to Firestore
     await db.collection("email_verifications").doc(email).set({
       code: code,
       expiresAt: expiresAt,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
+    
+    // --- EMERGENCY DEBUGGING LOG ---
+    // If email fails, you can find the code in your Google Cloud Logs here:
+    logger.info(`>>> GENERATED CODE FOR ${email}: ${code} <<<`);
+
+    // 4. Demo Mode / Missing Config Check
+    if (isDefaultUser || isDefaultPass) {
+        logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. <<<");
+        logger.warn("To fix: Run 'firebase functions:config:set email.user=\"...\" email.pass=\"...\"' and redeploy.");
+        return { success: true, demoMode: true, code: code };
+    }
+
+    // 5. Send Email
+    logger.info("Initializing Nodemailer...");
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: gmailEmail, pass: gmailPassword },
+    });
 
     const mailOptions = {
-      from: '"F1 Fantasy League" <noreply@f1fantasy.com>',
+      from: `"F1 Fantasy League" <${gmailEmail}>`,
       to: email,
       subject: "Your Verification Code",
       html: `
@@ -55,22 +88,34 @@ exports.sendVerificationCode = functions.https.onCall(async (data, context) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    logger.info(`Attempting email transmission...`);
+    logger.info(`Sender: ${gmailEmail}`);
+    logger.info(`Receiver: ${email}`);
+
+    const info = await transporter.sendMail(mailOptions);
+    
+    logger.info("✅ SMTP SUCCESS: Email sent successfully.", { 
+        messageId: info.messageId,
+        response: info.response,
+        accepted: info.accepted,
+        rejected: info.rejected
+    });
     return { success: true };
 
   } catch (error) {
-    console.error("Email error:", error);
-    // Determine if we are in a configured environment or local dev without creds
-    if (gmailEmail === "your-email@gmail.com") {
-        console.warn("Email credentials not configured. Returning success for DEMO mode.");
-        return { success: true, demoMode: true, code: code }; // Only for dev/demo!
-    }
-    throw new functions.https.HttpsError("internal", "Failed to send email");
+    logger.error("❌ CRITICAL FAILURE in sendAuthCode", {
+        errorMessage: error.message,
+        errorCode: error.code,
+        sender: gmailEmail,
+        receiver: email,
+        stack: error.stack
+    });
+    throw new HttpsError("internal", "Failed to send email: " + error.message);
   }
 });
 
-exports.verifyVerificationCode = functions.https.onCall(async (data, context) => {
-    const { email, code } = data;
+exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
+    const { email, code } = request.data;
     if (!email || !code) return { valid: false, message: "Missing data" };
 
     const docRef = db.collection("email_verifications").doc(email);
@@ -83,6 +128,7 @@ exports.verifyVerificationCode = functions.https.onCall(async (data, context) =>
     if (record.code !== code) return { valid: false, message: "Invalid code" };
 
     await docRef.delete();
+    logger.info(`Verification successful for ${email}`);
     return { valid: true };
 });
 
@@ -102,38 +148,25 @@ const getDriverPoints = (driverId, resultList, pointsList) => {
     return idx !== -1 ? (pointsList[idx] || 0) : 0;
 };
 
-// NOTE: This must mirror the logic in `services/scoringService.ts` exactly.
 const calculateEventScore = (picks, results, system, drivers) => {
     if (!picks || !results) return { total: 0, breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0 } };
 
-    // Helper to find constructor. Uses snapshot if available, else driver list fallback.
     const getTeamId = (driverId) => {
         if(results.driverTeams && results.driverTeams[driverId]) return results.driverTeams[driverId];
-        // Fallback: Find in current drivers list
         const d = drivers.find(drv => drv.id === driverId);
         return d ? d.constructorId : null;
     };
 
-    let gpPoints = 0;
-    let sprintPoints = 0;
-    let qualiPoints = 0;
-    let flPoints = 0;
+    let gpPoints = 0, sprintPoints = 0, qualiPoints = 0, flPoints = 0;
 
-    // --- 1. Team Scores (Sum of both drivers for that team) ---
+    // 1. Team Scores
     const teamIds = [...(picks.aTeams || []), picks.bTeam].filter(Boolean);
-    
-    // We scan the RESULT lists and attribute points to the team if their drivers are in it
-    // This is more efficient than scanning drivers and looking up results
-    
-    // GP Results
     results.grandPrixFinish?.forEach((dId, idx) => {
         if (dId && teamIds.includes(getTeamId(dId))) gpPoints += (system.grandPrixFinish[idx] || 0);
     });
-    // Sprint Results
     results.sprintFinish?.forEach((dId, idx) => {
         if (dId && teamIds.includes(getTeamId(dId))) sprintPoints += (system.sprintFinish[idx] || 0);
     });
-    // Quali Results (GP + Sprint Quali bucketed together for simplicity)
     results.gpQualifying?.forEach((dId, idx) => {
         if (dId && teamIds.includes(getTeamId(dId))) qualiPoints += (system.gpQualifying[idx] || 0);
     });
@@ -141,7 +174,7 @@ const calculateEventScore = (picks, results, system, drivers) => {
         if (dId && teamIds.includes(getTeamId(dId))) qualiPoints += (system.sprintQualifying[idx] || 0);
     });
 
-    // --- 2. Driver Scores ---
+    // 2. Driver Scores
     const driverIds = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean);
     driverIds.forEach(dId => {
         gpPoints += getDriverPoints(dId, results.grandPrixFinish, system.grandPrixFinish);
@@ -150,40 +183,38 @@ const calculateEventScore = (picks, results, system, drivers) => {
         qualiPoints += getDriverPoints(dId, results.sprintQualifying, system.sprintQualifying);
     });
 
-    // --- 3. Fastest Lap ---
+    // 3. Fastest Lap
     if (picks.fastestLap && picks.fastestLap === results.fastestLap) {
         flPoints += system.fastestLap;
     }
 
     let total = gpPoints + sprintPoints + qualiPoints + flPoints;
 
-    // --- 4. Penalties ---
+    // 4. Penalties
     if (picks.penalty && picks.penalty > 0) {
         const deduction = Math.ceil(total * picks.penalty);
         total -= deduction;
     }
 
-    return {
-        total,
-        breakdown: {
-            gp: gpPoints,
-            sprint: sprintPoints,
-            quali: qualiPoints,
-            fl: flPoints
-        }
-    };
+    return { total, breakdown: { gp: gpPoints, sprint: sprintPoints, quali: qualiPoints, fl: flPoints } };
 };
 
 /**
- * Trigger: Recalculate Leaderboard when Race Results are updated
- * Optimized to perform batched writes and calculate breakdown stats.
+ * Trigger: Recalculate Leaderboard
+ * V2 Config: Increased memory and timeout for heavy calculations
  */
-exports.updateLeaderboard = functions.firestore
-    .document('app_state/race_results')
-    .onWrite(async (change, context) => {
-        const raceResults = change.after.exists ? change.after.data() : {};
+exports.updateLeaderboard = onDocumentWritten(
+    { 
+        document: 'app_state/race_results',
+        memory: "512MiB",
+        timeoutSeconds: 300 // 5 minutes
+    }, 
+    async (event) => {
+        // In v2, we check event.data.after
+        if (!event.data || !event.data.after.exists) return;
         
-        // 1. Fetch all necessary data
+        const raceResults = event.data.after.data();
+        
         const [usersSnap, scoringSnap, entitiesSnap] = await Promise.all([
             db.collection('userPicks').get(),
             db.collection('app_state').doc('scoring_config').get(),
@@ -197,7 +228,7 @@ exports.updateLeaderboard = functions.firestore
                 const active = data.profiles.find(p => p.id === data.activeProfileId);
                 if (active) pointsSystem = active.config;
             } else if (!data.profiles) {
-                pointsSystem = data; // Legacy
+                pointsSystem = data; 
             }
         }
 
@@ -206,27 +237,21 @@ exports.updateLeaderboard = functions.firestore
             driversList = entitiesSnap.data().drivers;
         }
 
-        console.log(`Starting leaderboard calculation for ${usersSnap.size} users...`);
+        logger.info(`(v2) Starting leaderboard calculation for ${usersSnap.size} users...`);
         
         const leaderboardData = [];
 
-        // 2. Calculate Scores for every user
         usersSnap.forEach(doc => {
             const userId = doc.id;
             const allPicks = doc.data();
-            
             let totalPoints = 0;
             let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0 };
 
             Object.keys(allPicks).forEach(eventId => {
                 const result = raceResults[eventId];
-                // Only score if results exist for this event
                 if (result) {
-                    // Use snapshot scoring if available in result, otherwise global active
                     const systemToUse = result.scoringSnapshot || pointsSystem;
-                    
                     const score = calculateEventScore(allPicks[eventId], result, systemToUse, driversList);
-                    
                     totalPoints += score.total;
                     breakdown.gp += score.breakdown.gp;
                     breakdown.sprint += score.breakdown.sprint;
@@ -234,15 +259,11 @@ exports.updateLeaderboard = functions.firestore
                     breakdown.fl += score.breakdown.fl;
                 }
             });
-
             leaderboardData.push({ userId, totalPoints, breakdown });
         });
 
-        // 3. Sort by Points (Descending)
         leaderboardData.sort((a, b) => b.totalPoints - a.totalPoints);
 
-        // 4. Batch Write to 'public_users'
-        // Firestore batch limit is 500 operations. We chunk the array.
         const chunkArray = (array, size) => {
             const chunked = [];
             for (let i = 0; i < array.length; i += size) {
@@ -251,20 +272,18 @@ exports.updateLeaderboard = functions.firestore
             return chunked;
         };
 
-        const batches = chunkArray(leaderboardData, 450); // Safe limit
+        const batches = chunkArray(leaderboardData, 450);
         let writeCount = 0;
 
         for (const batchItems of batches) {
             const batch = db.batch();
             batchItems.forEach((user, index) => {
-                // Determine absolute rank based on index in sorted array + accumulated offset
                 const rank = writeCount + index + 1;
-                
                 const ref = db.collection('public_users').doc(user.userId);
                 batch.set(ref, { 
                     totalPoints: user.totalPoints,
                     rank: rank,
-                    breakdown: user.breakdown, // Store the breakdown!
+                    breakdown: user.breakdown,
                     lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             });
@@ -272,5 +291,6 @@ exports.updateLeaderboard = functions.firestore
             writeCount += batchItems.length;
         }
 
-        console.log(`Leaderboard updated successfully. Processed ${writeCount} users.`);
-    });
+        logger.info(`(v2) Leaderboard updated. Processed ${writeCount} users.`);
+    }
+);

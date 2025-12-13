@@ -733,7 +733,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
         setAllPicks(validPicks);
 
-        const processed = validUsers.map(user => {
+        const processed: ProcessedUser[] = validUsers.map(user => {
             // For insights, we still calculate the breakdown on client if needed,
             // OR we can trust the 'user.breakdown' if we populated it in Cloud Function.
             // For now, to keep `calculateScoreRollup` usage only for breakdown visuals (InsightsView)
