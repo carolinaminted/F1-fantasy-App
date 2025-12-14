@@ -201,7 +201,7 @@ const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; 
 );
 
 const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean }> = ({ event, schedule, isNext }) => (
-    <div className={`flex flex-col p-4 rounded-xl border transition-colors h-full justify-between ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10' : 'bg-accent-gray/30 border-pure-white/5'}`}>
+    <div className={`flex flex-col p-4 rounded-xl border transition-colors h-full justify-between ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10' : 'bg-carbon-fiber border-pure-white/10 shadow-lg'}`}>
         <div>
             <div className="flex justify-between items-start mb-2">
                 <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
