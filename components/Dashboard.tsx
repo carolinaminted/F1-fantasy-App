@@ -10,6 +10,7 @@ import { DonationIcon } from './icons/DonationIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
 import CountdownTimer from './CountdownTimer.tsx';
@@ -83,7 +84,20 @@ const Dashboard: React.FC<DashboardProps> = ({
          {/* Hero Content - Centered */}
          <div className="relative z-20 text-center px-4 pb-20 flex flex-col items-center">
             {/* Animated Title Block - Drives Up */}
-            <div className="animate-drive-in opacity-0">
+            <div className="animate-drive-in opacity-0 relative">
+                {/* Checkered Flags Reveal - Behind Logo */}
+                {/* Added opacity-0 to flag containers to hide them initially until animation delay triggers */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex justify-center items-center -z-10 pointer-events-none">
+                    <div className="origin-bottom-right animate-flag-left opacity-0">
+                        <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
+                    </div>
+                    <div className="origin-bottom-left animate-flag-right opacity-0">
+                        <div className="transform scale-x-[-1]">
+                            <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
+                        </div>
+                    </div>
+                </div>
+
                 <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
                 <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2">
                     FORMULA<br/>FANTASY ONE
@@ -126,10 +140,10 @@ const Dashboard: React.FC<DashboardProps> = ({
         
         {/* Main Cards Grid: Side-by-side on Desktop for better density */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-            {/* Picks Section - The 'Peeking' Tile - Custom Animation to rise from bottom */}
+            {/* Picks Section - CARBON FIBER */}
             <div 
                 onClick={() => setActivePage('picks')}
-                className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/5 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:400ms] min-h-[350px] flex flex-col justify-center"
+                className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-pure-white/10 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:400ms] min-h-[350px] flex flex-col justify-center"
             >
                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
                     <PicksIcon className="w-64 h-64 text-primary-red" />
@@ -148,24 +162,24 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             </div>
 
-            {/* Standings Section - RED BACKGROUND */}
+            {/* Standings Section - CARBON FIBER with RED ACCENTS */}
             <FadeInSection delay="0.2s" className="h-full">
                 <div 
                     onClick={() => setActivePage('leaderboard')}
-                    className="group relative overflow-hidden bg-primary-red rounded-2xl p-6 md:p-10 border border-pure-white/10 shadow-xl cursor-pointer hover:bg-red-600 transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
+                    className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-primary-red/30 shadow-xl cursor-pointer hover:border-primary-red hover:shadow-[0_0_20px_rgba(218,41,28,0.2)] transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
                 >
                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:-rotate-12 duration-500">
-                        <LeaderboardIcon className="w-64 h-64 text-white" />
+                        <LeaderboardIcon className="w-64 h-64 text-primary-red" />
                     </div>
                     <div className="relative z-10">
-                        <div className="w-14 h-14 bg-black/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
-                            <LeaderboardIcon className="w-7 h-7 text-white" />
+                        <div className="w-14 h-14 bg-primary-red/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
+                            <LeaderboardIcon className="w-7 h-7 text-pure-white" />
                         </div>
-                        <h2 className="text-4xl font-bold text-white mb-3">Leaderboard</h2>
-                        <p className="text-white/90 max-w-sm text-xl leading-relaxed">
+                        <h2 className="text-4xl font-bold text-pure-white mb-3 group-hover:text-primary-red transition-colors">Leaderboard</h2>
+                        <p className="text-highlight-silver max-w-sm text-xl leading-relaxed">
                             Track the championship battle.
                         </p>
-                        <div className="mt-8 flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wider">
+                        <div className="mt-8 flex items-center gap-2 text-pure-white font-bold text-sm uppercase tracking-wider">
                             View Leaderboards <span className="group-hover:translate-x-1 transition-transform">→</span>
                         </div>
                     </div>
@@ -173,7 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </FadeInSection>
         </div>
 
-        {/* 3. UTILITY GRID - Peeks up on Desktop due to reduced hero height and grid layout above */}
+        {/* 3. UTILITY GRID - CARBON FIBER TILES */}
         <FadeInSection delay="0.3s">
             <h3 className="text-highlight-silver text-xs font-bold uppercase tracking-widest mb-4 ml-1">Team Operations</h3>
             <div className={`grid grid-cols-2 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 md:gap-4`}>
@@ -236,7 +250,7 @@ const QuickAction: React.FC<{
         className={`flex flex-col items-start justify-between p-4 h-32 rounded-xl border text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 ${
             highlight 
             ? 'bg-primary-red text-pure-white border-primary-red shadow-lg shadow-primary-red/20'
-            : 'bg-accent-gray/30 backdrop-blur-sm border-pure-white/5 hover:bg-accent-gray/50 hover:border-pure-white/20'
+            : 'bg-carbon-fiber border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/10'
         }`}
     >
         <Icon className={`w-8 h-8 ${highlight ? 'text-pure-white' : 'text-primary-red'}`} />

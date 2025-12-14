@@ -53,7 +53,7 @@ const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constr
 const NavTile: React.FC<{ icon: any; title: string; desc: string; onClick: () => void }> = ({ icon: Icon, title, desc, onClick }) => (
     <button
         onClick={onClick}
-        className="group relative overflow-hidden bg-accent-gray/50 backdrop-blur-sm rounded-xl p-8 text-left ring-1 ring-pure-white/10 hover:ring-primary-red transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col"
+        className="group relative overflow-hidden bg-carbon-fiber rounded-xl p-8 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-xl hover:shadow-[0_0_20px_rgba(218,41,28,0.15)] transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col"
     >
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Icon className="w-32 h-32 text-primary-red" />

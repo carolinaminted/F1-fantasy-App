@@ -154,7 +154,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   if(!isEditing) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
-            <div className="max-w-4xl w-full text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-highlight-silver/30 shadow-2xl animate-fade-in-up">
+            {/* Updated container with bg-carbon-fiber */}
+            <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up">
                 <h2 className="text-3xl font-bold text-ghost-white mb-4">Picks Submitted Successfully!</h2>
                 <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
                 <button 
