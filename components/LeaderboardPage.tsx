@@ -3,6 +3,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
+import { db } from '../services/firebase.ts';
+import { onSnapshot, collection } from '@firebase/firestore';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { TrendingUpIcon } from './icons/TrendingUpIcon.tsx';
@@ -497,6 +499,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
 };
 
 const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ allPicks, allDrivers, allConstructors, events }) => {
+    // ... (No Changes)
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all'); // mapped to event counts
 
     const stats = useMemo(() => {
@@ -614,8 +617,7 @@ const InsightsView: React.FC<{
     allDrivers: Driver[];
     events: Event[];
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
-    
-    // Superlatives Logic (Calculated from breakdown which is present in users)
+    // ... (No Changes)
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
         
@@ -792,7 +794,7 @@ const InsightsView: React.FC<{
 };
 
 const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
-    
+    // ... (No Changes)
     const stats = useMemo(() => {
         // Init scores
         const driverScores: Record<string, { total: number; sprint: number; fl: number; quali: number }> = {};
@@ -956,39 +958,74 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
   const [view, setView] = useState<ViewState>('menu');
-  const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
+  
+  // Data State
+  const [rawUsers, setRawUsers] = useState<User[]>([]);
   const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
+  const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [dataSource, setDataSource] = useState<'public' | 'private_fallback'>('public');
 
+  // 1. Initial Load of Everything
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
         setIsLoading(true);
-        // Destructure source from the service response
         const { users, allPicks: picksData, source } = await getAllUsersAndPicks();
         
+        setAllPicks(picksData);
         setDataSource(source || 'public');
+        
+        // If we are falling back to private collection (admin only), 
+        // the listener below on 'public_users' will likely be empty or fail.
+        // So we seed rawUsers here regardless.
+        setRawUsers(users);
+        setIsLoading(false);
+    };
+    loadInitialData();
+  }, []);
 
-        // Filter out Admin Principal explicitly if desired, but we removed email check
-        const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
+  // 2. Real-time Listener for Public Names/Scores
+  useEffect(() => {
+      // Only listen if we are in normal public mode
+      if (dataSource === 'private_fallback') return;
 
-        // Filter picks to match valid users (for PopularityView)
-        const validPicks: { [uid: string]: { [eid: string]: PickSelection } } = {};
-        validUsers.forEach(u => {
-            if (picksData[u.id]) {
-                validPicks[u.id] = picksData[u.id];
-            }
-        });
+      const unsubscribe = onSnapshot(collection(db, 'public_users'), (snapshot) => {
+          if (snapshot.empty) return; // Don't override if empty
 
-        setAllPicks(validPicks);
+          const users = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              email: '', // Public profile doesn't have email
+              isAdmin: false
+          } as User));
+          
+          setRawUsers(users);
+      }, (error) => {
+          console.error("Leaderboard listener error:", error);
+      });
+
+      return () => unsubscribe();
+  }, [dataSource]);
+
+  // 3. Processing Effect (Merges raw data with picks/scoring)
+  useEffect(() => {
+        // Filter out Admin Principal explicitly if desired
+        const validUsers = rawUsers.filter(u => u.displayName !== 'Admin Principal');
 
         const processed: ProcessedUser[] = validUsers.map(user => {
             let scoreData;
-            if (user.totalPoints === undefined) {
-                 const userPicks = picksData[user.id] || {};
-                 scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+            // Prefer pre-calculated totalPoints from public profile if available
+            // If not available (or fallback mode), calculate on client
+            if (user.totalPoints !== undefined) {
+                 // For breakdown, we rely on the object if present, or zero it
+                 scoreData = {
+                     totalPoints: user.totalPoints,
+                     // If public profile has pre-calc breakdown use it, else calc
+                     ...((user as any).breakdown || { grandPrixPoints: 0, sprintPoints: 0, fastestLapPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0 })
+                 };
             } else {
-                 const userPicks = picksData[user.id] || {};
+                 const userPicks = allPicks[user.id] || {};
                  scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
             }
 
@@ -1005,22 +1042,19 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                 rank: user.rank || 0,
                 breakdown: {
                     gp: scoreData.grandPrixPoints,
-                    quali: scoreData.gpQualifyingPoints + scoreData.sprintQualifyingPoints,
+                    quali: scoreData.gpQualifyingPoints + (scoreData.sprintQualifyingPoints || 0),
                     sprint: scoreData.sprintPoints,
                     fl: scoreData.fastestLapPoints
                 }
             };
         });
 
-        // We still sort here for display index, but based on the (potentially pre-calculated) totalPoints
+        // We still sort here for display index
         processed.sort((a, b) => b.totalPoints - a.totalPoints);
         processed.forEach((u, i) => u.displayRank = i + 1); // Client-side display rank
 
         setProcessedUsers(processed);
-        setIsLoading(false);
-    };
-    loadData();
-  }, [raceResults, pointsSystem, allDrivers, currentUser]);
+  }, [rawUsers, allPicks, raceResults, pointsSystem, allDrivers, currentUser]);
 
   const isUserAdmin = currentUser && !!currentUser.isAdmin;
 
