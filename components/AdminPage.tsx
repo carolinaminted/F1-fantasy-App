@@ -5,9 +5,10 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
+import { CalendarIcon } from './icons/CalendarIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -22,6 +23,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Manage Drivers & Teams"
                     description="Update the active grid, transfers, and classes."
                     onClick={() => setAdminSubPage('entities')}
+                />
+                <AdminTile
+                    icon={CalendarIcon}
+                    title="Schedule Manager"
+                    description="Set race dates, start times, and session details."
+                    onClick={() => setAdminSubPage('schedule')}
                 />
                 <AdminTile
                     icon={TrackIcon}

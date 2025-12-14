@@ -45,6 +45,20 @@ export interface Event {
   softDeadlineUtc: string;
 }
 
+// New: Detailed schedule for a specific event
+export interface EventSchedule {
+    eventId: string;
+    fp1?: string; // ISO Date String
+    fp2?: string;
+    fp3?: string;
+    qualifying?: string;
+    sprintQualifying?: string;
+    sprint?: string;
+    race?: string;
+    // Allow overriding the default calculated lock times
+    customLockAt?: string;
+}
+
 export interface PickSelection {
   aTeams: (string | null)[];
   bTeam: string | null;

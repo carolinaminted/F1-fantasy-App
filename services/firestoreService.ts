@@ -1,9 +1,10 @@
+
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
-import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
+import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
@@ -266,6 +267,28 @@ export const saveLeagueEntities = async (drivers: Driver[], constructors: Constr
         console.log("League entities saved successfully.");
     } catch (error) {
         console.error("Error saving league entities", error);
+        throw error;
+    }
+};
+
+// Event Schedule Management
+export const getEventSchedules = async (): Promise<{ [eventId: string]: EventSchedule }> => {
+    const schedulesRef = doc(db, 'app_state', 'event_schedules');
+    const snapshot = await getDoc(schedulesRef);
+    if (snapshot.exists()) {
+        return snapshot.data() as { [eventId: string]: EventSchedule };
+    }
+    return {};
+};
+
+export const saveEventSchedule = async (eventId: string, schedule: EventSchedule) => {
+    const schedulesRef = doc(db, 'app_state', 'event_schedules');
+    try {
+        // Merge the new schedule for this specific eventId
+        await setDoc(schedulesRef, { [eventId]: schedule }, { merge: true });
+        console.log(`Schedule saved for ${eventId}.`);
+    } catch (error) {
+        console.error("Error saving event schedule", error);
         throw error;
     }
 };

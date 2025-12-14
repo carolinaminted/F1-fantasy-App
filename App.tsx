@@ -11,14 +11,17 @@ import AdminPage from './components/AdminPage.tsx';
 import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
 import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
+import ManageSchedulePage from './components/ManageSchedulePage.tsx';
+import AdminSimulationPage from './components/AdminSimulationPage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
-import DriversTeamsPage from './components/DriversTeamsPage.tsx'; // New
-import SessionWarningModal from './components/SessionWarningModal.tsx'; // New
-import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc } from './types.ts';
+import DriversTeamsPage from './components/DriversTeamsPage.tsx';
+import SchedulePage from './components/SchedulePage.tsx';
+import SessionWarningModal from './components/SessionWarningModal.tsx';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -28,19 +31,20 @@ import { F1CarIcon } from './components/icons/F1CarIcon.tsx';
 import { AdminIcon } from './components/icons/AdminIcon.tsx';
 import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { TrackIcon } from './components/icons/TrackIcon.tsx';
-import { GarageIcon } from './components/icons/GarageIcon.tsx'; // New
+import { GarageIcon } from './components/icons/GarageIcon.tsx';
+import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onAuthStateChanged, signOut } from '@firebase/auth';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules } from './services/firestoreService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule';
 
 
 // New SideNavItem component for desktop sidebar
@@ -93,6 +97,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+            <SideNavItem icon={CalendarIcon} label="Schedule" page="schedule" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrackIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={GarageIcon} label="Drivers & Teams" page="drivers-teams" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
@@ -119,10 +124,11 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
+  const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Implement Session Security
@@ -150,6 +156,7 @@ const App: React.FC = () => {
     let unsubscribeLocks = () => {};
     let unsubscribeProfile = () => {};
     let unsubscribePoints = () => {};
+    let unsubscribeSchedules = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       // Clean up previous listeners before setting new ones or logging out
@@ -157,6 +164,7 @@ const App: React.FC = () => {
       unsubscribeLocks();
       unsubscribeProfile();
       unsubscribePoints();
+      unsubscribeSchedules();
 
       setIsLoading(true);
       if (firebaseUser) {
@@ -169,6 +177,14 @@ const App: React.FC = () => {
             // Seed DB if empty
             await saveLeagueEntities(DRIVERS, CONSTRUCTORS);
         }
+
+        // Load Event Schedules
+        const schedulesRef = doc(db, 'app_state', 'event_schedules');
+        unsubscribeSchedules = onSnapshot(schedulesRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setEventSchedules(docSnap.data() as { [eventId: string]: EventSchedule });
+            }
+        }, (error) => console.error("Firestore listener error (event_schedules):", error));
 
         // Listen to global app state
         const resultsRef = doc(db, 'app_state', 'race_results');
@@ -232,6 +248,7 @@ const App: React.FC = () => {
         setSeasonPicks({});
         setRaceResults({});
         setFormLocks({});
+        setEventSchedules({});
         setScoringSettings(defaultSettings);
         // Reset to default constants
         setAllDrivers(DRIVERS);
@@ -247,6 +264,7 @@ const App: React.FC = () => {
       unsubscribeLocks();
       unsubscribeProfile();
       unsubscribePoints();
+      unsubscribeSchedules();
     };
   }, []);
 
@@ -305,6 +323,12 @@ const App: React.FC = () => {
     setAllConstructors(newConstructors);
   };
 
+  // Callback for when admin updates schedule
+  const handleScheduleUpdate = async () => {
+      const schedules = await getEventSchedules();
+      setEventSchedules(schedules);
+  };
+
   const navigateToPage = (page: Page) => {
     if (page === 'admin' && activePage !== 'admin') {
       setAdminSubPage('dashboard');
@@ -330,6 +354,8 @@ const App: React.FC = () => {
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
+      case 'schedule':
+        return <SchedulePage schedules={eventSchedules} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':
@@ -355,6 +381,10 @@ const App: React.FC = () => {
                 return <ScoringSettingsPage settings={scoringSettings} setAdminSubPage={setAdminSubPage} />;
             case 'entities':
                 return <ManageEntitiesPage setAdminSubPage={setAdminSubPage} currentDrivers={allDrivers} currentConstructors={allConstructors} onUpdateEntities={handleEntitiesUpdate} />;
+            case 'schedule':
+                return <ManageSchedulePage setAdminSubPage={setAdminSubPage} existingSchedules={eventSchedules} onScheduleUpdate={handleScheduleUpdate} />;
+            case 'simulation':
+                return <AdminSimulationPage setAdminSubPage={setAdminSubPage} pointsSystem={activePointsSystem} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }
@@ -413,7 +443,7 @@ const App: React.FC = () => {
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={CalendarIcon} label="Schedule" page="schedule" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
