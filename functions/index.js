@@ -34,13 +34,16 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
   let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
   
+  // Production Flag: Set ENABLE_DEMO_MODE="true" in Cloud Run env vars to enable the fallback
+  const enableDemoMode = process.env.ENABLE_DEMO_MODE === 'true';
+  
   const isDefaultUser = gmailEmail === "your-email@gmail.com";
   const isDefaultPass = gmailPassword === "your-app-password";
   
   logger.info("SMTP Configuration Check", {
-      configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : gmailEmail,
-      configuredPass: isDefaultPass ? "DEFAULT (Not Set)" : "********",
-      isConfigValid: !isDefaultUser && !isDefaultPass
+      configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : "Configured", // Obfuscated for logs
+      isConfigValid: !isDefaultUser && !isDefaultPass,
+      demoModeAllowed: enableDemoMode
   });
 
   const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -58,8 +61,10 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    // --- EMERGENCY DEBUGGING LOG ---
-    logger.info(`>>> GENERATED CODE FOR ${email}: ${code} <<<`);
+    // SECURITY: Only log the code if explicitly in Demo Mode, otherwise keep logs clean.
+    if (enableDemoMode) {
+        logger.info(`>>> DEMO MODE: GENERATED CODE FOR ${email}: ${code} <<<`);
+    }
 
   } catch (dbError) {
       logger.error("❌ FIRESTORE WRITE FAILED", dbError);
@@ -68,9 +73,13 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
 
   // 3. Demo Mode / Missing Config Check
   if (isDefaultUser || isDefaultPass) {
-      logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. <<<");
-      logger.warn("To fix: Set EMAIL_USER and EMAIL_PASS environment variables in Cloud Run console.");
-      return { success: true, demoMode: true, code: code };
+      if (enableDemoMode) {
+          logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. Returning code to client. <<<");
+          return { success: true, demoMode: true, code: code };
+      } else {
+          logger.error("SMTP Config missing and Demo Mode is disabled.");
+          throw new HttpsError("failed-precondition", "Email service is not configured. Please contact support.");
+      }
   }
 
   // 4. Send Email
