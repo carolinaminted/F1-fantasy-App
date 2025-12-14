@@ -1,4 +1,3 @@
-
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -565,14 +564,14 @@ const App: React.FC = () => {
 
         {/* 
             Mobile Bottom Navigation
-            Added 'pb-safe' (padding-bottom env(safe-area-inset-bottom))
-            Added stronger glassmorphism 'bg-carbon-black/90'
+            Modified to include Home, Profile, Picks, Schedule, Standings (Leaderboards) + Admin (conditional)
         */}
-        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} md:hidden z-50 pb-safe`}>
+        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-6' : 'grid-cols-5'} md:hidden z-50 pb-safe`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={CalendarIcon} label="Schedule" page="schedule" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
