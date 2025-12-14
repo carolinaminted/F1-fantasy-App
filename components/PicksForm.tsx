@@ -215,7 +215,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
         {/* Compact Event Header for Mobile */}
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none">
+        <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none border border-pure-white/5">
           <div className="flex-grow text-center md:text-left">
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
             <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
@@ -312,7 +312,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         </div>
 
         {/* Bottom Actions: Fastest Lap & Submit */}
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 md:p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row items-end gap-4 md:gap-8">
+        <div className="bg-carbon-fiber rounded-lg p-4 md:p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row items-end gap-4 md:gap-8 border border-pure-white/5">
              {/* Left: Fastest Lap */}
              <div className="w-full md:flex-1 space-y-2">
                 <div className="flex items-center gap-2">

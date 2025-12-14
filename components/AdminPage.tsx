@@ -71,7 +71,7 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, description, o
   return (
     <button
       onClick={onClick}
-      className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 text-left ring-1 ring-pure-white/10 hover:ring-primary-red transition-all duration-300 transform hover:-translate-y-1"
+      className="bg-carbon-fiber rounded-lg p-6 text-left border border-pure-white/10 hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg"
     >
       <Icon className="w-10 h-10 text-primary-red mb-4" />
       <h3 className="text-xl font-bold text-pure-white mb-2">{title}</h3>

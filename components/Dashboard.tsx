@@ -89,12 +89,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {/* Added opacity-0 to flag containers to hide them initially until animation delay triggers */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex justify-center items-center -z-10 pointer-events-none">
                     <div className="origin-bottom-right animate-flag-left opacity-0">
-                        <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
-                    </div>
-                    <div className="origin-bottom-left animate-flag-right opacity-0">
+                        {/* Flip Left Flag to wave outwards (Left) */}
                         <div className="transform scale-x-[-1]">
                             <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
                         </div>
+                    </div>
+                    <div className="origin-bottom-left animate-flag-right opacity-0">
+                        {/* Normal Right Flag waves outwards (Right) */}
+                        <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
                     </div>
                 </div>
 

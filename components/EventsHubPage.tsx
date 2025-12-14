@@ -52,14 +52,14 @@ const EventsHubPage: React.FC<EventsHubPageProps> = ({ setActivePage }) => {
 const HubTile: React.FC<{ icon: any, title: string, subtitle: string, description: string, onClick: () => void, delay: string }> = ({ icon: Icon, title, subtitle, description, onClick, delay }) => (
     <button
         onClick={onClick}
-        className="group relative overflow-hidden bg-accent-gray/30 backdrop-blur-md rounded-2xl p-8 text-left ring-1 ring-pure-white/10 hover:ring-primary-red/50 hover:bg-accent-gray/50 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl flex flex-col h-full animate-fade-in-up"
+        className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-8 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-xl hover:shadow-[0_0_20px_rgba(218,41,28,0.15)] transition-all duration-300 transform hover:-translate-y-2 flex flex-col h-full animate-fade-in-up"
         style={{ animationDelay: delay }}
     >
         <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500 pointer-events-none">
             <Icon className="w-32 h-32 text-pure-white" />
         </div>
         
-        <div className="mb-6 bg-carbon-black/50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:bg-primary-red/20 transition-colors shadow-lg">
+        <div className="mb-6 bg-carbon-black/50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:bg-primary-red/20 transition-colors shadow-lg border border-pure-white/5">
             <Icon className="w-8 h-8 text-primary-red" />
         </div>
         

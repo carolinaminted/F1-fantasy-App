@@ -75,7 +75,7 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
                 return (
                     <div key={idx} className="flex items-center gap-3 text-sm">
                         <span className="w-24 md:w-32 text-right truncate font-semibold text-highlight-silver text-xs md:text-sm">{item.label}</span>
-                        <div className="flex-1 h-3 md:h-4 bg-carbon-black rounded-full overflow-hidden">
+                        <div className="flex-1 h-3 md:h-4 bg-carbon-black rounded-full overflow-hidden border border-pure-white/5">
                             <div 
                                 className={`h-full rounded-full ${!item.color ? 'bg-primary-red' : (isHex ? '' : item.color)}`} 
                                 style={{ 
@@ -562,13 +562,13 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
         <div className="space-y-8 animate-fade-in">
              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 className="text-2xl font-bold text-pure-white">Popular Picks Analysis</h2>
-                <div className="flex bg-accent-gray rounded-lg p-1 w-full md:w-auto overflow-x-auto">
+                <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
                          <button
                             key={range}
                             onClick={() => setTimeRange(range)}
                             className={`px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-colors whitespace-nowrap flex-1 ${
-                                timeRange === range ? 'bg-primary-red text-pure-white' : 'text-highlight-silver hover:text-pure-white'
+                                timeRange === range ? 'bg-primary-red text-pure-white' : 'text-highlight-silver hover:text-pure-white hover:bg-white/5'
                             }`}
                         >
                             {range === 'all' ? 'Season' : `${range} Days`}
@@ -578,28 +578,28 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
                     <SimpleBarChart data={stats.teams} />
                 </div>
-                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                 <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Drivers</h3>
                     <SimpleBarChart data={stats.drivers} />
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Teams</h3>
                     <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
                 </div>
-                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                 <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Drivers</h3>
                     <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
                 </div>
             </div>
             
-            <div className="bg-accent-gray/30 p-4 rounded-lg text-center text-sm text-highlight-silver">
+            <div className="bg-accent-gray/30 p-4 rounded-lg text-center text-sm text-highlight-silver border border-pure-white/5">
                 Data reflects locked-in selections for {timeRange === 'all' ? 'the entire season' : `the last ${timeRange === '30' ? '3' : timeRange === '60' ? '5' : '8'} race events`}.
             </div>
         </div>
@@ -685,8 +685,8 @@ const InsightsView: React.FC<{
     }, [users, allPicks, raceResults, pointsSystem, allDrivers, events]);
 
     const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
-         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex items-center gap-4">
-            <div className="bg-carbon-black p-3 rounded-full text-primary-red">
+         <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg">
+            <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5">
                 <Icon className="w-8 h-8" />
             </div>
             <div>
@@ -704,7 +704,7 @@ const InsightsView: React.FC<{
     );
 
     const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full">
+        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg">
             <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2">
                 <div>
                     <h3 className="text-lg font-bold text-pure-white">{title}</h3>
@@ -724,7 +724,7 @@ const InsightsView: React.FC<{
                                         <span className="font-semibold text-ghost-white truncate">{item.label}</span>
                                         <span className="font-mono text-primary-red">{item.value}</span>
                                     </div>
-                                    <div className="w-full bg-carbon-black rounded-full h-1.5">
+                                    <div className="w-full bg-carbon-black rounded-full h-1.5 border border-pure-white/5">
                                         <div 
                                             className={`h-1.5 rounded-full ${idx === 0 ? 'bg-yellow-400' : 'bg-highlight-silver/50'}`} 
                                             style={{ width: `${(item.value / data[0].value) * 100}%` }}
@@ -890,7 +890,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             </div>
 
             {/* TOP ROW: Constructors Standings (Full Width) */}
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+            <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                 <div className="mb-6">
                     <h3 className="text-xl font-bold text-pure-white uppercase tracking-wider flex items-center gap-3">
                         <TeamIcon className="w-6 h-6 text-primary-red"/> Constructor Standings
@@ -903,7 +903,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             {/* ROW 2: Drivers Total & Sprint */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Drivers Total */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <CheckeredFlagIcon className="w-5 h-5 text-primary-red"/> Top 10 Drivers (Total)
                     </h3>
@@ -913,7 +913,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                 </div>
 
                 {/* Drivers Sprint */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <SprintIcon className="w-5 h-5 text-yellow-500"/> Top 5 Sprint Performers
                     </h3>
@@ -926,7 +926,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             {/* ROW 3: Quali & Fastest Lap */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Drivers Qualifying */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <PolePositionIcon className="w-5 h-5 text-blue-500"/> Top 5 Qualifying Performers
                     </h3>
@@ -936,7 +936,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                 </div>
 
                 {/* Fastest Laps */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
+                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <FastestLapIcon className="w-5 h-5 text-purple-500"/> Fastest Lap Kings (Wins)
                     </h3>

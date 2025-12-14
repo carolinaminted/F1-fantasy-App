@@ -72,12 +72,12 @@ const HubTile: React.FC<{
     <button
         onClick={onClick}
         disabled={completed}
-        className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-8 text-left ring-1 transition-all duration-300 transform flex flex-col h-full animate-fade-in-up 
+        className={`group relative overflow-hidden rounded-2xl p-8 text-left border transition-all duration-300 transform flex flex-col h-full animate-fade-in-up bg-carbon-fiber 
         ${completed 
-            ? 'bg-green-900/10 ring-green-500/30 cursor-default' 
+            ? 'border-green-500/50 cursor-default shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
             : (highlight 
-                ? 'bg-primary-red/10 ring-primary-red/30 hover:-translate-y-2 hover:shadow-2xl hover:bg-accent-gray/50' 
-                : 'bg-accent-gray/30 ring-pure-white/10 hover:ring-primary-red/50 hover:bg-accent-gray/50 hover:-translate-y-2 hover:shadow-2xl'
+                ? 'border-primary-red shadow-[0_0_20px_rgba(218,41,28,0.2)] hover:-translate-y-2 hover:shadow-primary-red/40' 
+                : 'border-pure-white/10 hover:border-primary-red/50 hover:-translate-y-2 hover:shadow-2xl'
               )
         }`}
         style={{ animationDelay: delay }}
@@ -86,12 +86,12 @@ const HubTile: React.FC<{
             <Icon className="w-32 h-32" />
         </div>
         
-        <div className={`mb-6 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors shadow-lg 
+        <div className={`mb-6 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors shadow-lg border 
             ${completed 
-                ? 'bg-green-600/20 text-green-500' 
+                ? 'bg-green-600/20 text-green-500 border-green-500/30' 
                 : (highlight 
-                    ? 'bg-primary-red text-pure-white' 
-                    : 'bg-carbon-black/50 text-primary-red group-hover:bg-primary-red/20'
+                    ? 'bg-primary-red/20 text-pure-white border-primary-red/50' 
+                    : 'bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20'
                   )
             }`}>
             <Icon className="w-8 h-8" />

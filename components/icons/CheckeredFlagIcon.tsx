@@ -8,7 +8,29 @@ export const CheckeredFlagIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props
     fill="currentColor"
     {...props}
   >
-    <path d="M14.4 6H20v10h-4l-.4-2H12v6H5V4h7.4l.4 2M7 14h3v-2H7v2m5-2h3v-2h-3v2m-5-2h3V8H7v2m5-2h3V8h-3v2z" />
+    {/* Thinner Flag Pole */}
+    <path d="M4 2h1.5v20H4z" />
+    
+    {/* Waving Checkered Pattern - Row 1 (Top) */}
+    <path d="M5.5 4L9.5 3v3.3L5.5 7.3z" />
+    <path d="M13.5 4l4 1v3.3l-4-1z" />
+    
+    {/* Waving Checkered Pattern - Row 2 (Middle) */}
+    <path d="M9.5 6.3l4 1v3.3l-4-1z" />
+    <path d="M17.5 8.3l4-1v3.3l-4 1z" />
+    
+    {/* Waving Checkered Pattern - Row 3 (Bottom) */}
+    <path d="M5.5 10.6l4-1v3.4l-4 1z" />
+    <path d="M13.5 10.6l4 1v3.4l-4-1z" />
+    
+    {/* Flag Outline for definition */}
+    <path 
+      d="M5.5 4 L9.5 3 L13.5 4 L17.5 5 L21.5 4 V14 L17.5 15 L13.5 14 L9.5 13 L5.5 14 Z" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="0.5"
+    />
   </svg>
 );
+
 export default CheckeredFlagIcon;
