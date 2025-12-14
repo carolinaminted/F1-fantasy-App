@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { EVENTS, CONSTRUCTORS } from '../constants.ts';
-import { calculateScoreRollup } from '../services/scoringService.ts';
+import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -17,6 +17,7 @@ import { TeamIcon } from './icons/TeamIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 // --- Shared Types & Helpers ---
@@ -187,8 +188,6 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
     if (users.length === 0) return null;
 
     // Dynamic Spacing Logic
-    // Fewer records = taller rows/gaps for visual impact
-    // More records = compact rows
     const getRowClass = () => {
         if (limit === 10) return 'h-14'; // Spacious for Top 10
         if (limit === 25) return 'h-10'; // Standard for Top 25
@@ -262,8 +261,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                         style={{ width: `${percent}%` }}
                                     >
                                         <div className="relative">
-                                            {/* Rotate F1 car to face right (it points UP by default in typical SVG, or check path) */}
-                                            {/* Based on F1CarIcon path M12 1L... it is pointing UP (y=1). Rotate 90deg to point Right. */}
+                                            {/* Rotate F1 car to face right */}
                                             <F1CarIcon className={`w-8 h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
                                             
                                             {/* Hover Points Tooltip */}
@@ -548,8 +546,15 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
     );
 };
 
-const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
-    // Calculate Superlatives
+const InsightsView: React.FC<{ 
+    users: ProcessedUser[]; 
+    allPicks: { [uid: string]: { [eid: string]: PickSelection } }; 
+    raceResults: RaceResults;
+    pointsSystem: PointsSystem;
+    allDrivers: Driver[];
+}> = ({ users, allPicks, raceResults, pointsSystem, allDrivers }) => {
+    
+    // Superlatives Logic (Calculated from breakdown which is present in users)
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
         
@@ -567,7 +572,58 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
         };
     }, [users]);
 
-    const Card: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
+    // Trend Charts Calculation
+    const trendData = useMemo(() => {
+        // 1. Identify completed events
+        const completedEvents = EVENTS.filter(e => {
+            const r = raceResults[e.id];
+            return r && (r.grandPrixFinish?.some(p => p) || !!r.fastestLap);
+        });
+
+        // 2. Define ranges
+        const last3Events = completedEvents.slice(-3);
+        const last6Events = completedEvents.slice(-6);
+        const firstHalfEvents = completedEvents.filter(e => e.round <= 12);
+        const secondHalfEvents = completedEvents.filter(e => e.round > 12);
+
+        // 3. Helper to calculate leaderboard for a set of events
+        const getRangeLeaderboard = (eventsSubset: Event[]) => {
+            if (eventsSubset.length === 0) return [];
+            
+            const eventIds = new Set(eventsSubset.map(e => e.id));
+            
+            const userScores = users.map(user => {
+                const userPicks = allPicks[user.id] || {};
+                let rangeTotal = 0;
+                
+                eventsSubset.forEach(event => {
+                    const picks = userPicks[event.id];
+                    const results = raceResults[event.id];
+                    if (picks && results) {
+                        const score = calculatePointsForEvent(picks, results, pointsSystem, allDrivers);
+                        rangeTotal += score.totalPoints;
+                    }
+                });
+
+                return { label: user.displayName, value: rangeTotal };
+            });
+
+            return userScores
+                .filter(u => u.value > 0)
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10); // Top 10
+        };
+
+        return {
+            last3: getRangeLeaderboard(last3Events),
+            last6: getRangeLeaderboard(last6Events),
+            firstHalf: getRangeLeaderboard(firstHalfEvents),
+            secondHalf: getRangeLeaderboard(secondHalfEvents)
+        };
+
+    }, [users, allPicks, raceResults, pointsSystem, allDrivers]);
+
+    const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
          <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex items-center gap-4">
             <div className="bg-carbon-black p-3 rounded-full text-primary-red">
                 <Icon className="w-8 h-8" />
@@ -586,50 +642,88 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
         </div>
     );
 
-    return (
-        <div className="space-y-8 animate-fade-in">
-            <h2 className="text-2xl font-bold text-pure-white">Season Insights & Trends</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
-                <Card title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
-                <Card title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} />
-                <Card title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
+    const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full">
+            <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2">
+                <div>
+                    <h3 className="text-lg font-bold text-pure-white">{title}</h3>
+                    <p className="text-xs text-highlight-silver uppercase tracking-wider">{subtitle}</p>
+                </div>
+                {Icon && <Icon className="w-5 h-5 text-primary-red" />}
             </div>
-
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10">
-                <h3 className="text-lg font-bold text-pure-white mb-6">Top 5 Breakdown by Category</h3>
-                {users.length === 0 ? (
-                    <p className="text-highlight-silver text-center">No data available.</p>
-                ) : (
-                    <div className="space-y-6">
-                        {users.slice(0, 5).map(user => (
-                            <div key={user.id}>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-bold text-ghost-white">{user.displayName}</span>
-                                    <span className="font-mono text-highlight-silver">{user.totalPoints} pts</span>
-                                </div>
-                                <div className="flex h-3 rounded-full overflow-hidden bg-carbon-black">
-                                    {user.totalPoints && user.totalPoints > 0 ? (
-                                        <>
-                                            <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.totalPoints) * 100}%` }} />
-                                            <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.totalPoints) * 100}%` }} />
-                                            <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.totalPoints) * 100}%` }} />
-                                            <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.totalPoints) * 100}%` }} />
-                                        </>
-                                    ) : (
-                                        <div className="w-full h-full bg-accent-gray opacity-20"></div>
-                                    )}
+            
+            <div className="flex-1">
+                {data.length > 0 ? (
+                    <div className="space-y-3">
+                        {data.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-3">
+                                <span className={`w-5 text-center font-bold text-sm ${idx === 0 ? 'text-yellow-400' : 'text-highlight-silver'}`}>{idx + 1}</span>
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="font-semibold text-ghost-white truncate">{item.label}</span>
+                                        <span className="font-mono text-primary-red">{item.value}</span>
+                                    </div>
+                                    <div className="w-full bg-carbon-black rounded-full h-1.5">
+                                        <div 
+                                            className={`h-1.5 rounded-full ${idx === 0 ? 'bg-yellow-400' : 'bg-highlight-silver/50'}`} 
+                                            style={{ width: `${(item.value / data[0].value) * 100}%` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
+                ) : (
+                    <div className="h-full flex items-center justify-center text-highlight-silver italic text-sm py-8">
+                        Not enough data.
+                    </div>
                 )}
-                <div className="flex gap-4 justify-center mt-4 text-xs text-highlight-silver flex-wrap">
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-primary-red rounded-sm"></div> Race</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded-sm"></div> Quali</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded-sm"></div> Sprint</div>
-                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> FL</div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <h2 className="text-2xl font-bold text-pure-white">Season Insights & Trends</h2>
+            
+            {/* Top 4 Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
+                <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
+                <SuperlativeCard title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} />
+                <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
+            </div>
+
+            {/* Trend Charts Grid (2x2) */}
+            <div>
+                <h3 className="text-xl font-bold text-pure-white mb-6 flex items-center gap-2">
+                    <TrendingUpIcon className="w-6 h-6 text-primary-red" /> Performance Trends
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <TrendChart 
+                        title="Hot Streak" 
+                        subtitle="Last 3 Races" 
+                        data={trendData.last3} 
+                        icon={TrendingUpIcon}
+                    />
+                    <TrendChart 
+                        title="Form Guide" 
+                        subtitle="Last 6 Races" 
+                        data={trendData.last6}
+                        icon={LightbulbIcon}
+                    />
+                    <TrendChart 
+                        title="Early Season" 
+                        subtitle="First Half (Rounds 1-12)" 
+                        data={trendData.firstHalf} 
+                        icon={CalendarIcon}
+                    />
+                    <TrendChart 
+                        title="Late Season" 
+                        subtitle="Second Half (Rounds 13-24)" 
+                        data={trendData.secondHalf} 
+                        icon={CalendarIcon}
+                    />
                 </div>
             </div>
         </div>
@@ -825,28 +919,11 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         setAllPicks(validPicks);
 
         const processed: ProcessedUser[] = validUsers.map(user => {
-            // For insights, we still calculate the breakdown on client if needed,
-            // OR we can trust the 'user.breakdown' if we populated it in Cloud Function.
-            // For now, to keep `calculateScoreRollup` usage only for breakdown visuals (InsightsView)
-            // but rely on `user.totalPoints` for ranking (StandingsView).
-            
-            // Optimization: Only run calculation if user doesn't have pre-calculated points, OR for insights.
-            // To completely avoid the "Collapse", we should ideally skip this map entirely if we only view standings.
-            // But 'processedUsers' is shared state.
-            
-            // NOTE: We still calculate breakdown here for the "InsightsView" deep dive,
-            // but the sort order in StandingsView now uses `user.totalPoints` from Firestore.
-            // If `user.totalPoints` is missing (legacy data), we fallback to calculated.
-            
             let scoreData;
             if (user.totalPoints === undefined) {
                  const userPicks = picksData[user.id] || {};
                  scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
             } else {
-                 // Mock breakdown or fetch if stored. For now, assume client calc for detailed breakdown is acceptable
-                 // since main thread blocking usually comes from sorting thousands of records, not just mapping.
-                 // Actually, calculating 50 users x 24 races IS the block.
-                 // So we should ONLY do this if `user.totalPoints` is missing.
                  const userPicks = picksData[user.id] || {};
                  scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
             }
@@ -954,7 +1031,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
           {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
           {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} />}
-          {view === 'insights' && <InsightsView users={processedUsers} />}
+          {view === 'insights' && <InsightsView users={processedUsers} allPicks={allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} />}
           {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
       </div>
   );
