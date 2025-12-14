@@ -6,10 +6,9 @@ import { PicksIcon } from './icons/PicksIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
-import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
-import { DuesIcon } from './icons/DuesIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
+import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
@@ -163,54 +162,54 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* 2. CORE ACTION SECTIONS - Overlap (-mt-24) creates the peeking effect */}
-      <div className="max-w-5xl mx-auto w-full px-4 -mt-24 relative z-30 flex flex-col gap-4 md:gap-8">
+      <div className="max-w-6xl mx-auto w-full px-4 -mt-24 relative z-30 flex flex-col gap-4 md:gap-8">
         
         {/* Main Cards Grid: Side-by-side on Desktop for better density */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
             {/* Picks Section - The 'Peeking' Tile - Custom Animation to rise from bottom */}
             <div 
                 onClick={() => setActivePage('picks')}
-                className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/5 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:400ms]"
+                className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/5 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:400ms] min-h-[350px] flex flex-col justify-center"
             >
                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                    <PicksIcon className="w-48 h-48 text-primary-red" />
+                    <PicksIcon className="w-64 h-64 text-primary-red" />
                 </div>
                 <div className="relative z-10">
-                    <div className="w-12 h-12 bg-primary-red/20 rounded-xl flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(218,41,28,0.3)]">
-                        <PicksIcon className="w-6 h-6 text-primary-red" />
+                    <div className="w-14 h-14 bg-primary-red/20 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(218,41,28,0.3)]">
+                        <PicksIcon className="w-7 h-7 text-primary-red" />
                     </div>
-                    <h2 className="text-3xl font-bold text-pure-white mb-2 group-hover:text-primary-red transition-colors">Race Strategy</h2>
-                    <p className="text-highlight-silver max-w-md text-lg leading-relaxed">
+                    <h2 className="text-4xl font-bold text-pure-white mb-3 group-hover:text-primary-red transition-colors">Race Strategy</h2>
+                    <p className="text-highlight-silver max-w-md text-xl leading-relaxed">
                         Make your team and driver selections for the upcoming Grand Prix.
                     </p>
-                    <div className="mt-6 flex items-center gap-2 text-pure-white font-bold text-sm uppercase tracking-wider">
+                    <div className="mt-8 flex items-center gap-2 text-pure-white font-bold text-sm uppercase tracking-wider">
                         Manage Picks <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </div>
                 </div>
             </div>
 
-            {/* Standings Section - Standard Fade In on Scroll */}
+            {/* Standings Section - RED BACKGROUND */}
             <FadeInSection delay="0.2s" className="h-full">
                 <div 
                     onClick={() => setActivePage('leaderboard')}
-                    className="group relative overflow-hidden bg-carbon-black/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-xl cursor-pointer hover:border-pure-white/30 transition-all duration-300 h-full flex flex-col justify-center"
+                    className="group relative overflow-hidden bg-primary-red rounded-2xl p-6 md:p-10 border border-pure-white/10 shadow-xl cursor-pointer hover:bg-red-600 transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
                 >
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:-rotate-12 duration-500">
-                        <LeaderboardIcon className="w-48 h-48 text-pure-white" />
+                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:-rotate-12 duration-500">
+                        <LeaderboardIcon className="w-64 h-64 text-white" />
                     </div>
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
-                            <div className="w-12 h-12 bg-pure-white/10 rounded-xl flex items-center justify-center mb-4">
-                                <LeaderboardIcon className="w-6 h-6 text-pure-white" />
+                            <div className="w-14 h-14 bg-black/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
+                                <LeaderboardIcon className="w-7 h-7 text-white" />
                             </div>
-                            <h2 className="text-3xl font-bold text-pure-white mb-2">Leaderboard</h2>
-                            <p className="text-highlight-silver max-w-sm text-lg leading-relaxed">
+                            <h2 className="text-4xl font-bold text-white mb-3">Leaderboard</h2>
+                            <p className="text-white/90 max-w-sm text-xl leading-relaxed">
                                 Track the championship battle.
                             </p>
                         </div>
-                        <div className="bg-accent-gray/50 rounded-xl p-4 min-w-[120px] text-center border border-pure-white/5">
-                            <p className="text-xs text-highlight-silver uppercase tracking-wider mb-1">Your Rank</p>
-                            <p className="text-4xl font-black text-primary-red">#{rankData.rank}</p>
+                        <div className="bg-black/20 rounded-2xl p-5 min-w-[140px] text-center border border-white/10 backdrop-blur-sm shadow-inner">
+                            <p className="text-xs text-white/80 uppercase tracking-wider mb-1">Your Rank</p>
+                            <p className="text-5xl font-black text-white">#{rankData.rank}</p>
                         </div>
                     </div>
                 </div>
@@ -220,7 +219,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* 3. UTILITY GRID - Peeks up on Desktop due to reduced hero height and grid layout above */}
         <FadeInSection delay="0.3s">
             <h3 className="text-highlight-silver text-xs font-bold uppercase tracking-widest mb-4 ml-1">Team Operations</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div className={`grid grid-cols-2 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 md:gap-4`}>
                 <QuickAction 
                     icon={ProfileIcon} 
                     label="Profile" 
@@ -229,25 +228,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                 />
                 <QuickAction 
                     icon={TrackIcon} 
-                    label="Results" 
-                    sub="Official Classification" 
-                    onClick={() => setActivePage('gp-results')} 
+                    label="Events" 
+                    sub="Schedule & Results" 
+                    onClick={() => setActivePage('events-hub')} 
                 />
                 <QuickAction 
-                    icon={TrophyIcon} 
-                    label="Scoring" 
-                    sub="Rules & Points" 
-                    onClick={() => setActivePage('points')} 
+                    icon={LeagueIcon} 
+                    label="League" 
+                    sub="Rules & Scoring" 
+                    onClick={() => setActivePage('league-hub')} 
                 />
-                 {(!user || user.duesPaidStatus !== 'Paid') && (
-                    <QuickAction 
-                        icon={DuesIcon} 
-                        label="Pay Dues" 
-                        sub="Unlock Season"
-                        highlight 
-                        onClick={() => setActivePage('duesPayment')} 
-                    />
-                )}
                 <QuickAction 
                     icon={DonationIcon} 
                     label="Donate" 
