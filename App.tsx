@@ -151,6 +151,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
+  const [targetEventId, setTargetEventId] = useState<string | null>(null);
   const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
@@ -434,9 +435,14 @@ const App: React.FC = () => {
       setEventSchedules(schedules);
   };
 
-  const navigateToPage = (page: Page) => {
+  const navigateToPage = (page: Page, params?: { eventId?: string }) => {
     if (page === 'admin' && activePage !== 'admin') {
       setAdminSubPage('dashboard');
+    }
+    if (params?.eventId) {
+        setTargetEventId(params.eventId);
+    } else {
+        setTargetEventId(null);
     }
     setActivePage(page);
   };
@@ -446,7 +452,17 @@ const App: React.FC = () => {
       case 'home':
         return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
       case 'picks':
-        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+        if (user) return <HomePage 
+            user={user} 
+            seasonPicks={seasonPicks} 
+            onPicksSubmit={handlePicksSubmit} 
+            formLocks={formLocks} 
+            pointsSystem={activePointsSystem} 
+            allDrivers={allDrivers} 
+            allConstructors={allConstructors} 
+            events={mergedEvents} 
+            initialEventId={targetEventId}
+        />;
         return null;
       case 'leaderboard':
         return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;

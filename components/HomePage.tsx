@@ -16,11 +16,18 @@ interface HomePageProps {
   allDrivers: Driver[];
   allConstructors: Constructor[];
   events: Event[];
+  initialEventId?: string | null;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events, initialEventId }) => {
   // Default to the first upcoming (open) event.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
+    // 0. Pre-selection from navigation
+    if (initialEventId) {
+        const target = events.find(e => e.id === initialEventId);
+        if (target) return target;
+    }
+
     const now = Date.now();
     
     // 1. Priority: Find the first event that is TRULY Open (not time-locked AND not manually locked)

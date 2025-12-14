@@ -16,7 +16,7 @@ import CountdownTimer from './CountdownTimer.tsx';
 
 interface DashboardProps {
   user: User | null;
-  setActivePage: (page: Page) => void;
+  setActivePage: (page: Page, params?: { eventId?: string }) => void;
   raceResults?: RaceResults;
   pointsSystem?: PointsSystem;
   allDrivers?: Driver[];
@@ -92,8 +92,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Next Race Countdown - Inserted Here */}
             {nextEvent && (
-                <div className="mt-6 animate-drive-in opacity-0 [animation-delay:100ms] w-full max-w-sm">
-                    <div className="bg-carbon-black/40 backdrop-blur-md border border-pure-white/10 rounded-xl p-4 shadow-xl">
+                <div 
+                    className="mt-6 animate-drive-in opacity-0 [animation-delay:100ms] w-full max-w-sm cursor-pointer transition-transform hover:scale-105 active:scale-95 group"
+                    onClick={() => setActivePage('picks', { eventId: nextEvent.id })}
+                >
+                    <div className="bg-carbon-black/40 backdrop-blur-md border border-pure-white/10 rounded-xl p-4 shadow-xl group-hover:border-primary-red/50 transition-colors">
                         <p className="text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-1">Up Next: {nextEvent.location}</p>
                         <h2 className="text-2xl md:text-3xl font-black text-pure-white italic mb-3">{nextEvent.name}</h2>
                         
@@ -154,20 +157,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:-rotate-12 duration-500">
                         <LeaderboardIcon className="w-64 h-64 text-white" />
                     </div>
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div>
-                            <div className="w-14 h-14 bg-black/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
-                                <LeaderboardIcon className="w-7 h-7 text-white" />
-                            </div>
-                            <h2 className="text-4xl font-bold text-white mb-3">Leaderboard</h2>
-                            <p className="text-white/90 max-w-sm text-xl leading-relaxed">
-                                Track the championship battle.
-                            </p>
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 bg-black/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
+                            <LeaderboardIcon className="w-7 h-7 text-white" />
                         </div>
-                        {/* Rank Pill Removed from here as well since it's now in the header */}
-                        <div className="bg-black/20 rounded-2xl p-5 min-w-[140px] text-center border border-white/10 backdrop-blur-sm shadow-inner">
-                            <p className="text-xs text-white/80 uppercase tracking-wider mb-1">View</p>
-                            <p className="text-lg font-black text-white">Standings</p>
+                        <h2 className="text-4xl font-bold text-white mb-3">Leaderboard</h2>
+                        <p className="text-white/90 max-w-sm text-xl leading-relaxed">
+                            Track the championship battle.
+                        </p>
+                        <div className="mt-8 flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wider">
+                            View Leaderboards <span className="group-hover:translate-x-1 transition-transform">→</span>
                         </div>
                     </div>
                 </div>
