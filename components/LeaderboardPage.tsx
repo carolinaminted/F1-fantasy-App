@@ -1,6 +1,5 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { EVENTS, CONSTRUCTORS } from '../constants.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult } from '../types.ts';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
@@ -19,11 +18,11 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
+import { CONSTRUCTORS } from '../constants.ts';
 
 // --- Shared Types & Helpers ---
 
 type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
-const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
 interface ProcessedUser extends User {
     // Legacy fields preserved for InsightsView usage, but main ranking uses root totalPoints
@@ -42,6 +41,7 @@ interface LeaderboardPageProps {
   pointsSystem: PointsSystem;
   allDrivers: Driver[];
   allConstructors: Constructor[];
+  events: Event[];
 }
 
 const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constructor[]) => {
@@ -436,7 +436,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     );
 };
 
-const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ allPicks, allDrivers, allConstructors }) => {
+const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ allPicks, allDrivers, allConstructors, events }) => {
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all'); // mapped to event counts
 
     const stats = useMemo(() => {
@@ -447,10 +447,10 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
         allDrivers.forEach(d => driverCounts[d.id] = 0);
 
         // Determine relevant events based on "Time Range"
-        let relevantEvents: Event[] = EVENTS;
-        if (timeRange === '30') relevantEvents = EVENTS.slice(0, 3); 
-        if (timeRange === '60') relevantEvents = EVENTS.slice(0, 5);
-        if (timeRange === '90') relevantEvents = EVENTS.slice(0, 8);
+        let relevantEvents: Event[] = events;
+        if (timeRange === '30') relevantEvents = events.slice(0, 3); 
+        if (timeRange === '60') relevantEvents = events.slice(0, 5);
+        if (timeRange === '90') relevantEvents = events.slice(0, 8);
         
         const relevantEventIds = new Set(relevantEvents.map(e => e.id));
 
@@ -496,7 +496,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
             drivers: sortAndMap(driverCounts, 'desc', 'driver'),
             leastDrivers: sortAndMap(driverCounts, 'asc', 'driver')
         };
-    }, [allPicks, timeRange, allDrivers, allConstructors]);
+    }, [allPicks, timeRange, allDrivers, allConstructors, events]);
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -552,7 +552,8 @@ const InsightsView: React.FC<{
     raceResults: RaceResults;
     pointsSystem: PointsSystem;
     allDrivers: Driver[];
-}> = ({ users, allPicks, raceResults, pointsSystem, allDrivers }) => {
+    events: Event[];
+}> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
     
     // Superlatives Logic (Calculated from breakdown which is present in users)
     const superlatives = useMemo(() => {
@@ -575,7 +576,7 @@ const InsightsView: React.FC<{
     // Trend Charts Calculation
     const trendData = useMemo(() => {
         // 1. Identify completed events
-        const completedEvents = EVENTS.filter(e => {
+        const completedEvents = events.filter(e => {
             const r = raceResults[e.id];
             return r && (r.grandPrixFinish?.some(p => p) || !!r.fastestLap);
         });
@@ -621,7 +622,7 @@ const InsightsView: React.FC<{
             secondHalf: getRangeLeaderboard(secondHalfEvents)
         };
 
-    }, [users, allPicks, raceResults, pointsSystem, allDrivers]);
+    }, [users, allPicks, raceResults, pointsSystem, allDrivers, events]);
 
     const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
          <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 flex items-center gap-4">
@@ -890,7 +891,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
 // --- Main Page ---
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors }) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
   const [view, setView] = useState<ViewState>('menu');
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
@@ -1030,8 +1031,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           </div>
 
           {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
-          {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} />}
-          {view === 'insights' && <InsightsView users={processedUsers} allPicks={allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} />}
+          {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
+          {view === 'insights' && <InsightsView users={processedUsers} allPicks={allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
           {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
       </div>
   );

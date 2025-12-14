@@ -1,34 +1,33 @@
 
 import React, { useState, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
-import { EVENTS } from '../constants.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
-import { TrackIcon } from './icons/TrackIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
-import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
+import { CircuitRoute } from './icons/CircuitRoutes.tsx';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
+    events: Event[];
 }
 
-const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
 
     const nextRace = useMemo(() => {
         const now = new Date();
-        return EVENTS.find(e => {
+        return events.find(e => {
             const sched = schedules[e.id];
             const raceTime = sched?.race ? new Date(sched.race) : new Date(e.lockAtUtc);
             const raceEndTime = new Date(raceTime.getTime() + 2 * 60 * 60 * 1000); 
             return raceEndTime > now;
         });
-    }, [schedules]);
+    }, [schedules, events]);
 
     const upcomingRaces = useMemo(() => {
         if (!nextRace) return [];
-        const idx = EVENTS.findIndex(e => e.id === nextRace.id);
-        return EVENTS.slice(idx, idx + 5);
-    }, [nextRace]);
+        const idx = events.findIndex(e => e.id === nextRace.id);
+        return events.slice(idx, idx + 5);
+    }, [nextRace, events]);
 
     return (
         <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0 md:h-[calc(100vh-6rem)] md:overflow-hidden md:flex md:flex-col">
@@ -90,7 +89,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
             {/* Full Schedule List - Scrollable on Desktop */}
             {viewMode === 'full' && (
                 <div className="px-4 md:px-0 space-y-3 animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar md:pr-2 pb-6">
-                    {EVENTS.map(event => (
+                    {events.map(event => (
                         <FullEventRow key={event.id} event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
                     ))}
                 </div>
@@ -136,10 +135,16 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                         Next Grand Prix
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-pure-white mb-2 leading-none">{event.name}</h2>
-                    <div className="flex items-center gap-2 text-xl text-highlight-silver mb-6">
-                        <TrackIcon className="w-5 h-5" />
-                        <span>{event.country}</span>
-                        {event.hasSprint && <span className="bg-yellow-500/20 text-yellow-500 text-xs px-2 py-0.5 rounded border border-yellow-500/30 ml-2 font-bold uppercase">Sprint</span>}
+                    <div className="flex flex-col gap-1 mb-6">
+                        <div className="flex items-center gap-2 text-xl text-highlight-silver">
+                            <span className="font-bold">{event.country}</span>
+                            <span className="text-highlight-silver/70">, {event.location}</span>
+                            {event.hasSprint && <span className="bg-yellow-500/20 text-yellow-500 text-xs px-2 py-0.5 rounded border border-yellow-500/30 ml-2 font-bold uppercase">Sprint</span>}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-bold text-highlight-silver/70">
+                            <CircuitRoute eventId={event.id} className="w-5 h-5 text-highlight-silver" />
+                            {event.circuit}
+                        </div>
                     </div>
                     
                     {/* Main Countdown or Date */}
@@ -203,7 +208,11 @@ const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNex
                 {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
             </div>
             <h4 className="font-bold text-pure-white text-lg leading-tight mb-1 truncate">{event.country}</h4>
-            <p className="text-xs text-highlight-silver mb-3 truncate">{event.name}</p>
+            <p className="text-xs text-highlight-silver truncate">{event.location}</p>
+            <div className="flex items-center gap-1.5 mt-1 mb-3 opacity-70">
+                <CircuitRoute eventId={event.id} className="w-4 h-4 text-highlight-silver" />
+                <p className="text-[10px] text-highlight-silver truncate">{event.circuit}</p>
+            </div>
         </div>
         
         <div className="mt-auto pt-3 border-t border-pure-white/10">
@@ -220,15 +229,20 @@ const FullEventRow: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: 
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isNext ? 'bg-primary-red text-pure-white' : 'bg-carbon-black text-highlight-silver'}`}>
                 {event.round}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
                 <h4 className="font-bold text-pure-white">{event.name}</h4>
-                <div className="flex items-center gap-2 text-xs text-highlight-silver">
-                    <span>{event.country}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-highlight-silver">
+                    <span className="font-semibold text-ghost-white">{event.country}, {event.location}</span>
+                    <span className="text-highlight-silver/50 hidden sm:inline">•</span>
+                    <div className="flex items-center gap-1">
+                        <CircuitRoute eventId={event.id} className="w-3 h-3 text-highlight-silver" />
+                        <span className="truncate">{event.circuit}</span>
+                    </div>
                     {event.hasSprint && <span className="text-yellow-500 font-bold">• Sprint</span>}
                 </div>
             </div>
         </div>
-        <div className="text-right">
+        <div className="text-right pl-4">
             {schedule?.race ? (
                 <>
                     <p className="font-bold text-pure-white text-sm">{formatDate(schedule.race)}</p>

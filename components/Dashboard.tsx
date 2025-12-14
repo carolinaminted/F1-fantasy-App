@@ -1,7 +1,7 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Page } from '../App.tsx';
-import { User, RaceResults, PointsSystem, Driver, Constructor } from '../types.ts';
+import { User, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -12,6 +12,7 @@ import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
+import CountdownTimer from './CountdownTimer.tsx';
 
 interface DashboardProps {
   user: User | null;
@@ -20,6 +21,7 @@ interface DashboardProps {
   pointsSystem?: PointsSystem;
   allDrivers?: Driver[];
   allConstructors?: Constructor[];
+  events: Event[];
 }
 
 // Helper for scroll animations
@@ -53,59 +55,15 @@ const FadeInSection: React.FC<{ children: React.ReactNode; delay?: string; class
 const Dashboard: React.FC<DashboardProps> = ({ 
     user, 
     setActivePage,
-    raceResults = {}, 
-    pointsSystem, 
-    allDrivers = [], 
+    events 
 }) => {
   const isAdmin = user && !!user.isAdmin;
-  const [rankData, setRankData] = useState<{ rank: number | string, points: number }>({ rank: '-', points: 0 });
   
-  useEffect(() => {
-    // If user already has pre-calculated rank/points, use them directly
-    if (user?.totalPoints !== undefined && user?.rank !== undefined) {
-        setRankData({
-            rank: user.rank,
-            points: user.totalPoints
-        });
-        return;
-    }
-
-    if (!user || !pointsSystem || allDrivers.length === 0) return;
-
-    // Fallback: Client-side calculation if cloud data missing
-    const fetchRank = async () => {
-        try {
-            const { users, allPicks } = await getAllUsersAndPicks();
-            // Filter out Admin Principal as fallback/safety for display if needed
-            const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
-            
-            const scores = validUsers.map(u => {
-                // If user has pre-calc points, use them
-                if (u.totalPoints !== undefined) {
-                    return { uid: u.id, points: u.totalPoints };
-                }
-                // Else calculate
-                const userPicks = allPicks[u.id] || {};
-                const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
-                return { uid: u.id, points: scoreData.totalPoints };
-            });
-
-            scores.sort((a, b) => b.points - a.points);
-            const myRankIndex = scores.findIndex(s => s.uid === user.id);
-            const myScore = scores.find(s => s.uid === user.id)?.points || 0;
-
-            setRankData({ 
-                rank: myRankIndex !== -1 ? myRankIndex + 1 : '-', 
-                points: myScore 
-            });
-
-        } catch (error) {
-            console.error("Error calculating dashboard rank:", error);
-        }
-    };
-
-    fetchRank();
-  }, [user, raceResults, pointsSystem, allDrivers]);
+  // Find next event for countdown
+  const nextEvent = useMemo(() => {
+      const now = new Date();
+      return events?.find(e => new Date(e.lockAtUtc) > now);
+  }, [events]);
 
   return (
     <div className="flex flex-col w-full min-h-screen pb-20">
@@ -123,7 +81,7 @@ const Dashboard: React.FC<DashboardProps> = ({
          <div className="absolute inset-0 bg-gradient-to-t from-carbon-black via-carbon-black/50 to-transparent z-10"></div>
          
          {/* Hero Content - Centered */}
-         <div className="relative z-20 text-center px-4 pb-20">
+         <div className="relative z-20 text-center px-4 pb-20 flex flex-col items-center">
             {/* Animated Title Block - Drives Up */}
             <div className="animate-drive-in opacity-0">
                 <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
@@ -132,24 +90,23 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </h1>
             </div>
 
-            {/* Animated Principal Card - Drafts behind title with delay */}
-            {user ? (
-                <div className="mt-6 inline-flex flex-col items-center bg-carbon-black/60 backdrop-blur-md border border-pure-white/10 rounded-2xl p-6 shadow-2xl transform transition-transform hover:scale-105 duration-500 animate-drive-in opacity-0 [animation-delay:200ms]">
-                    <p className="text-highlight-silver text-sm uppercase tracking-widest font-bold mb-1">Team Principal</p>
-                    <p className="text-2xl font-bold text-pure-white mb-3">{user.displayName}</p>
-                    <div className="flex items-center gap-6 border-t border-pure-white/10 pt-3">
-                        <div className="text-center">
-                            <span className="block text-2xl font-black text-primary-red">#{rankData.rank}</span>
-                            <span className="text-[10px] text-highlight-silver uppercase">Global Rank</span>
-                        </div>
-                        <div className="w-px h-8 bg-pure-white/10"></div>
-                        <div className="text-center">
-                            <span className="block text-2xl font-black text-pure-white">{rankData.points}</span>
-                            <span className="text-[10px] text-highlight-silver uppercase">Points</span>
+            {/* Next Race Countdown - Inserted Here */}
+            {nextEvent && (
+                <div className="mt-6 animate-drive-in opacity-0 [animation-delay:100ms] w-full max-w-sm">
+                    <div className="bg-carbon-black/40 backdrop-blur-md border border-pure-white/10 rounded-xl p-4 shadow-xl">
+                        <p className="text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-1">Up Next: {nextEvent.location}</p>
+                        <h2 className="text-2xl md:text-3xl font-black text-pure-white italic mb-3">{nextEvent.name}</h2>
+                        
+                        <div className="border-t border-pure-white/10 pt-3 flex flex-col items-center">
+                            <p className="text-[10px] text-primary-red uppercase tracking-wider font-bold mb-2">Picks Lock In</p>
+                            <CountdownTimer targetDate={nextEvent.lockAtUtc} />
                         </div>
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {/* Start Engine Button (Only for guests) */}
+            {!user && (
                 <div className="animate-drive-in opacity-0 [animation-delay:200ms]">
                     <button 
                         className="mt-6 bg-primary-red text-pure-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform"
@@ -207,9 +164,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 Track the championship battle.
                             </p>
                         </div>
+                        {/* Rank Pill Removed from here as well since it's now in the header */}
                         <div className="bg-black/20 rounded-2xl p-5 min-w-[140px] text-center border border-white/10 backdrop-blur-sm shadow-inner">
-                            <p className="text-xs text-white/80 uppercase tracking-wider mb-1">Your Rank</p>
-                            <p className="text-5xl font-black text-white">#{rankData.rank}</p>
+                            <p className="text-xs text-white/80 uppercase tracking-wider mb-1">View</p>
+                            <p className="text-lg font-black text-white">Standings</p>
                         </div>
                     </div>
                 </div>

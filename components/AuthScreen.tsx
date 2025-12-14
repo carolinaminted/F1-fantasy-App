@@ -6,6 +6,8 @@ import { auth, functions } from '../services/firebase.ts';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
+// @ts-ignore
+import confetti from 'canvas-confetti';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -48,7 +50,17 @@ const AuthScreen: React.FC = () => {
   };
 
   const handleLogoClick = async () => {
-    // Secret Ping Test
+    // Checkered Flag Confetti Celebration
+    confetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'], // Black, White, and Greys
+      disableForReducedMotion: true,
+      zIndex: 2000 // Ensure it appears above modal
+    });
+
+    // Secret Auto-fill for Demo/Testing (Only works on Details step)
     if (!isResetting && signupStep === 'details') {
       const randomId = Math.floor(Math.random() * 1000);
       setFirstName('Test');
@@ -57,20 +69,11 @@ const AuthScreen: React.FC = () => {
       if(!email) setEmail(`test.user.${randomId}@fantasy.f1`);
       setPassword('password123');
       setConfirmPassword('password123');
-    } else if (!isResetting && signupStep === 'email') {
-        try {
-            console.log("Pinging Cloud Functions...");
-            const ping = httpsCallable(functions, 'ping');
-            const res = await ping();
-            console.log("Ping successful:", res.data);
-            alert(`Backend Connected: ${(res.data as any).message}`);
-        } catch (e: any) {
-            console.error("Ping failed:", e);
-            alert(`Backend Ping Failed:\nCode: ${e.code}\nMsg: ${e.message}`);
-        }
     }
-     setError(null);
-     setResetMessage(null);
+    
+    // Debug Ping removed to prevent 'internal' errors in production/demo
+    setError(null);
+    setResetMessage(null);
   };
 
   // --- Step 1: Send Verification Code ---

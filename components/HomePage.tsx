@@ -2,7 +2,7 @@
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState } from 'react';
 import PicksForm from './PicksForm.tsx';
-import { EVENTS, RACE_RESULTS } from '../constants.ts';
+import { RACE_RESULTS } from '../constants.ts';
 import { Event, PickSelection, User, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 
@@ -14,15 +14,16 @@ interface HomePageProps {
   pointsSystem: PointsSystem;
   allDrivers: Driver[];
   allConstructors: Constructor[];
+  events: Event[];
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events }) => {
   // Default to the first upcoming (open) event.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
     const now = Date.now();
     
     // 1. Priority: Find the first event that is TRULY Open (not time-locked AND not manually locked)
-    const firstOpenEvent = EVENTS.find(event => {
+    const firstOpenEvent = events.find(event => {
         const lockTime = new Date(event.lockAtUtc).getTime();
         const isTimeLocked = now >= lockTime;
         const isManualLocked = !!formLocks[event.id]; // Strict boolean check
@@ -34,7 +35,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     // 2. Fallback: If no event is "Open" (e.g. admin locked next race early, or weekend started),
     // find the next event based on TIME only. This ensures we show the relevant "Upcoming" race
     // (even if it says LOCKED) rather than an old race from months ago.
-    const nextEventByTime = EVENTS.find(event => {
+    const nextEventByTime = events.find(event => {
         const lockTime = new Date(event.lockAtUtc).getTime();
         return now < lockTime;
     });
@@ -42,7 +43,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     if (nextEventByTime) return nextEventByTime;
 
     // 3. Final Fallback: End of season or valid data missing, show the last event.
-    return EVENTS[EVENTS.length - 1] || EVENTS[0];
+    return events[events.length - 1] || events[0];
   });
   
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
@@ -57,12 +58,12 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                 id="event-selector"
                 value={selectedEvent.id}
                 onChange={(e) => {
-                    const event = EVENTS.find(ev => ev.id === e.target.value);
+                    const event = events.find(ev => ev.id === e.target.value);
                     if (event) setSelectedEvent(event);
                 }}
                 className="w-full md:w-80 bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none"
             >
-                {EVENTS.map(event => {
+                {events.map(event => {
                     const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
                     return (
                         <option key={event.id} value={event.id}>

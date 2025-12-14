@@ -36,7 +36,7 @@ import { TrackIcon } from './components/icons/TrackIcon.tsx';
 import { GarageIcon } from './components/icons/GarageIcon.tsx';
 import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
-import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
+import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onAuthStateChanged, signOut } from '@firebase/auth';
@@ -91,10 +91,17 @@ const getUserRealName = (user: User | null) => {
 
 // New SideNav component for desktop view
 const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
-    <aside className="hidden md:flex flex-col w-64 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
-        <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4 flex-shrink-0">
-           <F1CarIcon className="w-12 h-12 text-primary-red" />
-           <span className="font-bold text-lg truncate">{getUserRealName(user)}</span>
+    <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
+        <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4 flex-shrink-0 group">
+           <F1CarIcon className="w-12 h-12 text-primary-red transition-transform group-hover:scale-110" />
+           <div className="flex flex-col overflow-hidden">
+               <span className="font-bold text-lg truncate leading-tight group-hover:text-primary-red transition-colors">{getUserRealName(user)}</span>
+               {user && (
+                   <span className="text-[13px] text-highlight-silver font-mono mt-0.5">
+                       #{user.rank || '-'} • {user.totalPoints || 0} pts
+                   </span>
+               )}
+           </div>
         </div>
         <nav className="flex-grow space-y-1">
             <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
@@ -161,7 +168,7 @@ const App: React.FC = () => {
   };
   const [scoringSettings, setScoringSettings] = useState<ScoringSettingsDoc>(defaultSettings);
   
-  // Derived state for the currently active points system used across the app (unless overridden by historical snapshot)
+  // Derived state for the currently active points system
   const activePointsSystem = useMemo(() => {
       const profile = scoringSettings.profiles.find(p => p.id === scoringSettings.activeProfileId);
       return profile ? profile.config : DEFAULT_POINTS_SYSTEM;
@@ -171,12 +178,25 @@ const App: React.FC = () => {
   const [allDrivers, setAllDrivers] = useState<Driver[]>(DRIVERS);
   const [allConstructors, setAllConstructors] = useState<Constructor[]>(CONSTRUCTORS);
 
+  // Dynamic Events State - Merge static constants with DB overrides
+  const mergedEvents = useMemo(() => {
+      return EVENTS.map(e => {
+          const sched = eventSchedules[e.id];
+          return {
+              ...e,
+              name: sched?.name || e.name,
+              hasSprint: sched?.hasSprint !== undefined ? sched.hasSprint : e.hasSprint
+          };
+      });
+  }, [eventSchedules]);
+
   useEffect(() => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};
     let unsubscribeProfile = () => {};
     let unsubscribePoints = () => {};
     let unsubscribeSchedules = () => {};
+    let unsubscribePublicProfile = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       // Clean up previous listeners before setting new ones or logging out
@@ -185,6 +205,7 @@ const App: React.FC = () => {
       unsubscribeProfile();
       unsubscribePoints();
       unsubscribeSchedules();
+      unsubscribePublicProfile();
 
       setIsLoading(true);
       if (firebaseUser) {
@@ -231,11 +252,9 @@ const App: React.FC = () => {
         unsubscribePoints = onSnapshot(pointsRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                // Check if data is in old format (PointsSystem) or new format (ScoringSettingsDoc)
                 if (data.profiles && Array.isArray(data.profiles)) {
                     setScoringSettings(data as ScoringSettingsDoc);
                 } else {
-                    // Migration: If we find a legacy single config, wrap it in a profile
                     console.log("Migrating legacy scoring config to profiles...");
                     const migratedSettings: ScoringSettingsDoc = {
                         activeProfileId: 'legacy',
@@ -249,13 +268,35 @@ const App: React.FC = () => {
             }
         }, (error) => console.error("Firestore listener error (scoring_config):", error));
 
-        // Listen to user-specific data in real-time
+        // Listener for Public Profile (Rank & Points)
+        const publicProfileRef = doc(db, 'public_users', firebaseUser.uid);
+        unsubscribePublicProfile = onSnapshot(publicProfileRef, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setUser(prev => {
+                    // Only update if we have a user state and IDs match
+                    if (prev && prev.id === firebaseUser.uid) {
+                        return { ...prev, rank: data.rank, totalPoints: data.totalPoints };
+                    }
+                    return prev;
+                });
+            }
+        });
+
+        // Listen to private user profile
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
           if (profileSnap.exists()) {
             const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
             const userPicks = await getUserPicks(firebaseUser.uid);
-            setUser(userProfile);
+            
+            // Merge with existing state to preserve rank/points from public listener if it fired first
+            setUser(prev => ({
+                ...userProfile,
+                rank: prev?.rank,
+                totalPoints: prev?.totalPoints
+            }));
+            
             setSeasonPicks(userPicks);
             setIsAuthenticated(true);
           } else {
@@ -285,6 +326,7 @@ const App: React.FC = () => {
       unsubscribeProfile();
       unsubscribePoints();
       unsubscribeSchedules();
+      unsubscribePublicProfile();
     };
   }, []);
 
@@ -359,48 +401,48 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'home':
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
       case 'picks':
-        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        if (user) return <HomePage user={user} seasonPicks={seasonPicks} onPicksSubmit={handlePicksSubmit} formLocks={formLocks} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
         return null;
       case 'leaderboard':
-        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
       case 'events-hub':
         return <EventsHubPage setActivePage={navigateToPage} />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':
-        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} />;
         return null;
       case 'points':
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'schedule':
-        return <SchedulePage schedules={eventSchedules} />;
+        return <SchedulePage schedules={eventSchedules} events={mergedEvents} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':
         if(user) {
             if (user.duesPaidStatus === 'Paid') {
-                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
             }
             return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
         }
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
             case 'results':
-                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} formLocks={formLocks} onToggleLock={handleToggleFormLock} activePointsSystem={activePointsSystem} />;
+                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} formLocks={formLocks} onToggleLock={handleToggleFormLock} activePointsSystem={activePointsSystem} events={mergedEvents} />;
             case 'manage-users':
-                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
             case 'scoring':
                 return <ScoringSettingsPage settings={scoringSettings} setAdminSubPage={setAdminSubPage} />;
             case 'entities':
@@ -413,7 +455,7 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
     }
   };
   

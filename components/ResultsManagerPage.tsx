@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
-import { EVENTS } from '../constants.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
@@ -15,11 +14,12 @@ interface ResultsManagerPageProps {
     formLocks: { [eventId: string]: boolean };
     onToggleLock: (eventId: string) => void;
     activePointsSystem: PointsSystem; // New prop
+    events: Event[];
 }
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock, activePointsSystem }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock, activePointsSystem, events }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [filter, setFilter] = useState<FilterType>('all');
 
@@ -35,14 +35,14 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     };
 
     const filteredEvents = useMemo(() => {
-        return EVENTS.filter(event => {
+        return events.filter(event => {
             const hasResults = checkHasResults(event);
             if (filter === 'all') return true;
             if (filter === 'added') return hasResults;
             if (filter === 'pending') return !hasResults;
             return true;
         });
-    }, [filter, raceResults]);
+    }, [filter, raceResults, events]);
 
     useEffect(() => {
         if (selectedEventId && !filteredEvents.find(e => e.id === selectedEventId)) {
@@ -76,7 +76,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         }
     };
 
-    const selectedEvent = useMemo(() => EVENTS.find(event => event.id === selectedEventId), [selectedEventId]);
+    const selectedEvent = useMemo(() => events.find(event => event.id === selectedEventId), [selectedEventId, events]);
 
     const FilterButton: React.FC<{label: string, value: FilterType, current: FilterType, onClick: (val: FilterType) => void}> = ({ label, value, current, onClick }) => {
         const isActive = value === current;

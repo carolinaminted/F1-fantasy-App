@@ -36,7 +36,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
         setNotification(null);
     }, [selectedEventId, existingSchedules]);
 
-    const handleInputChange = (field: keyof EventSchedule, value: string) => {
+    const handleInputChange = (field: keyof EventSchedule, value: string | boolean) => {
         setScheduleForm(prev => ({
             ...prev,
             [field]: value
@@ -56,7 +56,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
             onScheduleUpdate(); // Trigger refresh in parent
             
             setNotification({ 
-                message: `Schedule for ${selectedEvent?.name} saved successfully!`, 
+                message: `Schedule for ${scheduleForm.name || selectedEvent?.name} saved successfully!`, 
                 type: 'success' 
             });
 
@@ -77,8 +77,10 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
     };
 
     // Helper for datetime inputs (expects YYYY-MM-DDTHH:MM)
-    // We assume data is stored in ISO format. We need to slice it for the input value.
     const getValue = (val?: string) => val ? val.slice(0, 16) : '';
+
+    // Determine effective sprint status (Override > Default)
+    const isSprint = scheduleForm.hasSprint !== undefined ? scheduleForm.hasSprint : selectedEvent?.hasSprint;
 
     return (
         <div className="max-w-4xl mx-auto text-pure-white">
@@ -117,12 +119,47 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
 
                 {selectedEvent && (
                     <form onSubmit={handleSave} className="animate-fade-in space-y-6">
+                        
+                        {/* Event Config Section */}
+                        <div className="bg-carbon-black/30 p-4 rounded-lg border border-pure-white/10">
+                            <h4 className="font-bold text-pure-white mb-4 uppercase text-xs tracking-wider">Event Configuration</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Grand Prix Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={scheduleForm.name !== undefined ? scheduleForm.name : selectedEvent.name}
+                                        onChange={(e) => handleInputChange('name', e.target.value)}
+                                        className="w-full bg-carbon-black border border-accent-gray rounded px-3 py-2 text-pure-white focus:outline-none focus:ring-1 focus:ring-primary-red"
+                                    />
+                                </div>
+                                <div className="flex items-end pb-2">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <div className="relative">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only" 
+                                                checked={!!isSprint}
+                                                onChange={(e) => handleInputChange('hasSprint', e.target.checked)}
+                                            />
+                                            <div className={`block w-12 h-7 rounded-full transition-colors ${isSprint ? 'bg-yellow-500' : 'bg-carbon-black border border-highlight-silver'}`}></div>
+                                            <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isSprint ? 'transform translate-x-5' : ''}`}></div>
+                                        </div>
+                                        <div>
+                                            <span className="block font-bold text-sm text-pure-white">Sprint Weekend</span>
+                                            <span className="text-xs text-highlight-silver">Enable sprint sessions</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="border-t border-pure-white/10 pt-4">
                             <h3 className="text-xl font-bold text-pure-white mb-4 flex items-center gap-2">
-                                <span className="bg-primary-red px-2 py-0.5 rounded text-sm uppercase">
-                                    {selectedEvent.hasSprint ? 'Sprint Weekend' : 'Standard Weekend'}
+                                <span className={`px-2 py-0.5 rounded text-sm uppercase ${isSprint ? 'bg-yellow-500 text-black' : 'bg-primary-red text-pure-white'}`}>
+                                    {isSprint ? 'Sprint Format' : 'Standard Format'}
                                 </span>
-                                {selectedEvent.name} Timetable
+                                Timetable
                             </h3>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -133,7 +170,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                                     onChange={(v) => handleInputChange('fp1', v)} 
                                 />
                                 
-                                {selectedEvent.hasSprint ? (
+                                {isSprint ? (
                                     <>
                                         <TimeInput 
                                             label="Sprint Qualifying" 

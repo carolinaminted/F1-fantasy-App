@@ -172,7 +172,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div className="flex-grow text-center md:text-left">
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
-            <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country}</p>
+            <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
             <div className="mt-2">
               {isSubmitted ? (
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>

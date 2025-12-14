@@ -40,6 +40,8 @@ export interface Event {
   round: number;
   name: string;
   country: string;
+  location: string; // City/Region (Renamed from circuit)
+  circuit: string; // Full Track Name
   hasSprint: boolean;
   lockAtUtc: string;
   softDeadlineUtc: string;
@@ -57,6 +59,9 @@ export interface EventSchedule {
     race?: string;
     // Allow overriding the default calculated lock times
     customLockAt?: string;
+    // Overrides
+    name?: string;
+    hasSprint?: boolean;
 }
 
 export interface PickSelection {
