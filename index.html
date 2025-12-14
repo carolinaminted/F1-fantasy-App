@@ -19,10 +19,21 @@
             },
             animation: {
               'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+              'drive-in': 'driveIn 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'peek-up': 'peekUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             },
             keyframes: {
               fadeInUp: {
                 '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              driveIn: {
+                '0%': { opacity: '0', transform: 'translateY(100vh) scale(0.6)' },
+                '70%': { opacity: '1', transform: 'translateY(-60px) scale(1.05)' },
+                '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              },
+              peekUp: {
+                '0%': { opacity: '0', transform: 'translateY(100px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
               }
             }
@@ -68,9 +79,19 @@
           -ms-overflow-style: none;  /* IE and Edge */
           scrollbar-width: none;  /* Firefox */
       }
+
+      /* Carbon Fiber Pattern Class */
+      .bg-carbon-fiber {
+        background-color: #0c0c0c;
+        background-image: 
+          linear-gradient(45deg, #151515 25%, transparent 25%, transparent 75%, #151515 75%, #151515),
+          linear-gradient(45deg, #151515 25%, transparent 25%, transparent 75%, #151515 75%, #151515);
+        background-size: 8px 8px;
+        background-position: 0 0, 4px 4px;
+      }
     </style>
-    <!-- Add Babel Standalone for in-browser JSX/TSX transpilation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Use a specific stable version of Babel Standalone to reduce variable warnings -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.8/babel.min.js" crossorigin="anonymous"></script>
   <script type="importmap">
 {
   "imports": {
@@ -94,6 +115,11 @@
 </head>
   <body class="bg-carbon-black text-ghost-white">
     <div id="root"></div>
-    <script type="text/babel" data-presets="react,typescript" data-type="module" src="/index.tsx"></script>
+    <!-- 
+      Note on Console Warnings:
+      You may see a warning: "You are using the in-browser Babel transformer..."
+      This is normal for this no-build setup and can be safely ignored.
+    -->
+    <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
   </body>
 </html>

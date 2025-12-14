@@ -24,7 +24,7 @@ interface DashboardProps {
 }
 
 // Helper for scroll animations
-const FadeInSection: React.FC<{ children: React.ReactNode; delay?: string }> = ({ children, delay = '0s' }) => {
+const FadeInSection: React.FC<{ children: React.ReactNode; delay?: string; className?: string }> = ({ children, delay = '0s', className = '' }) => {
   const [isVisible, setIsVisible] = useState(false);
   const domRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +43,7 @@ const FadeInSection: React.FC<{ children: React.ReactNode; delay?: string }> = (
       ref={domRef}
       className={`transition-all duration-1000 ease-out transform ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-      }`}
+      } ${className}`}
       style={{ transitionDelay: delay }}
     >
       {children}
@@ -58,18 +58,34 @@ const Dashboard: React.FC<DashboardProps> = ({
     pointsSystem, 
     allDrivers = [], 
 }) => {
-  const isAdmin = user && (!!user.isAdmin || user.email === 'admin@fantasy.f1');
+  const isAdmin = user && !!user.isAdmin;
   const [rankData, setRankData] = useState<{ rank: number | string, points: number }>({ rank: '-', points: 0 });
   
   useEffect(() => {
+    // If user already has pre-calculated rank/points, use them directly
+    if (user?.totalPoints !== undefined && user?.rank !== undefined) {
+        setRankData({
+            rank: user.rank,
+            points: user.totalPoints
+        });
+        return;
+    }
+
     if (!user || !pointsSystem || allDrivers.length === 0) return;
 
+    // Fallback: Client-side calculation if cloud data missing
     const fetchRank = async () => {
         try {
             const { users, allPicks } = await getAllUsersAndPicks();
-            const validUsers = users.filter(u => u.email !== 'admin@fantasy.f1');
+            // Filter out Admin Principal as fallback/safety for display if needed
+            const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
             
             const scores = validUsers.map(u => {
+                // If user has pre-calc points, use them
+                if (u.totalPoints !== undefined) {
+                    return { uid: u.id, points: u.totalPoints };
+                }
+                // Else calculate
                 const userPicks = allPicks[u.id] || {};
                 const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
                 return { uid: u.id, points: scoreData.totalPoints };
@@ -95,9 +111,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="flex flex-col w-full min-h-screen pb-20">
       
-      {/* 1. HERO SECTION - Extended Height for Apple-style Scroll */}
-      <div className="relative w-full h-[90vh] md:h-[900px] flex items-center justify-center overflow-hidden">
-         {/* Background Image with Parallax-like feel via fixed attachment or simple absolute positioning */}
+      {/* 1. HERO SECTION - Full Screen for Immersive Feel */}
+      <div className="relative w-full h-[90vh] md:h-screen flex items-center justify-center overflow-hidden">
+         {/* Background Image with Parallax-like feel */}
          <div 
             className="absolute inset-0 bg-cover bg-center z-0" 
             style={{ 
@@ -107,14 +123,19 @@ const Dashboard: React.FC<DashboardProps> = ({
          ></div>
          <div className="absolute inset-0 bg-gradient-to-t from-carbon-black via-carbon-black/50 to-transparent z-10"></div>
          
-         {/* Hero Content - Shifted up slightly to ensure spacing from tiles */}
-         <div className="relative z-20 text-center px-4 animate-fade-in-up pb-20">
-            <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
-            <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2">
-                FORMULA<br/>FANTASY ONE
-            </h1>
+         {/* Hero Content - Centered */}
+         <div className="relative z-20 text-center px-4 pb-20">
+            {/* Animated Title Block - Drives Up */}
+            <div className="animate-drive-in opacity-0">
+                <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
+                <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2">
+                    FORMULA<br/>FANTASY ONE
+                </h1>
+            </div>
+
+            {/* Animated Principal Card - Drafts behind title with delay */}
             {user ? (
-                <div className="mt-6 inline-flex flex-col items-center bg-carbon-black/60 backdrop-blur-md border border-pure-white/10 rounded-2xl p-6 shadow-2xl transform transition-transform hover:scale-105 duration-500">
+                <div className="mt-6 inline-flex flex-col items-center bg-carbon-black/60 backdrop-blur-md border border-pure-white/10 rounded-2xl p-6 shadow-2xl transform transition-transform hover:scale-105 duration-500 animate-drive-in opacity-0 [animation-delay:200ms]">
                     <p className="text-highlight-silver text-sm uppercase tracking-widest font-bold mb-1">Team Principal</p>
                     <p className="text-2xl font-bold text-pure-white mb-3">{user.displayName}</p>
                     <div className="flex items-center gap-6 border-t border-pure-white/10 pt-3">
@@ -130,24 +151,26 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                 </div>
             ) : (
-                <button 
-                    onClick={() => { /* Handled by Auth flow generally, but just in case */ }}
-                    className="mt-6 bg-primary-red text-pure-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform"
-                >
-                    Start Your Engine
-                </button>
+                <div className="animate-drive-in opacity-0 [animation-delay:200ms]">
+                    <button 
+                        className="mt-6 bg-primary-red text-pure-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform"
+                    >
+                        Start Your Engine
+                    </button>
+                </div>
             )}
          </div>
       </div>
 
       {/* 2. CORE ACTION SECTIONS - Overlap (-mt-24) creates the peeking effect */}
-      <div className="max-w-5xl mx-auto w-full px-4 -mt-24 relative z-30 space-y-4 md:space-y-8">
+      <div className="max-w-5xl mx-auto w-full px-4 -mt-24 relative z-30 flex flex-col gap-4 md:gap-8">
         
-        {/* Picks Section - The 'Peeking' Tile */}
-        <FadeInSection delay="0.1s">
+        {/* Main Cards Grid: Side-by-side on Desktop for better density */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+            {/* Picks Section - The 'Peeking' Tile - Custom Animation to rise from bottom */}
             <div 
                 onClick={() => setActivePage('picks')}
-                className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1"
+                className="group relative overflow-hidden bg-accent-gray/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-2xl cursor-pointer hover:border-primary-red/5 transition-all duration-300 transform hover:-translate-y-1 animate-peek-up opacity-0 [animation-delay:400ms]"
             >
                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
                     <PicksIcon className="w-48 h-48 text-primary-red" />
@@ -158,43 +181,43 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                     <h2 className="text-3xl font-bold text-pure-white mb-2 group-hover:text-primary-red transition-colors">Race Strategy</h2>
                     <p className="text-highlight-silver max-w-md text-lg leading-relaxed">
-                        Make your team and driver selections for the upcoming Grand Prix. The grid awaits your decision.
+                        Make your team and driver selections for the upcoming Grand Prix.
                     </p>
                     <div className="mt-6 flex items-center gap-2 text-pure-white font-bold text-sm uppercase tracking-wider">
                         Manage Picks <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </div>
                 </div>
             </div>
-        </FadeInSection>
 
-        {/* Standings Section */}
-        <FadeInSection delay="0.2s">
-             <div 
-                onClick={() => setActivePage('leaderboard')}
-                className="group relative overflow-hidden bg-carbon-black/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-xl cursor-pointer hover:border-pure-white/30 transition-all duration-300"
-            >
-                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:-rotate-12 duration-500">
-                    <LeaderboardIcon className="w-48 h-48 text-pure-white" />
-                </div>
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <div className="w-12 h-12 bg-pure-white/10 rounded-xl flex items-center justify-center mb-4">
-                            <LeaderboardIcon className="w-6 h-6 text-pure-white" />
+            {/* Standings Section - Standard Fade In on Scroll */}
+            <FadeInSection delay="0.2s" className="h-full">
+                <div 
+                    onClick={() => setActivePage('leaderboard')}
+                    className="group relative overflow-hidden bg-carbon-black/80 backdrop-blur-md rounded-2xl p-6 md:p-10 border border-pure-white/5 shadow-xl cursor-pointer hover:border-pure-white/30 transition-all duration-300 h-full flex flex-col justify-center"
+                >
+                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:-rotate-12 duration-500">
+                        <LeaderboardIcon className="w-48 h-48 text-pure-white" />
+                    </div>
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                            <div className="w-12 h-12 bg-pure-white/10 rounded-xl flex items-center justify-center mb-4">
+                                <LeaderboardIcon className="w-6 h-6 text-pure-white" />
+                            </div>
+                            <h2 className="text-3xl font-bold text-pure-white mb-2">Leaderboard</h2>
+                            <p className="text-highlight-silver max-w-sm text-lg leading-relaxed">
+                                Track the championship battle.
+                            </p>
                         </div>
-                        <h2 className="text-3xl font-bold text-pure-white mb-2">Leaderboard</h2>
-                        <p className="text-highlight-silver max-w-sm text-lg leading-relaxed">
-                            Track the championship battle. Compare your performance against the entire league.
-                        </p>
-                    </div>
-                    <div className="bg-accent-gray/50 rounded-xl p-4 min-w-[150px] text-center border border-pure-white/5">
-                        <p className="text-xs text-highlight-silver uppercase tracking-wider mb-1">Your Rank</p>
-                        <p className="text-4xl font-black text-primary-red">#{rankData.rank}</p>
+                        <div className="bg-accent-gray/50 rounded-xl p-4 min-w-[120px] text-center border border-pure-white/5">
+                            <p className="text-xs text-highlight-silver uppercase tracking-wider mb-1">Your Rank</p>
+                            <p className="text-4xl font-black text-primary-red">#{rankData.rank}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </FadeInSection>
+            </FadeInSection>
+        </div>
 
-        {/* 3. UTILITY GRID */}
+        {/* 3. UTILITY GRID - Peeks up on Desktop due to reduced hero height and grid layout above */}
         <FadeInSection delay="0.3s">
             <h3 className="text-highlight-silver text-xs font-bold uppercase tracking-widest mb-4 ml-1">Team Operations</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

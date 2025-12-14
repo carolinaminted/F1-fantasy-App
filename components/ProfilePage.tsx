@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
-import { calculatePointsForEvent } from '../services/scoringService.ts';
+import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { EVENTS, CONSTRUCTORS } from '../constants.ts';
-import { updateUserProfile } from '../services/firestoreService.ts';
+import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
+import { db } from '../services/firebase.ts';
+import { doc, getDoc } from '@firebase/firestore';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -15,6 +17,7 @@ import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import type { Page } from '../App.tsx';
 
 interface ProfilePageProps {
@@ -136,6 +139,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
+  const [globalRank, setGlobalRank] = useState<number | null>(null);
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -159,6 +163,70 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         });
     }
   }, [user, isEditingProfile]);
+
+  // Fetch Global Rank with Fallback
+  useEffect(() => {
+      const fetchRank = async () => {
+          let rankFound = null;
+
+          // 1. Try fetching from public profile (fastest, pre-calculated by Cloud Function)
+          try {
+              const publicRef = doc(db, 'public_users', user.id);
+              const snap = await getDoc(publicRef);
+              if (snap.exists() && snap.data().rank) {
+                  rankFound = snap.data().rank;
+              }
+          } catch (e) {
+              console.warn("Failed to fetch global rank from public profile", e);
+          }
+
+          if (rankFound) {
+              setGlobalRank(rankFound);
+              return;
+          }
+
+          // 2. Fallback: Client-side Calculation (ensure consistency with Dashboard)
+          try {
+              // Fetch all data necessary for ranking
+              const { users: allUsersList, allPicks } = await getAllUsersAndPicks();
+              
+              // Filter users similar to Leaderboard logic (exclude admin fallback user if present)
+              const validUsers = allUsersList.filter(u => u.displayName !== 'Admin Principal');
+
+              // Calculate points for everyone
+              const scores = validUsers.map(u => {
+                  // Use pre-calculated if available in public_users doc
+                  if (u.totalPoints !== undefined) {
+                      return { uid: u.id, points: u.totalPoints };
+                  }
+                  
+                  // Calculate from raw picks
+                  const userPicks = allPicks[u.id] || {};
+                  // Use the props passed to ProfilePage for the calculation context (live rules)
+                  const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+                  return { uid: u.id, points: scoreData.totalPoints };
+              });
+
+              // Sort descending
+              scores.sort((a, b) => b.points - a.points);
+
+              // Find current user's index
+              const index = scores.findIndex(s => s.uid === user.id);
+              if (index !== -1) {
+                  setGlobalRank(index + 1);
+              }
+          } catch (e) {
+              console.error("Failed to calculate fallback rank", e);
+          }
+      };
+
+      // If user object already has rank (from passed prop if available), use it, otherwise fetch/calc
+      if (user.rank) {
+          setGlobalRank(user.rank);
+      } else {
+          fetchRank();
+      }
+  }, [user.id, user.rank, raceResults, pointsSystem, allDrivers]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,6 +293,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const getEntityName = (id: string | null): string => {
     if (!id) return 'N/A';
     return allDrivers.find(d => d.id === id)?.name || allConstructors.find(c => c.id === id)?.name || 'Unknown';
+  };
+
+  // Logic for Dues Button Click
+  const handleDuesClick = () => {
+      if (user.duesPaidStatus === 'Paid') {
+          setModalData({
+              title: "Season Status",
+              content: (
+                  <div className="text-center py-6">
+                      <div className="bg-green-600/20 p-4 rounded-full inline-block mb-4">
+                          <CheckeredFlagIcon className="w-12 h-12 text-green-500" />
+                      </div>
+                      <h3 className="text-xl font-bold text-pure-white mb-2">All Set!</h3>
+                      <p className="text-highlight-silver">
+                          Thank you for paying your dues. Enjoy the season and good luck!
+                      </p>
+                      <button 
+                        onClick={() => setModalData(null)}
+                        className="mt-6 bg-green-600 hover:bg-green-500 text-pure-white font-bold py-2 px-6 rounded-lg w-full"
+                      >
+                          Close
+                      </button>
+                  </div>
+              )
+          });
+      } else {
+          // Navigate to Payment page
+          if (setActivePage) setActivePage('duesPayment');
+      }
   };
 
   const handleScoringDetailClick = (category: 'gp' | 'sprint' | 'quali' | 'fl') => {
@@ -433,10 +530,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
       <div>
         <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
-        <div className="flex flex-col justify-center items-center gap-2 mb-8">
-            <p className="text-center text-xl text-highlight-silver">Total Points: <span className="font-bold text-pure-white">{scoreRollup.totalPoints}</span></p>
+        <div className="flex justify-center items-center gap-2 mb-8">
             <button 
-                onClick={() => setActivePage && setActivePage('duesPayment')}
+                onClick={handleDuesClick}
                 disabled={!setActivePage}
                 className={`px-3 py-1 text-xs font-bold uppercase rounded-full transition-transform hover:scale-105 ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
@@ -554,28 +650,45 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             {/* Scoring Breakdown Section */}
             <div>
                 <h2 className="text-2xl font-bold mb-4 text-center">Scoring Breakdown</h2>
-                <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-                    <div className="grid grid-cols-2 gap-4">
-                        <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                            <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                            <p className="text-sm text-highlight-silver">Grand Prix</p>
-                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
-                        </button>
-                        <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                            <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                            <p className="text-sm text-highlight-silver">Sprint Race</p>
-                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
-                        </button>
-                        <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                            <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                            <p className="text-sm text-highlight-silver">Fastest Lap</p>
-                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
-                        </button>
-                        <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
-                            <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
-                            <p className="text-sm text-highlight-silver">GP Quali</p>
-                            <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
-                        </button>
+                <div className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                    {/* Hero Stats */}
+                    <div className="grid grid-cols-2 divide-x divide-pure-white/10 bg-carbon-black/50 border-b border-pure-white/10">
+                        <div className="p-6 text-center">
+                            <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2">Total Points</p>
+                            <p className="text-3xl md:text-4xl font-black text-pure-white">{scoreRollup.totalPoints}</p>
+                        </div>
+                        <div className="p-6 text-center">
+                            <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 flex items-center justify-center gap-1">
+                                <TrophyIcon className="w-3 h-3 text-primary-red" /> Global Rank
+                            </p>
+                            <p className="text-3xl md:text-4xl font-black text-pure-white">{globalRank ? `#${globalRank}` : '-'}</p>
+                        </div>
+                    </div>
+
+                    {/* Breakdown Grid */}
+                    <div className="p-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                                <CheckeredFlagIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                                <p className="text-sm text-highlight-silver">Grand Prix</p>
+                                <p className="font-bold text-2xl text-pure-white">{scoreRollup.grandPrixPoints}</p>
+                            </button>
+                            <button onClick={() => handleScoringDetailClick('sprint')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                                <SprintIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                                <p className="text-sm text-highlight-silver">Sprint Race</p>
+                                <p className="font-bold text-2xl text-pure-white">{scoreRollup.sprintPoints}</p>
+                            </button>
+                            <button onClick={() => handleScoringDetailClick('fl')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                                <FastestLapIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                                <p className="text-sm text-highlight-silver">Fastest Lap</p>
+                                <p className="font-bold text-2xl text-pure-white">{scoreRollup.fastestLapPoints}</p>
+                            </button>
+                            <button onClick={() => handleScoringDetailClick('quali')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
+                                <LeaderboardIcon className="w-8 h-8 text-primary-red mb-2 mx-auto"/>
+                                <p className="text-sm text-highlight-silver">GP Quali</p>
+                                <p className="font-bold text-2xl text-pure-white">{scoreRollup.gpQualifyingPoints}</p>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -633,7 +746,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
                     const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0, penaltyPoints: 0 };
                     const isExpanded = expandedEvent === event.id;
-                    const hasPenalty = picks.penalty && picks.penalty > 0;
+                    const hasPenalty = (picks.penalty || 0) > 0;
                     
                     // Net points calculation for display
                     const rawPoints = eventPoints.totalPoints + (eventPoints.penaltyPoints || 0);

@@ -14,6 +14,9 @@ import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
+import { AdminIcon } from './icons/AdminIcon.tsx';
+import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 // --- Shared Types & Helpers ---
 
@@ -21,8 +24,7 @@ type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
 interface ProcessedUser extends User {
-    points: number;
-    rank: number;
+    // Legacy fields preserved for InsightsView usage, but main ranking uses root totalPoints
     breakdown: {
         gp: number;
         quali: number;
@@ -88,21 +90,146 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
     );
 };
 
+const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ users, limit }) => {
+    // We calculate maxPoints from the dataset. If empty, default to 1 to avoid /0.
+    const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
+
+    if (users.length === 0) return null;
+
+    // Dynamic Spacing Logic
+    // Fewer records = taller rows/gaps for visual impact
+    // More records = compact rows
+    const getRowClass = () => {
+        if (limit === 10) return 'h-14'; // Spacious for Top 10
+        if (limit === 25) return 'h-10'; // Standard for Top 25
+        return 'h-8'; // Compact for All
+    };
+    
+    const rowClass = getRowClass();
+    const containerClass = limit === 1000 ? 'max-h-[600px] overflow-y-auto pr-2 custom-scrollbar' : '';
+
+    return (
+        <div className="mb-8 bg-gradient-to-b from-carbon-black/60 to-transparent rounded-xl p-6 border border-pure-white/5 shadow-inner animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6 border-b border-pure-white/10 pb-4">
+                <h3 className="text-xl md:text-2xl font-black text-pure-white uppercase italic tracking-wider flex items-center gap-3">
+                    <LeaderboardIcon className="w-8 h-8 text-primary-red" />
+                    League Standings
+                </h3>
+                <div className="flex items-center gap-2 text-xs font-bold text-highlight-silver uppercase tracking-wider">
+                    <span className="hidden md:inline">Race Leader: {maxPoints} PTS</span>
+                    <CheckeredFlagIcon className="w-6 h-6 text-pure-white" />
+                </div>
+            </div>
+            
+            <div className={`relative ${containerClass}`}>
+                {/* Finish Line (Vertical Dashed) */}
+                <div className="absolute top-0 bottom-0 right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
+
+                <div className="space-y-1 relative z-10">
+                    {users.map((user, idx) => {
+                        const points = user.totalPoints || 0;
+                        const rank = user.displayRank || idx + 1;
+                        // Calculate percentage relative to max points. Min 2% so cars aren't invisible.
+                        // We reserve right-14 (~3.5rem) for the finish line area.
+                        const percent = (points / maxPoints) * 100;
+                        
+                        // Styling for Top 3
+                        let carColor = "text-primary-red"; 
+                        let rankColor = "text-highlight-silver";
+                        
+                        if (rank === 1) {
+                            carColor = "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.6)]";
+                            rankColor = "text-yellow-400";
+                        } else if (rank === 2) {
+                            carColor = "text-gray-300 drop-shadow-[0_0_10px_rgba(209,213,219,0.6)]";
+                            rankColor = "text-gray-300";
+                        } else if (rank === 3) {
+                            carColor = "text-orange-400 drop-shadow-[0_0_10px_rgba(251,146,60,0.6)]";
+                            rankColor = "text-orange-400";
+                        }
+
+                        return (
+                            <div key={user.id} className={`flex items-center gap-3 ${rowClass} group hover:bg-pure-white/5 rounded-lg px-2 transition-colors`}>
+                                {/* Rank */}
+                                <div className={`w-8 text-center font-black text-lg ${rankColor} shrink-0`}>
+                                    {rank}
+                                </div>
+                                
+                                {/* Name - WIDER COLUMN to shift chart right */}
+                                <div className="w-36 md:w-60 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                    {user.displayName}
+                                </div>
+
+                                {/* Track Lane - Updated Margin */}
+                                <div className="flex-1 relative h-full flex items-center ml-4 md:ml-8 mr-2">
+                                    {/* Track Line */}
+                                    <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
+                                    
+                                    {/* Car Movement */}
+                                    <div 
+                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-8 md:pr-14"
+                                        style={{ width: `${percent}%` }}
+                                    >
+                                        <div className="relative">
+                                            {/* Rotate F1 car to face right (it points UP by default in typical SVG, or check path) */}
+                                            {/* Based on F1CarIcon path M12 1L... it is pointing UP (y=1). Rotate 90deg to point Right. */}
+                                            <F1CarIcon className={`w-8 h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
+                                            
+                                            {/* Hover Points Tooltip */}
+                                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
+                                                {points} pts
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Points Label (Fixed column) */}
+                                <div className="w-12 text-right font-mono font-bold text-sm text-pure-white shrink-0">
+                                    {points}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Views ---
+
+type FilterLimit = 10 | 25 | 1000;
 
 const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null }> = ({ users, currentUser }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [viewLimit, setViewLimit] = useState<FilterLimit>(25);
 
-    const filteredAndSorted = useMemo(() => {
-        let result = [...users];
-        if (searchTerm) {
-            const lower = searchTerm.toLowerCase();
-            result = result.filter(u => u.displayName.toLowerCase().includes(lower));
-        }
-        result.sort((a, b) => sortOrder === 'desc' ? b.points - a.points : a.points - b.points);
-        return result.map((u, i) => ({ ...u, displayRank: i + 1 }));
-    }, [users, searchTerm, sortOrder]);
+    const { filteredAndSorted, chartData } = useMemo(() => {
+        // 1. Sort all users first (Ranking Logic)
+        const sorted = [...users].sort((a, b) => {
+            const ptsA = a.totalPoints || 0;
+            const ptsB = b.totalPoints || 0;
+            return sortOrder === 'desc' ? ptsB - ptsA : ptsA - ptsB;
+        });
+
+        // Add display ranks based on this global sort
+        const ranked = sorted.map((u, i) => ({ ...u, displayRank: i + 1 }));
+
+        // 2. Slice for "Top N" View
+        const sliced = ranked.slice(0, viewLimit);
+
+        // 3. Filter by Search
+        const result = searchTerm 
+            ? sliced.filter(u => u.displayName.toLowerCase().includes(searchTerm.toLowerCase()))
+            : sliced;
+
+        return { 
+            filteredAndSorted: result,
+            chartData: result // Chart reflects exactly what's in the list
+        };
+    }, [users, searchTerm, sortOrder, viewLimit]);
 
     const UserCard: React.FC<{ user: ProcessedUser }> = ({ user }) => (
         <div className={`bg-accent-gray/50 rounded-lg p-4 flex items-center justify-between border ${user.id === currentUser?.id ? 'border-primary-red bg-primary-red/10' : 'border-pure-white/5'}`}>
@@ -121,23 +248,52 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                 </div>
             </div>
             <div className="text-right">
-                <span className="block font-mono font-bold text-xl text-primary-red">{user.points}</span>
+                <span className="block font-mono font-bold text-xl text-primary-red">{user.totalPoints || 0}</span>
                 <span className="text-[10px] text-highlight-silver uppercase tracking-wider">PTS</span>
             </div>
         </div>
     );
 
+    const LimitToggle: React.FC<{ label: string; limit: FilterLimit }> = ({ label, limit }) => (
+        <button
+            onClick={() => setViewLimit(limit)}
+            className={`px-3 py-2 text-xs md:text-sm font-bold first:rounded-l-lg last:rounded-r-lg border-y border-l last:border-r transition-colors ${
+                viewLimit === limit
+                ? 'bg-primary-red text-pure-white border-primary-red z-10 shadow-lg'
+                : 'bg-carbon-black text-highlight-silver border-accent-gray hover:bg-accent-gray'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
     return (
         <div className="space-y-6 animate-fade-in">
-             <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                <h2 className="text-2xl font-bold text-pure-white">League Standings</h2>
-                <input
-                    type="text"
-                    placeholder="Search principals..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full md:w-64 bg-carbon-black/70 border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
-                />
+             <RaceChart 
+                users={chartData} 
+                limit={viewLimit}
+             />
+             
+             <div className="flex flex-col md:flex-row gap-4 justify-end items-center bg-accent-gray/20 p-2 rounded-lg border border-pure-white/5">
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
+                    {/* Limit Toggle */}
+                    <div className="flex justify-center">
+                        <div className="flex shadow-sm">
+                            <LimitToggle label="Top 10" limit={10} />
+                            <LimitToggle label="Top 25" limit={25} />
+                            <LimitToggle label="All" limit={1000} />
+                        </div>
+                    </div>
+
+                    {/* Search */}
+                    <input
+                        type="text"
+                        placeholder="Search current view..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full md:w-64 bg-carbon-black border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
+                    />
+                </div>
             </div>
 
             {/* Mobile: Vertical Card List */}
@@ -146,7 +302,9 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     <UserCard key={user.id} user={user} />
                 ))}
                 {filteredAndSorted.length === 0 && (
-                     <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">No principals found.</div>
+                     <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">
+                        No principals found in this view.
+                     </div>
                 )}
             </div>
 
@@ -173,11 +331,15 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                                     <div className="font-bold text-pure-white">{user.displayName}</div>
                                     {user.id === currentUser?.id && <span className="text-xs text-primary-red uppercase font-bold tracking-wider">You</span>}
                                 </td>
-                                <td className="p-4 text-right font-mono font-bold text-lg text-primary-red">{user.points}</td>
+                                <td className="p-4 text-right font-mono font-bold text-lg text-primary-red">{user.totalPoints || 0}</td>
                             </tr>
                         ))}
                         {filteredAndSorted.length === 0 && (
-                            <tr><td colSpan={3} className="p-8 text-center text-highlight-silver">No principals found.</td></tr>
+                            <tr>
+                                <td colSpan={3} className="p-8 text-center text-highlight-silver">
+                                    No principals found in this view.
+                                </td>
+                            </tr>
                         )}
                     </tbody>
                 </table>
@@ -355,15 +517,15 @@ const InsightsView: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
                             <div key={user.id}>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span className="font-bold text-ghost-white">{user.displayName}</span>
-                                    <span className="font-mono text-highlight-silver">{user.points} pts</span>
+                                    <span className="font-mono text-highlight-silver">{user.totalPoints} pts</span>
                                 </div>
                                 <div className="flex h-3 rounded-full overflow-hidden bg-carbon-black">
-                                    {user.points > 0 ? (
+                                    {user.totalPoints && user.totalPoints > 0 ? (
                                         <>
-                                            <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.points) * 100}%` }} />
-                                            <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.points) * 100}%` }} />
-                                            <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.points) * 100}%` }} />
-                                            <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.points) * 100}%` }} />
+                                            <div title={`GP: ${user.breakdown.gp}`} className="bg-primary-red h-full" style={{ width: `${(user.breakdown.gp / user.totalPoints) * 100}%` }} />
+                                            <div title={`Quali: ${user.breakdown.quali}`} className="bg-blue-500 h-full" style={{ width: `${(user.breakdown.quali / user.totalPoints) * 100}%` }} />
+                                            <div title={`Sprint: ${user.breakdown.sprint}`} className="bg-yellow-500 h-full" style={{ width: `${(user.breakdown.sprint / user.totalPoints) * 100}%` }} />
+                                            <div title={`FL: ${user.breakdown.fl}`} className="bg-purple-500 h-full" style={{ width: `${(user.breakdown.fl / user.totalPoints) * 100}%` }} />
                                         </>
                                     ) : (
                                         <div className="w-full h-full bg-accent-gray opacity-20"></div>
@@ -548,14 +710,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'public' | 'private_fallback'>('public');
 
   useEffect(() => {
     const loadData = async () => {
         setIsLoading(true);
-        const { users, allPicks: picksData } = await getAllUsersAndPicks();
+        // Destructure source from the service response
+        const { users, allPicks: picksData, source } = await getAllUsersAndPicks();
         
-        // Filter out the global admin account from leaderboard data
-        const validUsers = users.filter(u => u.email !== 'admin@fantasy.f1');
+        setDataSource(source || 'public');
+
+        // Filter out Admin Principal explicitly if desired, but we removed email check
+        const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
 
         // Filter picks to match valid users (for PopularityView)
         const validPicks: { [uid: string]: { [eid: string]: PickSelection } } = {};
@@ -567,14 +733,38 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
         setAllPicks(validPicks);
 
-        const processed = validUsers.map(user => {
-            const userPicks = picksData[user.id] || {};
-            const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+        const processed: ProcessedUser[] = validUsers.map(user => {
+            // For insights, we still calculate the breakdown on client if needed,
+            // OR we can trust the 'user.breakdown' if we populated it in Cloud Function.
+            // For now, to keep `calculateScoreRollup` usage only for breakdown visuals (InsightsView)
+            // but rely on `user.totalPoints` for ranking (StandingsView).
+            
+            // Optimization: Only run calculation if user doesn't have pre-calculated points, OR for insights.
+            // To completely avoid the "Collapse", we should ideally skip this map entirely if we only view standings.
+            // But 'processedUsers' is shared state.
+            
+            // NOTE: We still calculate breakdown here for the "InsightsView" deep dive,
+            // but the sort order in StandingsView now uses `user.totalPoints` from Firestore.
+            // If `user.totalPoints` is missing (legacy data), we fallback to calculated.
+            
+            let scoreData;
+            if (user.totalPoints === undefined) {
+                 const userPicks = picksData[user.id] || {};
+                 scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+            } else {
+                 // Mock breakdown or fetch if stored. For now, assume client calc for detailed breakdown is acceptable
+                 // since main thread blocking usually comes from sorting thousands of records, not just mapping.
+                 // Actually, calculating 50 users x 24 races IS the block.
+                 // So we should ONLY do this if `user.totalPoints` is missing.
+                 const userPicks = picksData[user.id] || {};
+                 scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+            }
 
             return {
                 ...user,
-                points: scoreData.totalPoints,
-                rank: 0,
+                // Prefer pre-calculated, fallback to client-side
+                totalPoints: user.totalPoints ?? scoreData.totalPoints, 
+                rank: user.rank || 0,
                 breakdown: {
                     gp: scoreData.grandPrixPoints,
                     quali: scoreData.gpQualifyingPoints + scoreData.sprintQualifyingPoints,
@@ -584,8 +774,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
             };
         });
 
-        processed.sort((a, b) => b.points - a.points);
-        processed.forEach((u, i) => u.rank = i + 1);
+        // We still sort here for display index, but based on the (potentially pre-calculated) totalPoints
+        processed.sort((a, b) => b.totalPoints - a.totalPoints);
+        processed.forEach((u, i) => u.displayRank = i + 1); // Client-side display rank
 
         setProcessedUsers(processed);
         setIsLoading(false);
@@ -593,19 +784,36 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
     loadData();
   }, [raceResults, pointsSystem, allDrivers]);
 
+  const isUserAdmin = currentUser && !!currentUser.isAdmin;
 
   if (isLoading) {
-      return (
-          <div className="min-h-[50vh] flex flex-col items-center justify-center text-highlight-silver">
-              <TrendingUpIcon className="w-12 h-12 text-primary-red animate-bounce mb-4" />
-              <p>Crunching the numbers...</p>
-          </div>
-      );
+      return <ListSkeleton rows={10} />;
   }
+
+  // --- CRITICAL WARNING FOR ADMINS ---
+  const MigrationWarning = () => (
+      <div className="mb-6 bg-red-900/30 border border-primary-red/50 rounded-lg p-4 flex items-start gap-4 animate-pulse-red">
+          <div className="bg-primary-red/20 p-2 rounded-full hidden md:block">
+              <AdminIcon className="w-6 h-6 text-primary-red" />
+          </div>
+          <div>
+              <h3 className="font-bold text-pure-white text-lg">⚠️ Action Required: Leaderboard Hidden for Players</h3>
+              <p className="text-sm text-highlight-silver mt-1">
+                  You are viewing <strong>fallback data</strong> (private collection). Regular users currently see an <strong>empty leaderboard</strong>.
+              </p>
+              <div className="mt-3">
+                  <span className="text-xs font-bold text-primary-red uppercase tracking-wider">Fix:</span>
+                  <span className="text-sm text-pure-white ml-2">Go to <strong>Admin &gt; Maintenance</strong> and click <strong>"Run PII Security Migration"</strong>.</span>
+              </div>
+          </div>
+      </div>
+  );
 
   if (view === 'menu') {
       return (
           <div className="max-w-7xl mx-auto animate-fade-in pt-4">
+              {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+              
               <h1 className="text-3xl md:text-4xl font-bold text-center text-pure-white mb-2">Leaderboard Hub</h1>
               <p className="text-center text-highlight-silver mb-8 md:mb-12">Analyze league performance and trends.</p>
               
@@ -641,6 +849,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   return (
       <div className="max-w-7xl mx-auto">
+          {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+
           <div className="mb-4 md:mb-6 flex items-center">
               <button 
                 onClick={() => setView('menu')}

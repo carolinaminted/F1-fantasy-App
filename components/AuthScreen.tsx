@@ -29,6 +29,7 @@ const AuthScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -42,14 +43,13 @@ const AuthScreen: React.FC = () => {
       setResetAttempts(0);
       setPassword('');
       setConfirmPassword('');
+      setIsOfflineMode(false);
       // We keep email if populated to be nice
   };
 
-  const handleLogoClick = () => {
-    if (isLogin && !isResetting) {
-      setEmail('admin@fantasy.f1');
-      setPassword('password123');
-    } else if (!isResetting && signupStep === 'details') {
+  const handleLogoClick = async () => {
+    // Secret Ping Test
+    if (!isResetting && signupStep === 'details') {
       const randomId = Math.floor(Math.random() * 1000);
       setFirstName('Test');
       setLastName('Principal');
@@ -57,6 +57,17 @@ const AuthScreen: React.FC = () => {
       if(!email) setEmail(`test.user.${randomId}@fantasy.f1`);
       setPassword('password123');
       setConfirmPassword('password123');
+    } else if (!isResetting && signupStep === 'email') {
+        try {
+            console.log("Pinging Cloud Functions...");
+            const ping = httpsCallable(functions, 'ping');
+            const res = await ping();
+            console.log("Ping successful:", res.data);
+            alert(`Backend Connected: ${(res.data as any).message}`);
+        } catch (e: any) {
+            console.error("Ping failed:", e);
+            alert(`Backend Ping Failed:\nCode: ${e.code}\nMsg: ${e.message}`);
+        }
     }
      setError(null);
      setResetMessage(null);
@@ -79,35 +90,52 @@ const AuthScreen: React.FC = () => {
             return setError("An account with this email already exists. Please log in.");
         }
 
-        // --- ATTEMPT REAL CLOUD FUNCTION ---
+        console.log("Calling Cloud Function: sendAuthCode");
+        
         try {
-            console.log("Attempting to call backend 'sendVerificationCode'...");
-            const sendVerificationCode = httpsCallable(functions, 'sendVerificationCode');
-            const result = await sendVerificationCode({ email });
-            // If we reach here, the backend successfully sent an email.
-            // For security, the backend might handle the code storage, 
-            // but for this hybrid implementation, we might receive a hash or status.
-            console.log("Backend response:", result.data);
+            const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
+            const result = await sendAuthCode({ email });
+            const data = result.data as any;
             
-            // If backend handles generation, we shouldn't rely on client gen.
-            // However, to keep the UI flows compatible during development:
-            // We assume the backend succeeded.
+            console.log("Cloud Function Response:", data);
+
+            // Handle Server-Side Demo Mode (No Email Configured)
+            if (data.demoMode && data.code) {
+                console.warn(`SERVER DEMO MODE: Code is ${data.code}`);
+                setGeneratedCode(data.code); 
+                setError("⚠️ Demo Mode: Backend email config missing. Code auto-filled below.");
+            } 
+
             setSignupStep('code');
 
         } catch (backendError: any) {
-             console.warn("Backend function failed or not deployed. Falling back to DEMO MODE.", backendError);
+             console.error("Cloud Function Failed:", backendError);
              
-             // --- FALLBACK: CLIENT-SIDE MOCK ---
-            const code = generateCode();
-            setGeneratedCode(code);
-            await new Promise(r => setTimeout(r, 1000)); // Simulate delay
-            alert(`DEMO MODE (Backend Unavailable): Your verification code is ${code}\n\n(Deploy functions/index.js to Firebase to enable real emails)`);
-            setSignupStep('code');
+             // Check if it's a specific logical error from our backend (e.g. database error)
+             if (backendError.code && backendError.message) {
+                 setError(`Server Error: ${backendError.message}`);
+                 // Don't fall back to offline mode if the server is explicitly telling us what's wrong
+                 setIsLoading(false);
+                 return;
+             }
+
+             // --- SILENT FALLBACK: CLIENT-SIDE MOCK ---
+             // Only if backend is truly unreachable or CORS fails (generic errors)
+             console.warn("Falling back to local demo mode due to connection error.");
+             setIsOfflineMode(true);
+             
+             const code = generateCode();
+             setGeneratedCode(code);
+             
+             // Simulate network delay for realism
+             await new Promise(r => setTimeout(r, 500)); 
+             
+             setSignupStep('code');
         }
 
     } catch (err: any) {
         console.error("Verification error:", err);
-        setError("Failed to process request. Please try again.");
+        setError("Failed to process request. Please check your connection.");
     } finally {
         setIsLoading(false);
     }
@@ -119,34 +147,34 @@ const AuthScreen: React.FC = () => {
       setError(null);
       setIsLoading(true);
 
-      // --- ATTEMPT REAL CLOUD FUNCTION VERIFICATION ---
-      // If we are in "Real Mode", we should call a verify function.
-      // If we are in "Demo Mode", we check local state.
-      
       try {
+        // 1. Check Local Fallback First (if we generated it locally or server sent demo code)
         if (generatedCode) {
-            // DEMO MODE CHECK
             if (codeInput === generatedCode) {
                 setSignupStep('details');
             } else {
-                setError("Incorrect verification code. Please check your email and try again.");
+                setError("Incorrect verification code. Please try again.");
             }
-        } else {
-            // BACKEND MODE CHECK
-            // If we didn't generate a code locally, it means the backend did.
-            try {
-                const verifyVerificationCode = httpsCallable(functions, 'verifyVerificationCode');
-                const result = await verifyVerificationCode({ email, code: codeInput });
-                
-                if ((result.data as any).valid) {
-                     setSignupStep('details');
-                } else {
-                    setError("Invalid code. Please try again.");
-                }
-            } catch (err) {
-                console.error("Verification failed", err);
-                setError("Failed to verify code with server.");
+            return;
+        } 
+
+        // 2. Check Cloud Function
+        console.log("Calling Cloud Function: verifyAuthCode");
+        try {
+            const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
+            const result = await verifyAuthCode({ email, code: codeInput });
+            const data = result.data as any;
+            
+            console.log("Verify Response:", data);
+
+            if (data.valid) {
+                 setSignupStep('details');
+            } else {
+                setError(data.message || "Invalid code. Please try again.");
             }
+        } catch (err: any) {
+            console.error("Verification failed", err);
+            setError(err.message || "Failed to verify code with server. Please try again.");
         }
       } finally {
           setIsLoading(false);
@@ -261,6 +289,23 @@ const AuthScreen: React.FC = () => {
                       <div className="text-center mb-4">
                           <p className="text-highlight-silver text-sm">We sent a 6-digit code to</p>
                           <p className="text-pure-white font-bold">{email}</p>
+                          
+                          {/* Offline/Demo Mode Indicator with COPYABLE Code */}
+                          {(isOfflineMode || generatedCode) && (
+                              <div className="mt-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 animate-fade-in-up">
+                                  <p className="text-xs font-bold text-yellow-500 uppercase tracking-wider mb-1">
+                                      {isOfflineMode ? "Backend Offline" : "Demo Mode Active"}
+                                  </p>
+                                  <p className="text-xs text-highlight-silver mb-2">Use this code to proceed:</p>
+                                  <div 
+                                    onClick={() => { setCodeInput(generatedCode!); setError(null); }}
+                                    className="bg-carbon-black/80 rounded px-2 py-1 text-xl font-mono font-bold text-pure-white cursor-pointer hover:text-primary-red transition-colors border border-dashed border-accent-gray"
+                                  >
+                                      {generatedCode}
+                                  </div>
+                                  <p className="text-[10px] text-highlight-silver mt-1">(Tap code to auto-fill)</p>
+                              </div>
+                          )}
                       </div>
                       <div>
                         <label className="text-sm font-bold text-ghost-white" htmlFor="code">Verification Code</label>
@@ -406,8 +451,9 @@ const AuthScreen: React.FC = () => {
         ) : isLogin ? (
             <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                    <label className="text-sm font-bold text-ghost-white">Email Address</label>
+                    <label className="text-sm font-bold text-ghost-white" htmlFor="login-email">Email Address</label>
                     <input 
+                        id="login-email"
                         type="email" 
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setError(null); }}
@@ -416,13 +462,9 @@ const AuthScreen: React.FC = () => {
                     />
                 </div>
                 <div>
-                    <div className="flex justify-between items-center">
-                        <label className="text-sm font-bold text-ghost-white">Password</label>
-                        <button type="button" onClick={() => { resetFlows(); setIsResetting(true); }} className="text-xs text-highlight-silver hover:text-primary-red">
-                            Forgot Password?
-                        </button>
-                    </div>
+                    <label className="text-sm font-bold text-ghost-white" htmlFor="login-password">Password</label>
                     <input 
+                        id="login-password"
                         type="password" 
                         value={password}
                         onChange={(e) => { setPassword(e.target.value); setError(null); }}
@@ -437,13 +479,18 @@ const AuthScreen: React.FC = () => {
                 >
                     {isLoading ? 'Logging In...' : 'Log In'}
                 </button>
+                <div className="text-center">
+                    <button type="button" onClick={() => { resetFlows(); setIsResetting(true); }} className="text-xs text-highlight-silver hover:text-primary-red">
+                        Forgot Password?
+                    </button>
+                </div>
             </form>
         ) : (
             // Sign Up Logic
             renderSignupStep()
         )}
 
-        {error && <p className="text-sm text-primary-red text-center pt-4 font-semibold">{error}</p>}
+        {error && <p className="text-sm text-yellow-500 text-center pt-4 font-semibold animate-pulse">{error}</p>}
         {resetMessage && <p className="text-sm text-green-500 text-center pt-4 font-bold">{resetMessage}</p>}
 
         <div className="mt-6 text-center space-y-2 border-t border-pure-white/5 pt-4">

@@ -4,6 +4,7 @@ import { User } from '../types.ts';
 import { getAllUsers, updateUserDuesStatus } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 interface DuesStatusManagerPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -20,7 +21,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
         const fetchUsers = async () => {
             setIsLoading(true);
             const users = await getAllUsers();
-            setAllUsers(users.filter(u => u.email !== 'admin@fantasy.f1')); // Exclude admin
+            setAllUsers(users); // Include all users
             setIsLoading(false);
         };
         fetchUsers();
@@ -139,7 +140,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
             </div>
 
             {isLoading ? (
-                <p className="text-center text-highlight-silver">Loading users...</p>
+                <ListSkeleton />
             ) : (
                 <>
                     {/* Mobile View */}

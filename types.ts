@@ -13,6 +13,10 @@ export interface User {
   lastName?: string;
   duesPaidStatus?: 'Paid' | 'Unpaid';
   isAdmin?: boolean;
+  // Pre-calculated fields from Cloud Function
+  totalPoints?: number;
+  rank?: number;
+  prevRank?: number; // For trending indicators
 }
 
 export interface Constructor {
