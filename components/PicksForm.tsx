@@ -5,6 +5,7 @@ import SelectorGroup from './SelectorGroup.tsx';
 import { SubmitIcon } from './icons/SubmitIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
+import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 
 const getInitialPicks = (): PickSelection => ({
@@ -309,35 +310,44 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </div>
         </div>
 
-        {/* Fastest Lap Selection - Moved from Header to Main Body */}
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col items-center justify-center gap-3">
-             <div className="flex items-center gap-2">
-                <FastestLapIcon className="w-5 h-5 text-primary-red" />
-                <h3 className="text-lg font-bold text-pure-white">Fastest Lap</h3>
+        {/* Bottom Actions: Fastest Lap & Submit */}
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 md:p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row items-end gap-4 md:gap-8">
+             {/* Left: Fastest Lap */}
+             <div className="w-full md:flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                    <FastestLapIcon className="w-5 h-5 text-primary-red" />
+                    <h3 className="text-lg font-bold text-pure-white">Fastest Lap</h3>
+                </div>
+                <div className="h-14">
+                    <SelectorCard 
+                        option={selectedFLDriver}
+                        isSelected={!!selectedFLDriver}
+                        onClick={openFastestLapModal}
+                        placeholder="Select Driver"
+                        disabled={isLockedByAdmin}
+                        color={flColor}
+                        forceColor={!!selectedFLDriver}
+                    />
+                </div>
             </div>
-            <div className="w-full md:w-1/2">
-                <SelectorCard 
-                    option={selectedFLDriver}
-                    isSelected={!!selectedFLDriver}
-                    onClick={openFastestLapModal}
-                    placeholder="Select Driver"
-                    disabled={isLockedByAdmin}
-                    color={flColor}
-                    forceColor={!!selectedFLDriver}
-                />
+
+            {/* Right: Submit Button */}
+            <div className="w-full md:flex-1">
+                <button
+                    type="submit"
+                    disabled={!isSelectionComplete() || isLockedByAdmin}
+                    className="w-full h-14 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
+                >
+                    <SubmitIcon className="w-6 h-6" />
+                    Lock In Picks
+                </button>
             </div>
         </div>
 
-        {/* Submit Button - Centered below grid */}
-        <div className="pt-4 pb-2 flex justify-center w-full">
-            <button
-                type="submit"
-                disabled={!isSelectionComplete() || isLockedByAdmin}
-                className="w-full md:w-2/3 lg:w-1/2 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold py-4 text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
-            >
-                <SubmitIcon className="w-6 h-6" />
-                Lock In Picks
-            </button>
+        {/* Footer */}
+        <div className="mt-8 text-center opacity-30 pb-4">
+            <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
+            <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Formula Fantasy One © {new Date().getFullYear()}</p>
         </div>
       </form>
       
