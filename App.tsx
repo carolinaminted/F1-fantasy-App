@@ -42,7 +42,8 @@ import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged, signOut } from '@firebase/auth';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks } from './services/firestoreService.ts';
+import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 
@@ -90,7 +91,7 @@ const getUserRealName = (user: User | null) => {
 };
 
 // New SideNav component for desktop view
-const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void }> = ({ user, activePage, navigateToPage, handleLogout }) => (
+const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void; livePoints: number }> = ({ user, activePage, navigateToPage, handleLogout, livePoints }) => (
     <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
         <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4 flex-shrink-0 group">
            <F1CarIcon className="w-12 h-12 text-primary-red transition-transform group-hover:scale-110" />
@@ -98,7 +99,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                <span className="font-bold text-lg truncate leading-tight group-hover:text-primary-red transition-colors">{getUserRealName(user)}</span>
                {user && (
                    <span className="text-[13px] text-highlight-silver font-mono mt-0.5">
-                       #{user.rank || '-'} • {user.totalPoints || 0} pts
+                       #{user.rank || '-'} • {livePoints} pts
                    </span>
                )}
            </div>
@@ -189,6 +190,45 @@ const App: React.FC = () => {
           };
       });
   }, [eventSchedules]);
+
+  // Calculate live points for the current user to ensure SideNav is always up to date
+  const currentTotalPoints = useMemo(() => {
+      if (!user) return 0;
+      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers).totalPoints;
+  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user]);
+
+  // Fallback to fetch global rank if missing (e.g. cloud function hasn't run yet)
+  useEffect(() => {
+      const fetchRankFallback = async () => {
+          if (user && !user.rank && user.id && currentTotalPoints > 0) {
+              try {
+                  const { users: allUsersList, allPicks } = await getAllUsersAndPicks();
+                  const validUsers = allUsersList.filter(u => u.displayName !== 'Admin Principal');
+                  
+                  const scores = validUsers.map(u => {
+                      // If public profile has points, use them. Otherwise calc.
+                      if (u.totalPoints !== undefined) return { uid: u.id, points: u.totalPoints };
+                      
+                      const picks = allPicks[u.id] || {};
+                      const score = calculateScoreRollup(picks, raceResults, activePointsSystem, allDrivers);
+                      return { uid: u.id, points: score.totalPoints };
+                  });
+                  
+                  scores.sort((a, b) => b.points - a.points);
+                  const index = scores.findIndex(s => s.uid === user.id);
+                  if (index !== -1) {
+                      setUser(prev => prev ? { ...prev, rank: index + 1 } : prev);
+                  }
+              } catch (e) {
+                  // Silent fail on rank fallback
+              }
+          }
+      };
+      
+      if (user && !user.rank) {
+          fetchRankFallback();
+      }
+  }, [user?.id, user?.rank, raceResults, activePointsSystem, allDrivers, currentTotalPoints]);
 
   useEffect(() => {
     let unsubscribeResults = () => {};
@@ -465,7 +505,7 @@ const App: React.FC = () => {
 
   const appContent = (
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
-      <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
+      <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} livePoints={currentTotalPoints} />
       <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden relative">
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
