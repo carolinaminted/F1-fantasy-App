@@ -156,14 +156,13 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                     {rank}
                                 </div>
                                 
-                                {/* Name */}
-                                <div className="w-24 md:w-32 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                {/* Name - WIDER COLUMN to shift chart right */}
+                                <div className="w-36 md:w-60 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
                                     {user.displayName}
                                 </div>
 
-                                {/* Track Lane */}
-                                {/* Updated margins: ml-6 to create gap between name and car start */}
-                                <div className="flex-1 relative h-full flex items-center ml-6 mr-2">
+                                {/* Track Lane - Updated Margin */}
+                                <div className="flex-1 relative h-full flex items-center ml-4 md:ml-8 mr-2">
                                     {/* Track Line */}
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     
