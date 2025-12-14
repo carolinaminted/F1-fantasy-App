@@ -33,8 +33,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
     }, [nextRace]);
 
     return (
-        <div className="max-w-7xl mx-auto w-full pb-20">
-            <div className="flex items-center justify-between mb-6 px-4 md:px-0 pt-4 md:pt-0">
+        <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0 md:h-[calc(100vh-5rem)] md:overflow-hidden md:flex md:flex-col">
+            <div className="flex-none flex items-center justify-between mb-6 px-4 md:px-0 pt-4 md:pt-0">
                 <h1 className="text-3xl font-bold text-pure-white flex items-center gap-3">
                     <CalendarIcon className="w-8 h-8 text-primary-red" />
                     Race Calendar
@@ -55,28 +55,33 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
                 </div>
             </div>
 
-            {/* Hero: Next Race */}
-            {viewMode === 'upcoming' && nextRace && (
-                <div className="px-4 md:px-0 mb-8 animate-fade-in">
-                    <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
-                </div>
-            )}
-
-            {/* Next 5 List */}
+            {/* Upcoming View - Flex Container for Desktop */}
             {viewMode === 'upcoming' && (
-                <div className="px-4 md:px-0 animate-fade-in-up">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Next 5 Rounds</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        {upcomingRaces.map(event => (
-                            <CompactEventCard key={event.id} event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
-                        ))}
+                <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+                    {/* Hero: Next Race */}
+                    {nextRace && (
+                        <div className="px-4 md:px-0 mb-8 animate-fade-in flex-none">
+                            <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
+                        </div>
+                    )}
+
+                    {/* Next 5 List */}
+                    <div className="px-4 md:px-0 animate-fade-in-up flex-1 min-h-0 flex flex-col">
+                        <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:h-full overflow-y-auto md:overflow-visible pb-4 md:pb-0">
+                            {upcomingRaces.map(event => (
+                                <div key={event.id} className="md:h-full">
+                                    <CompactEventCard event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Full Schedule List */}
+            {/* Full Schedule List - Scrollable on Desktop */}
             {viewMode === 'full' && (
-                <div className="px-4 md:px-0 space-y-3 animate-fade-in">
+                <div className="px-4 md:px-0 space-y-3 animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar md:pr-2">
                     {EVENTS.map(event => (
                         <FullEventRow key={event.id} event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
                     ))}
@@ -106,7 +111,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
             {/* Background Texture */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary-red/10 to-transparent pointer-events-none"></div>
             
-            <div className="relative z-10 p-6 md:p-10 flex flex-col md:flex-row gap-8">
+            <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row gap-8">
                 <div className="flex-1">
                     <div className="inline-block bg-primary-red text-pure-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4">
                         Next Grand Prix
@@ -172,13 +177,15 @@ const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; 
 );
 
 const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean }> = ({ event, schedule, isNext }) => (
-    <div className={`flex flex-col p-4 rounded-xl border transition-colors ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10' : 'bg-accent-gray/30 border-pure-white/5'}`}>
-        <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
-            {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
+    <div className={`flex flex-col p-4 rounded-xl border transition-colors h-full justify-between ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10' : 'bg-accent-gray/30 border-pure-white/5'}`}>
+        <div>
+            <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
+                {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
+            </div>
+            <h4 className="font-bold text-pure-white text-lg leading-tight mb-1 truncate">{event.country}</h4>
+            <p className="text-xs text-highlight-silver mb-3 truncate">{event.name}</p>
         </div>
-        <h4 className="font-bold text-pure-white text-lg leading-tight mb-1 truncate">{event.country}</h4>
-        <p className="text-xs text-highlight-silver mb-3 truncate">{event.name}</p>
         
         <div className="mt-auto pt-3 border-t border-pure-white/10">
             <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
