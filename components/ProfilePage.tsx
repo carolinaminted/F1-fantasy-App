@@ -563,7 +563,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
         
         {isEditingProfile ? (
-            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-accent-gray/50 backdrop-blur-sm p-6 rounded-lg">
+            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-fiber border border-pure-white/10 shadow-2xl p-6 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">First Name</label>
@@ -640,10 +640,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                 <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
-                <InfoCard icon={DriverIcon} label="First Name" value={user.firstName || '-'} />
-                <InfoCard icon={DriverIcon} label="Last Name" value={user.lastName || '-'} />
+                <InfoCard icon={DriverIcon} label="Name" value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'} />
                 <InfoCard icon={ProfileIcon} label="Email" value={user.email} />
             </div>
         )}
@@ -859,7 +858,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     </div>
     {modalData && (
         <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-50 p-4" onClick={() => setModalData(null)}>
-            <div className="bg-accent-gray rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto ring-1 ring-pure-white/20 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-carbon-fiber rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto border border-pure-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                         <h3 className="text-2xl font-bold text-pure-white">{modalData.title}</h3>
