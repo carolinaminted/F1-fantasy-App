@@ -162,7 +162,8 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                 </div>
 
                                 {/* Track Lane */}
-                                <div className="flex-1 relative h-full flex items-center mx-2">
+                                {/* Updated margins: ml-6 to create gap between name and car start */}
+                                <div className="flex-1 relative h-full flex items-center ml-6 mr-2">
                                     {/* Track Line */}
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     
