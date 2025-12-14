@@ -451,8 +451,9 @@ const AuthScreen: React.FC = () => {
         ) : isLogin ? (
             <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                    <label className="text-sm font-bold text-ghost-white">Email Address</label>
+                    <label className="text-sm font-bold text-ghost-white" htmlFor="login-email">Email Address</label>
                     <input 
+                        id="login-email"
                         type="email" 
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setError(null); }}
@@ -461,13 +462,9 @@ const AuthScreen: React.FC = () => {
                     />
                 </div>
                 <div>
-                    <div className="flex justify-between items-center">
-                        <label className="text-sm font-bold text-ghost-white">Password</label>
-                        <button type="button" onClick={() => { resetFlows(); setIsResetting(true); }} className="text-xs text-highlight-silver hover:text-primary-red">
-                            Forgot Password?
-                        </button>
-                    </div>
+                    <label className="text-sm font-bold text-ghost-white" htmlFor="login-password">Password</label>
                     <input 
+                        id="login-password"
                         type="password" 
                         value={password}
                         onChange={(e) => { setPassword(e.target.value); setError(null); }}
@@ -482,6 +479,11 @@ const AuthScreen: React.FC = () => {
                 >
                     {isLoading ? 'Logging In...' : 'Log In'}
                 </button>
+                <div className="text-center">
+                    <button type="button" onClick={() => { resetFlows(); setIsResetting(true); }} className="text-xs text-highlight-silver hover:text-primary-red">
+                        Forgot Password?
+                    </button>
+                </div>
             </form>
         ) : (
             // Sign Up Logic
