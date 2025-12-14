@@ -5,6 +5,7 @@ import { saveLeagueEntities } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
 
 interface ManageEntitiesPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -121,7 +122,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
 
     return (
         <div className="max-w-6xl mx-auto text-pure-white">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-4 md:mb-8 gap-4">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
                     className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors self-start md:self-auto"
@@ -129,29 +130,31 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                     <BackIcon className="w-5 h-5" />
                     Back
                 </button>
-                <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:opacity-50"
-                    >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
             </div>
             
-            <div className="flex gap-4 mb-6 justify-center">
+            <div className="flex gap-3 mb-6 justify-center items-center">
                 <button
                     onClick={() => setActiveTab('drivers')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-colors ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
+                    className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-lg font-bold transition-colors text-sm md:text-base ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
                 >
                     <DriverIcon className="w-5 h-5" /> Drivers
                 </button>
                 <button
                     onClick={() => setActiveTab('teams')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-colors ${activeTab === 'teams' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
+                    className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-lg font-bold transition-colors text-sm md:text-base ${activeTab === 'teams' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
                 >
                     <TeamIcon className="w-5 h-5" /> Teams
+                </button>
+                
+                {/* Save Button (Floppy Disk Icon) */}
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="bg-primary-red p-2 rounded-lg text-pure-white shadow-lg disabled:opacity-50 flex items-center justify-center ml-1"
+                    aria-label="Save"
+                    title="Save Changes"
+                >
+                    <SaveIcon className="w-6 h-6" />
                 </button>
             </div>
 
@@ -256,7 +259,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-accent-gray rounded-lg max-w-md w-full p-6 ring-1 ring-pure-white/20 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-carbon-fiber rounded-lg max-w-md w-full p-6 ring-1 ring-pure-white/20 max-h-[90vh] overflow-y-auto shadow-2xl border border-pure-white/10">
                         <h3 className="text-2xl font-bold mb-4">{editEntityId ? 'Edit Entity' : 'Add New Entity'}</h3>
                         <form onSubmit={handleFormSubmit} className="space-y-4">
                             <div>

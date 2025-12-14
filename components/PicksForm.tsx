@@ -359,7 +359,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
           onClick={() => setModalContent(null)}
         >
           <div 
-            className="bg-accent-gray rounded-t-2xl md:rounded-lg w-full md:max-w-3xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto animate-slide-up shadow-2xl ring-1 ring-pure-white/10" 
+            className="bg-carbon-fiber rounded-t-2xl md:rounded-lg w-full md:max-w-3xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto animate-slide-up shadow-2xl ring-1 ring-pure-white/10 border border-pure-white/10" 
             onClick={(e) => e.stopPropagation()}
           >
               {/* Drag Handle for Mobile */}

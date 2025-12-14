@@ -248,8 +248,8 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                         style={{ width: `${percent}%` }}
                                     >
                                         <div className="relative">
-                                            {/* Rotate 90 to point right (towards finish line) */}
-                                            <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
+                                            {/* Rotate -90 to point correct way (180 flip from previous) */}
+                                            <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
                                             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none hidden md:block">
                                                 {points} pts
                                             </div>
