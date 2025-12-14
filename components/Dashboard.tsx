@@ -91,12 +91,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className="origin-bottom-right animate-flag-left opacity-0">
                         {/* Flip Left Flag to wave outwards (Left) */}
                         <div className="transform scale-x-[-1]">
-                            <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
+                            <CheckeredFlagIcon className="w-16 h-16 md:w-32 md:h-32 text-pure-white" />
                         </div>
                     </div>
                     <div className="origin-bottom-left animate-flag-right opacity-0">
                         {/* Normal Right Flag waves outwards (Right) */}
-                        <CheckeredFlagIcon className="w-32 h-32 text-pure-white" />
+                        <CheckeredFlagIcon className="w-16 h-16 md:w-32 md:h-32 text-pure-white" />
                     </div>
                 </div>
 
