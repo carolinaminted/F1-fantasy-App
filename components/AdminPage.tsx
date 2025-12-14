@@ -6,9 +6,10 @@ import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -47,6 +48,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Scoring Settings"
                     description="Configure points awarded for race results."
                     onClick={() => setAdminSubPage('scoring')}
+                />
+                <AdminTile
+                    icon={TicketIcon}
+                    title="Invitation Codes"
+                    description="Create and manage registration codes."
+                    onClick={() => setAdminSubPage('invitations')}
                 />
             </div>
         </div>

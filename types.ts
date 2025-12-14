@@ -13,10 +13,22 @@ export interface User {
   lastName?: string;
   duesPaidStatus?: 'Paid' | 'Unpaid';
   isAdmin?: boolean;
+  invitationCode?: string; // New field
   // Pre-calculated fields from Cloud Function
   totalPoints?: number;
   rank?: number;
   prevRank?: number; // For trending indicators
+}
+
+export interface InvitationCode {
+  code: string;
+  status: 'active' | 'reserved' | 'used';
+  createdBy?: string;
+  createdAt: any; // Firestore Timestamp
+  usedBy?: string;
+  usedByEmail?: string;
+  usedAt?: any;
+  reservedAt?: any;
 }
 
 export interface Constructor {

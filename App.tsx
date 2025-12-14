@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -13,6 +14,7 @@ import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
 import ManageSchedulePage from './components/ManageSchedulePage.tsx';
 import AdminSimulationPage from './components/AdminSimulationPage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
+import AdminInvitationPage from './components/AdminInvitationPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
@@ -152,7 +154,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState<Page>('home');
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -510,6 +512,8 @@ const App: React.FC = () => {
                 return <ManageSchedulePage setAdminSubPage={setAdminSubPage} existingSchedules={eventSchedules} onScheduleUpdate={handleScheduleUpdate} />;
             case 'simulation':
                 return <AdminSimulationPage setAdminSubPage={setAdminSubPage} pointsSystem={activePointsSystem} />;
+            case 'invitations':
+                return <AdminInvitationPage setAdminSubPage={setAdminSubPage} user={user} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }

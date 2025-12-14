@@ -88,5 +88,19 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
       allow update, delete: if isAdmin();
     }
+
+    // --- Invitation Codes ---
+    match /invitation_codes/{code} {
+      // Admins can do anything
+      allow read, write: if isAdmin();
+      
+      // Users should NOT be able to read the list directly (Cloud Function handles validation).
+      // However, during signup (profile creation), the user needs to update the invitation doc 
+      // to mark it as 'used'.
+      // Condition: User is signed in, updating 'status' to 'used', and claiming it.
+      allow update: if isSignedIn() 
+                    && request.resource.data.status == 'used'
+                    && request.resource.data.usedBy == request.auth.uid;
+    }
   }
 }

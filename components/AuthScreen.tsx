@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -15,9 +15,16 @@ const AuthScreen: React.FC = () => {
   const [isResetting, setIsResetting] = useState(false);
   
   // Signup Flow State
-  const [signupStep, setSignupStep] = useState<'email' | 'code' | 'details'>('email');
+  // New Step: 'invitation' must happen before 'email'
+  const [signupStep, setSignupStep] = useState<'invitation' | 'email' | 'code' | 'details'>('invitation');
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
+  // Invitation Code State
+  const [invitationCode, setInvitationCode] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [blockUntil, setBlockUntil] = useState<number>(0);
+  const [timeLeftBlocked, setTimeLeftBlocked] = useState(0);
+
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,20 +41,57 @@ const AuthScreen: React.FC = () => {
   const [resetAttempts, setResetAttempts] = useState(0);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
 
-  const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+  // Check Local Storage for Blocked State on Mount
+  useEffect(() => {
+      const storedAttempts = localStorage.getItem('invitation_attempts');
+      const storedBlock = localStorage.getItem('invitation_block_until');
+      
+      if (storedAttempts) setFailedAttempts(parseInt(storedAttempts));
+      if (storedBlock) {
+          const blockTime = parseInt(storedBlock);
+          if (Date.now() < blockTime) {
+              setBlockUntil(blockTime);
+          } else {
+              // Block expired, reset
+              localStorage.removeItem('invitation_attempts');
+              localStorage.removeItem('invitation_block_until');
+              setFailedAttempts(0);
+          }
+      }
+  }, []);
+
+  // Timer for Countdown
+  useEffect(() => {
+      let interval: any;
+      if (blockUntil > 0) {
+          interval = setInterval(() => {
+              const remaining = Math.ceil((blockUntil - Date.now()) / 1000);
+              if (remaining <= 0) {
+                  setBlockUntil(0);
+                  setFailedAttempts(0);
+                  localStorage.removeItem('invitation_attempts');
+                  localStorage.removeItem('invitation_block_until');
+                  clearInterval(interval);
+              } else {
+                  setTimeLeftBlocked(remaining);
+              }
+          }, 1000);
+      }
+      return () => clearInterval(interval);
+  }, [blockUntil]);
 
   const resetFlows = () => {
       setError(null);
       setResetMessage(null);
       setIsResetting(false);
-      setSignupStep('email');
+      // Reset to invitation step if switching to signup, unless we are blocked
+      setSignupStep('invitation');
       setCodeInput('');
       setGeneratedCode(null);
       setResetAttempts(0);
       setPassword('');
       setConfirmPassword('');
       setIsOfflineMode(false);
-      // We keep email if populated to be nice
   };
 
   const handleLogoClick = async () => {
@@ -56,9 +100,9 @@ const AuthScreen: React.FC = () => {
       particleCount: 150,
       spread: 100,
       origin: { y: 0.6 },
-      colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'], // Black, White, and Greys
+      colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'],
       disableForReducedMotion: true,
-      zIndex: 2000 // Ensure it appears above modal
+      zIndex: 2000
     });
 
     // Secret Auto-fill for Demo/Testing (Only works on Details step)
@@ -72,9 +116,53 @@ const AuthScreen: React.FC = () => {
       setConfirmPassword('password123');
     }
     
-    // Debug Ping removed to prevent 'internal' errors in production/demo
     setError(null);
     setResetMessage(null);
+  };
+
+  // --- Step 0: Validate Invitation Code ---
+  const handleValidateInvitation = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError(null);
+
+      if (blockUntil > Date.now()) return;
+
+      setIsLoading(true);
+      try {
+          const validateFn = httpsCallable(functions, 'validateInvitationCode');
+          // Trim and uppercase code for consistency
+          const codeToSubmit = invitationCode.trim().toUpperCase();
+          const result = await validateFn({ code: codeToSubmit });
+          const data = result.data as any;
+
+          if (data.valid) {
+              setInvitationCode(codeToSubmit); // Normalize
+              setSignupStep('email');
+              // Clear attempts on success
+              localStorage.removeItem('invitation_attempts');
+              setFailedAttempts(0);
+          } else {
+              // Should catch block below, but just in case
+              throw new Error("Invalid Code");
+          }
+
+      } catch (err: any) {
+          console.error("Invitation validation failed:", err);
+          const newAttempts = failedAttempts + 1;
+          setFailedAttempts(newAttempts);
+          localStorage.setItem('invitation_attempts', newAttempts.toString());
+
+          if (newAttempts >= 3) {
+              const blockTime = Date.now() + 10 * 60 * 1000; // 10 minutes
+              setBlockUntil(blockTime);
+              localStorage.setItem('invitation_block_until', blockTime.toString());
+              setError("Maximum attempts reached. Please try again in 10 minutes.");
+          } else {
+              setError(err.message || "Invalid or used invitation code.");
+          }
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   // --- Step 1: Send Verification Code ---
@@ -87,7 +175,6 @@ const AuthScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-        // Check if user exists
         const methods = await fetchSignInMethodsForEmail(auth, email);
         if (methods.length > 0) {
             setIsLoading(false);
@@ -101,11 +188,7 @@ const AuthScreen: React.FC = () => {
             const result = await sendAuthCode({ email });
             const data = result.data as any;
             
-            console.log("Cloud Function Response:", data);
-
-            // Handle Server-Side Demo Mode (No Email Configured)
             if (data.demoMode && data.code) {
-                console.warn(`SERVER DEMO MODE: Code is ${data.code}`);
                 setGeneratedCode(data.code); 
                 setError("⚠️ Demo Mode: Backend email config missing. Code auto-filled below.");
             } 
@@ -114,26 +197,16 @@ const AuthScreen: React.FC = () => {
 
         } catch (backendError: any) {
              console.error("Cloud Function Failed:", backendError);
-             
-             // Check if it's a specific logical error from our backend (e.g. database error)
              if (backendError.code && backendError.message) {
                  setError(`Server Error: ${backendError.message}`);
-                 // Don't fall back to offline mode if the server is explicitly telling us what's wrong
                  setIsLoading(false);
                  return;
              }
-
-             // --- SILENT FALLBACK: CLIENT-SIDE MOCK ---
-             // Only if backend is truly unreachable or CORS fails (generic errors)
-             console.warn("Falling back to local demo mode due to connection error.");
+             // Offline Fallback
              setIsOfflineMode(true);
-             
-             const code = generateCode();
+             const code = Math.floor(100000 + Math.random() * 900000).toString();
              setGeneratedCode(code);
-             
-             // Simulate network delay for realism
              await new Promise(r => setTimeout(r, 500)); 
-             
              setSignupStep('code');
         }
 
@@ -152,7 +225,6 @@ const AuthScreen: React.FC = () => {
       setIsLoading(true);
 
       try {
-        // 1. Check Local Fallback First (if we generated it locally or server sent demo code)
         if (generatedCode) {
             if (codeInput === generatedCode) {
                 setSignupStep('details');
@@ -162,22 +234,17 @@ const AuthScreen: React.FC = () => {
             return;
         } 
 
-        // 2. Check Cloud Function
-        console.log("Calling Cloud Function: verifyAuthCode");
         try {
             const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
             const result = await verifyAuthCode({ email, code: codeInput });
             const data = result.data as any;
             
-            console.log("Verify Response:", data);
-
             if (data.valid) {
                  setSignupStep('details');
             } else {
                 setError(data.message || "Invalid code. Please try again.");
             }
         } catch (err: any) {
-            console.error("Verification failed", err);
             setError(err.message || "Failed to verify code with server. Please try again.");
         }
       } finally {
@@ -190,7 +257,6 @@ const AuthScreen: React.FC = () => {
       e.preventDefault();
       setError(null);
 
-      // --- Validation ---
       const fnValidation = validateRealName(firstName, "First Name");
       if (!fnValidation.valid) return setError(fnValidation.error || "Invalid first name.");
 
@@ -214,12 +280,13 @@ const AuthScreen: React.FC = () => {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           try {
+              // PASS INVITATION CODE HERE to be saved and marked used
               await createUserProfileDocument(user, { 
                   displayName: cleanDisplayName, 
                   firstName: cleanFirstName, 
-                  lastName: cleanLastName 
+                  lastName: cleanLastName,
+                  invitationCode: invitationCode // Passed from state
               });
-              // Success handled by Auth Listener in App.tsx
           } catch (profileError) {
               console.error("Profile creation failed:", profileError);
               if (auth.currentUser) await deleteUser(auth.currentUser);
@@ -277,6 +344,54 @@ const AuthScreen: React.FC = () => {
   // Render Helpers
   const renderSignupStep = () => {
       switch(signupStep) {
+          case 'invitation':
+              const isBlocked = blockUntil > Date.now();
+              const mins = Math.floor(timeLeftBlocked / 60);
+              const secs = timeLeftBlocked % 60;
+
+              return (
+                  <form onSubmit={handleValidateInvitation} className="space-y-4">
+                      <div className="text-center mb-4">
+                          <h3 className="text-lg font-bold text-pure-white mb-2">Registration Code</h3>
+                          <p className="text-xs text-highlight-silver">Enter your exclusive invitation code to begin.</p>
+                      </div>
+                      
+                      {isBlocked ? (
+                          <div className="bg-red-900/30 border border-primary-red/50 rounded-lg p-4 text-center animate-pulse">
+                              <p className="text-primary-red font-bold uppercase text-xs mb-1">Access Blocked</p>
+                              <p className="text-pure-white font-mono text-xl">
+                                  {mins}:{secs.toString().padStart(2, '0')}
+                              </p>
+                              <p className="text-xs text-highlight-silver mt-1">Too many failed attempts.</p>
+                          </div>
+                      ) : (
+                          <div>
+                            <input 
+                              type="text" 
+                              value={invitationCode}
+                              onChange={(e) => { setInvitationCode(e.target.value); setError(null); }}
+                              placeholder="FF1-XXXX-XXXX"
+                              required
+                              className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-primary-red focus:border-primary-red uppercase"
+                            />
+                            {failedAttempts > 0 && failedAttempts < 3 && (
+                                <p className="text-xs text-yellow-500 mt-2 text-center">
+                                    {3 - failedAttempts} attempts remaining.
+                                </p>
+                            )}
+                          </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isLoading || isBlocked || !invitationCode.trim()}
+                        className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? 'Validating...' : 'Validate Code'}
+                      </button>
+                  </form>
+              );
+
           case 'email':
               return (
                   <form onSubmit={handleSendCode} className="space-y-4">
@@ -308,20 +423,17 @@ const AuthScreen: React.FC = () => {
                           <p className="text-highlight-silver text-sm">We sent a 6-digit code to</p>
                           <p className="text-pure-white font-bold">{email}</p>
                           
-                          {/* Offline/Demo Mode Indicator with COPYABLE Code */}
                           {(isOfflineMode || generatedCode) && (
                               <div className="mt-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 animate-fade-in-up">
                                   <p className="text-xs font-bold text-yellow-500 uppercase tracking-wider mb-1">
                                       {isOfflineMode ? "Backend Offline" : "Demo Mode Active"}
                                   </p>
-                                  <p className="text-xs text-highlight-silver mb-2">Use this code to proceed:</p>
                                   <div 
                                     onClick={() => { setCodeInput(generatedCode!); setError(null); }}
                                     className="bg-carbon-black/80 rounded px-2 py-1 text-xl font-mono font-bold text-pure-white cursor-pointer hover:text-primary-red transition-colors border border-dashed border-accent-gray"
                                   >
                                       {generatedCode}
                                   </div>
-                                  <p className="text-[10px] text-highlight-silver mt-1">(Tap code to auto-fill)</p>
                               </div>
                           )}
                       </div>
@@ -441,6 +553,7 @@ const AuthScreen: React.FC = () => {
           {isResetting && <h2 className="text-xl font-bold text-pure-white">Reset Password</h2>}
           {!isResetting && !isLogin && (
               <div className="flex items-center gap-2 mb-2">
+                  <span className={`w-2 h-2 rounded-full ${signupStep === 'invitation' ? 'bg-primary-red' : 'bg-highlight-silver'}`}></span>
                   <span className={`w-2 h-2 rounded-full ${signupStep === 'email' ? 'bg-primary-red' : 'bg-highlight-silver'}`}></span>
                   <span className={`w-2 h-2 rounded-full ${signupStep === 'code' ? 'bg-primary-red' : 'bg-highlight-silver'}`}></span>
                   <span className={`w-2 h-2 rounded-full ${signupStep === 'details' ? 'bg-primary-red' : 'bg-highlight-silver'}`}></span>
