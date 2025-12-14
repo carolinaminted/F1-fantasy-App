@@ -16,6 +16,7 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 // --- Shared Types & Helpers ---
 
@@ -155,13 +156,13 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                     {rank}
                                 </div>
                                 
-                                {/* Name */}
-                                <div className="w-24 md:w-32 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                {/* Name - WIDER COLUMN to shift chart right */}
+                                <div className="w-36 md:w-60 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
                                     {user.displayName}
                                 </div>
 
-                                {/* Track Lane */}
-                                <div className="flex-1 relative h-full flex items-center mx-2">
+                                {/* Track Lane - Updated Margin */}
+                                <div className="flex-1 relative h-full flex items-center ml-4 md:ml-8 mr-2">
                                     {/* Track Line */}
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     
@@ -732,7 +733,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
         setAllPicks(validPicks);
 
-        const processed = validUsers.map(user => {
+        const processed: ProcessedUser[] = validUsers.map(user => {
             // For insights, we still calculate the breakdown on client if needed,
             // OR we can trust the 'user.breakdown' if we populated it in Cloud Function.
             // For now, to keep `calculateScoreRollup` usage only for breakdown visuals (InsightsView)
@@ -786,12 +787,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const isUserAdmin = currentUser && !!currentUser.isAdmin;
 
   if (isLoading) {
-      return (
-          <div className="min-h-[50vh] flex flex-col items-center justify-center text-highlight-silver">
-              <TrendingUpIcon className="w-12 h-12 text-primary-red animate-bounce mb-4" />
-              <p>Crunching the numbers...</p>
-          </div>
-      );
+      return <ListSkeleton rows={10} />;
   }
 
   // --- CRITICAL WARNING FOR ADMINS ---

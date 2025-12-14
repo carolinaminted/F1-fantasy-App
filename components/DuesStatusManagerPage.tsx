@@ -4,6 +4,7 @@ import { User } from '../types.ts';
 import { getAllUsers, updateUserDuesStatus } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { ListSkeleton } from './LoadingSkeleton.tsx';
 
 interface DuesStatusManagerPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -139,7 +140,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
             </div>
 
             {isLoading ? (
-                <p className="text-center text-highlight-silver">Loading users...</p>
+                <ListSkeleton />
             ) : (
                 <>
                     {/* Mobile View */}

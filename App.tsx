@@ -17,6 +17,7 @@ import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx'; // New
+import SessionWarningModal from './components/SessionWarningModal.tsx'; // New
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
@@ -36,6 +37,7 @@ import { onAuthStateChanged, signOut } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities } from './services/firestoreService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
+import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams';
@@ -124,7 +126,7 @@ const App: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Implement Session Security
-  useSessionGuard(user);
+  const { showWarning, idleExpiryTime, continueSession } = useSessionGuard(user);
   
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
@@ -258,7 +260,7 @@ const App: React.FC = () => {
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
     if (!user) return;
     try {
-      await saveUserPicks(user.id, eventId, picks);
+      await saveUserPicks(user.id, eventId, picks, !!user.isAdmin);
       const updatedPicks = await getUserPicks(user.id);
       setSeasonPicks(updatedPicks);
       alert(`Picks for ${eventId} submitted successfully!`);
@@ -362,17 +364,13 @@ const App: React.FC = () => {
   };
   
    if (isLoading) {
-    return (
-      <div className="min-h-screen bg-carbon-black flex items-center justify-center">
-        <F1CarIcon className="w-16 h-16 text-primary-red animate-pulse" />
-      </div>
-    );
+    return <AppSkeleton />;
   }
 
   const appContent = (
     <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
-      <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden">
+      <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden relative">
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
            <>
@@ -399,7 +397,8 @@ const App: React.FC = () => {
           Added 'pb-[5rem] pb-safe' to account for mobile bottom nav + safe area
         */}
         <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
-            <div className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none fixed" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}></div>
+            {/* Replaced broken image with CSS Class 'bg-carbon-fiber' defined in index.html */}
+            <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             <main className="relative p-4 md:p-8 min-h-full">
                 {renderPage()}
             </main>
@@ -419,12 +418,20 @@ const App: React.FC = () => {
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
         </nav>
+
+        {/* Session Warning Modal */}
+        <SessionWarningModal 
+            isOpen={showWarning} 
+            expiryTime={idleExpiryTime} 
+            onContinue={continueSession} 
+            onLogout={handleLogout} 
+        />
       </div>
     </div>
   );
 
   const authFlow = (
-    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4" style={{backgroundImage: "url('https://www.formula1.com/etc/designs/fom-website/images/patterns/carbon-fibre-v2.png')"}}>
+    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4 bg-carbon-fiber">
       <AuthScreen />
     </div>
   );

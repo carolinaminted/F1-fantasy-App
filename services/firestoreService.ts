@@ -1,4 +1,3 @@
-
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -7,6 +6,7 @@ import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, ad
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
+import { EVENTS } from '../constants.ts';
 
 // User Profile Management
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string }) => {
@@ -112,7 +112,7 @@ export const getAllUsers = async (): Promise<User[]> => {
 };
 
 // Public Access: Fetches sanitized user details for Leaderboard from 'public_users'
-export const getAllUsersAndPicks = async () => {
+export const getAllUsersAndPicks = async (): Promise<{ users: User[], allPicks: { [userId: string]: { [eventId: string]: PickSelection } }, source: 'public' | 'private_fallback' }> => {
     try {
         const publicUsersCollection = collection(db, 'public_users');
         const userPicksCollection = collection(db, 'userPicks');
@@ -154,7 +154,7 @@ export const getAllUsersAndPicks = async () => {
 
         const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
         userPicksSnapshot.forEach(doc => {
-            allPicks[doc.id] = doc.data();
+            allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
         });
 
         return { users, allPicks, source };
@@ -168,10 +168,23 @@ export const getAllUsersAndPicks = async () => {
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {
     const picksRef = doc(db, 'userPicks', uid);
     const snapshot = await getDoc(picksRef);
-    return snapshot.exists() ? snapshot.data() : {};
+    return snapshot.exists() ? snapshot.data() as { [eventId: string]: PickSelection } : {};
 };
 
-export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection) => {
+export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdmin: boolean = false) => {
+    // Security Validation: Check submission time
+    // Admins can bypass this check if needed
+    if (!isAdmin) {
+        const event = EVENTS.find(e => e.id === eventId);
+        if (event) {
+            const lockTime = new Date(event.lockAtUtc).getTime();
+            if (Date.now() >= lockTime) {
+                 console.warn(`Blocked late submission for ${eventId} by ${uid}`);
+                 throw new Error("Picks submission is locked for this event.");
+            }
+        }
+    }
+
     const picksRef = doc(db, 'userPicks', uid);
     try {
         await setDoc(picksRef, { [eventId]: picks }, { merge: true });

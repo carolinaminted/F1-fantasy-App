@@ -199,13 +199,29 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                 >
                                     <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${entity.class === EntityClass.A ? 'bg-yellow-600 text-pure-white' : 'bg-blue-900 text-blue-100'}`}>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${entity.class === EntityClass.A ? 'bg-[#FCD12A] text-black' : 'bg-blue-900 text-blue-100'}`}>
                                             Class {entity.class}
                                         </span>
                                     </td>
                                     {activeTab === 'drivers' && (
-                                        <td className="p-4 text-sm text-highlight-silver">
-                                            {constructors.find(c => c.id === (entity as Driver).constructorId)?.name || (entity as Driver).constructorId}
+                                        <td className="p-4">
+                                            {(() => {
+                                                const teamId = (entity as Driver).constructorId;
+                                                const team = constructors.find(c => c.id === teamId);
+                                                const color = team?.color || '#888888';
+                                                return (
+                                                    <span 
+                                                        className="inline-block px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border border-white/10"
+                                                        style={{ 
+                                                            backgroundColor: `${color}33`, 
+                                                            color: color,
+                                                            borderColor: `${color}40`
+                                                        }}
+                                                    >
+                                                        {team?.name || teamId}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                     )}
                                     {activeTab === 'teams' && (

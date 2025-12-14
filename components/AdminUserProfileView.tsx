@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor } from '../types.ts';
 import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus, updatePickPenalty } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
-import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
+import { ProfileSkeleton } from './LoadingSkeleton.tsx';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -94,12 +94,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     };
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center p-12">
-                <F1CarIcon className="w-12 h-12 text-primary-red animate-pulse" />
-                <span className="ml-4 text-lg text-highlight-silver">Loading {targetUser.displayName}'s data...</span>
-            </div>
-        );
+        return <ProfileSkeleton />;
     }
 
     return (

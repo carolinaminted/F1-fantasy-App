@@ -1,19 +1,24 @@
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { User } from '../types.ts';
 import { auth } from '../services/firebase.ts';
 import { signOut } from '@firebase/auth';
 
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+const WARNING_THRESHOLD = 10 * 60 * 1000; // 10 minutes (Warning triggers 5 mins before timeout)
 const MAX_SESSION_TIME = 4 * 60 * 60 * 1000; // 4 hours
 
 export const useSessionGuard = (user: User | null) => {
-    // Track last activity in a Ref so it persists across re-renders but resets on mount (page load)
+    // Track last activity in a Ref so it persists across re-renders
     const lastActivity = useRef(Date.now());
+    const [showWarning, setShowWarning] = useState(false);
+    const [idleExpiryTime, setIdleExpiryTime] = useState(0);
     
-    const logout = useCallback(async (reason: string) => {
+    // Forced Logout Function
+    const forceLogout = useCallback(async (reason: string) => {
         try {
             console.log(`Session Guard Logout Triggered: ${reason}`);
+            setShowWarning(false); // Clean up modal
             await signOut(auth);
             // Use a small timeout to let the UI react/cleanup before blocking with alert
             setTimeout(() => {
@@ -25,51 +30,82 @@ export const useSessionGuard = (user: User | null) => {
         }
     }, []);
 
+    // Continue Session Function (User Interaction from Modal)
+    const continueSession = useCallback(() => {
+        lastActivity.current = Date.now();
+        setShowWarning(false);
+    }, []);
+
+    // 1. Activity Listeners Effect
     useEffect(() => {
         if (!user) return;
 
-        // Reset idle timer on mount/re-login
+        // If warning is active, we STOP listening to passive events.
+        // The user must explicitly click "Continue" in the modal.
+        if (showWarning) return;
+
         lastActivity.current = Date.now();
 
         const updateActivity = () => {
-            // Throttle: Only update if > 1 second has passed to prevent performance hits
             const now = Date.now();
+            // Throttle updates to once per second
             if (now - lastActivity.current > 1000) {
                 lastActivity.current = now;
             }
         };
 
-        // Include mousemove but utilize passive listeners for performance
         const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'mousemove'];
         events.forEach(evt => window.addEventListener(evt, updateActivity, { passive: true }));
 
+        return () => {
+            events.forEach(evt => window.removeEventListener(evt, updateActivity));
+        };
+    }, [user, showWarning]);
+
+    // 2. Timer Interval Effect
+    useEffect(() => {
+        if (!user) return;
+
         const checkInterval = setInterval(() => {
             const now = Date.now();
+            const timeSinceLastActivity = now - lastActivity.current;
             
-            // 1. Check Idle Time (15m)
-            // Relies on local browser activity. 
-            if (now - lastActivity.current > IDLE_TIMEOUT) {
+            // A. Check Idle Time
+            if (timeSinceLastActivity > IDLE_TIMEOUT) {
                 clearInterval(checkInterval);
-                logout("You have been logged out due to 15 minutes of inactivity.");
+                forceLogout("You have been logged out due to 15 minutes of inactivity.");
                 return;
             }
 
-            // 2. Check Absolute Max Duration (4h)
-            // Relies on the actual Firebase session creation time.
+            // B. Check Warning Threshold
+            // If we cross the warning threshold and aren't already showing the warning
+            if (timeSinceLastActivity > WARNING_THRESHOLD && !showWarning) {
+                setIdleExpiryTime(lastActivity.current + IDLE_TIMEOUT);
+                setShowWarning(true);
+            }
+
+            // C. Check Absolute Max Duration (4h)
             const firebaseUser = auth.currentUser;
             if (firebaseUser?.metadata?.lastSignInTime) {
                 const signInTime = new Date(firebaseUser.metadata.lastSignInTime).getTime();
                 if (now - signInTime > MAX_SESSION_TIME) {
                     clearInterval(checkInterval);
-                    logout("For security, your session has expired after 4 hours. Please log in again.");
+                    forceLogout("For security, your session has expired after 4 hours. Please log in again.");
                     return;
                 }
             }
-        }, 5000); // Check every 5 seconds
+        }, 1000); // Check every second
 
         return () => {
-            events.forEach(evt => window.removeEventListener(evt, updateActivity));
             clearInterval(checkInterval);
         };
-    }, [user, logout]);
+    }, [user, showWarning, forceLogout]);
+
+    return { 
+        showWarning, 
+        idleExpiryTime, 
+        continueSession,
+        // Expose a standard logout that just signs out without the "Force" alert, for the modal button
+        logout: () => signOut(auth) 
+    };
 };
