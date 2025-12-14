@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
+import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
-import { EVENTS, CONSTRUCTORS } from '../constants.ts';
+import { CONSTRUCTORS } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { db } from '../services/firebase.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
@@ -31,6 +31,7 @@ interface ProfilePageProps {
   setActivePage?: (page: Page) => void;
   // New Prop: If present, enables penalty management UI
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
+  events: Event[];
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -137,7 +138,7 @@ const PenaltyManager: React.FC<{
     );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -330,7 +331,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     let title = '';
     const detailsContent: React.ReactNode[] = [];
 
-    const relevantEvents = EVENTS.filter(e => seasonPicks[e.id] && raceResults[e.id]);
+    const relevantEvents = events.filter(e => seasonPicks[e.id] && raceResults[e.id]);
 
     if (relevantEvents.length === 0) {
         detailsContent.push(<p key="no-picks" className="text-highlight-silver">No picks submitted for completed events yet.</p>);
@@ -416,7 +417,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   };
 
   const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali') => {
-    const event = EVENTS.find(e => e.id === eventId);
+    const event = events.find(e => e.id === eventId);
     const picks = seasonPicks[eventId];
     const results = raceResults[eventId];
 
@@ -488,7 +489,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   };
 
   const handleUsageDetailClick = (entityId: string, entityName: string) => {
-    const usageEvents = EVENTS.filter(event => {
+    const usageEvents = events.filter(event => {
         const picks = seasonPicks[event.id];
         if (!picks) return false;
         
@@ -744,7 +745,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
             <div className="space-y-2">
-                {EVENTS.map(event => {
+                {events.map(event => {
                     const picks = seasonPicks[event.id];
                     const results = raceResults[event.id];
                     if (!picks) return null;

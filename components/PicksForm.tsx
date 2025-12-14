@@ -135,10 +135,12 @@ const PicksForm: React.FC<PicksFormProps> = ({
   
   if (isLockedByAdmin && !isEditing) {
     return (
-        <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50">
-            <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
-            <h2 className="text-3xl font-bold text-ghost-white mb-2">Picks Are Locked</h2>
-            <p className="text-ghost-white">Your submitted picks for this event cannot be edited.</p>
+        <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
+            <div className="max-w-4xl w-full text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50 shadow-2xl">
+                <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
+                <h2 className="text-3xl font-bold text-ghost-white mb-2">Picks Are Locked</h2>
+                <p className="text-ghost-white">Your submitted picks for this event cannot be edited.</p>
+            </div>
         </div>
     );
   }
@@ -147,29 +149,71 @@ const PicksForm: React.FC<PicksFormProps> = ({
   // If user is Admin, they can still edit, so we don't disable the "Edit Picks" button based on this alone.
   const isFormLockedForStatus = formLocks[event.id]; 
   const canEditDespiteLock = !!user.isAdmin;
-  const hasFastestLapSelection = !!picks.fastestLap;
   
   if(!isEditing) {
     return (
-        <div className="max-w-4xl mx-auto text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-highlight-silver/30">
-            <h2 className="text-3xl font-bold text-ghost-white mb-4">Picks Submitted Successfully!</h2>
-            <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
-            <button 
-              onClick={() => setIsEditing(true)} 
-              disabled={isFormLockedForStatus && !canEditDespiteLock}
-              className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed"
-            >
-              {isFormLockedForStatus && !canEditDespiteLock ? 'Editing Locked' : 'Edit Picks'}
-            </button>
+        <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
+            <div className="max-w-4xl w-full text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-highlight-silver/30 shadow-2xl animate-fade-in-up">
+                <h2 className="text-3xl font-bold text-ghost-white mb-4">Picks Submitted Successfully!</h2>
+                <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
+                <button 
+                  onClick={() => setIsEditing(true)} 
+                  disabled={isFormLockedForStatus && !canEditDespiteLock}
+                  className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed transition-transform hover:scale-105"
+                >
+                  {isFormLockedForStatus && !canEditDespiteLock ? 'Editing Locked' : 'Edit Picks'}
+                </button>
+            </div>
         </div>
     );
   }
+
+  // Resolve Fastest Lap Selections
+  const selectedFLDriver = allDrivers.find(d => d.id === picks.fastestLap) || null;
+  let flColor = undefined;
+  if (selectedFLDriver) {
+      const cId = selectedFLDriver.constructorId;
+      flColor = allConstructors.find(c => c.id === cId)?.color || CONSTRUCTORS.find(c => c.id === cId)?.color;
+  }
+
+  const openFastestLapModal = () => {
+      const modalBody = (
+          <div className="p-6">
+              <div className="text-center mb-6">
+                  <h4 className="text-2xl font-bold text-pure-white">Select Fastest Lap</h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                   {sortedDrivers.map(driver => {
+                       let constructor = allConstructors.find(c => c.id === driver.constructorId);
+                       if (!constructor?.color) {
+                           constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
+                       }
+                       const color = constructor?.color;
+
+                       return (
+                           <SelectorCard
+                               key={driver.id}
+                               option={driver}
+                               isSelected={picks.fastestLap === driver.id}
+                               onClick={() => { handleSelect('fastestLap', driver.id); setModalContent(null); }}
+                               placeholder="Driver"
+                               disabled={isLockedByAdmin}
+                               color={color}
+                               forceColor={false}
+                           />
+                       );
+                   })}
+              </div>
+          </div>
+      );
+      setModalContent(modalBody);
+  };
 
   return (
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
         {/* Compact Event Header for Mobile */}
-        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none">
           <div className="flex-grow text-center md:text-left">
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
             <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
@@ -177,6 +221,25 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 {new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
+
+          <div className="flex flex-col items-center justify-center gap-1 min-w-[200px]">
+                <div className="flex items-center gap-2 mb-1">
+                    <FastestLapIcon className="w-4 h-4 text-primary-red" />
+                    <span className="text-xs font-bold text-pure-white uppercase tracking-wider">Fastest Lap</span>
+                </div>
+                <div className="w-full md:w-56 h-12">
+                    <SelectorCard 
+                        option={selectedFLDriver}
+                        isSelected={!!selectedFLDriver}
+                        onClick={openFastestLapModal}
+                        placeholder="Select Driver"
+                        disabled={isLockedByAdmin}
+                        color={flColor}
+                        forceColor={!!selectedFLDriver}
+                    />
+                </div>
+          </div>
+
           <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2">
               <div>
                   <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
@@ -197,6 +260,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Left Column: Teams */}
             <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Teams"
@@ -228,7 +292,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     allConstructors={allConstructors}
                 />
             </div>
-            <div className="space-y-4">
+
+            {/* Right Column: Drivers */}
+            <div className="space-y-4 flex flex-col">
                  <SelectorGroup
                     title="Class A Drivers"
                     slots={3}
@@ -260,45 +326,17 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 />
             </div>
         </div>
-        
-         <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-3 ring-1 ring-pure-white/10">
-              <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2">
-                  <FastestLapIcon className="w-5 h-5 text-primary-red" />
-                  Fastest Lap
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                   {sortedDrivers.map(driver => {
-                       let constructor = allConstructors.find(c => c.id === driver.constructorId);
-                       if (!constructor?.color) {
-                           constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
-                       }
-                       const color = constructor?.color;
 
-                       return (
-                           <SelectorCard
-                               key={driver.id}
-                               option={driver}
-                               isSelected={picks.fastestLap === driver.id}
-                               onClick={() => handleSelect('fastestLap', driver.id)}
-                               placeholder="Driver"
-                               disabled={isLockedByAdmin}
-                               color={color}
-                               forceColor={!hasFastestLapSelection}
-                           />
-                       );
-                   })}
-              </div>
-         </div>
-
-        <div className="flex justify-end pt-2 pb-safe">
-          <button
-            type="submit"
-            disabled={!isSelectionComplete() || isLockedByAdmin}
-            className="w-full md:w-auto flex items-center justify-center gap-2 bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
-          >
-            <SubmitIcon className="w-5 h-5" />
-            Lock In Picks
-          </button>
+        {/* Submit Button - Centered below grid */}
+        <div className="pt-4 pb-2 flex justify-center w-full">
+            <button
+                type="submit"
+                disabled={!isSelectionComplete() || isLockedByAdmin}
+                className="w-full md:w-2/3 lg:w-1/2 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold py-4 text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
+            >
+                <SubmitIcon className="w-6 h-6" />
+                Lock In Picks
+            </button>
         </div>
       </form>
       

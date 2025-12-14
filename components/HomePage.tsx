@@ -50,9 +50,9 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-0 md:px-4">
+    <div className="w-full max-w-7xl mx-auto px-0 md:px-4 flex flex-col md:h-[calc(100vh-6rem)]">
       {/* Header & Selector */}
-      <div className="flex flex-col items-center justify-center relative mb-6 gap-4 px-4 md:px-0 pt-4 md:pt-0">
+      <div className="flex flex-col items-center justify-center relative mb-8 gap-4 px-4 md:px-0 pt-4 md:pt-0 flex-none">
         <h1 className="text-3xl font-bold text-pure-white flex items-center justify-center gap-3 text-center">
             <PicksIcon className="w-8 h-8 text-primary-red" />
             Grand Prix Picks
@@ -85,15 +85,18 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
         </div>
       </div>
       
-      <PicksForm
-        user={user}
-        event={selectedEvent}
-        initialPicksForEvent={seasonPicks[selectedEvent.id]}
-        onPicksSubmit={onPicksSubmit}
-        formLocks={formLocks}
-        allConstructors={allConstructors}
-        {...fantasyData}
-      />
+      {/* Form Container: Scrollable on mobile, strictly fitted on Desktop (internal scroll if needed) */}
+      <div className="flex-1 md:overflow-y-auto md:min-h-0 custom-scrollbar pb-safe">
+          <PicksForm
+            user={user}
+            event={selectedEvent}
+            initialPicksForEvent={seasonPicks[selectedEvent.id]}
+            onPicksSubmit={onPicksSubmit}
+            formLocks={formLocks}
+            allConstructors={allConstructors}
+            {...fantasyData}
+          />
+      </div>
     </div>
   );
 };
