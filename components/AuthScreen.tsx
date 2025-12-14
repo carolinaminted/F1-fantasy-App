@@ -499,7 +499,7 @@ const AuthScreen: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto w-full">
-      <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-8 ring-1 ring-pure-white/10">
+      <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl">
         <div 
           className="flex flex-col items-center mb-6 cursor-pointer"
           onClick={handleLogoClick}

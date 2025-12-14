@@ -589,7 +589,7 @@ const App: React.FC = () => {
   );
 
   const authFlow = (
-    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4 bg-carbon-fiber">
+    <div className="min-h-screen bg-carbon-black text-pure-white flex items-center justify-center p-4">
       <AuthScreen />
     </div>
   );
