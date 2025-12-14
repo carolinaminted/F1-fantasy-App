@@ -155,8 +155,8 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                 </button>
             </div>
 
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50">
+            <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg overflow-hidden">
+                <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10">
                     <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
                     
                     <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1">
@@ -195,7 +195,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                 <tr 
                                     key={entity.id} 
                                     onClick={() => openModal(entity)}
-                                    className="border-t border-accent-gray/50 hover:bg-pure-white/5 cursor-pointer"
+                                    className="border-t border-pure-white/5 hover:bg-pure-white/5 cursor-pointer"
                                 >
                                     <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
                                     <td className="p-4">

@@ -166,7 +166,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
             {/* Results Display Area */}
             {selectedEvent ? (
                 <div className="animate-fade-in">
-                    <div className="bg-accent-gray/30 backdrop-blur-md rounded-2xl p-6 md:p-8 ring-1 ring-pure-white/10 shadow-xl">
+                    <div className="bg-carbon-fiber rounded-2xl p-6 md:p-8 border border-pure-white/10 shadow-xl">
                         {/* Event Header */}
                         <div className="flex flex-col md:flex-row justify-between items-center border-b border-pure-white/10 pb-6 mb-6">
                             <div>

@@ -97,7 +97,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                 </h1>
             </div>
 
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 mb-8">
+            <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 mb-8 shadow-lg border border-pure-white/10">
                 <div className="mb-6 relative">
                     <label className="block text-sm font-bold text-highlight-silver mb-2">Select Event to Edit</label>
                     <select

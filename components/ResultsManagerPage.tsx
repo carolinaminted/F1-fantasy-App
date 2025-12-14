@@ -149,7 +149,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             {/* Mobile: Standard block, auto height. Desktop: Flex-1, hidden overflow (internal scroll in form) */}
             <div className="w-full max-w-6xl mx-auto md:flex-1 md:min-h-0 md:flex md:flex-col pb-8 md:pb-0">
                 {selectedEvent ? (
-                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-4 ring-1 ring-pure-white/10 md:h-full md:flex md:flex-col">
+                    <div className="bg-carbon-fiber rounded-lg p-2 md:p-4 border border-pure-white/10 shadow-lg md:h-full md:flex md:flex-col">
                         <ResultsForm
                             event={selectedEvent}
                             currentResults={raceResults[selectedEvent.id]}

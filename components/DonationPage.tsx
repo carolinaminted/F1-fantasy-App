@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { User } from '../types.ts';
 import { Page } from '../App.tsx';
@@ -15,7 +16,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] md:gap-8 items-stretch">
                 {/* Victory Junction Tile */}
-                <div className="bg-accent-gray/30 backdrop-blur-sm p-6 rounded-lg ring-1 ring-pure-white/10 text-center flex flex-col h-full">
+                <div className="bg-carbon-fiber p-6 rounded-lg border border-pure-white/10 shadow-lg text-center flex flex-col h-full">
                     <h2 className="text-xl font-semibold text-pure-white">Donate directly to Victory Junction</h2>
                     <p className="text-highlight-silver text-sm mt-2 max-w-xl mx-auto flex-grow">
                         Give kids with complex medical needs the chance to experience camp adventures like zip lining, archery, and fishing in a safe, barrier-free environment where they can grow and thrive.
@@ -39,7 +40,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                 </div>
                 
                 {/* League Operational Costs Tile */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm p-6 md:p-8 rounded-lg ring-1 ring-pure-white/10 text-center flex flex-col h-full">
+                <div className="bg-carbon-fiber p-6 md:p-8 rounded-lg border border-pure-white/10 shadow-lg text-center flex flex-col h-full">
                     <h2 className="text-xl font-semibold text-pure-white">Contribute to League Operational Costs</h2>
                     <p className="text-highlight-silver text-sm mt-2 mb-4 flex-grow">Your contribution helps cover hosting fees and keeps the league running smoothly for the season. Thank you for your support!</p>
                      <a 
