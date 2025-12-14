@@ -222,24 +222,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-1 min-w-[200px]">
-                <div className="flex items-center gap-2 mb-1">
-                    <FastestLapIcon className="w-4 h-4 text-primary-red" />
-                    <span className="text-xs font-bold text-pure-white uppercase tracking-wider">Fastest Lap</span>
-                </div>
-                <div className="w-full md:w-56 h-12">
-                    <SelectorCard 
-                        option={selectedFLDriver}
-                        isSelected={!!selectedFLDriver}
-                        onClick={openFastestLapModal}
-                        placeholder="Select Driver"
-                        disabled={isLockedByAdmin}
-                        color={flColor}
-                        forceColor={!!selectedFLDriver}
-                    />
-                </div>
-          </div>
-
           <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2">
               <div>
                   <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
@@ -323,6 +305,25 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     setModalContent={setModalContent}
                     disabled={isLockedByAdmin}
                     allConstructors={allConstructors}
+                />
+            </div>
+        </div>
+
+        {/* Fastest Lap Selection - Moved from Header to Main Body */}
+        <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col items-center justify-center gap-3">
+             <div className="flex items-center gap-2">
+                <FastestLapIcon className="w-5 h-5 text-primary-red" />
+                <h3 className="text-lg font-bold text-pure-white">Fastest Lap</h3>
+            </div>
+            <div className="w-full md:w-1/2">
+                <SelectorCard 
+                    option={selectedFLDriver}
+                    isSelected={!!selectedFLDriver}
+                    onClick={openFastestLapModal}
+                    placeholder="Select Driver"
+                    disabled={isLockedByAdmin}
+                    color={flColor}
+                    forceColor={!!selectedFLDriver}
                 />
             </div>
         </div>
