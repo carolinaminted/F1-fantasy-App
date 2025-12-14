@@ -173,6 +173,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
           <div className="flex-grow text-center md:text-left">
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
             <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
+            <p className="text-pure-white/80 font-semibold text-sm md:text-base mt-1">
+                {new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
             <div className="mt-2">
               {isSubmitted ? (
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>

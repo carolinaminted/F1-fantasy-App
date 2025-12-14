@@ -6,6 +6,7 @@ import { calculateScoreRollup, calculatePointsForEvent } from '../services/scori
 import { EVENTS, CONSTRUCTORS } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { db } from '../services/firebase.ts';
+import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { doc, getDoc } from '@firebase/firestore';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -233,32 +234,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     e.preventDefault();
     setProfileError(null);
 
-    // Basic Validation
-    if (!profileForm.firstName.trim()) {
-        setProfileError("First name is required.");
-        return;
-    }
-    if (!profileForm.lastName.trim()) {
-        setProfileError("Last name is required.");
-        return;
-    }
-    if (!profileForm.displayName.trim()) {
-        setProfileError("Display name cannot be empty.");
-        return;
-    }
+    const fnValidation = validateRealName(profileForm.firstName, "First Name");
+    if (!fnValidation.valid) return setProfileError(fnValidation.error!);
+
+    const lnValidation = validateRealName(profileForm.lastName, "Last Name");
+    if (!lnValidation.valid) return setProfileError(lnValidation.error!);
+
+    const dnValidation = validateDisplayName(profileForm.displayName);
+    if (!dnValidation.valid) return setProfileError(dnValidation.error!);
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(profileForm.email)) {
         setProfileError("Please enter a valid email address.");
         return;
     }
 
+    const cleanFirstName = sanitizeString(profileForm.firstName);
+    const cleanLastName = sanitizeString(profileForm.lastName);
+    const cleanDisplayName = sanitizeString(profileForm.displayName);
+
     setIsSavingProfile(true);
     try {
         await updateUserProfile(user.id, {
-            displayName: profileForm.displayName,
+            displayName: cleanDisplayName,
             email: profileForm.email,
-            firstName: profileForm.firstName,
-            lastName: profileForm.lastName
+            firstName: cleanFirstName,
+            lastName: cleanLastName
         });
         setIsEditingProfile(false);
     } catch (error) {
@@ -571,6 +572,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                             onChange={e => setProfileForm(prev => ({...prev, firstName: e.target.value}))}
                             placeholder="Required"
                             required
+                            maxLength={50}
                             className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                         />
                     </div>
@@ -582,17 +584,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                             onChange={e => setProfileForm(prev => ({...prev, lastName: e.target.value}))}
                             placeholder="Required"
                             required
+                            maxLength={50}
                             className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                         />
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</label>
+                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name (Max 20)</label>
                     <input 
                         type="text" 
                         value={profileForm.displayName} 
                         onChange={e => setProfileForm(prev => ({...prev, displayName: e.target.value}))}
                         required
+                        maxLength={20}
                         className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                     />
                 </div>

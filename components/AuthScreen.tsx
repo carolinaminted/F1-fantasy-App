@@ -6,6 +6,7 @@ import { auth, functions } from '../services/firebase.ts';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
+import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 
@@ -189,21 +190,35 @@ const AuthScreen: React.FC = () => {
       e.preventDefault();
       setError(null);
 
-      if (!firstName.trim() || !lastName.trim() || !displayName.trim()) {
-          setError('All fields are required.');
-          return;
-      }
+      // --- Validation ---
+      const fnValidation = validateRealName(firstName, "First Name");
+      if (!fnValidation.valid) return setError(fnValidation.error || "Invalid first name.");
+
+      const lnValidation = validateRealName(lastName, "Last Name");
+      if (!lnValidation.valid) return setError(lnValidation.error || "Invalid last name.");
+
+      const dnValidation = validateDisplayName(displayName);
+      if (!dnValidation.valid) return setError(dnValidation.error || "Invalid display name.");
+
       if (password !== confirmPassword) {
           setError('Passwords do not match.');
           return;
       }
+
+      const cleanFirstName = sanitizeString(firstName);
+      const cleanLastName = sanitizeString(lastName);
+      const cleanDisplayName = sanitizeString(displayName);
 
       setIsLoading(true);
       try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           try {
-              await createUserProfileDocument(user, { displayName, firstName, lastName });
+              await createUserProfileDocument(user, { 
+                  displayName: cleanDisplayName, 
+                  firstName: cleanFirstName, 
+                  lastName: cleanLastName 
+              });
               // Success handled by Auth Listener in App.tsx
           } catch (profileError) {
               console.error("Profile creation failed:", profileError);
@@ -351,6 +366,7 @@ const AuthScreen: React.FC = () => {
                                     onChange={(e) => setFirstName(e.target.value)}
                                     placeholder="John"
                                     required
+                                    maxLength={50}
                                     className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
                                 />
                             </div>
@@ -362,18 +378,20 @@ const AuthScreen: React.FC = () => {
                                     onChange={(e) => setLastName(e.target.value)}
                                     placeholder="Doe"
                                     required
+                                    maxLength={50}
                                     className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="text-sm font-bold text-ghost-white">Display Name</label>
+                            <label className="text-sm font-bold text-ghost-white">Display Name (Max 20)</label>
                             <input 
                                 type="text" 
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
                                 placeholder="Team Name"
                                 required
+                                maxLength={20}
                                 className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
                             />
                         </div>

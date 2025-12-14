@@ -19,17 +19,35 @@ service cloud.firestore {
       );
     }
 
+    function isValidUserUpdate(data) {
+      // Allow updates if:
+      // 1. Strings are within limits
+      // 2. Types are correct
+      return (
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 20)) &&
+        (!('firstName' in data) || (data.firstName is string && data.firstName.size() <= 50)) &&
+        (!('lastName' in data) || (data.lastName is string && data.lastName.size() <= 50)) &&
+        (!('email' in data) || (data.email is string))
+      );
+    }
+
     // --- User Profiles (Private PII) ---
     match /users/{userId} {
       // CRITICAL: Only owner or admin can read full profile (email, dues status)
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
+      
+      // Creation validation
+      allow create: if isOwner(userId) 
+                    && isValidUserUpdate(request.resource.data);
 
       // An update is allowed if:
       // 1. The user is the owner AND they are NOT trying to change their dues status or admin status.
-      // 2. The requester is an admin (can change anything).
-      allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).changedKeys().hasAny(['duesPaidStatus', 'isAdmin'])) ||
-                     isAdmin();
+      // 2. The data is valid (lengths/types).
+      // 3. The requester is an admin (can change anything).
+      allow update: if (isOwner(userId) 
+                        && !request.resource.data.diff(resource.data).changedKeys().hasAny(['duesPaidStatus', 'isAdmin'])
+                        && isValidUserUpdate(request.resource.data)
+                       ) || isAdmin();
       
       match /donations/{donationId} {
         allow read: if isOwner(userId) || isAdmin();
@@ -44,8 +62,11 @@ service cloud.firestore {
     match /public_users/{userId} {
       // Anyone can read the leaderboard names
       allow read: if true;
+      
       // Only owner or admin can update the public profile
-      allow write: if isOwner(userId) || isAdmin();
+      // Must validate displayName length
+      allow write: if (isOwner(userId) || isAdmin())
+                   && (!('displayName' in request.resource.data) || (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 20));
     }
     
     // --- User Picks ---
