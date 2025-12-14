@@ -17,6 +17,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [scheduleForm, setScheduleForm] = useState<Partial<EventSchedule>>({});
     const [isSaving, setIsSaving] = useState(false);
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     const selectedEvent = useMemo(() => EVENTS.find(e => e.id === selectedEventId), [selectedEventId]);
 
@@ -32,6 +33,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
         } else {
             setScheduleForm({});
         }
+        setNotification(null);
     }, [selectedEventId, existingSchedules]);
 
     const handleInputChange = (field: keyof EventSchedule, value: string) => {
@@ -46,15 +48,29 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
         if (!selectedEventId || !scheduleForm) return;
 
         setIsSaving(true);
+        setNotification(null);
         try {
             // Ensure eventId is set
             const finalData = { ...scheduleForm, eventId: selectedEventId } as EventSchedule;
             await saveEventSchedule(selectedEventId, finalData);
             onScheduleUpdate(); // Trigger refresh in parent
-            alert(`Schedule for ${selectedEvent?.name} saved!`);
+            
+            setNotification({ 
+                message: `Schedule for ${selectedEvent?.name} saved successfully!`, 
+                type: 'success' 
+            });
+
+            // Clear notification after 3 seconds
+            setTimeout(() => {
+                setNotification(null);
+            }, 3000);
+
         } catch (error) {
             console.error("Failed to save schedule:", error);
-            alert("Error saving schedule.");
+            setNotification({ 
+                message: "Error saving schedule. Please try again.", 
+                type: 'error' 
+            });
         } finally {
             setIsSaving(false);
         }
@@ -171,7 +187,21 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                             />
                         </div>
 
-                        <div className="flex justify-end pt-4">
+                        <div className="flex justify-end pt-4 relative">
+                            {notification && (
+                                <div className={`absolute bottom-full mb-4 right-0 px-4 py-2 rounded-lg shadow-xl text-sm font-bold animate-fade-in-up flex items-center gap-2 border ${
+                                    notification.type === 'success' 
+                                    ? 'bg-green-600/90 border-green-500 text-white' 
+                                    : 'bg-red-600/90 border-red-500 text-white'
+                                }`}>
+                                    {notification.type === 'success' ? (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    )}
+                                    {notification.message}
+                                </div>
+                            )}
                             <button
                                 type="submit"
                                 disabled={isSaving}

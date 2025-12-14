@@ -20,6 +20,7 @@ import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
 import SchedulePage from './components/SchedulePage.tsx';
+import EventsHubPage from './components/EventsHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
@@ -44,7 +45,7 @@ import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'events-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -54,10 +55,11 @@ interface SideNavItemProps {
   page: Page;
   activePage: Page;
   setActivePage: (page: Page) => void;
+  isParentActive?: boolean;
 }
 
-const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage }) => {
-  const isActive = activePage === page;
+const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage, isParentActive }) => {
+  const isActive = isParentActive !== undefined ? isParentActive : activePage === page;
   return (
     <button
       onClick={() => setActivePage(page)}
@@ -97,9 +99,17 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
             <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={CalendarIcon} label="Schedule" page="schedule" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={TrackIcon} label="GP Results" page="gp-results" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={GarageIcon} label="Drivers & Teams" page="drivers-teams" activePage={activePage} setActivePage={navigateToPage} />
+            
+            {/* Consolidated Events Item */}
+            <SideNavItem 
+                icon={TrackIcon} 
+                label="Events" 
+                page="events-hub" 
+                activePage={activePage} 
+                setActivePage={navigateToPage} 
+                isParentActive={['events-hub', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
+            />
+            
             <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
             <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
@@ -345,6 +355,8 @@ const App: React.FC = () => {
         return null;
       case 'leaderboard':
         return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+      case 'events-hub':
+        return <EventsHubPage setActivePage={navigateToPage} />;
       case 'gp-results':
         return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':
