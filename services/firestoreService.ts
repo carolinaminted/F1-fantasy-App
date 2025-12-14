@@ -2,7 +2,7 @@
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -64,12 +64,16 @@ export const updateUserProfile = async (uid: string, data: { displayName: string
     const publicUserRef = doc(db, 'public_users', uid);
     
     try {
-        // Update both private and public records
-        await updateDoc(userRef, data);
+        // Use a batch to ensure both private and public records update atomically
+        const batch = writeBatch(db);
         
-        // Only sync public fields
-        await setDoc(publicUserRef, { displayName: data.displayName }, { merge: true });
+        // Update private record
+        batch.update(userRef, data);
         
+        // Update/Sync public fields (merge ensures we don't wipe points/rank)
+        batch.set(publicUserRef, { displayName: data.displayName }, { merge: true });
+        
+        await batch.commit();
         console.log(`Profile updated for user ${uid}`);
     } catch (error) {
         console.error("Error updating user profile", error);

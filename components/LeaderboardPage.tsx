@@ -195,23 +195,11 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
     };
     
     const rowClass = getRowClass();
-    const containerClass = limit === 1000 ? 'max-h-[600px] overflow-y-auto pr-2 custom-scrollbar' : '';
-
+    
+    // Removed fixed scroll container here, letting parent handle scroll
     return (
-        <div className="mb-8 bg-gradient-to-b from-carbon-black/60 to-transparent rounded-xl p-6 border border-pure-white/5 shadow-inner animate-fade-in">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6 border-b border-pure-white/10 pb-4">
-                <h3 className="text-xl md:text-2xl font-black text-pure-white uppercase italic tracking-wider flex items-center gap-3">
-                    <LeaderboardIcon className="w-8 h-8 text-primary-red" />
-                    League Standings
-                </h3>
-                <div className="flex items-center gap-2 text-xs font-bold text-highlight-silver uppercase tracking-wider">
-                    <span className="hidden md:inline">Race Leader: {maxPoints} PTS</span>
-                    <CheckeredFlagIcon className="w-6 h-6 text-pure-white" />
-                </div>
-            </div>
-            
-            <div className={`relative ${containerClass}`}>
+        <div className="w-full py-4 px-2">
+            <div className="relative">
                 {/* Finish Line (Vertical Dashed) */}
                 <div className="absolute top-0 bottom-0 right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
 
@@ -219,8 +207,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                     {users.map((user, idx) => {
                         const points = user.totalPoints || 0;
                         const rank = user.displayRank || idx + 1;
-                        // Calculate percentage relative to max points. Min 2% so cars aren't invisible.
-                        // We reserve right-14 (~3.5rem) for the finish line area.
+                        // Calculate percentage relative to max points. 
                         const percent = (points / maxPoints) * 100;
                         
                         // Styling for Top 3
@@ -245,12 +232,12 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                     {rank}
                                 </div>
                                 
-                                {/* Name - WIDER COLUMN to shift chart right */}
+                                {/* Name */}
                                 <div className="w-36 md:w-60 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
                                     {user.displayName}
                                 </div>
 
-                                {/* Track Lane - Updated Margin */}
+                                {/* Track Lane */}
                                 <div className="flex-1 relative h-full flex items-center ml-4 md:ml-8 mr-2">
                                     {/* Track Line */}
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
@@ -261,10 +248,8 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                         style={{ width: `${percent}%` }}
                                     >
                                         <div className="relative">
-                                            {/* Rotate F1 car to face right */}
+                                            {/* Rotate 90 to point right (towards finish line) */}
                                             <F1CarIcon className={`w-8 h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
-                                            
-                                            {/* Hover Points Tooltip */}
                                             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
                                                 {points} pts
                                             </div>
@@ -272,7 +257,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                     </div>
                                 </div>
                                 
-                                {/* Points Label (Fixed column) */}
+                                {/* Points Label */}
                                 <div className="w-12 text-right font-mono font-bold text-sm text-pure-white shrink-0">
                                     {points}
                                 </div>
@@ -293,6 +278,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
     const [viewLimit, setViewLimit] = useState<FilterLimit>(25);
+    const [activeSection, setActiveSection] = useState<'visual' | 'list'>('visual');
 
     const { filteredAndSorted, chartData } = useMemo(() => {
         // 1. Sort all users first (Ranking Logic)
@@ -355,83 +341,144 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
         </button>
     );
 
+    const AccordionItem = ({ 
+        id, 
+        title, 
+        icon: Icon, 
+        children, 
+        headerExtra 
+    }: { 
+        id: 'visual' | 'list', 
+        title: string, 
+        icon: any, 
+        children: React.ReactNode,
+        headerExtra?: React.ReactNode 
+    }) => {
+        const isActive = activeSection === id;
+        return (
+            <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden ${isActive ? 'flex-1 min-h-0' : 'flex-none'}`}>
+                <button 
+                    onClick={() => setActiveSection(id)}
+                    className={`flex items-center justify-between p-4 transition-colors ${isActive ? 'bg-carbon-black text-pure-white' : 'bg-accent-gray/20 text-highlight-silver hover:bg-accent-gray/40'}`}
+                >
+                    <div className="flex items-center gap-3">
+                        <Icon className={`w-6 h-6 ${isActive ? 'text-primary-red' : 'text-highlight-silver'}`} />
+                        <span className="font-bold text-lg uppercase tracking-wider italic">{title}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {headerExtra}
+                        <ChevronDownIcon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'rotate-180' : ''}`} />
+                    </div>
+                </button>
+                <div className={`flex-1 bg-carbon-black/20 overflow-hidden flex flex-col ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
+                    {isActive && children}
+                </div>
+            </div>
+        );
+    };
+
+    const raceLeader = Math.max(...users.map(u => u.totalPoints || 0), 0);
+
     return (
-        <div className="space-y-6 animate-fade-in">
-             <RaceChart 
-                users={chartData} 
-                limit={viewLimit}
-             />
-             
-             <div className="flex flex-col md:flex-row gap-4 justify-end items-center bg-accent-gray/20 p-2 rounded-lg border border-pure-white/5">
-                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
-                    {/* Limit Toggle */}
-                    <div className="flex justify-center">
-                        <div className="flex shadow-sm">
+        <div className="flex flex-col gap-4 h-[calc(100vh-180px)] animate-fade-in pb-safe">
+            
+            {/* Visual Section */}
+            <AccordionItem 
+                id="visual" 
+                title="League Standings" 
+                icon={LeaderboardIcon}
+                headerExtra={
+                    activeSection === 'visual' && (
+                        <div className="text-xs font-bold text-highlight-silver hidden sm:flex items-center gap-2">
+                            Race Leader: {raceLeader} PTS <CheckeredFlagIcon className="w-4 h-4 text-pure-white"/>
+                        </div>
+                    )
+                }
+            >
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                     <div className="flex justify-end mb-2">
+                        <div className="flex shadow-sm transform scale-90 origin-right">
                             <LimitToggle label="Top 10" limit={10} />
                             <LimitToggle label="Top 25" limit={25} />
                             <LimitToggle label="All" limit={1000} />
                         </div>
-                    </div>
-
-                    {/* Search */}
-                    <input
-                        type="text"
-                        placeholder="Search current view..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full md:w-64 bg-carbon-black border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none"
-                    />
-                </div>
-            </div>
-
-            {/* Mobile: Vertical Card List */}
-            <div className="md:hidden space-y-3">
-                {filteredAndSorted.map(user => (
-                    <UserCard key={user.id} user={user} />
-                ))}
-                {filteredAndSorted.length === 0 && (
-                     <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">
-                        No principals found in this view.
                      </div>
-                )}
-            </div>
+                     <RaceChart users={chartData} limit={viewLimit} />
+                </div>
+            </AccordionItem>
 
-            {/* Desktop: Table View */}
-            <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-carbon-black/50">
-                        <tr>
-                            <th className="p-4 text-sm font-semibold uppercase text-highlight-silver w-20 text-center">Rank</th>
-                            <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Principal</th>
-                            <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-right cursor-pointer hover:text-pure-white" onClick={() => setSortOrder(o => o === 'desc' ? 'asc' : 'desc')}>
-                                <div className="flex items-center justify-end gap-1">
-                                    Total Points
-                                    <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredAndSorted.map(user => (
-                            <tr key={user.id} className={`border-t border-accent-gray/50 hover:bg-pure-white/5 ${user.id === currentUser?.id ? 'bg-primary-red/10' : ''}`}>
-                                <td className="p-4 text-center font-bold text-xl text-highlight-silver">{user.displayRank}</td>
-                                <td className="p-4">
-                                    <div className="font-bold text-pure-white">{user.displayName}</div>
-                                    {user.id === currentUser?.id && <span className="text-xs text-primary-red uppercase font-bold tracking-wider">You</span>}
-                                </td>
-                                <td className="p-4 text-right font-mono font-bold text-lg text-primary-red">{user.totalPoints || 0}</td>
-                            </tr>
-                        ))}
-                        {filteredAndSorted.length === 0 && (
-                            <tr>
-                                <td colSpan={3} className="p-8 text-center text-highlight-silver">
+            {/* List Section */}
+            <AccordionItem id="list" title="Ranked List" icon={TrendingUpIcon}>
+                <div className="flex flex-col h-full">
+                    {/* Controls */}
+                    <div className="p-4 border-b border-pure-white/5 bg-accent-gray/10 flex flex-col md:flex-row gap-3 justify-between items-center flex-shrink-0">
+                         <div className="flex shadow-sm">
+                            <LimitToggle label="Top 10" limit={10} />
+                            <LimitToggle label="Top 25" limit={25} />
+                            <LimitToggle label="All" limit={1000} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search current view..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full md:w-64 bg-carbon-black border border-accent-gray rounded-md py-2 px-4 text-pure-white focus:ring-primary-red focus:border-primary-red appearance-none text-sm"
+                        />
+                    </div>
+                    
+                    {/* List Content */}
+                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                        {/* Mobile Cards */}
+                        <div className="md:hidden space-y-3">
+                            {filteredAndSorted.map(user => (
+                                <UserCard key={user.id} user={user} />
+                            ))}
+                            {filteredAndSorted.length === 0 && (
+                                <div className="p-8 text-center text-highlight-silver italic bg-accent-gray/30 rounded-lg">
                                     No principals found in this view.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Desktop Table */}
+                        <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-carbon-black/50 sticky top-0 z-10">
+                                    <tr>
+                                        <th className="p-4 text-sm font-semibold uppercase text-highlight-silver w-20 text-center">Rank</th>
+                                        <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Principal</th>
+                                        <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-right cursor-pointer hover:text-pure-white" onClick={() => setSortOrder(o => o === 'desc' ? 'asc' : 'desc')}>
+                                            <div className="flex items-center justify-end gap-1">
+                                                Total Points
+                                                <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredAndSorted.map(user => (
+                                        <tr key={user.id} className={`border-t border-accent-gray/50 hover:bg-pure-white/5 ${user.id === currentUser?.id ? 'bg-primary-red/10' : ''}`}>
+                                            <td className="p-4 text-center font-bold text-xl text-highlight-silver">{user.displayRank}</td>
+                                            <td className="p-4">
+                                                <div className="font-bold text-pure-white">{user.displayName}</div>
+                                                {user.id === currentUser?.id && <span className="text-xs text-primary-red uppercase font-bold tracking-wider">You</span>}
+                                            </td>
+                                            <td className="p-4 text-right font-mono font-bold text-lg text-primary-red">{user.totalPoints || 0}</td>
+                                        </tr>
+                                    ))}
+                                    {filteredAndSorted.length === 0 && (
+                                        <tr>
+                                            <td colSpan={3} className="p-8 text-center text-highlight-silver">
+                                                No principals found in this view.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </AccordionItem>
         </div>
     );
 };
@@ -929,8 +976,14 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                  scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
             }
 
+            // CRITICAL FIX: Ensure the current user's display name is always fresh from the session prop.
+            // This fixes the issue where a user changes their name but the bulk fetch returns the stale name due to caching or eventual consistency.
+            const isCurrentUser = currentUser && user.id === currentUser.id;
+            const displayName = isCurrentUser ? currentUser.displayName : user.displayName;
+
             return {
                 ...user,
+                displayName,
                 // Prefer pre-calculated, fallback to client-side
                 totalPoints: user.totalPoints ?? scoreData.totalPoints, 
                 rank: user.rank || 0,
@@ -951,7 +1004,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         setIsLoading(false);
     };
     loadData();
-  }, [raceResults, pointsSystem, allDrivers]);
+  }, [raceResults, pointsSystem, allDrivers, currentUser]);
 
   const isUserAdmin = currentUser && !!currentUser.isAdmin;
 
@@ -1020,15 +1073,30 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       <div className="max-w-7xl mx-auto">
           {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
 
-          <div className="mb-4 md:mb-6 flex items-center">
+          <div className="mb-4 md:mb-6 flex items-center justify-between relative">
               <button 
                 onClick={() => setView('menu')}
-                className="flex items-center gap-2 text-highlight-silver hover:text-primary-red transition-colors font-bold py-2"
+                className="flex items-center gap-2 text-highlight-silver hover:text-primary-red transition-colors font-bold py-2 z-10"
               >
                   <BackIcon className="w-5 h-5" />
                   Back to Hub
               </button>
+              
+              {/* Centered Page Title for Standings View */}
+              {view === 'standings' && (
+                  <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
+                      League Leaderboard
+                  </h1>
+              )}
+              
+              {/* Spacer div to balance flex layout if needed, or keeping it cleaner */}
+              <div className="w-24"></div>
           </div>
+
+          {/* Mobile Title */}
+          {view === 'standings' && (
+              <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">League Leaderboard</h1>
+          )}
 
           {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
           {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
