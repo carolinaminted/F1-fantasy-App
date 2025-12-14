@@ -21,6 +21,7 @@ import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
 import SchedulePage from './components/SchedulePage.tsx';
 import EventsHubPage from './components/EventsHubPage.tsx';
+import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
@@ -34,6 +35,7 @@ import { TrophyIcon } from './components/icons/TrophyIcon.tsx';
 import { TrackIcon } from './components/icons/TrackIcon.tsx';
 import { GarageIcon } from './components/icons/GarageIcon.tsx';
 import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
+import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -45,7 +47,7 @@ import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'events-hub';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'events-hub' | 'league-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -110,8 +112,16 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 isParentActive={['events-hub', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
             />
             
-            <SideNavItem icon={TrophyIcon} label="Scoring System" page="points" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={DonationIcon} label="Donate" page="donate" activePage={activePage} setActivePage={navigateToPage} />
+            {/* Consolidated League Item */}
+            <SideNavItem 
+                icon={LeagueIcon} 
+                label="League" 
+                page="league-hub" 
+                activePage={activePage} 
+                setActivePage={navigateToPage} 
+                isParentActive={['league-hub', 'points', 'donate', 'duesPayment'].includes(activePage)}
+            />
+
             {isUserAdmin(user) && (
               <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
             )}
@@ -357,6 +367,8 @@ const App: React.FC = () => {
         return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'events-hub':
         return <EventsHubPage setActivePage={navigateToPage} />;
+      case 'league-hub':
+        return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':
         return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':

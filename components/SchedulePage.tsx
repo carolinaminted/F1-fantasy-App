@@ -16,11 +16,9 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
 
     const nextRace = useMemo(() => {
         const now = new Date();
-        // Find first race where race time is in future OR lock time is in future
         return EVENTS.find(e => {
             const sched = schedules[e.id];
-            const raceTime = sched?.race ? new Date(sched.race) : new Date(e.lockAtUtc); // Fallback to lock time if no specific race time
-            // Add 2 hours for race duration roughly to keep showing it while live
+            const raceTime = sched?.race ? new Date(sched.race) : new Date(e.lockAtUtc);
             const raceEndTime = new Date(raceTime.getTime() + 2 * 60 * 60 * 1000); 
             return raceEndTime > now;
         });
@@ -33,12 +31,15 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
     }, [nextRace]);
 
     return (
-        <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0 md:h-[calc(100vh-5rem)] md:overflow-hidden md:flex md:flex-col">
-            <div className="flex-none flex items-center justify-between mb-6 px-4 md:px-0 pt-4 md:pt-0">
-                <h1 className="text-3xl font-bold text-pure-white flex items-center gap-3">
-                    <CalendarIcon className="w-8 h-8 text-primary-red" />
-                    Race Calendar
-                </h1>
+        <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0 md:h-[calc(100vh-6rem)] md:overflow-hidden md:flex md:flex-col">
+            <div className="flex-none flex items-center justify-between mb-4 md:mb-6 px-4 md:px-0 pt-4 md:pt-0">
+                <div className="flex flex-col">
+                    <h1 className="text-3xl font-bold text-pure-white flex items-center gap-3">
+                        <CalendarIcon className="w-8 h-8 text-primary-red" />
+                        Race Calendar
+                    </h1>
+                    <p className="text-xs text-highlight-silver mt-1 ml-11">All times displayed in EST</p>
+                </div>
                 <div className="flex bg-accent-gray rounded-lg p-1">
                     <button
                         onClick={() => setViewMode('upcoming')}
@@ -60,15 +61,22 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
                 <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
                     {/* Hero: Next Race */}
                     {nextRace && (
-                        <div className="px-4 md:px-0 mb-8 animate-fade-in flex-none">
+                        <div className="px-4 md:px-0 mb-6 animate-fade-in flex-none">
                             <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
                         </div>
                     )}
 
                     {/* Next 5 List */}
                     <div className="px-4 md:px-0 animate-fade-in-up flex-1 min-h-0 flex flex-col">
-                        <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:h-full overflow-y-auto md:overflow-visible pb-4 md:pb-0">
+                        <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
+                        {/* 
+                            Updated Grid Container: 
+                            - Removed overflow-y-auto (no scroll)
+                            - Removed custom-scrollbar
+                            - Reduced bottom padding to pb-2 just for border clearance
+                            - Kept h-full to fill available flex space
+                        */}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:h-full pb-2">
                             {upcomingRaces.map(event => (
                                 <div key={event.id} className="md:h-full">
                                     <CompactEventCard event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
@@ -81,7 +89,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
 
             {/* Full Schedule List - Scrollable on Desktop */}
             {viewMode === 'full' && (
-                <div className="px-4 md:px-0 space-y-3 animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar md:pr-2">
+                <div className="px-4 md:px-0 space-y-3 animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar md:pr-2 pb-6">
                     {EVENTS.map(event => (
                         <FullEventRow key={event.id} event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
                     ))}
@@ -96,13 +104,24 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules }) => {
 const formatDate = (isoString?: string) => {
     if (!isoString) return 'TBA';
     const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    // Explicitly use America/New_York timezone
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        timeZone: 'America/New_York'
+    });
 };
 
 const formatTime = (isoString?: string) => {
     if (!isoString) return '-';
     const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    // Explicitly use America/New_York timezone
+    return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'America/New_York'
+    });
 };
 
 const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ event, schedule }) => {
@@ -111,7 +130,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
             {/* Background Texture */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary-red/10 to-transparent pointer-events-none"></div>
             
-            <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row gap-8">
+            <div className="relative z-10 p-6 flex flex-col md:flex-row gap-8">
                 <div className="flex-1">
                     <div className="inline-block bg-primary-red text-pure-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4">
                         Next Grand Prix
@@ -133,7 +152,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                                 </>
                             ) : 'Time TBA'}
                         </p>
-                        <p className="text-[10px] text-highlight-silver mt-1">Your Local Time</p>
+                        <p className="text-[10px] text-highlight-silver mt-1">Eastern Time</p>
                     </div>
                 </div>
 
