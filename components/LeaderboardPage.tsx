@@ -856,22 +856,25 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
         };
 
         // Format
-        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, type: 'team' | 'driver', limit?: number) => {
+        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, type: 'team' | 'driver', limit?: number, keepZeros: boolean = false) => {
             return Object.keys(source)
                 .map(id => ({ 
                     label: nameFn(id), 
                     value: valueFn(id), 
                     color: getColor(id, type)
                 }))
-                .sort((a, b) => b.value - a.value)
-                .filter(item => item.value > 0)
+                .sort((a, b) => {
+                    if (b.value !== a.value) return b.value - a.value;
+                    return a.label.localeCompare(b.label); // Tie-breaker: Alphabetical
+                })
+                .filter(item => keepZeros || item.value > 0)
                 .slice(0, limit);
         };
 
         const getName = (id: string) => getEntityName(id, allDrivers, allConstructors);
 
         return {
-            teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, 'team'),
+            teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, 'team', undefined, true),
             driversTotal: formatData(driverScores, (id) => driverScores[id].total, getName, 'driver', 10),
             driversSprint: formatData(driverScores, (id) => driverScores[id].sprint, getName, 'driver', 5),
             driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 'driver', 5),
