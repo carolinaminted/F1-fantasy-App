@@ -176,21 +176,23 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <p className="text-pure-white/80 font-semibold text-sm md:text-base mt-1">
                 {new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
-            <div className="mt-2">
-              {isSubmitted ? (
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
-              ) : (
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
-              )}
-            </div>
           </div>
-          <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0">
-              <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
-                  {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
-              </p>
-              <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
-                  {isFormLockedForStatus ? "LOCKED" : "OPEN"}
-              </p>
+          <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2">
+              <div>
+                  <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
+                      {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
+                  </p>
+                  <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
+                      {isFormLockedForStatus ? "LOCKED" : "OPEN"}
+                  </p>
+              </div>
+              <div>
+                {isSubmitted ? (
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
+                ) : (
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
+                )}
+              </div>
           </div>
         </div>
 

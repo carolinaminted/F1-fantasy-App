@@ -52,16 +52,14 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   return (
     <div className="w-full max-w-7xl mx-auto px-0 md:px-4">
       {/* Header & Selector */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4 px-4 md:px-0 pt-4 md:pt-0">
-        <div>
-            <h1 className="text-3xl font-bold text-pure-white flex items-center gap-3">
-                <PicksIcon className="w-8 h-8 text-primary-red" />
-                Grand Prix Picks
-            </h1>
-        </div>
+      <div className="flex flex-col items-center justify-center relative mb-6 gap-4 px-4 md:px-0 pt-4 md:pt-0">
+        <h1 className="text-3xl font-bold text-pure-white flex items-center justify-center gap-3 text-center">
+            <PicksIcon className="w-8 h-8 text-primary-red" />
+            Grand Prix Picks
+        </h1>
 
-        {/* Event Selector - Compact on mobile */}
-        <div className="relative w-full md:w-auto">
+        {/* Event Selector - Stacked on Mobile, Absolute Right on Desktop */}
+        <div className="relative w-full md:w-auto md:absolute md:right-0 top-0">
             <label htmlFor="event-selector" className="sr-only">Select Event</label>
             <select
                 id="event-selector"
