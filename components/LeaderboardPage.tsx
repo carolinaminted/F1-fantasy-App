@@ -274,6 +274,47 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
 
 type FilterLimit = 10 | 25 | 1000;
 
+interface AccordionItemProps {
+    id: 'visual' | 'list';
+    title: string;
+    icon: any;
+    children: React.ReactNode;
+    headerExtra?: React.ReactNode;
+    isActive: boolean;
+    onToggle: (id: 'visual' | 'list') => void;
+}
+
+const AccordionItem: React.FC<AccordionItemProps> = ({ 
+    id, 
+    title, 
+    icon: Icon, 
+    children, 
+    headerExtra,
+    isActive,
+    onToggle
+}) => {
+    return (
+        <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden ${isActive ? 'flex-1 min-h-0' : 'flex-none'}`}>
+            <button 
+                onClick={() => onToggle(id)}
+                className={`flex items-center justify-between p-4 transition-colors ${isActive ? 'bg-carbon-black text-pure-white' : 'bg-accent-gray/20 text-highlight-silver hover:bg-accent-gray/40'}`}
+            >
+                <div className="flex items-center gap-3">
+                    <Icon className={`w-6 h-6 ${isActive ? 'text-primary-red' : 'text-highlight-silver'}`} />
+                    <span className="font-bold text-lg uppercase tracking-wider italic">{title}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    {headerExtra}
+                    <ChevronDownIcon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'rotate-180' : ''}`} />
+                </div>
+            </button>
+            <div className={`flex-1 bg-carbon-black/20 overflow-hidden flex flex-col ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
+                {isActive && children}
+            </div>
+        </div>
+    );
+};
+
 const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null }> = ({ users, currentUser }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
@@ -341,42 +382,6 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
         </button>
     );
 
-    const AccordionItem = ({ 
-        id, 
-        title, 
-        icon: Icon, 
-        children, 
-        headerExtra 
-    }: { 
-        id: 'visual' | 'list', 
-        title: string, 
-        icon: any, 
-        children: React.ReactNode,
-        headerExtra?: React.ReactNode 
-    }) => {
-        const isActive = activeSection === id;
-        return (
-            <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden ${isActive ? 'flex-1 min-h-0' : 'flex-none'}`}>
-                <button 
-                    onClick={() => setActiveSection(id)}
-                    className={`flex items-center justify-between p-4 transition-colors ${isActive ? 'bg-carbon-black text-pure-white' : 'bg-accent-gray/20 text-highlight-silver hover:bg-accent-gray/40'}`}
-                >
-                    <div className="flex items-center gap-3">
-                        <Icon className={`w-6 h-6 ${isActive ? 'text-primary-red' : 'text-highlight-silver'}`} />
-                        <span className="font-bold text-lg uppercase tracking-wider italic">{title}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {headerExtra}
-                        <ChevronDownIcon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'rotate-180' : ''}`} />
-                    </div>
-                </button>
-                <div className={`flex-1 bg-carbon-black/20 overflow-hidden flex flex-col ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
-                    {isActive && children}
-                </div>
-            </div>
-        );
-    };
-
     const raceLeader = Math.max(...users.map(u => u.totalPoints || 0), 0);
 
     return (
@@ -387,6 +392,8 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                 id="visual" 
                 title="League Standings" 
                 icon={LeaderboardIcon}
+                isActive={activeSection === 'visual'}
+                onToggle={setActiveSection}
                 headerExtra={
                     activeSection === 'visual' && (
                         <div className="text-xs font-bold text-highlight-silver hidden sm:flex items-center gap-2">
@@ -408,7 +415,13 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
             </AccordionItem>
 
             {/* List Section */}
-            <AccordionItem id="list" title="Ranked List" icon={TrendingUpIcon}>
+            <AccordionItem 
+                id="list" 
+                title="Ranked List" 
+                icon={TrendingUpIcon}
+                isActive={activeSection === 'list'}
+                onToggle={setActiveSection}
+            >
                 <div className="flex flex-col h-full">
                     {/* Controls */}
                     <div className="p-4 border-b border-pure-white/5 bg-accent-gray/10 flex flex-col md:flex-row gap-3 justify-between items-center flex-shrink-0">
