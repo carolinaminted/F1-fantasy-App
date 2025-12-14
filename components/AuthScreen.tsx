@@ -17,7 +17,6 @@ const AuthScreen: React.FC = () => {
   // Signup Flow State
   // New Step: 'invitation' must happen before 'email'
   const [signupStep, setSignupStep] = useState<'invitation' | 'email' | 'code' | 'details'>('invitation');
-  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
   // Invitation Code State
   const [invitationCode, setInvitationCode] = useState('');
@@ -39,7 +38,6 @@ const AuthScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   // Check Local Storage for Blocked State on Mount
   useEffect(() => {
@@ -87,11 +85,9 @@ const AuthScreen: React.FC = () => {
       // Reset to invitation step if switching to signup, unless we are blocked
       setSignupStep('invitation');
       setCodeInput('');
-      setGeneratedCode(null);
       setResetAttempts(0);
       setPassword('');
       setConfirmPassword('');
-      setIsOfflineMode(false);
   };
 
   const handleLogoClick = async () => {
@@ -183,36 +179,18 @@ const AuthScreen: React.FC = () => {
 
         console.log("Calling Cloud Function: sendAuthCode");
         
-        try {
-            const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
-            const result = await sendAuthCode({ email });
-            const data = result.data as any;
-            
-            if (data.demoMode && data.code) {
-                setGeneratedCode(data.code); 
-                setError("⚠️ Demo Mode: Backend email config missing. Code auto-filled below.");
-            } 
-
-            setSignupStep('code');
-
-        } catch (backendError: any) {
-             console.error("Cloud Function Failed:", backendError);
-             if (backendError.code && backendError.message) {
-                 setError(`Server Error: ${backendError.message}`);
-                 setIsLoading(false);
-                 return;
-             }
-             // Offline Fallback
-             setIsOfflineMode(true);
-             const code = Math.floor(100000 + Math.random() * 900000).toString();
-             setGeneratedCode(code);
-             await new Promise(r => setTimeout(r, 500)); 
-             setSignupStep('code');
-        }
+        const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
+        await sendAuthCode({ email });
+        
+        setSignupStep('code');
 
     } catch (err: any) {
         console.error("Verification error:", err);
-        setError("Failed to process request. Please check your connection.");
+        if (err.message) {
+             setError(err.message);
+        } else {
+             setError("Failed to process request. Please check your connection.");
+        }
     } finally {
         setIsLoading(false);
     }
@@ -225,15 +203,6 @@ const AuthScreen: React.FC = () => {
       setIsLoading(true);
 
       try {
-        if (generatedCode) {
-            if (codeInput === generatedCode) {
-                setSignupStep('details');
-            } else {
-                setError("Incorrect verification code. Please try again.");
-            }
-            return;
-        } 
-
         try {
             const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
             const result = await verifyAuthCode({ email, code: codeInput });
@@ -422,20 +391,6 @@ const AuthScreen: React.FC = () => {
                       <div className="text-center mb-4">
                           <p className="text-highlight-silver text-sm">We sent a 6-digit code to</p>
                           <p className="text-pure-white font-bold">{email}</p>
-                          
-                          {(isOfflineMode || generatedCode) && (
-                              <div className="mt-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 animate-fade-in-up">
-                                  <p className="text-xs font-bold text-yellow-500 uppercase tracking-wider mb-1">
-                                      {isOfflineMode ? "Backend Offline" : "Demo Mode Active"}
-                                  </p>
-                                  <div 
-                                    onClick={() => { setCodeInput(generatedCode!); setError(null); }}
-                                    className="bg-carbon-black/80 rounded px-2 py-1 text-xl font-mono font-bold text-pure-white cursor-pointer hover:text-primary-red transition-colors border border-dashed border-accent-gray"
-                                  >
-                                      {generatedCode}
-                                  </div>
-                              </div>
-                          )}
                       </div>
                       <div>
                         <label className="text-sm font-bold text-ghost-white" htmlFor="code">Verification Code</label>
