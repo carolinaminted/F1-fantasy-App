@@ -46,20 +46,21 @@ interface ModalData {
 const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?: string }> = ({ label, used, limit, color }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
   const barColor = color || '#DA291C';
+  const isMaxed = limit > 0 && used >= limit;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
             {color && <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style={{ backgroundColor: color }} />}
-            <span className="text-sm font-semibold text-ghost-white">{label}</span>
+            <span className={`text-sm font-semibold transition-all ${isMaxed ? 'text-highlight-silver line-through opacity-70' : 'text-ghost-white'}`}>{label}</span>
         </div>
-        <span className="text-sm font-mono text-highlight-silver">{used} / {limit}</span>
+        <span className={`text-sm font-mono ${isMaxed ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{used} / {limit}</span>
       </div>
       <div className="w-full bg-carbon-black rounded-full h-2.5 ring-1 ring-pure-white/5 overflow-hidden">
         <div 
           className="h-2.5 rounded-full transition-all duration-500 relative" 
-          style={{ width: `${percentage}%`, backgroundColor: barColor }}
+          style={{ width: `${percentage}%`, backgroundColor: barColor, opacity: isMaxed ? 0.6 : 1 }}
         >
              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent"></div>
         </div>
@@ -890,6 +891,16 @@ const CollapsibleUsageList: React.FC<{
 }> = ({ title, entities, usageData, limit, onItemClick }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Sort by Usage Descending
+  const sortedEntities = [...entities].sort((a, b) => {
+      const usageA = usageData[a.id] || 0;
+      const usageB = usageData[b.id] || 0;
+      if (usageA !== usageB) {
+          return usageB - usageA;
+      }
+      return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="h-full flex flex-col">
       <button
@@ -902,7 +913,7 @@ const CollapsibleUsageList: React.FC<{
       </button>
       {isOpen && (
         <div className="mt-3 space-y-3 flex-grow">
-          {entities.map(e => (
+          {sortedEntities.map(e => (
             <button
                 key={e.id}
                 onClick={() => onItemClick(e.id, e.name)}
