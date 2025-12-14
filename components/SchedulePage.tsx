@@ -139,7 +139,12 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                         <div className="flex items-center gap-2 text-xl text-highlight-silver">
                             <span className="font-bold">{event.country}</span>
                             <span className="text-highlight-silver/70">, {event.location}</span>
-                            {event.hasSprint && <span className="bg-yellow-500/20 text-yellow-500 text-xs px-2 py-0.5 rounded border border-yellow-500/30 ml-2 font-bold uppercase">Sprint</span>}
+                            {event.hasSprint && (
+                                <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-xs px-2 py-0.5 rounded border border-yellow-500/30 ml-2 font-bold uppercase">
+                                    <SprintIcon className="w-3 h-3 text-yellow-500" />
+                                    Sprint
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 text-sm font-bold text-highlight-silver/70">
                             <CircuitRoute eventId={event.id} className="w-5 h-5 text-highlight-silver" />
@@ -157,7 +162,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                                 </>
                             ) : 'Time TBA'}
                         </p>
-                        <p className="text-[10px] text-highlight-silver mt-1">Eastern Time</p>
+                        <p className="text-highlight-silver mt-1 text-[10px]">Eastern Time</p>
                     </div>
                 </div>
 
@@ -238,7 +243,12 @@ const FullEventRow: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: 
                         <CircuitRoute eventId={event.id} className="w-3 h-3 text-highlight-silver" />
                         <span className="truncate">{event.circuit}</span>
                     </div>
-                    {event.hasSprint && <span className="text-yellow-500 font-bold">• Sprint</span>}
+                    {event.hasSprint && (
+                        <div className="flex items-center gap-1 ml-1 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">
+                            <SprintIcon className="w-3 h-3 text-yellow-500" />
+                            <span className="text-yellow-500 font-bold uppercase text-[10px]">Sprint</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -189,19 +189,19 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
 
     // Dynamic Spacing Logic
     const getRowClass = () => {
-        if (limit === 10) return 'h-14'; // Spacious for Top 10
-        if (limit === 25) return 'h-10'; // Standard for Top 25
-        return 'h-8'; // Compact for All
+        if (limit === 10) return 'h-10 md:h-14'; // Spacious for Top 10 on Desktop, Compact on Mobile
+        if (limit === 25) return 'h-8 md:h-10'; // Standard for Top 25
+        return 'h-7 md:h-8'; // Compact for All
     };
     
     const rowClass = getRowClass();
     
     // Removed fixed scroll container here, letting parent handle scroll
     return (
-        <div className="w-full py-4 px-2">
+        <div className="w-full py-2 px-1 md:px-2 md:py-4">
             <div className="relative">
                 {/* Finish Line (Vertical Dashed) */}
-                <div className="absolute top-0 bottom-0 right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
+                <div className="absolute top-0 bottom-0 right-10 md:right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
 
                 <div className="space-y-1 relative z-10">
                     {users.map((user, idx) => {
@@ -226,31 +226,31 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                         }
 
                         return (
-                            <div key={user.id} className={`flex items-center gap-3 ${rowClass} group hover:bg-pure-white/5 rounded-lg px-2 transition-colors`}>
+                            <div key={user.id} className={`flex items-center gap-2 md:gap-3 ${rowClass} group hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors`}>
                                 {/* Rank */}
-                                <div className={`w-8 text-center font-black text-lg ${rankColor} shrink-0`}>
+                                <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
                                 
                                 {/* Name */}
-                                <div className="w-36 md:w-60 text-right truncate font-bold text-xs md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                <div className="w-24 md:w-60 text-right truncate font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
                                     {user.displayName}
                                 </div>
 
                                 {/* Track Lane */}
-                                <div className="flex-1 relative h-full flex items-center ml-4 md:ml-8 mr-2">
+                                <div className="flex-1 relative h-full flex items-center ml-2 md:ml-8 mr-1 md:mr-2">
                                     {/* Track Line */}
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     
                                     {/* Car Movement */}
                                     <div 
-                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-8 md:pr-14"
+                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-6 md:pr-14"
                                         style={{ width: `${percent}%` }}
                                     >
                                         <div className="relative">
                                             {/* Rotate 90 to point right (towards finish line) */}
-                                            <F1CarIcon className={`w-8 h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
-                                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
+                                            <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
+                                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none hidden md:block">
                                                 {points} pts
                                             </div>
                                         </div>
@@ -258,7 +258,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                 </div>
                                 
                                 {/* Points Label */}
-                                <div className="w-12 text-right font-mono font-bold text-sm text-pure-white shrink-0">
+                                <div className="w-8 md:w-12 text-right font-mono font-bold text-xs md:text-sm text-pure-white shrink-0">
                                     {points}
                                 </div>
                             </div>

@@ -376,6 +376,8 @@ const App: React.FC = () => {
     if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
     }
+    // Also scroll window for mobile if layout behaves as document flow
+    window.scrollTo(0, 0);
   }, [activePage, adminSubPage]);
 
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
@@ -525,10 +527,15 @@ const App: React.FC = () => {
     return <AppSkeleton />;
   }
 
+  // Changed layout structure: fixed full screen shell with scrollable inner container
+  // This ensures scrolling happens on the inner div on all devices, fixing the scroll reset issue
   const appContent = (
-    <div className="min-h-screen bg-carbon-black text-ghost-white md:flex">
+    <div className="fixed inset-0 bg-carbon-black text-ghost-white flex flex-col md:flex-row overflow-hidden">
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} livePoints={currentTotalPoints} />
-      <div className="flex-1 flex flex-col md:h-screen md:overflow-hidden relative">
+      
+      {/* Main Column */}
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        {/* Mobile Header */}
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
            <>
@@ -551,8 +558,9 @@ const App: React.FC = () => {
         </header>
 
         {/* 
-          Main Content Container
-          Added 'pb-[5rem] pb-safe' to account for mobile bottom nav + safe area
+          Main Content Container (Scrollable Area)
+          Using flex-1 with overflow-y-auto ensures THIS element scrolls, not the body.
+          pb-[6rem] accounts for bottom nav on mobile.
         */}
         <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
             {/* Replaced broken image with CSS Class 'bg-carbon-fiber' defined in index.html */}
@@ -564,9 +572,9 @@ const App: React.FC = () => {
 
         {/* 
             Mobile Bottom Navigation
-            Modified to include Home, Profile, Picks, Schedule, Standings (Leaderboards) + Admin (conditional)
+            Fixed position inside the flex container, overlaid at bottom
         */}
-        <nav className={`fixed bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-6' : 'grid-cols-5'} md:hidden z-50 pb-safe`}>
+        <nav className={`absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-6' : 'grid-cols-5'} md:hidden z-50 pb-safe`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
