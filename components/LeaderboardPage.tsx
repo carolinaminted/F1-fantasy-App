@@ -696,16 +696,17 @@ const InsightsView: React.FC<{
     }, [users, allPicks, raceResults, pointsSystem, allDrivers, events]);
 
     const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
-         <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg">
-            <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5">
+         <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg h-full">
+            <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5 flex-shrink-0">
                 <Icon className="w-8 h-8" />
             </div>
-            <div>
-                <p className="text-xs font-bold text-highlight-silver uppercase tracking-wider">{title}</p>
+            <div className="min-w-0">
+                <p className="text-xs font-bold text-highlight-silver uppercase tracking-wider truncate">{title}</p>
                 {data ? (
                     <>
-                        <p className="text-xl font-bold text-pure-white truncate max-w-[150px]">{data.user.displayName}</p>
-                        <p className="text-2xl font-black text-primary-red font-mono mt-1 leading-none">
+                        <p className="text-xl font-bold text-pure-white truncate">{data.user.displayName}</p>
+                        {/* UPDATED FONT SIZE */}
+                        <p className="text-4xl md:text-5xl font-black text-primary-red font-mono mt-1 leading-none">
                             {Number(data.score || 0).toLocaleString()} <span className="text-xs font-bold text-highlight-silver align-top">PTS</span>
                         </p>
                     </>
@@ -717,8 +718,8 @@ const InsightsView: React.FC<{
     );
 
     const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
-        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg">
-            <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2">
+        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg overflow-hidden">
+            <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2 flex-none">
                 <div>
                     <h3 className="text-lg font-bold text-pure-white">{title}</h3>
                     <p className="text-xs text-highlight-silver uppercase tracking-wider">{subtitle}</p>
@@ -726,7 +727,7 @@ const InsightsView: React.FC<{
                 {Icon && <Icon className="w-5 h-5 text-primary-red" />}
             </div>
             
-            <div className="flex-1">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {data.length > 0 ? (
                     <div className="space-y-3">
                         {data.map((item, idx) => (
@@ -735,7 +736,8 @@ const InsightsView: React.FC<{
                                 <div className="flex-1">
                                     <div className="flex justify-between text-xs mb-1">
                                         <span className="font-semibold text-ghost-white truncate">{item.label}</span>
-                                        <span className="font-mono font-bold text-base text-primary-red">{item.value}</span>
+                                        {/* UPDATED FONT SIZE */}
+                                        <span className="font-mono font-bold text-lg md:text-xl text-primary-red">{item.value}</span>
                                     </div>
                                     <div className="w-full bg-carbon-black rounded-full h-1.5 border border-pure-white/5">
                                         <div 
@@ -757,24 +759,24 @@ const InsightsView: React.FC<{
     );
 
     return (
-        <div className="space-y-8 animate-fade-in">
-            {/* Header for Insights View */}
-            <div className="flex items-center gap-3 mb-2">
-                <TrendingUpIcon className="w-8 h-8 text-primary-red" />
-                <h2 className="text-2xl font-bold text-pure-white">Performance Trends</h2>
+        <div className="flex flex-col h-full gap-4 animate-fade-in pb-safe">
+            {/* Header for Insights View - Compact & Centered */}
+            <div className="flex items-center justify-center gap-2 flex-none -mt-2">
+                <TrendingUpIcon className="w-6 h-6 text-primary-red" />
+                <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">Performance Trends</h2>
             </div>
             
-            {/* Top 4 Categories */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Top 4 Categories - Fixed Height Grid */}
+            <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
                 <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
                 <SuperlativeCard title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} />
                 <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
 
-            {/* Trend Charts Grid (2x2) */}
-            <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Trend Charts Grid (2x2) - Flexible Height */}
+            <div className="flex-1 min-h-0 pb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
                     <TrendChart 
                         title="Hot Streak" 
                         subtitle="Last 3 Races" 
@@ -1145,10 +1147,10 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   }
 
   return (
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto w-full md:h-[calc(100vh-6rem)] md:flex md:flex-col md:overflow-hidden">
           {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
 
-          <div className="mb-4 md:mb-6 flex items-center justify-between relative">
+          <div className="mb-2 md:mb-4 flex items-center justify-between relative flex-none">
               <div className="flex items-center gap-4">
                   <button 
                     onClick={() => setView('menu')}
@@ -1166,9 +1168,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
               </div>
               
               {/* Centered Page Title for Views that need it */}
-              {(view === 'standings' || view === 'insights') && (
+              {(view === 'standings') && (
                   <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
-                      {view === 'standings' ? 'League Leaderboard' : 'Season Insights'}
+                      League Leaderboard
                   </h1>
               )}
               
@@ -1178,16 +1180,15 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
           {/* Mobile Title */}
           {view === 'standings' && (
-              <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">League Leaderboard</h1>
-          )}
-          {view === 'insights' && (
-              <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">Season Insights</h1>
+              <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center flex-none">League Leaderboard</h1>
           )}
 
-          {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
-          {view === 'popular' && <PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
-          {view === 'insights' && <InsightsView users={processedUsers} allPicks={allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
-          {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
+          <div className="flex-1 min-h-0 overflow-y-auto md:overflow-y-hidden custom-scrollbar">
+            {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
+            {view === 'popular' && <div className="h-full overflow-y-auto"><PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} /></div>}
+            {view === 'insights' && <InsightsView users={processedUsers} allPicks={allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
+            {view === 'entities' && <div className="h-full overflow-y-auto"><EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} /></div>}
+          </div>
       </div>
   );
 };
