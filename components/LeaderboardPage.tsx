@@ -696,7 +696,7 @@ const InsightsView: React.FC<{
                 {data ? (
                     <>
                         <p className="text-xl font-bold text-pure-white truncate max-w-[150px]">{data.user.displayName}</p>
-                        <p className="text-sm text-primary-red font-mono">{data.score} pts</p>
+                        <p className="text-sm text-primary-red font-mono">{data.score || 0} pts</p>
                     </>
                 ) : (
                     <p className="text-sm text-highlight-silver italic mt-1">No data yet</p>
@@ -889,7 +889,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
         <div className="space-y-8 animate-fade-in">
              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 className="text-2xl font-bold text-pure-white">Driver & Team Points</h2>
-                <div className="text-sm text-highlight-silver bg-accent-gray/30 px-3 py-1 rounded-full border border-pure-white/10 text-center">
+                <div className="text-[10px] uppercase font-bold text-highlight-silver bg-accent-gray/30 px-3 py-1.5 rounded-full border border-pure-white/10 text-center tracking-wider">
                     Based on Official Race Results
                 </div>
             </div>
@@ -1014,38 +1014,45 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         const validUsers = rawUsers.filter(u => u.displayName !== 'Admin Principal');
 
         const processed: ProcessedUser[] = validUsers.map(user => {
-            let scoreData;
-            // Prefer pre-calculated totalPoints from public profile if available
-            // If not available (or fallback mode), calculate on client
+            // FIX: Normalize property names for breakdowns.
+            // Firestore data uses: { gp, sprint, quali, fl }
+            // Local calculation uses: { grandPrixPoints, sprintPoints, gpQualifyingPoints, fastestLapPoints }
+            
+            let gp = 0, sprint = 0, quali = 0, fl = 0;
+            let totalPoints = 0;
+
             if (user.totalPoints !== undefined) {
-                 // For breakdown, we rely on the object if present, or zero it
-                 scoreData = {
-                     totalPoints: user.totalPoints,
-                     // If public profile has pre-calc breakdown use it, else calc
-                     ...((user as any).breakdown || { grandPrixPoints: 0, sprintPoints: 0, fastestLapPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0 })
-                 };
+                 // Use pre-calculated data
+                 totalPoints = user.totalPoints;
+                 const bd = (user as any).breakdown;
+                 if (bd) {
+                     gp = bd.gp || 0;
+                     sprint = bd.sprint || 0;
+                     quali = bd.quali || 0;
+                     fl = bd.fl || 0;
+                 }
             } else {
+                 // Calculate locally
                  const userPicks = allPicks[user.id] || {};
-                 scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+                 const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+                 
+                 totalPoints = scoreData.totalPoints;
+                 gp = scoreData.grandPrixPoints;
+                 sprint = scoreData.sprintPoints;
+                 quali = scoreData.gpQualifyingPoints + (scoreData.sprintQualifyingPoints || 0);
+                 fl = scoreData.fastestLapPoints;
             }
 
             // CRITICAL FIX: Ensure the current user's display name is always fresh from the session prop.
-            // This fixes the issue where a user changes their name but the bulk fetch returns the stale name due to caching or eventual consistency.
             const isCurrentUser = currentUser && user.id === currentUser.id;
             const displayName = isCurrentUser ? currentUser.displayName : user.displayName;
 
             return {
                 ...user,
                 displayName,
-                // Prefer pre-calculated, fallback to client-side
-                totalPoints: user.totalPoints ?? scoreData.totalPoints, 
+                totalPoints,
                 rank: user.rank || 0,
-                breakdown: {
-                    gp: scoreData.grandPrixPoints,
-                    quali: scoreData.gpQualifyingPoints + (scoreData.sprintQualifyingPoints || 0),
-                    sprint: scoreData.sprintPoints,
-                    fl: scoreData.fastestLapPoints
-                }
+                breakdown: { gp, quali, sprint, fl }
             };
         });
 
@@ -1124,13 +1131,26 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
 
           <div className="mb-4 md:mb-6 flex items-center justify-between relative">
-              <button 
-                onClick={() => setView('menu')}
-                className="flex items-center gap-2 text-highlight-silver hover:text-primary-red transition-colors font-bold py-2 z-10"
-              >
-                  <BackIcon className="w-5 h-5" />
-                  Back to Hub
-              </button>
+              <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setView('menu')}
+                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 z-10"
+                  >
+                      <BackIcon className="w-5 h-5" />
+                      Back to Hub
+                  </button>
+                  {/* Compact Header for Entity View */}
+                  {view === 'entities' && (
+                      <h1 className="text-lg md:text-xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block border-l border-pure-white/20 pl-4">
+                          Driver & Team Points
+                      </h1>
+                  )}
+                  {view === 'insights' && (
+                      <h1 className="text-lg md:text-xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block border-l border-pure-white/20 pl-4">
+                          Season Insights
+                      </h1>
+                  )}
+              </div>
               
               {/* Centered Page Title for Standings View */}
               {view === 'standings' && (
@@ -1139,8 +1159,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                   </h1>
               )}
               
-              {/* Spacer div to balance flex layout if needed, or keeping it cleaner */}
-              <div className="w-24"></div>
+              {/* Spacer div to balance flex layout if needed */}
+              <div className="w-4"></div>
           </div>
 
           {/* Mobile Title */}
