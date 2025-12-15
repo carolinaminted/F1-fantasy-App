@@ -622,8 +622,15 @@ const InsightsView: React.FC<{
         if (users.length === 0) return null;
         
         const findMax = (key: keyof ProcessedUser['breakdown']) => {
-            const sorted = [...users].sort((a, b) => b.breakdown[key] - a.breakdown[key]);
-            if (sorted[0].breakdown[key] === 0) return null;
+            // Filter out 0 or NaN/Invalid breakdowns to ensure clean sorting
+            const validUsers = users.filter(u => u.breakdown && typeof u.breakdown[key] === 'number');
+            if (validUsers.length === 0) return null;
+
+            const sorted = [...validUsers].sort((a, b) => b.breakdown[key] - a.breakdown[key]);
+            
+            // If the max score is 0, we treat it as no data yet
+            if (sorted[0].breakdown[key] <= 0) return null;
+            
             return { user: sorted[0], score: sorted[0].breakdown[key] };
         };
 
@@ -664,7 +671,9 @@ const InsightsView: React.FC<{
                     const results = raceResults[event.id];
                     if (picks && results) {
                         const score = calculatePointsForEvent(picks, results, pointsSystem, allDrivers);
-                        rangeTotal += score.totalPoints;
+                        // Ensure numerical consistency
+                        const safeScore = isNaN(score.totalPoints) ? 0 : score.totalPoints;
+                        rangeTotal += safeScore;
                     }
                 });
 
@@ -687,7 +696,7 @@ const InsightsView: React.FC<{
     }, [users, allPicks, raceResults, pointsSystem, allDrivers, events]);
 
     const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
-         <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg">
+         <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg">
             <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5">
                 <Icon className="w-8 h-8" />
             </div>
@@ -696,7 +705,9 @@ const InsightsView: React.FC<{
                 {data ? (
                     <>
                         <p className="text-xl font-bold text-pure-white truncate max-w-[150px]">{data.user.displayName}</p>
-                        <p className="text-sm text-primary-red font-mono">{data.score || 0} pts</p>
+                        <p className="text-2xl font-black text-primary-red font-mono mt-1 leading-none">
+                            {Number(data.score || 0).toLocaleString()} <span className="text-xs font-bold text-highlight-silver align-top">PTS</span>
+                        </p>
                     </>
                 ) : (
                     <p className="text-sm text-highlight-silver italic mt-1">No data yet</p>
@@ -724,7 +735,7 @@ const InsightsView: React.FC<{
                                 <div className="flex-1">
                                     <div className="flex justify-between text-xs mb-1">
                                         <span className="font-semibold text-ghost-white truncate">{item.label}</span>
-                                        <span className="font-mono text-primary-red">{item.value}</span>
+                                        <span className="font-mono font-bold text-base text-primary-red">{item.value}</span>
                                     </div>
                                     <div className="w-full bg-carbon-black rounded-full h-1.5 border border-pure-white/5">
                                         <div 
@@ -747,7 +758,11 @@ const InsightsView: React.FC<{
 
     return (
         <div className="space-y-8 animate-fade-in">
-            <h2 className="text-2xl font-bold text-pure-white">Season Insights & Trends</h2>
+            {/* Header for Insights View */}
+            <div className="flex items-center gap-3 mb-2">
+                <TrendingUpIcon className="w-8 h-8 text-primary-red" />
+                <h2 className="text-2xl font-bold text-pure-white">Performance Trends</h2>
+            </div>
             
             {/* Top 4 Categories */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -759,9 +774,6 @@ const InsightsView: React.FC<{
 
             {/* Trend Charts Grid (2x2) */}
             <div>
-                <h3 className="text-xl font-bold text-pure-white mb-6 flex items-center gap-2">
-                    <TrendingUpIcon className="w-6 h-6 text-primary-red" /> Performance Trends
-                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TrendChart 
                         title="Hot Streak" 
@@ -1013,6 +1025,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         // Filter out Admin Principal explicitly if desired
         const validUsers = rawUsers.filter(u => u.displayName !== 'Admin Principal');
 
+        // Helper to ensure numbers
+        const safeNum = (val: any) => {
+            const n = Number(val);
+            return Number.isNaN(n) ? 0 : n;
+        };
+
         const processed: ProcessedUser[] = validUsers.map(user => {
             // FIX: Normalize property names for breakdowns.
             // Firestore data uses: { gp, sprint, quali, fl }
@@ -1023,24 +1041,24 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
             if (user.totalPoints !== undefined) {
                  // Use pre-calculated data
-                 totalPoints = user.totalPoints;
+                 totalPoints = safeNum(user.totalPoints);
                  const bd = (user as any).breakdown;
                  if (bd) {
-                     gp = bd.gp || 0;
-                     sprint = bd.sprint || 0;
-                     quali = bd.quali || 0;
-                     fl = bd.fl || 0;
+                     gp = safeNum(bd.gp);
+                     sprint = safeNum(bd.sprint);
+                     quali = safeNum(bd.quali);
+                     fl = safeNum(bd.fl);
                  }
             } else {
                  // Calculate locally
                  const userPicks = allPicks[user.id] || {};
                  const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
                  
-                 totalPoints = scoreData.totalPoints;
-                 gp = scoreData.grandPrixPoints;
-                 sprint = scoreData.sprintPoints;
-                 quali = scoreData.gpQualifyingPoints + (scoreData.sprintQualifyingPoints || 0);
-                 fl = scoreData.fastestLapPoints;
+                 totalPoints = safeNum(scoreData.totalPoints);
+                 gp = safeNum(scoreData.grandPrixPoints);
+                 sprint = safeNum(scoreData.sprintPoints);
+                 quali = safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints);
+                 fl = safeNum(scoreData.fastestLapPoints);
             }
 
             // CRITICAL FIX: Ensure the current user's display name is always fresh from the session prop.
@@ -1145,17 +1163,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                           Driver & Team Points
                       </h1>
                   )}
-                  {view === 'insights' && (
-                      <h1 className="text-lg md:text-xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block border-l border-pure-white/20 pl-4">
-                          Season Insights
-                      </h1>
-                  )}
               </div>
               
-              {/* Centered Page Title for Standings View */}
-              {view === 'standings' && (
+              {/* Centered Page Title for Views that need it */}
+              {(view === 'standings' || view === 'insights') && (
                   <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
-                      League Leaderboard
+                      {view === 'standings' ? 'League Leaderboard' : 'Season Insights'}
                   </h1>
               )}
               
@@ -1166,6 +1179,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           {/* Mobile Title */}
           {view === 'standings' && (
               <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">League Leaderboard</h1>
+          )}
+          {view === 'insights' && (
+              <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">Season Insights</h1>
           )}
 
           {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
