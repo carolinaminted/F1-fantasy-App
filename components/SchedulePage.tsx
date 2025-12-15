@@ -240,7 +240,7 @@ const FullEventRow: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: 
             <div className="flex-shrink-0">
                 <CircuitRoute 
                     eventId={event.id} 
-                    className={`w-10 h-10 md:w-16 md:h-16 ${isNext ? 'text-primary-red' : 'text-highlight-silver/40'}`} 
+                    className={`w-12 h-12 md:w-16 md:h-16 ${isNext ? 'text-primary-red' : 'text-highlight-silver/30'}`} 
                 />
             </div>
 
