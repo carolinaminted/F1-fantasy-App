@@ -125,9 +125,9 @@ const formatTime = (isoString?: string) => {
 
 const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ event, schedule }) => {
     return (
-        <div className="relative overflow-hidden rounded-2xl bg-carbon-black border border-pure-white/10 shadow-2xl">
+        <div className="relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl">
             {/* Background Texture */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-red/10 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-red/20 to-transparent pointer-events-none"></div>
             
             <div className="relative z-10 p-6 flex flex-col md:flex-row gap-8">
                 <div className="flex-1">
@@ -153,7 +153,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                     </div>
                     
                     {/* Main Countdown or Date */}
-                    <div className="bg-carbon-black/50 p-4 rounded-xl border border-pure-white/10 inline-block">
+                    <div className="bg-carbon-black/50 p-4 rounded-xl border border-pure-white/10 inline-block backdrop-blur-sm">
                         <p className="text-xs text-highlight-silver uppercase tracking-widest mb-1">Lights Out</p>
                         <p className="text-2xl md:text-3xl font-bold text-pure-white">
                             {schedule?.race ? (
@@ -167,7 +167,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                 </div>
 
                 {/* Session Timetable */}
-                <div className="flex-1 bg-pure-white/5 rounded-xl p-5 border border-pure-white/5">
+                <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-5 border border-pure-white/5">
                     <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-4 border-b border-pure-white/10 pb-2">Session Timetable</h3>
                     <div className="space-y-3">
                         {!event.hasSprint ? (
