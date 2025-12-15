@@ -179,6 +179,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }
 
   const openFastestLapModal = () => {
+      // Logic: Show colors for all if nothing is selected. If something is selected, only color that one.
+      const isAnyFastestLapSelected = !!picks.fastestLap;
+
       const modalBody = (
           <div className="p-6">
               <div className="text-center mb-6">
@@ -201,7 +204,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                                placeholder="Driver"
                                disabled={isLockedByAdmin}
                                color={color}
-                               forceColor={false}
+                               forceColor={!isAnyFastestLapSelected}
                            />
                        );
                    })}
