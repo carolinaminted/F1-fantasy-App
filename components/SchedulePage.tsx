@@ -229,34 +229,45 @@ const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNex
 );
 
 const FullEventRow: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean }> = ({ event, schedule, isNext }) => (
-    <div className={`flex items-center justify-between p-4 rounded-lg border ${isNext ? 'bg-pure-white/10 border-primary-red/50' : 'bg-accent-gray/20 border-pure-white/5 hover:bg-pure-white/5'}`}>
-        <div className="flex items-center gap-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isNext ? 'bg-primary-red text-pure-white' : 'bg-carbon-black text-highlight-silver'}`}>
+    <div className={`flex items-center justify-between p-3 md:p-4 rounded-lg border transition-all ${isNext ? 'bg-pure-white/10 border-primary-red/50 shadow-lg shadow-primary-red/5' : 'bg-accent-gray/20 border-pure-white/5 hover:bg-pure-white/5'}`}>
+        <div className="flex items-center gap-3 md:gap-5 flex-1 min-w-0">
+            {/* Round Number */}
+            <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] md:text-xs font-bold ${isNext ? 'bg-primary-red text-pure-white' : 'bg-carbon-black text-highlight-silver'}`}>
                 {event.round}
             </div>
-            <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-pure-white">{event.name}</h4>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-highlight-silver">
-                    <span className="font-semibold text-ghost-white">{event.country}, {event.location}</span>
-                    <span className="text-highlight-silver/50 hidden sm:inline">•</span>
-                    <div className="flex items-center gap-1">
-                        <CircuitRoute eventId={event.id} className="w-3 h-3 text-highlight-silver" />
-                        <span className="truncate">{event.circuit}</span>
-                    </div>
-                    {event.hasSprint && (
-                        <div className="flex items-center gap-1 ml-1 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">
+
+            {/* Large Track Icon */}
+            <div className="flex-shrink-0">
+                <CircuitRoute 
+                    eventId={event.id} 
+                    className={`w-10 h-10 md:w-16 md:h-16 ${isNext ? 'text-primary-red' : 'text-highlight-silver/40'}`} 
+                />
+            </div>
+
+            {/* Event Details */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <h4 className="font-bold text-pure-white text-sm md:text-lg leading-tight truncate">{event.name}</h4>
+                <div className="flex flex-col gap-0.5 mt-0.5">
+                    <span className="text-xs font-semibold text-ghost-white truncate">{event.country}, {event.location}</span>
+                    <span className="text-[10px] md:text-xs text-highlight-silver truncate opacity-70">{event.circuit}</span>
+                </div>
+                {event.hasSprint && (
+                    <div className="mt-1 flex">
+                        <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">
                             <SprintIcon className="w-3 h-3 text-yellow-500" />
                             <span className="text-yellow-500 font-bold uppercase text-[10px]">Sprint</span>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
-        <div className="text-right pl-4">
+
+        {/* Date/Time */}
+        <div className="text-right pl-2 flex-shrink-0">
             {schedule?.race ? (
                 <>
-                    <p className="font-bold text-pure-white text-sm">{formatDate(schedule.race)}</p>
-                    <p className="text-xs text-highlight-silver font-mono">{formatTime(schedule.race)}</p>
+                    <p className={`font-bold text-xs md:text-sm ${isNext ? 'text-primary-red' : 'text-pure-white'}`}>{formatDate(schedule.race)}</p>
+                    <p className="text-[10px] md:text-xs text-highlight-silver font-mono">{formatTime(schedule.race)}</p>
                 </>
             ) : (
                 <span className="text-xs text-highlight-silver italic">TBA</span>
