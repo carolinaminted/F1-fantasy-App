@@ -147,7 +147,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
         <div className="flex flex-col h-[calc(100vh-6rem)] md:overflow-hidden text-pure-white max-w-7xl mx-auto w-full">
             
             {/* Header / Toolbar */}
-            <header className="bg-accent-gray/50 backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
+            <header className="bg-carbon-fiber backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <button 
                         onClick={() => setAdminSubPage('dashboard')}
@@ -229,7 +229,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Fastest Lap Bonus</label>
-                                <div className="flex items-center gap-3 bg-accent-gray/30 p-2 rounded-lg border border-pure-white/5">
+                                <div className="flex items-center gap-3 bg-carbon-fiber p-2 rounded-lg border border-pure-white/5 shadow-lg">
                                     <FastestLapIcon className="w-8 h-8 text-purple-500" />
                                     <div className="flex-1">
                                          <ScoringInput 
@@ -377,7 +377,7 @@ const PointArraySection: React.FC<{
     onChange: (index: number, value: number) => void;
     colorClass?: string;
 }> = ({ title, subtitle, values, onChange, colorClass = "text-pure-white" }) => (
-    <div className="bg-accent-gray/20 rounded-lg p-5 border border-pure-white/5 hover:border-pure-white/10 transition-colors">
+    <div className="bg-carbon-fiber rounded-lg p-5 border border-pure-white/10 hover:border-pure-white/20 transition-colors shadow-lg">
         <div className="flex justify-between items-baseline mb-4">
             <h3 className={`font-bold text-lg ${colorClass}`}>{title}</h3>
             <span className="text-xs text-highlight-silver font-mono">{subtitle}</span>

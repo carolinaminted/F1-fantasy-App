@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver as DriverType, Constructor } from '../types.ts';
-import { EVENTS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -12,9 +11,10 @@ interface GpResultsPageProps {
   raceResults: RaceResults;
   allDrivers: DriverType[];
   allConstructors: Constructor[];
+  events: Event[];
 }
 
-const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors }) => {
+const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors, events }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -45,7 +45,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
         );
     };
 
-    const selectedEvent = useMemo(() => EVENTS.find(e => e.id === selectedEventId), [selectedEventId]);
+    const selectedEvent = useMemo(() => events.find(e => e.id === selectedEventId), [selectedEventId, events]);
 
     const filteredEvents = useMemo(() => {
         // Smart Search: If the input matches the selected event's name exactly,
@@ -54,7 +54,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
         const isExactMatch = selectedEvent && searchTerm === selectedEvent.name;
         const effectiveSearch = isExactMatch ? '' : searchTerm.toLowerCase();
 
-        return EVENTS.filter(event => {
+        return events.filter(event => {
             // 1. Filter by Status
             const resultsIn = hasResults(event.id);
             if (filterStatus === 'results' && !resultsIn) return false;
@@ -65,10 +65,11 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
             return (
                 event.name.toLowerCase().includes(effectiveSearch) ||
                 event.country.toLowerCase().includes(effectiveSearch) ||
-                event.round.toString().includes(effectiveSearch)
+                event.round.toString().includes(effectiveSearch) ||
+                event.location.toLowerCase().includes(effectiveSearch)
             );
         });
-    }, [searchTerm, filterStatus, selectedEvent, raceResults]);
+    }, [searchTerm, filterStatus, selectedEvent, raceResults, events]);
 
     const handleEventSelect = (event: Event) => {
         setSelectedEventId(event.id);
@@ -133,7 +134,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                                         >
                                             <div>
                                                 <div className="font-bold text-pure-white group-hover:text-primary-red transition-colors text-lg">R{event.round}: {event.name}</div>
-                                                <div className="text-sm text-highlight-silver">{event.country}</div>
+                                                <div className="text-sm text-highlight-silver">{event.country} <span className="opacity-50 mx-1">•</span> {event.location}</div>
                                             </div>
                                             {resultsIn ? (
                                                 <span className="text-[10px] font-bold uppercase tracking-wider bg-green-600/20 text-green-400 px-3 py-1 rounded border border-green-600/30">
@@ -165,7 +166,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
             {/* Results Display Area */}
             {selectedEvent ? (
                 <div className="animate-fade-in">
-                    <div className="bg-accent-gray/30 backdrop-blur-md rounded-2xl p-6 md:p-8 ring-1 ring-pure-white/10 shadow-xl">
+                    <div className="bg-carbon-fiber rounded-2xl p-6 md:p-8 border border-pure-white/10 shadow-xl">
                         {/* Event Header */}
                         <div className="flex flex-col md:flex-row justify-between items-center border-b border-pure-white/10 pb-6 mb-6">
                             <div>
@@ -173,6 +174,10 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                                 <p className="text-lg text-highlight-silver flex items-center gap-2">
                                     <span className="bg-pure-white/10 px-2 py-0.5 rounded text-sm font-bold uppercase">Round {selectedEvent.round}</span>
                                     {selectedEvent.country}
+                                </p>
+                                <p className="text-sm text-highlight-silver/70 mt-1 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary-red"></span>
+                                    {selectedEvent.location}
                                 </p>
                             </div>
                             <div className="mt-4 md:mt-0">

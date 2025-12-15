@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor } from '../types.ts';
+import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
-import { EVENTS, CONSTRUCTORS } from '../constants.ts';
+import { CONSTRUCTORS } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { db } from '../services/firebase.ts';
+import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { doc, getDoc } from '@firebase/firestore';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -30,6 +31,7 @@ interface ProfilePageProps {
   setActivePage?: (page: Page) => void;
   // New Prop: If present, enables penalty management UI
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
+  events: Event[];
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -46,20 +48,21 @@ interface ModalData {
 const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?: string }> = ({ label, used, limit, color }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
   const barColor = color || '#DA291C';
+  const isMaxed = limit > 0 && used >= limit;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
             {color && <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style={{ backgroundColor: color }} />}
-            <span className="text-sm font-semibold text-ghost-white">{label}</span>
+            <span className={`text-sm font-semibold transition-all ${isMaxed ? 'text-highlight-silver line-through opacity-70' : 'text-ghost-white'}`}>{label}</span>
         </div>
-        <span className="text-sm font-mono text-highlight-silver">{used} / {limit}</span>
+        <span className={`text-sm font-mono ${isMaxed ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{used} / {limit}</span>
       </div>
       <div className="w-full bg-carbon-black rounded-full h-2.5 ring-1 ring-pure-white/5 overflow-hidden">
         <div 
           className="h-2.5 rounded-full transition-all duration-500 relative" 
-          style={{ width: `${percentage}%`, backgroundColor: barColor }}
+          style={{ width: `${percentage}%`, backgroundColor: barColor, opacity: isMaxed ? 0.6 : 1 }}
         >
              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent"></div>
         </div>
@@ -135,7 +138,7 @@ const PenaltyManager: React.FC<{
     );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -232,32 +235,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     e.preventDefault();
     setProfileError(null);
 
-    // Basic Validation
-    if (!profileForm.firstName.trim()) {
-        setProfileError("First name is required.");
-        return;
-    }
-    if (!profileForm.lastName.trim()) {
-        setProfileError("Last name is required.");
-        return;
-    }
-    if (!profileForm.displayName.trim()) {
-        setProfileError("Display name cannot be empty.");
-        return;
-    }
+    const fnValidation = validateRealName(profileForm.firstName, "First Name");
+    if (!fnValidation.valid) return setProfileError(fnValidation.error!);
+
+    const lnValidation = validateRealName(profileForm.lastName, "Last Name");
+    if (!lnValidation.valid) return setProfileError(lnValidation.error!);
+
+    const dnValidation = validateDisplayName(profileForm.displayName);
+    if (!dnValidation.valid) return setProfileError(dnValidation.error!);
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(profileForm.email)) {
         setProfileError("Please enter a valid email address.");
         return;
     }
 
+    const cleanFirstName = sanitizeString(profileForm.firstName);
+    const cleanLastName = sanitizeString(profileForm.lastName);
+    const cleanDisplayName = sanitizeString(profileForm.displayName);
+
     setIsSavingProfile(true);
     try {
         await updateUserProfile(user.id, {
-            displayName: profileForm.displayName,
+            displayName: cleanDisplayName,
             email: profileForm.email,
-            firstName: profileForm.firstName,
-            lastName: profileForm.lastName
+            firstName: cleanFirstName,
+            lastName: cleanLastName
         });
         setIsEditingProfile(false);
     } catch (error) {
@@ -328,7 +331,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     let title = '';
     const detailsContent: React.ReactNode[] = [];
 
-    const relevantEvents = EVENTS.filter(e => seasonPicks[e.id] && raceResults[e.id]);
+    const relevantEvents = events.filter(e => seasonPicks[e.id] && raceResults[e.id]);
 
     if (relevantEvents.length === 0) {
         detailsContent.push(<p key="no-picks" className="text-highlight-silver">No picks submitted for completed events yet.</p>);
@@ -414,7 +417,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   };
 
   const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali') => {
-    const event = EVENTS.find(e => e.id === eventId);
+    const event = events.find(e => e.id === eventId);
     const picks = seasonPicks[eventId];
     const results = raceResults[eventId];
 
@@ -486,7 +489,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   };
 
   const handleUsageDetailClick = (entityId: string, entityName: string) => {
-    const usageEvents = EVENTS.filter(event => {
+    const usageEvents = events.filter(event => {
         const picks = seasonPicks[event.id];
         if (!picks) return false;
         
@@ -560,7 +563,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
         
         {isEditingProfile ? (
-            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-accent-gray/50 backdrop-blur-sm p-6 rounded-lg">
+            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-fiber border border-pure-white/10 shadow-2xl p-6 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">First Name</label>
@@ -570,6 +573,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                             onChange={e => setProfileForm(prev => ({...prev, firstName: e.target.value}))}
                             placeholder="Required"
                             required
+                            maxLength={50}
                             className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                         />
                     </div>
@@ -581,17 +585,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                             onChange={e => setProfileForm(prev => ({...prev, lastName: e.target.value}))}
                             placeholder="Required"
                             required
+                            maxLength={50}
                             className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                         />
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</label>
+                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name (Max 20)</label>
                     <input 
                         type="text" 
                         value={profileForm.displayName} 
                         onChange={e => setProfileForm(prev => ({...prev, displayName: e.target.value}))}
                         required
+                        maxLength={20}
                         className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
                     />
                 </div>
@@ -634,10 +640,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                 <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
-                <InfoCard icon={DriverIcon} label="First Name" value={user.firstName || '-'} />
-                <InfoCard icon={DriverIcon} label="Last Name" value={user.lastName || '-'} />
+                <InfoCard icon={DriverIcon} label="Name" value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'} />
                 <InfoCard icon={ProfileIcon} label="Email" value={user.email} />
             </div>
         )}
@@ -739,7 +744,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
             <div className="space-y-2">
-                {EVENTS.map(event => {
+                {events.map(event => {
                     const picks = seasonPicks[event.id];
                     const results = raceResults[event.id];
                     if (!picks) return null;
@@ -853,7 +858,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     </div>
     {modalData && (
         <div className="fixed inset-0 bg-carbon-black/80 flex items-center justify-center z-50 p-4" onClick={() => setModalData(null)}>
-            <div className="bg-accent-gray rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto ring-1 ring-pure-white/20 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-carbon-fiber rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto border border-pure-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                         <h3 className="text-2xl font-bold text-pure-white">{modalData.title}</h3>
@@ -890,6 +895,16 @@ const CollapsibleUsageList: React.FC<{
 }> = ({ title, entities, usageData, limit, onItemClick }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Sort by Usage Descending
+  const sortedEntities = [...entities].sort((a, b) => {
+      const usageA = usageData[a.id] || 0;
+      const usageB = usageData[b.id] || 0;
+      if (usageA !== usageB) {
+          return usageB - usageA;
+      }
+      return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="h-full flex flex-col">
       <button
@@ -902,7 +917,7 @@ const CollapsibleUsageList: React.FC<{
       </button>
       {isOpen && (
         <div className="mt-3 space-y-3 flex-grow">
-          {entities.map(e => (
+          {sortedEntities.map(e => (
             <button
                 key={e.id}
                 onClick={() => onItemClick(e.id, e.name)}

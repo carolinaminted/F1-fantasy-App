@@ -4,8 +4,8 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
   <svg viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg" {...props}>
     <defs>
       <linearGradient id="red-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#DA291C" />
-        <stop offset="100%" stopColor="#FF3C28" />
+        <stop offset="0%" stopColor="#FF0000" />
+        <stop offset="100%" stopColor="#FF4D4D" />
       </linearGradient>
     </defs>
     <style>
@@ -14,7 +14,7 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
           font-family: 'Exo 2', sans-serif; 
           font-weight: 400;
           font-size: 18px;
-          fill: #F5F5F5;
+          fill: #FFFFFF;
           letter-spacing: 0.3em;
           text-anchor: middle;
         }
@@ -28,7 +28,7 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
           text-anchor: middle;
         }
         .one-part {
-          fill: #F5F5F5;
+          fill: #FFFFFF;
         }
       `}
     </style>

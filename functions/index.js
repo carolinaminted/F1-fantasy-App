@@ -30,6 +30,20 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
     throw new HttpsError("invalid-argument", "Email is required");
   }
 
+  // Rate Limiting
+  const rateLimitRef = db.collection("rate_limits").doc(email.toLowerCase());
+  const rateLimitDoc = await rateLimitRef.get();
+  if (rateLimitDoc.exists) {
+      const lastAttempt = rateLimitDoc.data().lastAttempt;
+      // Check if lastAttempt exists and is within 60 seconds
+      if (lastAttempt && Date.now() - lastAttempt.toMillis() < 60000) {
+          logger.warn(`Rate limit exceeded for ${email}`);
+          throw new HttpsError("resource-exhausted", "Too many attempts. Please wait 1 minute before trying again.");
+      }
+  }
+  // Update rate limit timestamp
+  await rateLimitRef.set({ lastAttempt: admin.firestore.FieldValue.serverTimestamp() });
+
   // 1. Config Loading (V2 Compatible)
   let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
   let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
@@ -158,6 +172,55 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
     await docRef.delete();
     logger.info(`✅ VERIFICATION SUCCESSFUL for ${email}`);
     return { valid: true };
+});
+
+// --- INVITATION CODE SYSTEM ---
+
+exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
+    logger.info("EXECUTION START: validateInvitationCode", { data: request.data });
+    
+    const { code } = request.data;
+    
+    if (!code) {
+        throw new HttpsError("invalid-argument", "Code is required.");
+    }
+
+    const codeRef = db.collection("invitation_codes").doc(code);
+    
+    try {
+        const result = await db.runTransaction(async (t) => {
+            const doc = await t.get(codeRef);
+            
+            if (!doc.exists) {
+                throw new HttpsError("not-found", "Invalid invitation code.");
+            }
+            
+            const data = doc.data();
+            
+            if (data.status !== 'active') {
+                // If it's reserved, check if it expired (e.g. 15 mins ago). 
+                // For simplicity in this iteration, we treat reserved as used/taken to be safe.
+                throw new HttpsError("failed-precondition", "This code has already been used or is currently being registered.");
+            }
+            
+            // Reserve the code so no one else can grab it while this user completes signup
+            t.update(codeRef, {
+                status: 'reserved',
+                reservedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            return { valid: true };
+        });
+        
+        logger.info(`✅ Code ${code} validated and reserved.`);
+        return result;
+
+    } catch (e) {
+        logger.warn(`Validation failed for code ${code}: ${e.message}`);
+        // Re-throw instance of HttpsError so client gets correct code
+        if (e instanceof HttpsError) throw e;
+        throw new HttpsError("internal", "Validation process failed.");
+    }
 });
 
 // --- SCORING ENGINE ---

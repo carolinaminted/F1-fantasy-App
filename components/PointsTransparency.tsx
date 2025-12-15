@@ -38,7 +38,7 @@ const PointsCard: React.FC<{
     headerColor?: string;
     children: React.ReactNode;
 }> = ({ title, icon: Icon, subtitle, className, headerColor, children }) => (
-    <div className={`bg-accent-gray/30 backdrop-blur-md rounded-xl ring-1 ring-pure-white/10 flex flex-col overflow-hidden shadow-lg ${className}`}>
+    <div className={`bg-carbon-fiber rounded-xl ring-1 ring-pure-white/10 flex flex-col overflow-hidden shadow-lg ${className}`}>
         {/* Header */}
         <div className={`px-4 py-3 flex items-center gap-3 border-b border-pure-white/5 bg-carbon-black/20 flex-shrink-0`}>
             <div className={`p-2 rounded-lg ${headerColor || 'bg-pure-white/5 text-pure-white'}`}>
@@ -145,7 +145,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                     </PointsCard>
 
                     {/* Logic Breakdown */}
-                    <div className="bg-gradient-to-br from-carbon-black to-accent-gray/50 rounded-xl p-5 border border-pure-white/5 flex-grow flex flex-col justify-center shadow-lg min-h-0 overflow-hidden">
+                    <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 flex-grow flex flex-col justify-center shadow-lg min-h-0 overflow-hidden">
                         <div className="flex flex-col gap-3 text-xs leading-relaxed text-ghost-white">
                             <div>
                                 <span className="block text-primary-red font-bold uppercase tracking-wider mb-1">Team Score</span>

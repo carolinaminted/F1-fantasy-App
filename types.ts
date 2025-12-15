@@ -13,10 +13,22 @@ export interface User {
   lastName?: string;
   duesPaidStatus?: 'Paid' | 'Unpaid';
   isAdmin?: boolean;
+  invitationCode?: string; // New field
   // Pre-calculated fields from Cloud Function
   totalPoints?: number;
   rank?: number;
   prevRank?: number; // For trending indicators
+}
+
+export interface InvitationCode {
+  code: string;
+  status: 'active' | 'reserved' | 'used';
+  createdBy?: string;
+  createdAt: any; // Firestore Timestamp
+  usedBy?: string;
+  usedByEmail?: string;
+  usedAt?: any;
+  reservedAt?: any;
 }
 
 export interface Constructor {
@@ -40,9 +52,28 @@ export interface Event {
   round: number;
   name: string;
   country: string;
+  location: string; // City/Region (Renamed from circuit)
+  circuit: string; // Full Track Name
   hasSprint: boolean;
   lockAtUtc: string;
   softDeadlineUtc: string;
+}
+
+// New: Detailed schedule for a specific event
+export interface EventSchedule {
+    eventId: string;
+    fp1?: string; // ISO Date String
+    fp2?: string;
+    fp3?: string;
+    qualifying?: string;
+    sprintQualifying?: string;
+    sprint?: string;
+    race?: string;
+    // Allow overriding the default calculated lock times
+    customLockAt?: string;
+    // Overrides
+    name?: string;
+    hasSprint?: boolean;
 }
 
 export interface PickSelection {

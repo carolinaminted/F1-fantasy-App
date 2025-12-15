@@ -1,15 +1,16 @@
+
 import { db } from './firebase.ts';
 // Fix: Add query and orderBy to support sorted data fetching for donations.
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where } from '@firebase/firestore';
 // Fix: Import the newly created Donation type.
-import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor } from '../types.ts';
+import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
 
 // User Profile Management
-export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string }) => {
+export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string; invitationCode?: string }) => {
     if (!userAuth) return;
     const userRef = doc(db, 'users', userAuth.uid);
     const publicUserRef = doc(db, 'public_users', userAuth.uid);
@@ -20,7 +21,7 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
             const userDoc = await transaction.get(userRef);
             if (!userDoc.exists()) {
                 const { email } = userAuth;
-                const { displayName, firstName, lastName } = additionalData;
+                const { displayName, firstName, lastName, invitationCode } = additionalData;
 
                 // Atomic write 1: Private User Profile (contains PII)
                 transaction.set(userRef, {
@@ -28,6 +29,7 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
                     email,
                     firstName,
                     lastName,
+                    invitationCode: invitationCode || null,
                     duesPaidStatus: 'Unpaid',
                 });
 
@@ -40,6 +42,17 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
                 // Atomic write 3: Empty Picks Document
                 // We check availability via the transaction to ensure we don't overwrite if it was created milliseconds ago
                 transaction.set(userPicksRef, {});
+
+                // Atomic write 4: Mark Invitation Code as Used (if present)
+                if (invitationCode) {
+                    const invRef = doc(db, 'invitation_codes', invitationCode);
+                    transaction.update(invRef, {
+                        status: 'used',
+                        usedBy: userAuth.uid,
+                        usedByEmail: email,
+                        usedAt: serverTimestamp()
+                    });
+                }
             }
         });
     } catch (error) {
@@ -63,12 +76,16 @@ export const updateUserProfile = async (uid: string, data: { displayName: string
     const publicUserRef = doc(db, 'public_users', uid);
     
     try {
-        // Update both private and public records
-        await updateDoc(userRef, data);
+        // Use a batch to ensure both private and public records update atomically
+        const batch = writeBatch(db);
         
-        // Only sync public fields
-        await setDoc(publicUserRef, { displayName: data.displayName }, { merge: true });
+        // Update private record
+        batch.update(userRef, data);
         
+        // Update/Sync public fields (merge ensures we don't wipe points/rank)
+        batch.set(publicUserRef, { displayName: data.displayName }, { merge: true });
+        
+        await batch.commit();
         console.log(`Profile updated for user ${uid}`);
     } catch (error) {
         console.error("Error updating user profile", error);
@@ -270,6 +287,28 @@ export const saveLeagueEntities = async (drivers: Driver[], constructors: Constr
     }
 };
 
+// Event Schedule Management
+export const getEventSchedules = async (): Promise<{ [eventId: string]: EventSchedule }> => {
+    const schedulesRef = doc(db, 'app_state', 'event_schedules');
+    const snapshot = await getDoc(schedulesRef);
+    if (snapshot.exists()) {
+        return snapshot.data() as { [eventId: string]: EventSchedule };
+    }
+    return {};
+};
+
+export const saveEventSchedule = async (eventId: string, schedule: EventSchedule) => {
+    const schedulesRef = doc(db, 'app_state', 'event_schedules');
+    try {
+        // Merge the new schedule for this specific eventId
+        await setDoc(schedulesRef, { [eventId]: schedule }, { merge: true });
+        console.log(`Schedule saved for ${eventId}.`);
+    } catch (error) {
+        console.error("Error saving event schedule", error);
+        throw error;
+    }
+};
+
 // Fix: Add and export getUserDonations function. This was missing, causing an import error.
 export const getUserDonations = async (uid: string): Promise<Donation[]> => {
     if (!uid) return [];
@@ -311,4 +350,47 @@ export const logDuesPaymentInitiation = async (
         console.error("Error logging dues payment initiation:", error);
         throw error;
     }
+};
+
+// --- Invitation Code Management (Admin) ---
+
+export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
+    const codesRef = collection(db, 'invitation_codes');
+    // Order by created descending
+    const q = query(codesRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+        code: doc.id,
+        ...doc.data()
+    } as InvitationCode));
+};
+
+export const createInvitationCode = async (adminUid: string): Promise<string> => {
+    const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const codeRef = doc(db, 'invitation_codes', code);
+    
+    await setDoc(codeRef, {
+        status: 'active',
+        createdAt: serverTimestamp(),
+        createdBy: adminUid
+    });
+    
+    return code;
+};
+
+export const createBulkInvitationCodes = async (adminUid: string, count: number): Promise<void> => {
+    const batch = writeBatch(db);
+    
+    for (let i = 0; i < count; i++) {
+        const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const codeRef = doc(db, 'invitation_codes', code);
+        batch.set(codeRef, {
+            status: 'active',
+            createdAt: serverTimestamp(),
+            createdBy: adminUid
+        });
+    }
+    
+    await batch.commit();
 };

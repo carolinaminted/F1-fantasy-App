@@ -6,7 +6,6 @@ import { signOut } from '@firebase/auth';
 
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 const WARNING_THRESHOLD = 10 * 60 * 1000; // 10 minutes (Warning triggers 5 mins before timeout)
-const MAX_SESSION_TIME = 4 * 60 * 60 * 1000; // 4 hours
 
 export const useSessionGuard = (user: User | null) => {
     // Track last activity in a Ref so it persists across re-renders
@@ -70,29 +69,18 @@ export const useSessionGuard = (user: User | null) => {
             const now = Date.now();
             const timeSinceLastActivity = now - lastActivity.current;
             
-            // A. Check Idle Time
+            // Check Idle Time
             if (timeSinceLastActivity > IDLE_TIMEOUT) {
                 clearInterval(checkInterval);
                 forceLogout("You have been logged out due to 15 minutes of inactivity.");
                 return;
             }
 
-            // B. Check Warning Threshold
+            // Check Warning Threshold
             // If we cross the warning threshold and aren't already showing the warning
             if (timeSinceLastActivity > WARNING_THRESHOLD && !showWarning) {
                 setIdleExpiryTime(lastActivity.current + IDLE_TIMEOUT);
                 setShowWarning(true);
-            }
-
-            // C. Check Absolute Max Duration (4h)
-            const firebaseUser = auth.currentUser;
-            if (firebaseUser?.metadata?.lastSignInTime) {
-                const signInTime = new Date(firebaseUser.metadata.lastSignInTime).getTime();
-                if (now - signInTime > MAX_SESSION_TIME) {
-                    clearInterval(checkInterval);
-                    forceLogout("For security, your session has expired after 4 hours. Please log in again.");
-                    return;
-                }
             }
         }, 1000); // Check every second
 

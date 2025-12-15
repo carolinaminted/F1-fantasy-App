@@ -20,6 +20,7 @@ const FormLockPage: React.FC<FormLockPageProps> = ({ formLocks, onToggleLock, se
                     <div>
                         <h3 className="font-bold text-pure-white text-lg">R{event.round}: {event.name}</h3>
                         <p className="text-highlight-silver text-sm">{event.country}</p>
+                        <p className="text-highlight-silver/50 text-xs">{event.location}</p>
                     </div>
                     <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${isLocked ? 'bg-primary-red text-pure-white' : 'bg-carbon-black/50 text-highlight-silver'}`}>
                         {isLocked ? 'Locked' : 'Unlocked'}
@@ -72,7 +73,7 @@ const FormLockPage: React.FC<FormLockPageProps> = ({ formLocks, onToggleLock, se
                                 <tr key={event.id} className="border-t border-accent-gray/50 hover:bg-pure-white/5">
                                     <td className="p-4">
                                         <p className="font-semibold text-ghost-white">R{event.round}: {event.name}</p>
-                                        <p className="text-xs text-highlight-silver">{event.country}</p>
+                                        <p className="text-xs text-highlight-silver">{event.country} <span className="opacity-50 mx-1">•</span> {event.location}</p>
                                     </td>
                                     <td className="p-4 text-center">
                                         <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${isLocked ? 'bg-primary-red text-pure-white' : 'bg-carbon-black/50 text-highlight-silver'}`}>

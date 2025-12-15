@@ -5,9 +5,11 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
+import { CalendarIcon } from './icons/CalendarIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -22,6 +24,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     title="Manage Drivers & Teams"
                     description="Update the active grid, transfers, and classes."
                     onClick={() => setAdminSubPage('entities')}
+                />
+                <AdminTile
+                    icon={CalendarIcon}
+                    title="Schedule Manager"
+                    description="Set race dates, start times, and session details."
+                    onClick={() => setAdminSubPage('schedule')}
                 />
                 <AdminTile
                     icon={TrackIcon}
@@ -41,6 +49,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                     description="Configure points awarded for race results."
                     onClick={() => setAdminSubPage('scoring')}
                 />
+                <AdminTile
+                    icon={TicketIcon}
+                    title="Invitation Codes"
+                    description="Create and manage registration codes."
+                    onClick={() => setAdminSubPage('invitations')}
+                />
             </div>
         </div>
     );
@@ -57,7 +71,7 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, description, o
   return (
     <button
       onClick={onClick}
-      className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 text-left ring-1 ring-pure-white/10 hover:ring-primary-red transition-all duration-300 transform hover:-translate-y-1"
+      className="bg-carbon-fiber rounded-lg p-6 text-left border border-pure-white/10 hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg"
     >
       <Icon className="w-10 h-10 text-primary-red mb-4" />
       <h3 className="text-xl font-bold text-pure-white mb-2">{title}</h3>
