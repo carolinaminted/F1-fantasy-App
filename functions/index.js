@@ -13,6 +13,16 @@ const nodemailer = require("nodemailer");
 admin.initializeApp();
 const db = admin.firestore();
 
+// --- UTILS ---
+
+const maskEmail = (email) => {
+  if (!email || typeof email !== 'string') return "unknown";
+  const parts = email.split("@");
+  if (parts.length < 2) return "invalid";
+  // Mask: f***@gmail.com
+  return `${parts[0].charAt(0)}***@${parts[1]}`;
+};
+
 // --- DIAGNOSTICS ---
 
 exports.ping = onCall((request) => {
@@ -22,7 +32,8 @@ exports.ping = onCall((request) => {
 // --- EMAIL VERIFICATION ---
 
 exports.sendAuthCode = onCall({ cors: true }, async (request) => {
-  logger.info("EXECUTION START: sendAuthCode", { triggerData: request.data });
+  // PII Guard: Do not log full request data
+  logger.info("EXECUTION START: sendAuthCode");
 
   const email = request.data.email;
   if (!email) {
@@ -37,7 +48,7 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
       const lastAttempt = rateLimitDoc.data().lastAttempt;
       // Check if lastAttempt exists and is within 60 seconds
       if (lastAttempt && Date.now() - lastAttempt.toMillis() < 60000) {
-          logger.warn(`Rate limit exceeded for ${email}`);
+          logger.warn(`Rate limit exceeded for user ${maskEmail(email)}`);
           throw new HttpsError("resource-exhausted", "Too many attempts. Please wait 1 minute before trying again.");
       }
   }
@@ -48,8 +59,19 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
   let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
   
+  // Production Security Guard [S1C-05]
+  // Detect Production Project ID to enforce security overrides
+  const PROJECT_ID = process.env.GCLOUD_PROJECT || "unknown";
+  const IS_PRODUCTION = PROJECT_ID === "formula-fantasy-1";
+
   // Production Flag: Set ENABLE_DEMO_MODE="true" in Cloud Run env vars to enable the fallback
-  const enableDemoMode = process.env.ENABLE_DEMO_MODE === 'true';
+  // CRITICAL: Force disable demo mode if running in production project, regardless of env var.
+  let enableDemoMode = process.env.ENABLE_DEMO_MODE === 'true';
+  
+  if (IS_PRODUCTION && enableDemoMode) {
+      logger.warn("SECURITY ALERT: ENABLE_DEMO_MODE attempted in PRODUCTION. Automatically disabled by runtime guard.");
+      enableDemoMode = false;
+  }
   
   const isDefaultUser = gmailEmail === "your-email@gmail.com";
   const isDefaultPass = gmailPassword === "your-app-password";
@@ -57,7 +79,8 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   logger.info("SMTP Configuration Check", {
       configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : "Configured", // Obfuscated for logs
       isConfigValid: !isDefaultUser && !isDefaultPass,
-      demoModeAllowed: enableDemoMode
+      demoModeAllowed: enableDemoMode,
+      environment: IS_PRODUCTION ? "PRODUCTION" : "DEV/TEST"
   });
 
   const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -75,9 +98,9 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    // SECURITY: Only log the code if explicitly in Demo Mode, otherwise keep logs clean.
+    // SECURITY: Only log the code if explicitly in Demo Mode (Dev only), otherwise keep logs clean.
     if (enableDemoMode) {
-        logger.info(`>>> DEMO MODE: GENERATED CODE FOR ${email}: ${code} <<<`);
+        logger.info(`>>> DEMO MODE: GENERATED CODE FOR ${maskEmail(email)}: ${code} <<<`);
     }
 
   } catch (dbError) {
@@ -137,7 +160,9 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
 });
 
 exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
-    logger.info("EXECUTION START: verifyAuthCode", { email: request.data.email });
+    // PII Guard: Mask email in log
+    const emailInput = request.data.email;
+    logger.info("EXECUTION START: verifyAuthCode", { email: maskEmail(emailInput) });
 
     const { email, code } = request.data;
     if (!email || !code) {
@@ -150,7 +175,7 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
     const doc = await docRef.get();
 
     if (!doc.exists) {
-        logger.warn(`Verification failed: No code found for ${email}`);
+        logger.warn(`Verification failed: No code found for ${maskEmail(email)}`);
         return { valid: false, message: "Code not found or expired" };
     }
 
@@ -158,26 +183,27 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
     
     // Check Expiry
     if (Date.now() > record.expiresAt) {
-        logger.warn(`Verification failed: Code expired for ${email}`);
+        logger.warn(`Verification failed: Code expired for ${maskEmail(email)}`);
         return { valid: false, message: "Code expired" };
     }
     
     // Check Match
     if (record.code !== code) {
-        logger.warn(`Verification failed: Invalid code entered for ${email}`);
+        logger.warn(`Verification failed: Invalid code entered for ${maskEmail(email)}`);
         return { valid: false, message: "Invalid code" };
     }
 
     // Success - Clean up used code
     await docRef.delete();
-    logger.info(`✅ VERIFICATION SUCCESSFUL for ${email}`);
+    logger.info(`✅ VERIFICATION SUCCESSFUL for ${maskEmail(email)}`);
     return { valid: true };
 });
 
 // --- INVITATION CODE SYSTEM ---
 
 exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
-    logger.info("EXECUTION START: validateInvitationCode", { data: request.data });
+    // PII Guard: Don't log full request data which might contain sensitive context
+    logger.info("EXECUTION START: validateInvitationCode");
     
     const { code } = request.data;
     
@@ -212,11 +238,11 @@ exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
             return { valid: true };
         });
         
-        logger.info(`✅ Code ${code} validated and reserved.`);
+        logger.info(`✅ Code validated and reserved.`); // Removed specific code from log for cleaner audit trail
         return result;
 
     } catch (e) {
-        logger.warn(`Validation failed for code ${code}: ${e.message}`);
+        logger.warn(`Validation failed for code: ${e.message}`);
         // Re-throw instance of HttpsError so client gets correct code
         if (e instanceof HttpsError) throw e;
         throw new HttpsError("internal", "Validation process failed.");
