@@ -549,7 +549,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       {/* Profile Info Section */}
-      <div className="rounded-lg p-6 ring-1 ring-pure-white/10 relative">
+      <div className="bg-checkered-flag rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
         <div className="flex flex-col items-center justify-center mb-6">
             <h2 className="text-2xl font-bold text-center mb-2">Profile Information</h2>
             {!isEditingProfile && setActivePage && (

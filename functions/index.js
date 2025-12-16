@@ -23,6 +23,54 @@ const maskEmail = (email) => {
   return `${parts[0].charAt(0)}***@${parts[1]}`;
 };
 
+const getClientIp = (request) => {
+    // Gen 2 functions expose rawRequest (Express req object)
+    if (!request.rawRequest) return "unknown";
+    
+    // Check x-forwarded-for header (standard for proxies/load balancers)
+    const xForwarded = request.rawRequest.headers['x-forwarded-for'];
+    if (xForwarded) {
+        // Format: client, proxy1, proxy2
+        return xForwarded.split(',')[0].trim();
+    }
+    
+    return request.rawRequest.ip || request.rawRequest.socket?.remoteAddress || "unknown";
+};
+
+/**
+ * Enforces rate limiting by IP address using Firestore.
+ * @param {string} ip - The client's IP address.
+ * @param {string} operation - Unique identifier for the operation (e.g., 'auth_code').
+ * @param {number} limit - Max attempts allowed in the window.
+ * @param {number} windowSeconds - Time window in seconds.
+ */
+const checkRateLimit = async (ip, operation, limit, windowSeconds) => {
+    // Sanitize IP for document ID (replace colons/dots with underscores)
+    const safeIp = ip.replace(/[^a-zA-Z0-9]/g, '_');
+    const docRef = db.collection('rate_limits_ip').doc(`${operation}_${safeIp}`);
+
+    await db.runTransaction(async (t) => {
+        const doc = await t.get(docRef);
+        const now = admin.firestore.Timestamp.now();
+        let data = doc.exists ? doc.data() : null;
+
+        // If no record or window expired, reset
+        if (!data || now.seconds > data.resetTime.seconds) {
+            t.set(docRef, {
+                count: 1,
+                resetTime: new admin.firestore.Timestamp(now.seconds + windowSeconds, 0)
+            });
+        } else {
+            // Check limit
+            if (data.count >= limit) {
+                throw new HttpsError('resource-exhausted', `Too many attempts. Please try again in ${Math.ceil((data.resetTime.seconds - now.seconds) / 60)} minutes.`);
+            }
+            // Increment
+            t.update(docRef, { count: data.count + 1 });
+        }
+    });
+};
+
 // --- DIAGNOSTICS ---
 
 exports.ping = onCall((request) => {
@@ -41,7 +89,13 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
     throw new HttpsError("invalid-argument", "Email is required");
   }
 
-  // Rate Limiting
+  const clientIp = getClientIp(request);
+
+  // 1. IP Rate Limiting (Prevent Spamming Multiple Emails)
+  // Limit: 3 requests per 10 minutes per IP
+  await checkRateLimit(clientIp, 'send_auth_code', 3, 600);
+
+  // 2. Email Rate Limiting (Prevent Spamming Single Email)
   const rateLimitRef = db.collection("rate_limits").doc(email.toLowerCase());
   const rateLimitDoc = await rateLimitRef.get();
   if (rateLimitDoc.exists) {
@@ -55,17 +109,15 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   // Update rate limit timestamp
   await rateLimitRef.set({ lastAttempt: admin.firestore.FieldValue.serverTimestamp() });
 
-  // 1. Config Loading (V2 Compatible)
+  // 3. Config Loading (V2 Compatible)
   let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
   let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
   
   // Production Security Guard [S1C-05]
-  // Detect Production Project ID to enforce security overrides
   const PROJECT_ID = process.env.GCLOUD_PROJECT || "unknown";
   const IS_PRODUCTION = PROJECT_ID === "formula-fantasy-1";
 
   // Production Flag: Set ENABLE_DEMO_MODE="true" in Cloud Run env vars to enable the fallback
-  // CRITICAL: Force disable demo mode if running in production project, regardless of env var.
   let enableDemoMode = process.env.ENABLE_DEMO_MODE === 'true';
   
   if (IS_PRODUCTION && enableDemoMode) {
@@ -77,7 +129,7 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   const isDefaultPass = gmailPassword === "your-app-password";
   
   logger.info("SMTP Configuration Check", {
-      configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : "Configured", // Obfuscated for logs
+      configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : "Configured",
       isConfigValid: !isDefaultUser && !isDefaultPass,
       demoModeAllowed: enableDemoMode,
       environment: IS_PRODUCTION ? "PRODUCTION" : "DEV/TEST"
@@ -86,11 +138,9 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 600000; // 10 minutes
 
-  // 2. Write to Firestore
+  // 4. Write to Firestore
   try {
-    // Sanitize email for doc ID
     const docId = email.toLowerCase(); 
-    
     await db.collection("email_verifications").doc(docId).set({
       code: code,
       email: email, 
@@ -98,7 +148,6 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    // SECURITY: Only log the code if explicitly in Demo Mode (Dev only), otherwise keep logs clean.
     if (enableDemoMode) {
         logger.info(`>>> DEMO MODE: GENERATED CODE FOR ${maskEmail(email)}: ${code} <<<`);
     }
@@ -108,7 +157,7 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
       throw new HttpsError("internal", "Database error: Unable to save verification code.");
   }
 
-  // 3. Demo Mode / Missing Config Check
+  // 5. Demo Mode / Missing Config Check
   if (isDefaultUser || isDefaultPass) {
       if (enableDemoMode) {
           logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. Returning code to client. <<<");
@@ -119,7 +168,7 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
       }
   }
 
-  // 4. Send Email
+  // 6. Send Email
   try {
     logger.info("Initializing Nodemailer...");
     const transporter = nodemailer.createTransport({
@@ -160,7 +209,6 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
 });
 
 exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
-    // PII Guard: Mask email in log
     const emailInput = request.data.email;
     logger.info("EXECUTION START: verifyAuthCode", { email: maskEmail(emailInput) });
 
@@ -181,19 +229,16 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
 
     const record = doc.data();
     
-    // Check Expiry
     if (Date.now() > record.expiresAt) {
         logger.warn(`Verification failed: Code expired for ${maskEmail(email)}`);
         return { valid: false, message: "Code expired" };
     }
     
-    // Check Match
     if (record.code !== code) {
         logger.warn(`Verification failed: Invalid code entered for ${maskEmail(email)}`);
         return { valid: false, message: "Invalid code" };
     }
 
-    // Success - Clean up used code
     await docRef.delete();
     logger.info(`✅ VERIFICATION SUCCESSFUL for ${maskEmail(email)}`);
     return { valid: true };
@@ -202,14 +247,17 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
 // --- INVITATION CODE SYSTEM ---
 
 exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
-    // PII Guard: Don't log full request data which might contain sensitive context
     logger.info("EXECUTION START: validateInvitationCode");
     
     const { code } = request.data;
-    
     if (!code) {
         throw new HttpsError("invalid-argument", "Code is required.");
     }
+
+    const clientIp = getClientIp(request);
+
+    // IP Rate Limiting: 5 attempts per 10 minutes
+    await checkRateLimit(clientIp, 'validate_invitation', 5, 600);
 
     const codeRef = db.collection("invitation_codes").doc(code);
     
@@ -224,12 +272,10 @@ exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
             const data = doc.data();
             
             if (data.status !== 'active') {
-                // If it's reserved, check if it expired (e.g. 15 mins ago). 
-                // For simplicity in this iteration, we treat reserved as used/taken to be safe.
                 throw new HttpsError("failed-precondition", "This code has already been used or is currently being registered.");
             }
             
-            // Reserve the code so no one else can grab it while this user completes signup
+            // Reserve the code
             t.update(codeRef, {
                 status: 'reserved',
                 reservedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -238,12 +284,11 @@ exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
             return { valid: true };
         });
         
-        logger.info(`✅ Code validated and reserved.`); // Removed specific code from log for cleaner audit trail
+        logger.info(`✅ Code validated and reserved.`);
         return result;
 
     } catch (e) {
         logger.warn(`Validation failed for code: ${e.message}`);
-        // Re-throw instance of HttpsError so client gets correct code
         if (e instanceof HttpsError) throw e;
         throw new HttpsError("internal", "Validation process failed.");
     }
@@ -316,10 +361,6 @@ const calculateEventScore = (picks, results, system, drivers) => {
     return { total, breakdown: { gp: gpPoints, sprint: sprintPoints, quali: qualiPoints, fl: flPoints } };
 };
 
-/**
- * Trigger: Recalculate Leaderboard
- * V2 Config: Increased memory and timeout for heavy calculations
- */
 exports.updateLeaderboard = onDocumentWritten(
     { 
         document: 'app_state/race_results',
@@ -327,7 +368,6 @@ exports.updateLeaderboard = onDocumentWritten(
         timeoutSeconds: 300 // 5 minutes
     }, 
     async (event) => {
-        // In v2, we check event.data.after
         if (!event.data || !event.data.after.exists) return;
         
         const raceResults = event.data.after.data();

@@ -20,6 +20,7 @@ const AuthScreen: React.FC = () => {
   
   // Invitation Code State
   const [invitationCode, setInvitationCode] = useState('');
+  // We use this local state only for immediate UX feedback, not security enforcement
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [blockUntil, setBlockUntil] = useState<number>(0);
   const [timeLeftBlocked, setTimeLeftBlocked] = useState(0);
@@ -39,41 +40,22 @@ const AuthScreen: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
 
-  // Check Local Storage for Blocked State on Mount
-  useEffect(() => {
-      const storedAttempts = localStorage.getItem('invitation_attempts');
-      const storedBlock = localStorage.getItem('invitation_block_until');
-      
-      if (storedAttempts) setFailedAttempts(parseInt(storedAttempts));
-      if (storedBlock) {
-          const blockTime = parseInt(storedBlock);
-          if (Date.now() < blockTime) {
-              setBlockUntil(blockTime);
-          } else {
-              // Block expired, reset
-              localStorage.removeItem('invitation_attempts');
-              localStorage.removeItem('invitation_block_until');
-              setFailedAttempts(0);
-          }
-      }
-  }, []);
-
-  // Timer for Countdown
+  // Timer for Countdown (UX Only - Server enforces actual block)
   useEffect(() => {
       let interval: any;
-      if (blockUntil > 0) {
+      if (blockUntil > Date.now()) {
           interval = setInterval(() => {
               const remaining = Math.ceil((blockUntil - Date.now()) / 1000);
               if (remaining <= 0) {
                   setBlockUntil(0);
                   setFailedAttempts(0);
-                  localStorage.removeItem('invitation_attempts');
-                  localStorage.removeItem('invitation_block_until');
                   clearInterval(interval);
               } else {
                   setTimeLeftBlocked(remaining);
               }
           }, 1000);
+      } else if (blockUntil > 0 && blockUntil <= Date.now()) {
+          setBlockUntil(0);
       }
       return () => clearInterval(interval);
   }, [blockUntil]);
@@ -100,8 +82,6 @@ const AuthScreen: React.FC = () => {
       disableForReducedMotion: true,
       zIndex: 2000
     });
-
-    // Note: Test auto-fill backdoor logic removed for production security [S1C-03].
     
     setError(null);
     setResetMessage(null);
@@ -125,26 +105,22 @@ const AuthScreen: React.FC = () => {
           if (data.valid) {
               setInvitationCode(codeToSubmit); // Normalize
               setSignupStep('email');
-              // Clear attempts on success
-              localStorage.removeItem('invitation_attempts');
               setFailedAttempts(0);
           } else {
-              // Should catch block below, but just in case
               throw new Error("Invalid Code");
           }
 
       } catch (err: any) {
           console.error("Invitation validation failed:", err);
-          const newAttempts = failedAttempts + 1;
-          setFailedAttempts(newAttempts);
-          localStorage.setItem('invitation_attempts', newAttempts.toString());
-
-          if (newAttempts >= 3) {
-              const blockTime = Date.now() + 10 * 60 * 1000; // 10 minutes
+          
+          // Check for server-side rate limit error
+          if (err.code === 'resource-exhausted' || (err.message && err.message.includes('Too many attempts'))) {
+              const blockTime = Date.now() + 10 * 60 * 1000; // 10 minutes (UX Sync)
               setBlockUntil(blockTime);
-              localStorage.setItem('invitation_block_until', blockTime.toString());
               setError("Maximum attempts reached. Please try again in 10 minutes.");
           } else {
+              // UX Counter (Non-blocking security, just feedback)
+              setFailedAttempts(prev => prev + 1);
               setError(err.message || "Invalid or used invitation code.");
           }
       } finally {
@@ -168,8 +144,6 @@ const AuthScreen: React.FC = () => {
             return setError("An account with this email already exists. Please log in.");
         }
 
-        console.log("Calling Cloud Function: sendAuthCode");
-        
         const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
         await sendAuthCode({ email });
         
@@ -177,7 +151,9 @@ const AuthScreen: React.FC = () => {
 
     } catch (err: any) {
         console.error("Verification error:", err);
-        if (err.message) {
+        if (err.code === 'resource-exhausted') {
+             setError("Too many requests. Please wait a moment before trying again.");
+        } else if (err.message) {
              setError(err.message);
         } else {
              setError("Failed to process request. Please check your connection.");
@@ -334,9 +310,9 @@ const AuthScreen: React.FC = () => {
                               required
                               className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-primary-red focus:border-primary-red uppercase"
                             />
-                            {failedAttempts > 0 && failedAttempts < 3 && (
+                            {failedAttempts > 0 && failedAttempts < 5 && (
                                 <p className="text-xs text-yellow-500 mt-2 text-center">
-                                    {3 - failedAttempts} attempts remaining.
+                                    Incorrect code. Please try again.
                                 </p>
                             )}
                           </div>
