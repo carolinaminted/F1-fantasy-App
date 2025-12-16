@@ -929,13 +929,9 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
     }, [raceResults, pointsSystem, allDrivers, allConstructors]);
 
     return (
-        <div className="space-y-8 animate-fade-in">
-             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 className="text-2xl font-bold text-pure-white">Driver & Team Points</h2>
-                <div className="text-[10px] uppercase font-bold text-highlight-silver bg-accent-gray/30 px-3 py-1.5 rounded-full border border-pure-white/10 text-center tracking-wider">
-                    Based on Official Race Results
-                </div>
-            </div>
+        <div className="space-y-8 animate-fade-in pt-4">
+            
+            {/* Header Removed (Moved to Top Nav) */}
 
             {/* TOP ROW: Constructors Standings */}
             <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
@@ -1171,17 +1167,24 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       <BackIcon className="w-5 h-5" />
                       Back to Hub
                   </button>
-                  {view === 'entities' && (
-                      <h1 className="text-lg md:text-xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block border-l border-pure-white/20 pl-4">
-                          Driver & Team Points
-                      </h1>
-                  )}
               </div>
               
               {(view === 'standings') && (
                   <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
                       League Leaderboard
                   </h1>
+              )}
+
+              {/* NEW: Driver & Team Points Title in Header (Desktop) */}
+              {(view === 'entities') && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                        <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                            <TeamIcon className="w-5 h-5 text-primary-red" />
+                        </div>
+                      <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                          Driver & Team Points
+                      </h1>
+                  </div>
               )}
               
               <RefreshControl 
@@ -1194,6 +1197,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
           {view === 'standings' && (
               <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center flex-none">League Leaderboard</h1>
+          )}
+
+          {/* NEW: Driver & Team Points Title (Mobile) */}
+          {view === 'entities' && (
+               <div className="sm:hidden mb-4 flex flex-col items-center justify-center flex-none">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                            <TeamIcon className="w-6 h-6 text-primary-red" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
+                            Driver & Team Points
+                        </h1>
+                    </div>
+                </div>
           )}
 
           <div className="flex-1 min-h-0 overflow-y-auto md:overflow-y-hidden custom-scrollbar">
