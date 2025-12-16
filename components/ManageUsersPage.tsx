@@ -49,7 +49,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         setSelectedUser(updatedUser);
     };
 
-    const RightAction = (
+    const DashboardAction = (
         <button 
             onClick={() => selectedUser ? setSelectedUser(null) : setAdminSubPage('dashboard')}
             className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
@@ -64,7 +64,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
             <PageHeader 
                 title={selectedUser ? "EDIT USER" : "MANAGE USERS"} 
                 icon={ProfileIcon} 
-                rightAction={RightAction}
+                leftAction={DashboardAction}
             />
 
             {selectedUser ? (

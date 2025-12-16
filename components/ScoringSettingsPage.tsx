@@ -147,7 +147,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
 
     const isActiveProfile = editForm?.id === localSettings.activeProfileId;
 
-    const RightAction = (
+    const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
             className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
@@ -162,7 +162,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
             <PageHeader 
                 title="SCORING SETTINGS" 
                 icon={TrophyIcon} 
-                rightAction={RightAction}
+                leftAction={DashboardAction}
             />
             
             {/* Toolbar */}
@@ -304,8 +304,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     );
 };
 
-// --- Sub-Components ---
-
+// ... (Sub-Components: ProfileDropdown, PointArraySection, ScoringInput, FastestLapIcon preserved)
 const ProfileDropdown: React.FC<{
     profiles: ScoringProfile[];
     activeProfileId: string;

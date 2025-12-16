@@ -215,6 +215,11 @@ const App: React.FC = () => {
   
   const { showToast } = useToast();
 
+  // Pages that should have a fixed (non-scrolling) viewport on desktop, allowing internal scrolling.
+  // Currently enabled for Donation and DuesPayment as requested.
+  const lockedDesktopPages: Page[] = ['donate', 'duesPayment'];
+  const isLockedLayout = lockedDesktopPages.includes(activePage);
+
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
   const [leaderboardCache, setLeaderboardCache] = useState<LeaderboardCache | null>(null);
 
@@ -655,11 +660,18 @@ const App: React.FC = () => {
           Main Content Container (Scrollable Area)
           Using flex-1 with overflow-y-auto ensures THIS element scrolls, not the body.
           pb-[6rem] accounts for bottom nav on mobile.
+          
+          UPDATE: Conditionally apply md:overflow-hidden for pages that handle their own internal scrolling (Flex-Lock).
         */}
-        <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto pb-[6rem] pb-safe md:pb-8">
+        <div 
+            ref={scrollContainerRef} 
+            className={`relative flex-1 overflow-y-auto pb-[6rem] pb-safe ${isLockedLayout ? 'md:overflow-hidden md:pb-0' : 'md:pb-8'}`}
+        >
             {/* Replaced broken image with CSS Class 'bg-carbon-fiber' defined in index.html */}
             <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
-            <main className="relative p-4 md:p-8 min-h-full">
+            
+            {/* Main Wrapper: Needs full height if locked to allow children to expand */}
+            <main className={`relative p-4 md:p-8 ${isLockedLayout ? 'h-full' : 'min-h-full'}`}>
                 {/* Wrap main content in ErrorBoundary. Key ensures it resets on page change. */}
                 <ErrorBoundary key={`${activePage}-${adminSubPage}`}>
                     {renderPage()}

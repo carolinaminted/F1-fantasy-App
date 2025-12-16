@@ -4,6 +4,7 @@ import { runSeasonSimulation, SimulationReport } from '../services/simulationSer
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { PointsSystem } from '../types.ts';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface AdminSimulationPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -26,20 +27,23 @@ const AdminSimulationPage: React.FC<AdminSimulationPageProps> = ({ setAdminSubPa
         }, 100);
     };
 
+    const DashboardAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
-        <div className="max-w-4xl mx-auto text-pure-white">
-            <div className="flex items-center justify-between mb-8">
-                 <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
-                >
-                    <BackIcon className="w-5 h-5" />
-                    Back
-                </button>
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-right">
-                    Scoring Simulator <TrophyIcon className="w-8 h-8 text-primary-red"/>
-                </h1>
-            </div>
+        <div className="max-w-4xl mx-auto text-pure-white h-full flex flex-col">
+            <PageHeader 
+                title="SCORING SIMULATOR" 
+                icon={TrophyIcon} 
+                leftAction={DashboardAction}
+            />
 
             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-6 ring-1 ring-pure-white/10 mb-8">
                 <h2 className="text-xl font-bold mb-4">Run Audit Simulation</h2>

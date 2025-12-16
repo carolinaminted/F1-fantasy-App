@@ -35,7 +35,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
 
     const selectedEvent = EVENTS.find(e => e.id === editingEventId);
 
-    const RightAction = (
+    const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
             className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
@@ -50,7 +50,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
             <PageHeader 
                 title="SCHEDULE MANAGER" 
                 icon={CalendarIcon} 
-                rightAction={RightAction}
+                leftAction={DashboardAction}
             />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8">

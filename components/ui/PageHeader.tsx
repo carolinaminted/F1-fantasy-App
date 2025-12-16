@@ -6,11 +6,20 @@ interface PageHeaderProps {
     icon: React.FC<React.SVGProps<SVGSVGElement>>;
     subtitle?: string;
     rightAction?: React.ReactNode;
+    leftAction?: React.ReactNode;
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, icon: Icon, subtitle, rightAction }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, icon: Icon, subtitle, rightAction, leftAction }) => {
     return (
         <div className="relative flex flex-col md:flex-row items-center justify-center py-6 md:py-8 mb-6 md:mb-8 w-full max-w-7xl mx-auto px-4 md:px-0 flex-none">
+            
+            {/* Left Action (Absolute on Desktop, Stacked on Mobile) */}
+            {leftAction && (
+                <div className="mb-4 md:mb-0 w-full md:w-auto md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 z-20 pointer-events-auto flex justify-start">
+                    {leftAction}
+                </div>
+            )}
+
             {/* Center Content */}
             <div className="flex flex-col items-center z-10 text-center pointer-events-none">
                 <div className="flex items-center gap-4 mb-2">

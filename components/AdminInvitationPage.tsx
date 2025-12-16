@@ -83,7 +83,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         return date.toLocaleDateString();
     };
 
-    const RightAction = (
+    const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
             className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
@@ -98,7 +98,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
             <PageHeader 
                 title="INVITATION MANAGER" 
                 icon={TicketIcon} 
-                rightAction={RightAction}
+                leftAction={DashboardAction}
             />
 
             {/* Controls */}

@@ -125,7 +125,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         });
     };
 
-    const RightAction = (
+    const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
             className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
@@ -140,7 +140,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             <PageHeader 
                 title="MANAGE ROSTER" 
                 icon={GarageIcon} 
-                rightAction={RightAction}
+                leftAction={DashboardAction}
             />
             
             <div className="flex gap-3 mb-6 justify-center items-center px-4 md:px-0">
