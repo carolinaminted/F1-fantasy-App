@@ -135,40 +135,51 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         </button>
     );
 
+    const HeaderControls = (
+        <div className="flex gap-3 items-center justify-center md:justify-end w-full md:w-auto mt-4 md:mt-0">
+             <div className="flex bg-accent-gray rounded-lg p-1 shadow-lg">
+                <button
+                    onClick={() => setActiveTab('drivers')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                >
+                    <DriverIcon className="w-4 h-4" /> Drivers
+                </button>
+                <button
+                    onClick={() => setActiveTab('teams')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${activeTab === 'teams' ? 'bg-pure-white text-carbon-black shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                >
+                    <TeamIcon className="w-4 h-4" /> Teams
+                </button>
+            </div>
+            
+            <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-primary-red hover:bg-red-600 p-2 rounded-lg text-pure-white shadow-lg disabled:opacity-50 flex items-center justify-center transition-all transform hover:scale-105 border border-transparent"
+                aria-label="Save"
+                title="Save Changes"
+            >
+                {isSaving ? (
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                ) : (
+                    <SaveIcon className="w-5 h-5" />
+                )}
+            </button>
+        </div>
+    );
+
     return (
         <div className="max-w-6xl mx-auto text-pure-white flex flex-col h-full">
             <PageHeader 
                 title="MANAGE ROSTER" 
                 icon={GarageIcon} 
                 leftAction={DashboardAction}
+                rightAction={HeaderControls}
             />
             
-            <div className="flex gap-3 mb-6 justify-center items-center px-4 md:px-0">
-                <button
-                    onClick={() => setActiveTab('drivers')}
-                    className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-lg font-bold transition-colors text-sm md:text-base ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
-                >
-                    <DriverIcon className="w-5 h-5" /> Drivers
-                </button>
-                <button
-                    onClick={() => setActiveTab('teams')}
-                    className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-lg font-bold transition-colors text-sm md:text-base ${activeTab === 'teams' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
-                >
-                    <TeamIcon className="w-5 h-5" /> Teams
-                </button>
-                
-                {/* Save Button (Floppy Disk Icon) */}
-                <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="bg-primary-red p-2 rounded-lg text-pure-white shadow-lg disabled:opacity-50 flex items-center justify-center ml-1"
-                    aria-label="Save"
-                    title="Save Changes"
-                >
-                    <SaveIcon className="w-6 h-6" />
-                </button>
-            </div>
-
             <div className="flex-1 overflow-hidden px-4 md:px-0 pb-8 flex flex-col">
                 <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg overflow-hidden flex flex-col flex-1">
                     <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">

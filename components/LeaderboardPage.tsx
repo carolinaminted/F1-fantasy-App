@@ -102,18 +102,35 @@ const RefreshControl: React.FC<{
 };
 
 // ... (Rest of sub-components: NavTile, SimpleBarChart, ConstructorPodium, RaceChart, AccordionItem, StandingsView, PopularityView, InsightsView, EntityStatsView remain unchanged)
-const NavTile: React.FC<{ icon: any; title: string; desc: string; onClick: () => void }> = ({ icon: Icon, title, desc, onClick }) => (
+const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: string; onClick: () => void; delay?: string }> = ({ icon: Icon, title, subtitle, desc, onClick, delay = '0ms' }) => (
     <button
         onClick={onClick}
-        className="group relative overflow-hidden bg-carbon-fiber rounded-xl p-8 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-xl hover:shadow-[0_0_20px_rgba(218,41,28,0.15)] transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col"
+        className="group relative overflow-hidden rounded-xl p-5 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full w-full bg-carbon-fiber animate-fade-in-up"
+        style={{ animationDelay: delay }}
     >
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Icon className="w-32 h-32 text-primary-red" />
+        {/* Background Icon (Huge & Faded) */}
+        <div className="absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 text-pure-white">
+            <Icon className="w-48 h-48" />
         </div>
-        <div className="relative z-10 flex-grow">
-            <Icon className="w-12 h-12 text-primary-red mb-4" />
-            <h3 className="text-2xl font-bold text-pure-white mb-2">{title}</h3>
-            <p className="text-highlight-silver">{desc}</p>
+        
+        {/* Header Section */}
+        <div className="flex items-start justify-between mb-3 relative z-10">
+             <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
+                <Icon className="w-5 h-5" />
+            </div>
+            <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
+        </div>
+        
+        {/* Content Section */}
+        <div className="relative z-10 flex-grow flex flex-col justify-center">
+            <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
+            <p className="text-highlight-silver/70 text-sm leading-snug">{desc}</p>
+        </div>
+        
+        {/* Footer Action */}
+        <div className="mt-3 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
+            <span>Access</span>
+            <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
         </div>
     </button>
 );
@@ -1131,26 +1148,34 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       <NavTile 
                         icon={LeaderboardIcon} 
                         title="Standings" 
+                        subtitle="League Table"
                         desc="View the full league table sorted by total points." 
                         onClick={() => setView('standings')} 
+                        delay="0ms"
                       />
                       <NavTile 
                         icon={TrendingUpIcon} 
                         title="Popular Picks" 
+                        subtitle="Trends"
                         desc="See which drivers and teams are trending this season." 
                         onClick={() => setView('popular')} 
+                        delay="100ms"
                       />
                        <NavTile 
                         icon={TeamIcon} 
                         title="Teams & Driver Results" 
+                        subtitle="Breakdown"
                         desc="Real-world performance breakdown with our league scoring system." 
                         onClick={() => setView('entities')} 
+                        delay="200ms"
                       />
                       <NavTile 
                         icon={LightbulbIcon} 
                         title="Insights" 
+                        subtitle="Deep Dive"
                         desc="Deep dive into performance breakdowns and superlatives." 
                         onClick={() => setView('insights')} 
+                        delay="300ms"
                       />
                   </div>
               </div>

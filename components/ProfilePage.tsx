@@ -72,10 +72,10 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?:
 };
 
 const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon: Icon, label, value }) => (
-    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-black/60 w-full h-full min-h-[120px] border border-pure-white/10 shadow-lg hover:border-primary-red/50 transition-all duration-200 backdrop-blur-sm">
-        <Icon className="w-8 h-8 text-primary-red mb-3" />
-        <span className="text-xs font-bold uppercase text-highlight-silver mb-1">{label}</span>
-        <span className="font-bold text-lg text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
+    <div className="flex flex-col items-center justify-center p-6 rounded-lg bg-black/20 w-full h-full min-h-[120px] border border-pure-white/5 shadow-inner">
+        <Icon className="w-8 h-8 text-primary-red mb-3 opacity-80" />
+        <span className="text-xs font-bold uppercase text-highlight-silver mb-2 tracking-widest">{label}</span>
+        <span className="text-xl md:text-2xl font-black text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
     </div>
 );
 

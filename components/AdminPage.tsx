@@ -24,9 +24,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 />
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-4 md:px-0 pb-8">
-                <div className="max-w-5xl mx-auto w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Added p-6 to provide buffer for hover effects (translate-y) so they aren't clipped */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 p-6">
+                <div className="max-w-[1600px] mx-auto w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                          <AdminTile
                             icon={TeamIcon}
                             title="Manage Drivers & Teams"
