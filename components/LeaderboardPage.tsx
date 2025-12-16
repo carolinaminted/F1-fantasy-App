@@ -398,8 +398,9 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     }, [users, searchTerm, sortOrder, viewLimit]);
 
     const UserCard: React.FC<{ user: ProcessedUser }> = ({ user }) => (
-        <div className={`bg-accent-gray/50 rounded-lg p-4 flex items-center justify-between border ${user.id === currentUser?.id ? 'border-primary-red bg-primary-red/10' : 'border-pure-white/5'}`}>
-            <div className="flex items-center gap-4">
+        <div className={`relative overflow-hidden bg-carbon-fiber rounded-lg p-4 flex items-center justify-between border shadow-lg ${user.id === currentUser?.id ? 'border-primary-red' : 'border-pure-white/10'}`}>
+            {user.id === currentUser?.id && <div className="absolute inset-0 bg-primary-red/10 pointer-events-none"></div>}
+            <div className="flex items-center gap-4 relative z-10">
                 <div className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-lg ${
                     user.displayRank === 1 ? 'bg-yellow-500 text-black' :
                     user.displayRank === 2 ? 'bg-gray-300 text-black' :
@@ -413,7 +414,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     {user.id === currentUser?.id && <span className="text-[10px] text-primary-red uppercase font-bold tracking-wider">You</span>}
                 </div>
             </div>
-            <div className="text-right">
+            <div className="text-right relative z-10">
                 <span className="block font-mono font-bold text-xl text-primary-red">{user.totalPoints || 0}</span>
                 <span className="text-[10px] text-highlight-silver uppercase tracking-wider">PTS</span>
             </div>
@@ -436,7 +437,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     const raceLeader = Math.max(...users.map(u => u.totalPoints || 0), 0);
 
     return (
-        <div className="flex flex-col gap-4 h-[calc(100vh-180px)] animate-fade-in pb-safe">
+        <div className="flex flex-col gap-4 h-full animate-fade-in pb-safe">
             
             {/* Visual Section */}
             <AccordionItem 
@@ -505,9 +506,9 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                         </div>
 
                         {/* Desktop Table */}
-                        <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                        <div className="hidden md:block bg-carbon-fiber backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden shadow-2xl">
                             <table className="w-full text-left">
-                                <thead className="bg-carbon-black/50 sticky top-0 z-10">
+                                <thead className="bg-carbon-black/80 sticky top-0 z-10 backdrop-blur-md">
                                     <tr>
                                         <th className="p-4 text-sm font-semibold uppercase text-highlight-silver w-20 text-center">Rank</th>
                                         <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Principal</th>
@@ -521,7 +522,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                                 </thead>
                                 <tbody>
                                     {filteredAndSorted.map(user => (
-                                        <tr key={user.id} className={`border-t border-accent-gray/50 hover:bg-pure-white/5 ${user.id === currentUser?.id ? 'bg-primary-red/10' : ''}`}>
+                                        <tr key={user.id} className={`border-t border-pure-white/10 hover:bg-pure-white/5 transition-colors ${user.id === currentUser?.id ? 'bg-primary-red/10' : ''}`}>
                                             <td className="p-4 text-center font-bold text-xl text-highlight-silver">{user.displayRank}</td>
                                             <td className="p-4">
                                                 <div className="font-bold text-pure-white">{user.displayName}</div>
@@ -629,6 +630,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
                 </div>
             </div>
 
+            {/* Charts Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
@@ -671,13 +673,10 @@ const InsightsView: React.FC<{
         if (users.length === 0) return null;
         
         const findMax = (key: keyof ProcessedUser['breakdown']) => {
-            // Filter out 0 or NaN/Invalid breakdowns to ensure clean sorting
             const validUsers = users.filter(u => u.breakdown && typeof u.breakdown[key] === 'number');
             if (validUsers.length === 0) return null;
 
             const sorted = [...validUsers].sort((a, b) => b.breakdown[key] - a.breakdown[key]);
-            
-            // If the max score is 0, we treat it as no data yet
             if (sorted[0].breakdown[key] <= 0) return null;
             
             return { user: sorted[0], score: sorted[0].breakdown[key] };
@@ -691,44 +690,33 @@ const InsightsView: React.FC<{
         };
     }, [users]);
 
-    // Trend Charts Calculation
     const trendData = useMemo(() => {
-        // 1. Identify completed events
         const completedEvents = events.filter(e => {
             const r = raceResults[e.id];
             return r && (r.grandPrixFinish?.some(p => p) || !!r.fastestLap);
         });
 
-        // 2. Define ranges
         const last3Events = completedEvents.slice(-3);
         const last6Events = completedEvents.slice(-6);
         const firstHalfEvents = completedEvents.filter(e => e.round <= 12);
         const secondHalfEvents = completedEvents.filter(e => e.round > 12);
 
-        // 3. Helper to calculate leaderboard for a set of events
         const getRangeLeaderboard = (eventsSubset: Event[]) => {
             if (eventsSubset.length === 0) return [];
-            
-            const eventIds = new Set(eventsSubset.map(e => e.id));
-            
             const userScores = users.map(user => {
                 const userPicks = allPicks[user.id] || {};
                 let rangeTotal = 0;
-                
                 eventsSubset.forEach(event => {
                     const picks = userPicks[event.id];
                     const results = raceResults[event.id];
                     if (picks && results) {
                         const score = calculatePointsForEvent(picks, results, pointsSystem, allDrivers);
-                        // Ensure numerical consistency
                         const safeScore = isNaN(score.totalPoints) ? 0 : score.totalPoints;
                         rangeTotal += safeScore;
                     }
                 });
-
                 return { label: user.displayName, value: rangeTotal };
             });
-
             return userScores
                 .filter(u => u.value > 0)
                 .sort((a, b) => b.value - a.value)
@@ -754,7 +742,6 @@ const InsightsView: React.FC<{
                 {data ? (
                     <>
                         <p className="text-xl font-bold text-pure-white truncate">{data.user.displayName}</p>
-                        {/* UPDATED FONT SIZE */}
                         <p className="text-4xl md:text-5xl font-black text-primary-red font-mono mt-1 leading-none">
                             {Number(data.score || 0).toLocaleString()} <span className="text-xs font-bold text-highlight-silver align-top">PTS</span>
                         </p>
@@ -785,7 +772,6 @@ const InsightsView: React.FC<{
                                 <div className="flex-1">
                                     <div className="flex justify-between text-xs mb-1">
                                         <span className="font-semibold text-ghost-white truncate">{item.label}</span>
-                                        {/* UPDATED FONT SIZE */}
                                         <span className="font-mono font-bold text-lg md:text-xl text-primary-red">{item.value}</span>
                                     </div>
                                     <div className="w-full bg-carbon-black rounded-full h-1.5 border border-pure-white/5">
@@ -809,13 +795,11 @@ const InsightsView: React.FC<{
 
     return (
         <div className="flex flex-col h-full gap-4 animate-fade-in pb-safe">
-            {/* Header for Insights View - Compact & Centered */}
             <div className="flex items-center justify-center gap-2 flex-none -mt-2">
                 <TrendingUpIcon className="w-6 h-6 text-primary-red" />
                 <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">Performance Trends</h2>
             </div>
             
-            {/* Top 4 Categories - Fixed Height Grid */}
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
                 <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
@@ -823,7 +807,6 @@ const InsightsView: React.FC<{
                 <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
 
-            {/* Trend Charts Grid (2x2) - Flexible Height */}
             <div className="flex-1 min-h-0 pb-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
                     <TrendChart 
@@ -873,14 +856,12 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             const addPoints = (driverId: string | null, pts: number, category: 'race' | 'sprint' | 'quali' | 'fl' = 'race') => {
                 if (!driverId) return;
                 
-                // Add to driver
                 if (driverScores[driverId]) {
                     driverScores[driverId].total += pts;
                     if (category === 'sprint') driverScores[driverId].sprint += pts;
                     if (category === 'quali') driverScores[driverId].quali += pts;
                 }
 
-                // Add to team
                 const driver = allDrivers.find(d => d.id === driverId);
                 const teamId = results.driverTeams?.[driverId] || driver?.constructorId;
                 
@@ -902,7 +883,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             if (results.fastestLap) {
                 addPoints(results.fastestLap, pointsSystem.fastestLap, 'fl');
                 if (driverScores[results.fastestLap]) {
-                    driverScores[results.fastestLap].fl += 1; // Count wins
+                    driverScores[results.fastestLap].fl += 1;
                 }
             }
         });
@@ -920,7 +901,6 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             }
         };
 
-        // Format
         const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, type: 'team' | 'driver', limit?: number, keepZeros: boolean = false) => {
             return Object.keys(source)
                 .map(id => ({ 
@@ -930,7 +910,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                 }))
                 .sort((a, b) => {
                     if (b.value !== a.value) return b.value - a.value;
-                    return a.label.localeCompare(b.label); // Tie-breaker: Alphabetical
+                    return a.label.localeCompare(b.label);
                 })
                 .filter(item => keepZeros || item.value > 0)
                 .slice(0, limit);
@@ -957,7 +937,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                 </div>
             </div>
 
-            {/* TOP ROW: Constructors Standings (Full Width) */}
+            {/* TOP ROW: Constructors Standings */}
             <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                 <div className="mb-6">
                     <h3 className="text-xl font-bold text-pure-white uppercase tracking-wider flex items-center gap-3">
@@ -970,7 +950,6 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
             {/* ROW 2: Drivers Total & Sprint */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Drivers Total */}
                 <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <CheckeredFlagIcon className="w-5 h-5 text-primary-red"/> Top 10 Drivers (Total)
@@ -980,7 +959,6 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                     ) : <p className="text-highlight-silver italic">No points scored yet.</p>}
                 </div>
 
-                {/* Drivers Sprint */}
                 <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <SprintIcon className="w-5 h-5 text-yellow-500"/> Top 5 Sprint Performers
@@ -993,7 +971,6 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
             {/* ROW 3: Quali & Fastest Lap */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Drivers Qualifying */}
                 <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <PolePositionIcon className="w-5 h-5 text-blue-500"/> Top 5 Qualifying Performers
@@ -1003,7 +980,6 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                     ) : <p className="text-highlight-silver italic">No qualifying points scored yet.</p>}
                 </div>
 
-                {/* Fastest Laps */}
                 <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                     <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
                         <FastestLapIcon className="w-5 h-5 text-purple-500"/> Fastest Lap Kings (Wins)
@@ -1022,15 +998,12 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events, leaderboardCache, refreshLeaderboard }) => {
   const [view, setView] = useState<ViewState>('menu');
   
-  // Local Data State
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Refresh Controls State
   const [cooldownTime, setCooldownTime] = useState(0);
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // Timer Effect for Cooldown
   useEffect(() => {
       let timer: any;
       if (cooldownTime > 0) {
@@ -1039,13 +1012,10 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       return () => clearTimeout(timer);
   }, [cooldownTime]);
 
-  // Load logic: If cache is empty, fetch. If cache exists, process it.
   useEffect(() => {
       if (!leaderboardCache) {
-          // If no cache, trigger fetch from parent
           refreshLeaderboard();
       } else {
-          // Process Cached Data
           processLeaderboardData();
       }
   }, [leaderboardCache, raceResults, pointsSystem, allDrivers, currentUser]);
@@ -1055,10 +1025,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
       const { users, allPicks } = leaderboardCache;
       
-      // Filter out Admin Principal explicitly if desired
       const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
 
-      // Helper to ensure numbers
       const safeNum = (val: any) => {
           const n = Number(val);
           return Number.isNaN(n) ? 0 : n;
@@ -1068,8 +1036,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           let gp = 0, sprint = 0, quali = 0, fl = 0;
           let totalPoints = 0;
 
-          // Prefer calculating client-side to ensure sync with live raceResults prop
-          // even if leaderboardCache has old totalPoints from snapshot.
           const userPicks = allPicks[user.id] || {};
           const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
           
@@ -1079,7 +1045,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           quali = safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints);
           fl = safeNum(scoreData.fastestLapPoints);
 
-          // CRITICAL FIX: Ensure the current user's display name is always fresh from the session prop.
           const isCurrentUser = currentUser && user.id === currentUser.id;
           const displayName = isCurrentUser ? currentUser.displayName : user.displayName;
 
@@ -1092,9 +1057,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           };
       });
 
-      // We still sort here for display index
       processed.sort((a, b) => b.totalPoints - a.totalPoints);
-      processed.forEach((u, i) => u.displayRank = i + 1); // Client-side display rank
+      processed.forEach((u, i) => u.displayRank = i + 1);
 
       setProcessedUsers(processed);
   };
@@ -1108,9 +1072,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       try {
           await refreshLeaderboard();
           setRefreshStatus('success');
-          setCooldownTime(30); // 30s Cooldown to prevent spam
+          setCooldownTime(30); 
           
-          // Hide success message after 3s
           setTimeout(() => setRefreshStatus('idle'), 3000);
       } catch (e) {
           console.error(e);
@@ -1129,7 +1092,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       return <ListSkeleton rows={10} />;
   }
 
-  // --- CRITICAL WARNING FOR ADMINS ---
   const MigrationWarning = () => (
       <div className="mb-6 bg-red-900/30 border border-primary-red/50 rounded-lg p-4 flex items-start gap-4 animate-pulse-red">
           <div className="bg-primary-red/20 p-2 rounded-full hidden md:block">
@@ -1197,7 +1159,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   }
 
   return (
-      <div className="max-w-7xl mx-auto w-full md:h-[calc(100vh-6rem)] md:flex md:flex-col md:overflow-hidden">
+      <div className="max-w-7xl mx-auto w-full md:h-[calc(100vh-4.5rem)] md:flex md:flex-col md:overflow-hidden">
           {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
 
           <div className="mb-2 md:mb-4 flex items-center justify-between relative flex-none">
@@ -1209,7 +1171,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       <BackIcon className="w-5 h-5" />
                       Back to Hub
                   </button>
-                  {/* Compact Header for Entity View */}
                   {view === 'entities' && (
                       <h1 className="text-lg md:text-xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block border-l border-pure-white/20 pl-4">
                           Driver & Team Points
@@ -1217,23 +1178,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                   )}
               </div>
               
-              {/* Centered Page Title for Views that need it */}
               {(view === 'standings') && (
                   <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
                       League Leaderboard
                   </h1>
               )}
               
-              {/* Refresh Button on Views */}
               <RefreshControl 
                   onClick={handleManualRefresh} 
                   isRefreshing={isRefreshing} 
-                  cooldown={cooldownTime}
+                  cooldown={cooldownTime} 
                   status={refreshStatus}
               />
           </div>
 
-          {/* Mobile Title */}
           {view === 'standings' && (
               <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center flex-none">League Leaderboard</h1>
           )}
