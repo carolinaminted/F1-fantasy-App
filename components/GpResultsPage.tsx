@@ -109,14 +109,14 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
     return (
         <div className="flex flex-col h-full w-full max-w-7xl mx-auto md:h-[calc(100vh-6rem)] md:overflow-hidden pb-safe">
             {/* Header & Controls Bar */}
-            <div className="flex-none flex flex-col md:flex-row items-center justify-between gap-3 mb-3 pt-2 md:pt-0">
-                <h1 className="text-xl md:text-2xl font-bold text-pure-white flex items-center gap-2 self-start md:self-auto">
-                    <CheckeredFlagIcon className="w-6 h-6 text-primary-red" />
+            <div className="flex-none relative mb-4 pt-2 md:pt-0">
+                <h1 className="text-2xl md:text-3xl font-bold text-pure-white flex items-center justify-center gap-3 mb-4 md:mb-0 text-center w-full">
+                    <CheckeredFlagIcon className="w-8 h-8 text-primary-red" />
                     Grand Prix Results
                 </h1>
                 
-                {/* Search / Dropdown Bar */}
-                <div className="relative w-full md:w-72 z-40" ref={dropdownRef}>
+                {/* Search / Dropdown Bar - Absolute Right on Desktop */}
+                <div className="relative w-full md:w-72 z-40 md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2" ref={dropdownRef}>
                     <div className="relative group">
                         <input
                             type="text"
@@ -304,11 +304,11 @@ const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConst
 
     return (
         <table className="w-full text-left border-collapse">
-            <thead className="bg-carbon-black/95 sticky top-0 z-10 backdrop-blur-md shadow-sm text-[10px] font-bold uppercase text-highlight-silver">
+            <thead className="bg-carbon-black/95 sticky top-0 z-10 backdrop-blur-md shadow-sm text-xs font-bold uppercase text-highlight-silver">
                 <tr>
-                    <th className="py-2 px-3 w-10 text-center">Pos</th>
-                    <th className="py-2 px-3">Driver</th>
-                    <th className="py-2 px-3 hidden sm:table-cell">Team</th>
+                    <th className="py-3 px-4 w-12 text-center">Pos</th>
+                    <th className="py-3 px-4">Driver</th>
+                    <th className="py-3 px-4 hidden sm:table-cell">Team</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-pure-white/5">
@@ -318,8 +318,8 @@ const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConst
                     
                     return (
                         <tr key={index} className="hover:bg-pure-white/5 transition-colors group">
-                            <td className="py-2 px-3 text-center">
-                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded font-bold text-[10px] ${
+                            <td className="py-3 px-4 text-center">
+                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs ${
                                     index === 0 ? 'bg-yellow-500 text-black shadow-yellow-500/20' : 
                                     index === 1 ? 'bg-gray-300 text-black' : 
                                     index === 2 ? 'bg-orange-700 text-white' : 
@@ -328,18 +328,18 @@ const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConst
                                     {index + 1}
                                 </span>
                             </td>
-                            <td className="py-2 px-3">
-                                <div className="font-bold text-xs md:text-sm text-pure-white">{driver?.name || 'Unknown Driver'}</div>
+                            <td className="py-3 px-4">
+                                <div className="font-bold text-base md:text-lg text-pure-white">{driver?.name || 'Unknown Driver'}</div>
                                 {/* Mobile Team Name */}
-                                <div className="sm:hidden text-[9px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
+                                <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
                                     {constructor?.name || 'Unknown Team'}
                                 </div>
                             </td>
-                            <td className="py-2 px-3 hidden sm:table-cell">
+                            <td className="py-3 px-4 hidden sm:table-cell">
                                 {constructor && (
                                     <div className="flex items-center gap-2">
-                                        <div className="w-1 h-3 rounded-full" style={{ backgroundColor: constructor.color }}></div>
-                                        <span className="text-xs font-semibold text-highlight-silver">{constructor.name}</span>
+                                        <div className="w-1 h-4 rounded-full" style={{ backgroundColor: constructor.color }}></div>
+                                        <span className="text-sm font-semibold text-highlight-silver">{constructor.name}</span>
                                     </div>
                                 )}
                             </td>
@@ -360,20 +360,20 @@ const FastestLapDisplay: React.FC<{ driverId: string | null | undefined; allDriv
 
     return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-b from-purple-900/10 to-transparent">
-            <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mb-4 ring-1 ring-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.15)] animate-pulse-slow">
-                 <FastestLapIcon className="w-8 h-8 text-purple-400" />
+            <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mb-4 ring-1 ring-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.15)] animate-pulse-slow">
+                 <FastestLapIcon className="w-10 h-10 text-purple-400" />
             </div>
             
-            <h3 className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-1">Fastest Lap Award</h3>
-            <p className="text-2xl md:text-3xl font-black text-pure-white mb-3">{driver?.name || 'Unknown'}</p>
+            <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-2">Fastest Lap Award</h3>
+            <p className="text-3xl md:text-4xl font-black text-pure-white mb-4">{driver?.name || 'Unknown'}</p>
             
             {constructor && (
                 <div 
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-pure-white/10 bg-carbon-black/50"
+                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-pure-white/10 bg-carbon-black/50"
                     style={{ borderColor: `${constructor.color}40` }}
                 >
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: constructor.color }}></div>
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: constructor.color }}>{constructor.name}</span>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: constructor.color }}></div>
+                    <span className="text-sm font-bold uppercase tracking-wider" style={{ color: constructor.color }}>{constructor.name}</span>
                 </div>
             )}
         </div>

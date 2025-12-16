@@ -6,6 +6,7 @@ import { BackIcon } from './icons/BackIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
+import { GarageIcon } from './icons/GarageIcon.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ManageEntitiesPageProps {
@@ -125,14 +126,17 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
 
     return (
         <div className="max-w-6xl mx-auto text-pure-white">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-4 md:mb-8 gap-4">
+            <div className="relative flex items-center justify-center mb-8 px-2 md:px-0 pt-4 md:pt-0">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors self-start md:self-auto"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
                 >
                     <BackIcon className="w-5 h-5" />
                     Back
                 </button>
+                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-center">
+                    Manage Roster <GarageIcon className="w-8 h-8 text-primary-red"/>
+                </h1>
             </div>
             
             <div className="flex gap-3 mb-6 justify-center items-center">

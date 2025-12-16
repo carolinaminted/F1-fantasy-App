@@ -793,12 +793,7 @@ const InsightsView: React.FC<{
     );
 
     return (
-        <div className="flex flex-col h-full gap-4 animate-fade-in pb-safe">
-            <div className="flex items-center justify-center gap-2 flex-none -mt-2">
-                <TrendingUpIcon className="w-6 h-6 text-primary-red" />
-                <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">Performance Trends</h2>
-            </div>
-            
+        <div className="flex flex-col h-full gap-4 animate-fade-in pb-safe pt-2">
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
                 <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
@@ -1197,6 +1192,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       </h1>
                   </div>
               )}
+
+              {/* NEW: Performance Trends Title (Desktop) */}
+              {(view === 'insights') && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                        <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                            <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+                        </div>
+                      <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                          Performance Trends
+                      </h1>
+                  </div>
+              )}
               
               <RefreshControl 
                   onClick={handleManualRefresh} 
@@ -1233,6 +1240,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                         </div>
                         <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
                             Popular Picks Analysis
+                        </h1>
+                    </div>
+                </div>
+          )}
+
+          {/* NEW: Performance Trends Title (Mobile) */}
+          {view === 'insights' && (
+               <div className="sm:hidden mb-4 flex flex-col items-center justify-center flex-none">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                            <TrendingUpIcon className="w-6 h-6 text-primary-red" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
+                            Performance Trends
                         </h1>
                     </div>
                 </div>
