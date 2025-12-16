@@ -89,7 +89,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
                         )}
 
                         {/* Next 5 List */}
-                        <div className="px-4 md:px-0 animate-fade-in-up flex-1 min-h-0 flex flex-col">
+                        <div className="px-4 md:px-2 animate-fade-in-up flex-1 min-h-0 flex flex-col">
                             <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
                             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:h-full pb-2">
                                 {upcomingRaces.map(event => (
