@@ -36,15 +36,15 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
 
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white md:h-[calc(100vh-6rem)]">
-            <div className="flex items-center justify-between mb-6 flex-shrink-0 px-4 md:px-0">
+            <div className="relative flex items-center justify-center mb-6 flex-shrink-0 px-4 md:px-0 pt-2">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
+                    className="absolute left-4 md:left-0 flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors z-10"
                 >
                     <BackIcon className="w-5 h-5" />
                     Back
                 </button>
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-right">
+                <h1 className="text-3xl font-bold flex items-center gap-3 text-center">
                     Schedule Manager <CalendarIcon className="w-8 h-8 text-primary-red"/>
                 </h1>
             </div>
