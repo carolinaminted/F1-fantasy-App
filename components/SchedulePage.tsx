@@ -94,7 +94,12 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
                             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:h-full pb-2">
                                 {upcomingRaces.map(event => (
                                     <div key={event.id} className="md:h-full">
-                                        <CompactEventCard event={event} schedule={schedules[event.id]} isNext={nextRace?.id === event.id} />
+                                        <CompactEventCard 
+                                            event={event} 
+                                            schedule={schedules[event.id]} 
+                                            isNext={nextRace?.id === event.id} 
+                                            onClick={() => setSelectedEvent(event)}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -104,7 +109,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
 
                 {/* Full Schedule List - Grid on Desktop */}
                 {viewMode === 'full' && (
-                    <div className="px-4 md:px-0 animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar md:pr-2 pb-6">
+                    <div className="animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar px-4 pb-6 md:p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map(event => (
                                 <EventGridCard 
@@ -327,9 +332,12 @@ const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; 
     </div>
 );
 
-const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean }> = ({ event, schedule, isNext }) => (
-    <div className={`flex flex-col p-4 rounded-xl border transition-colors h-full justify-between ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10' : 'bg-carbon-fiber border-pure-white/10 shadow-lg'}`}>
-        <div>
+const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => (
+    <button 
+        onClick={onClick}
+        className={`w-full text-left flex flex-col p-4 rounded-xl border transition-all duration-300 h-full justify-between group hover:scale-[1.02] ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10 hover:shadow-primary-red/20' : 'bg-carbon-fiber border-pure-white/10 shadow-lg hover:border-pure-white/30'}`}
+    >
+        <div className="w-full">
             <div className="flex justify-between items-start mb-2">
                 <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
                 {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
@@ -342,12 +350,12 @@ const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNex
             </div>
         </div>
         
-        <div className="mt-auto pt-3 border-t border-pure-white/10">
+        <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
             <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
             <p className="font-bold text-sm text-pure-white">{schedule?.race ? formatDate(schedule.race) : 'TBA'}</p>
             <p className="text-xs text-primary-red font-mono">{schedule?.race ? formatTime(schedule.race) : '-'}</p>
         </div>
-    </div>
+    </button>
 );
 
 const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => {
@@ -403,7 +411,7 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                         </p>
                     </div>
                     <div className="text-right">
-                         <p className={`font-mono text-xs font-bold ${isNext ? 'text-primary-red' : 'text-highlight-silver group-hover:text-pure-white transition-colors'}`}>
+                         <p className={`font-mono text-lg font-bold ${isNext ? 'text-primary-red' : 'text-highlight-silver group-hover:text-pure-white transition-colors'}`}>
                             {schedule?.race ? formatTime(schedule.race) : '-'}
                         </p>
                     </div>
