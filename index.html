@@ -75,6 +75,9 @@
       .animate-pulse-red {
         animation: pulse-red 1.5s infinite;
       }
+      .animate-pulse-red-limited {
+        animation: pulse-red 1.5s 3;
+      }
       .option-card { line-height: 1.2; }
       .option-label { text-wrap: balance; }
       
@@ -102,14 +105,14 @@
         background-position: 0 0, 4px 4px;
       }
 
-      /* Checkered Flag Pattern Class */
+      /* Traditional Checkered Flag Pattern Class */
       .bg-checkered-flag {
-        background-color: #080808;
+        background-color: #e0e0e0; /* Off-white/Light Grey base */
         background-image:
-          linear-gradient(45deg, #121212 25%, transparent 25%, transparent 75%, #121212 75%, #121212),
-          linear-gradient(45deg, #121212 25%, transparent 25%, transparent 75%, #121212 75%, #121212);
-        background-position: 0 0, 20px 20px;
-        background-size: 40px 40px;
+          linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505),
+          linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505);
+        background-position: 0 0, 40px 40px; /* Offset to align checks */
+        background-size: 80px 80px; /* Much larger checks */
       }
     </style>
     <!-- Use a specific stable version of Babel Standalone to reduce variable warnings -->

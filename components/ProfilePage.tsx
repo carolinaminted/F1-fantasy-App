@@ -72,7 +72,7 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?:
 };
 
 const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon: Icon, label, value }) => (
-    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-black/50 w-full h-full min-h-[120px] ring-1 ring-pure-white/5 hover:bg-pure-white/5 transition-all duration-200">
+    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-fiber w-full h-full min-h-[120px] border border-pure-white/20 shadow-lg hover:border-primary-red/50 transition-all duration-200">
         <Icon className="w-8 h-8 text-primary-red mb-3" />
         <span className="text-xs font-bold uppercase text-highlight-silver mb-1">{label}</span>
         <span className="font-bold text-lg text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
@@ -531,35 +531,43 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   return (
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
-        <div className="flex justify-center items-center gap-2 mb-8">
-            <button 
-                onClick={handleDuesClick}
-                disabled={!setActivePage}
-                className={`px-3 py-1 text-xs font-bold uppercase rounded-full transition-transform hover:scale-105 ${
-                    (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                    ? 'bg-green-600/80 text-pure-white'
-                    : 'bg-primary-red/80 text-pure-white'
-                } ${setActivePage ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
-            >
-                Dues: {user.duesPaidStatus || 'Unpaid'}
-            </button>
+      {/* 1. New Page Header - "Profile Information" with Red Icon */}
+      <div className="flex flex-col items-center justify-center pt-4">
+        <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)]">
+                <ProfileIcon className="w-8 h-8 text-primary-red" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-pure-white text-shadow-sm">
+                Profile Information
+            </h1>
         </div>
       </div>
 
       {/* Profile Info Section */}
       <div className="bg-checkered-flag rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
-        <div className="flex flex-col items-center justify-center mb-6">
-            <h2 className="text-2xl font-bold text-center mb-2">Profile Information</h2>
+        <div className="flex flex-col items-center justify-center mb-8 relative z-10">
+            {/* Edit Details Button */}
             {!isEditingProfile && setActivePage && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-lg text-primary-red hover:text-pure-white font-bold transition-colors"
+                    className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 mb-3 uppercase tracking-wide backdrop-blur-sm"
                 >
                     Edit Details
                 </button>
             )}
+            
+            {/* Dues Status - Moved Here */}
+            <button 
+                onClick={handleDuesClick}
+                disabled={!setActivePage}
+                className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md ${
+                    (user.duesPaidStatus || 'Unpaid') === 'Paid'
+                    ? 'bg-green-600 text-pure-white'
+                    : 'bg-primary-red text-pure-white animate-pulse-red-limited'
+                } ${setActivePage ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+            >
+                Dues: {user.duesPaidStatus || 'Unpaid'}
+            </button>
         </div>
         
         {isEditingProfile ? (
