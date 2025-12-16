@@ -117,19 +117,37 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </h1>
             </div>
 
-            {/* Next Race Countdown - Inserted Here */}
+            {/* Next Race Countdown - Liquid Glass / Glass-over-water Effect */}
             {nextEvent && (
                 <div 
-                    className="mt-6 animate-drive-in opacity-0 [animation-delay:100ms] w-full max-w-sm cursor-pointer transition-transform hover:scale-105 active:scale-95 group"
+                    className="mt-6 animate-drive-in opacity-0 [animation-delay:100ms] w-full max-w-sm cursor-pointer group"
                     onClick={() => setActivePage('picks', { eventId: nextEvent.id })}
+                    onMouseMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+                        e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+                    }}
                 >
-                    <div className="bg-carbon-black/40 backdrop-blur-md border border-pure-white/10 rounded-xl p-4 shadow-xl group-hover:border-primary-red/50 transition-colors">
-                        <p className="text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-1">Up Next: {nextEvent.location}</p>
-                        <h2 className="text-2xl md:text-3xl font-black text-pure-white italic mb-3">{nextEvent.name}</h2>
+                    <div className="relative overflow-hidden rounded-2xl bg-carbon-black/30 backdrop-blur-2xl border border-pure-white/10 group-hover:border-primary-red p-6 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(218,41,28,0.2)]">
+                        {/* Spotlight Gradient Layer */}
+                        <div 
+                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                            style={{
+                                background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(255, 255, 255, 0.15), transparent 40%)`
+                            }}
+                        />
                         
-                        <div className="border-t border-pure-white/10 pt-3 flex flex-col items-center">
-                            <p className="text-[10px] text-primary-red uppercase tracking-wider font-bold mb-2">Picks Lock In</p>
-                            <CountdownTimer targetDate={nextEvent.lockAtUtc} />
+                        {/* Content */}
+                        <div className="relative z-10">
+                            <p className="text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-2 drop-shadow-sm">Up Next: {nextEvent.location}</p>
+                            <h2 className="text-3xl font-black text-pure-white italic mb-4 drop-shadow-lg">{nextEvent.name}</h2>
+                            
+                            <div className="border-t border-pure-white/10 pt-4 flex flex-col items-center">
+                                <p className="text-[10px] text-primary-red uppercase tracking-wider font-bold mb-2">Picks Lock In</p>
+                                <CountdownTimer targetDate={nextEvent.lockAtUtc} />
+                            </div>
                         </div>
                     </div>
                 </div>
