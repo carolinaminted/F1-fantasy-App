@@ -245,12 +245,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       </div>
       
-      {/* Footer Branding */}
-      <div className="mt-12 text-center opacity-30 pb-safe">
-        <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
-        <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Formula Fantasy One © {new Date().getFullYear()}</p>
-      </div>
-
     </div>
   );
 };

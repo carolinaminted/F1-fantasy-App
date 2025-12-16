@@ -38,6 +38,7 @@ import { TrackIcon } from './components/icons/TrackIcon.tsx';
 import { GarageIcon } from './components/icons/GarageIcon.tsx';
 import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
+import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
@@ -94,60 +95,125 @@ const getUserRealName = (user: User | null) => {
 };
 
 // New SideNav component for desktop view
-const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void; livePoints: number }> = ({ user, activePage, navigateToPage, handleLogout, livePoints }) => (
-    <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
-        <div onClick={() => navigateToPage('home')} className="flex items-center gap-3 cursor-pointer pt-2 pb-4 mb-4 flex-shrink-0 group">
-           <F1CarIcon className="w-12 h-12 text-primary-red transition-transform group-hover:scale-110" />
-           <div className="flex flex-col overflow-hidden">
-               <span className="font-bold text-lg truncate leading-tight group-hover:text-primary-red transition-colors">{getUserRealName(user)}</span>
-               {user && (
-                   <span className="text-[13px] text-highlight-silver font-mono mt-0.5">
-                       #{user.rank || '-'} • {livePoints} pts
-                   </span>
-               )}
-           </div>
-        </div>
-        <nav className="flex-grow space-y-1">
-            <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-            <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            
-            {/* Consolidated Events Item */}
-            <SideNavItem 
-                icon={TrackIcon} 
-                label="Events" 
-                page="events-hub" 
-                activePage={activePage} 
-                setActivePage={navigateToPage} 
-                isParentActive={['events-hub', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
-            />
-            
-            {/* Consolidated League Item */}
-            <SideNavItem 
-                icon={LeagueIcon} 
-                label="League" 
-                page="league-hub" 
-                activePage={activePage} 
-                setActivePage={navigateToPage} 
-                isParentActive={['league-hub', 'points', 'donate', 'duesPayment'].includes(activePage)}
-            />
+const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (page: Page) => void; handleLogout: () => void; livePoints: number }> = ({ user, activePage, navigateToPage, handleLogout, livePoints }) => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-            {isUserAdmin(user) && (
-              <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
-            )}
-        </nav>
-         {user && (
-           <div className="mt-auto flex-shrink-0 pt-4 pb-2">
-             <div className="pt-4 border-t border-accent-gray/50">
-                 <button onClick={handleLogout} className="text-lg font-semibold text-highlight-silver hover:text-primary-red w-full text-left transition-colors">
-                    Log Out
-                 </button>
+    // Close dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+        <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
+            {/* Header / User Dropdown */}
+            <div className="relative mb-4" ref={dropdownRef}>
+                <button 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className={`flex items-center gap-3 w-full p-2 rounded-xl transition-all duration-200 border ${
+                        isDropdownOpen 
+                        ? 'bg-accent-gray/40 border-pure-white/10' 
+                        : 'hover:bg-accent-gray/20 border-transparent'
+                    }`}
+                >
+                   <F1CarIcon className="w-10 h-10 text-primary-red flex-shrink-0" />
+                   <div className="flex flex-col overflow-hidden text-left flex-1">
+                       <span className="font-bold text-lg truncate leading-tight text-pure-white group-hover:text-primary-red transition-colors">{getUserRealName(user)}</span>
+                       {user && (
+                           <span className="text-[13px] text-highlight-silver font-mono mt-0.5">
+                               #{user.rank || '-'} • {livePoints} pts
+                           </span>
+                       )}
+                   </div>
+                   <ChevronDownIcon className={`w-4 h-4 text-highlight-silver transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-carbon-black border border-pure-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-50 overflow-hidden animate-fade-in-down origin-top">
+                        <div className="p-1">
+                            <button 
+                                onClick={() => { navigateToPage('profile'); setIsDropdownOpen(false); }}
+                                className="w-full text-left px-4 py-3 text-sm font-semibold text-pure-white hover:bg-pure-white/10 rounded-lg flex items-center gap-3 transition-colors"
+                            >
+                                <ProfileIcon className="w-4 h-4 text-highlight-silver" />
+                                Profile
+                            </button>
+                            <button 
+                                onClick={() => { navigateToPage('league-hub'); setIsDropdownOpen(false); }}
+                                className="w-full text-left px-4 py-3 text-sm font-semibold text-pure-white hover:bg-pure-white/10 rounded-lg flex items-center gap-3 transition-colors"
+                            >
+                                <LeagueIcon className="w-4 h-4 text-highlight-silver" />
+                                League
+                            </button>
+                            <button 
+                                onClick={() => { navigateToPage('events-hub'); setIsDropdownOpen(false); }}
+                                className="w-full text-left px-4 py-3 text-sm font-semibold text-pure-white hover:bg-pure-white/10 rounded-lg flex items-center gap-3 transition-colors"
+                            >
+                                <TrackIcon className="w-4 h-4 text-highlight-silver" />
+                                Events
+                            </button>
+                            
+                            <div className="h-px bg-pure-white/10 my-1 mx-2"></div>
+                            
+                            <button 
+                                onClick={() => { handleLogout(); setIsDropdownOpen(false); }}
+                                className="w-full text-left px-4 py-3 text-sm font-bold text-primary-red hover:bg-primary-red/10 rounded-lg flex items-center gap-3 transition-colors"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                Log Out
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <nav className="flex-grow space-y-1">
+                <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
+                <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
+                <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+                
+                {/* Consolidated Events Item */}
+                <SideNavItem 
+                    icon={TrackIcon} 
+                    label="Events" 
+                    page="events-hub" 
+                    activePage={activePage} 
+                    setActivePage={navigateToPage} 
+                    isParentActive={['events-hub', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
+                />
+                
+                {/* Consolidated League Item */}
+                <SideNavItem 
+                    icon={LeagueIcon} 
+                    label="League" 
+                    page="league-hub" 
+                    activePage={activePage} 
+                    setActivePage={navigateToPage} 
+                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment'].includes(activePage)}
+                />
+
+                {isUserAdmin(user) && (
+                  <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
+                )}
+            </nav>
+             
+             <div className="mt-auto flex-shrink-0 pt-4 pb-2">
+                 {/* Copyright Section - Moved Here for Desktop Persistence */}
+                 <div className="text-center opacity-30 pb-4">
+                    <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
+                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Formula Fantasy One © {new Date().getFullYear()}</p>
+                 </div>
              </div>
-           </div>
-         )}
-    </aside>
-);
+        </aside>
+    );
+};
 
 
 const App: React.FC = () => {

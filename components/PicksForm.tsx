@@ -350,12 +350,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </div>
         </div>
       </form>
-
-      {/* Footer - Positioned below the form */}
-      <div className="mt-12 text-center opacity-30 pb-safe pb-8">
-          <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
-          <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Formula Fantasy One © {new Date().getFullYear()}</p>
-      </div>
       
       {/* Bottom Sheet / Modal */}
       {modalContent && (
