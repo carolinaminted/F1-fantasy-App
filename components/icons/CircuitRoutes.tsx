@@ -76,8 +76,9 @@ const CIRCUIT_PATHS: { [key: string]: string } = {
     'abu': 'M18,35 L18,15 L25,10 L38,15 L35,35 L28,30 Z',
 };
 
-// Simple rectangular fallback
-const DEFAULT_PATH = 'M10,10 H40 V40 H10 Z';
+// Generic Track Design (Used as default)
+// A stylized figure-8 / loop shape to represent a racing circuit
+const DEFAULT_PATH = 'M15,35 C5,35 5,15 15,15 L35,15 C45,15 45,35 35,35 L15,35 Z M18,20 L32,20 C38,20 38,30 32,30 L18,30 C12,30 12,20 18,20 Z';
 
 interface CircuitRouteProps extends React.SVGProps<SVGSVGElement> {
     eventId: string;
