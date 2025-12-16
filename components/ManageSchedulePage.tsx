@@ -5,8 +5,10 @@ import { EVENTS } from '../constants.ts';
 import { saveEventSchedule } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
-import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { CircuitRoute } from './icons/CircuitRoutes.tsx';
+import { SprintIcon } from './icons/SprintIcon.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
 
 interface ManageSchedulePageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -15,77 +17,9 @@ interface ManageSchedulePageProps {
 }
 
 const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage, existingSchedules, onScheduleUpdate }) => {
-    const [selectedEventId, setSelectedEventId] = useState<string>('');
-    const [scheduleForm, setScheduleForm] = useState<Partial<EventSchedule>>({});
-    const [isSaving, setIsSaving] = useState(false);
-    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-    const selectedEvent = useMemo(() => EVENTS.find(e => e.id === selectedEventId), [selectedEventId]);
-
-    // When event is selected, populate form
-    useEffect(() => {
-        if (selectedEventId) {
-            const existing = existingSchedules[selectedEventId];
-            if (existing) {
-                setScheduleForm({ ...existing });
-            } else {
-                setScheduleForm({ eventId: selectedEventId });
-            }
-        } else {
-            setScheduleForm({});
-        }
-        setNotification(null);
-    }, [selectedEventId, existingSchedules]);
-
-    const handleInputChange = (field: keyof EventSchedule, value: string | boolean) => {
-        setScheduleForm(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedEventId || !scheduleForm) return;
-
-        setIsSaving(true);
-        setNotification(null);
-        try {
-            // Ensure eventId is set
-            const finalData = { ...scheduleForm, eventId: selectedEventId } as EventSchedule;
-            await saveEventSchedule(selectedEventId, finalData);
-            onScheduleUpdate(); // Trigger refresh in parent
-            
-            setNotification({ 
-                message: `Schedule for ${scheduleForm.name || selectedEvent?.name} saved successfully!`, 
-                type: 'success' 
-            });
-
-            // Clear notification after 3 seconds
-            setTimeout(() => {
-                setNotification(null);
-            }, 3000);
-
-        } catch (error) {
-            console.error("Failed to save schedule:", error);
-            setNotification({ 
-                message: "Error saving schedule. Please try again.", 
-                type: 'error' 
-            });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // Helper for datetime inputs (expects YYYY-MM-DDTHH:MM)
-    const getValue = (val?: string) => val ? val.slice(0, 16) : '';
-
-    // Determine effective sprint status (Override > Default)
-    const isSprint = scheduleForm.hasSprint !== undefined ? scheduleForm.hasSprint : selectedEvent?.hasSprint;
-
     return (
-        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white md:h-[calc(100vh-6rem)] md:overflow-hidden">
-            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white md:h-[calc(100vh-6rem)]">
+            <div className="flex items-center justify-between mb-4 flex-shrink-0 px-4 md:px-0">
                  <button 
                     onClick={() => setAdminSubPage('dashboard')}
                     className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
@@ -98,175 +32,218 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                 </h1>
             </div>
 
-            <div className="bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl flex-1 flex flex-col overflow-hidden relative">
-                <div className="p-6 md:p-8 h-full flex flex-col">
-                    
-                    {/* Top Selector */}
-                    <div className="mb-6 relative flex-shrink-0">
-                        <label className="block text-sm font-bold text-highlight-silver mb-2">Select Event to Edit</label>
-                        <select
-                            value={selectedEventId}
-                            onChange={(e) => setSelectedEventId(e.target.value)}
-                            className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-3 pl-4 pr-10 text-pure-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer hover:border-highlight-silver transition-colors"
-                        >
-                            <option value="" disabled>Choose a Grand Prix...</option>
-                            {EVENTS.map(event => (
-                                <option key={event.id} value={event.id}>
-                                    R{event.round}: {event.name} {existingSchedules[event.id] ? '✓' : ''}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute bottom-3 right-3 text-highlight-silver">
-                            <ChevronDownIcon className="w-5 h-5" />
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 perspective-1000">
+                    {EVENTS.map(event => (
+                        <FlippableEventCard 
+                            key={event.id}
+                            event={event}
+                            schedule={existingSchedules[event.id]}
+                            onSave={async (data) => {
+                                await saveEventSchedule(event.id, data);
+                                onScheduleUpdate();
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface FlippableEventCardProps {
+    event: Event;
+    schedule?: EventSchedule;
+    onSave: (data: EventSchedule) => Promise<void>;
+}
+
+const FlippableEventCard: React.FC<FlippableEventCardProps> = ({ event, schedule, onSave }) => {
+    const [isFlipped, setIsFlipped] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formState, setFormState] = useState<Partial<EventSchedule>>(schedule || { eventId: event.id });
+
+    // Sync form state if prop updates (e.g. after save)
+    useEffect(() => {
+        if (schedule) {
+            setFormState(schedule);
+        }
+    }, [schedule]);
+
+    const handleFlip = () => {
+        if (!isSaving) setIsFlipped(!isFlipped);
+    };
+
+    const handleSaveClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsSaving(true);
+        try {
+            await onSave({ ...formState, eventId: event.id } as EventSchedule);
+            setIsFlipped(false); // Flip back on success
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save schedule.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleInputChange = (field: keyof EventSchedule, value: string | boolean) => {
+        setFormState(prev => ({ ...prev, [field]: value }));
+    };
+
+    const getValue = (val?: string) => val ? val.slice(0, 16) : '';
+    const isSprint = formState.hasSprint !== undefined ? formState.hasSprint : event.hasSprint;
+
+    // Card Colors
+    const accentColor = isSprint ? '#EAB308' : '#DA291C'; // Yellow or Red
+    const hasData = !!schedule?.race;
+
+    return (
+        <div className="relative w-full h-[580px] group [perspective:1000px]">
+            <div 
+                className={`relative w-full h-full transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
+            >
+                {/* --- FRONT FACE --- */}
+                <div 
+                    onClick={handleFlip}
+                    className="absolute w-full h-full [backface-visibility:hidden] bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-xl overflow-hidden cursor-pointer hover:border-primary-red/50 transition-colors flex flex-col"
+                >
+                    {/* Hero Image / Map Area */}
+                    <div className="h-40 bg-carbon-black/50 relative flex items-center justify-center border-b border-pure-white/10">
+                        <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 100%)` }}></div>
+                        <CircuitRoute eventId={event.id} className="w-32 h-32 text-highlight-silver opacity-80" />
+                        
+                        <div className="absolute top-3 right-3">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${hasData ? 'bg-green-900/30 text-green-400 border-green-500/30' : 'bg-carbon-black/50 text-highlight-silver border-pure-white/10'}`}>
+                                {hasData ? 'Scheduled' : 'Pending'}
+                            </span>
                         </div>
                     </div>
 
-                    {selectedEvent && (
-                        <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0 animate-fade-in">
+                    <div className="p-6 flex-1 flex flex-col relative">
+                        <div className="mb-4">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-bold text-highlight-silver uppercase tracking-wider">Round {event.round}</span>
+                                {isSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
+                            </div>
+                            <h3 className="text-2xl font-black text-pure-white leading-tight mb-1">{event.name}</h3>
+                            <p className="text-sm text-highlight-silver">{event.location}, {event.country}</p>
+                        </div>
+
+                        {schedule?.race ? (
+                            <div className="space-y-3 mt-2">
+                                <div className="flex justify-between items-center py-2 border-b border-pure-white/5">
+                                    <span className="text-xs font-bold text-highlight-silver uppercase">Qualifying</span>
+                                    <span className="text-sm font-mono text-pure-white">{new Date(schedule.qualifying!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-pure-white/5">
+                                    <span className="text-xs font-bold text-primary-red uppercase">Race</span>
+                                    <div className="text-right">
+                                        <div className="text-sm font-bold text-pure-white">{new Date(schedule.race).toLocaleDateString()}</div>
+                                        <div className="text-xs font-mono text-highlight-silver">{new Date(schedule.race).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center text-highlight-silver/30 text-sm italic">
+                                No schedule data configured.
+                            </div>
+                        )}
+
+                        <div className="mt-auto pt-6 text-center">
+                            <span className="inline-flex items-center gap-2 text-sm font-bold text-pure-white group-hover:text-primary-red transition-colors">
+                                Edit Schedule <span>&rarr;</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- BACK FACE (FORM) --- */}
+                <div 
+                    className="absolute w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-carbon-black rounded-xl border border-accent-gray shadow-2xl overflow-hidden flex flex-col"
+                >
+                    <div className="bg-accent-gray/20 p-4 border-b border-pure-white/10 flex justify-between items-center">
+                        <h3 className="font-bold text-pure-white flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-primary-red animate-pulse"></span>
+                            Editing {event.name}
+                        </h3>
+                        <button 
+                            onClick={handleFlip}
+                            type="button"
+                            className="text-highlight-silver hover:text-pure-white text-xs uppercase font-bold"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+
+                    <div className="p-5 flex-1 overflow-y-auto custom-scrollbar space-y-4 bg-carbon-fiber/50">
+                        {/* Config Section */}
+                        <div className="bg-carbon-black/60 p-3 rounded-lg border border-pure-white/5 space-y-3">
+                            <div>
+                                <label className="block text-[10px] font-bold text-highlight-silver uppercase mb-1">Display Name Override</label>
+                                <input 
+                                    type="text" 
+                                    value={formState.name !== undefined ? formState.name : event.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    className="w-full bg-carbon-black border border-accent-gray rounded px-2 py-1.5 text-sm text-pure-white focus:outline-none focus:border-primary-red"
+                                />
+                            </div>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={!!isSprint}
+                                    onChange={(e) => handleInputChange('hasSprint', e.target.checked)}
+                                    className="accent-primary-red"
+                                />
+                                <span className="text-xs font-bold text-pure-white">Sprint Weekend</span>
+                            </label>
+                        </div>
+
+                        {/* Sessions */}
+                        <div className="space-y-3">
+                            <TimeInput label="Practice 1" value={getValue(formState.fp1)} onChange={v => handleInputChange('fp1', v)} />
                             
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-0">
-                                {/* Left Column: Config & Overrides */}
-                                <div className="flex flex-col gap-6 overflow-hidden justify-center">
-                                    <div className="bg-carbon-black/30 p-5 rounded-xl border border-pure-white/10 flex-shrink-0">
-                                        <h4 className="font-bold text-pure-white mb-4 uppercase text-xs tracking-wider border-b border-pure-white/5 pb-2">Event Configuration</h4>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Grand Prix Name</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={scheduleForm.name !== undefined ? scheduleForm.name : selectedEvent.name}
-                                                    onChange={(e) => handleInputChange('name', e.target.value)}
-                                                    className="w-full bg-carbon-black border border-accent-gray rounded px-3 py-2 text-pure-white focus:outline-none focus:ring-1 focus:ring-primary-red"
-                                                />
-                                            </div>
-                                            <div className="flex items-center">
-                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                    <div className="relative">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            className="sr-only" 
-                                                            checked={!!isSprint}
-                                                            onChange={(e) => handleInputChange('hasSprint', e.target.checked)}
-                                                        />
-                                                        <div className={`block w-10 h-6 rounded-full transition-colors ${isSprint ? 'bg-yellow-500' : 'bg-carbon-black border border-highlight-silver group-hover:border-pure-white'}`}></div>
-                                                        <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isSprint ? 'transform translate-x-4' : ''}`}></div>
-                                                    </div>
-                                                    <div>
-                                                        <span className="block font-bold text-sm text-pure-white">Sprint Weekend</span>
-                                                        <span className="text-xs text-highlight-silver">Enable sprint sessions</span>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
+                            {isSprint ? (
+                                <>
+                                    <TimeInput label="Sprint Quali (Fri)" value={getValue(formState.sprintQualifying)} onChange={v => handleInputChange('sprintQualifying', v)} />
+                                    <TimeInput label="Sprint Race (Sat)" value={getValue(formState.sprint)} onChange={v => handleInputChange('sprint', v)} />
+                                    <TimeInput label="Grand Prix Quali (Sat)" value={getValue(formState.qualifying)} onChange={v => handleInputChange('qualifying', v)} />
+                                </>
+                            ) : (
+                                <>
+                                    <TimeInput label="Practice 2" value={getValue(formState.fp2)} onChange={v => handleInputChange('fp2', v)} />
+                                    <TimeInput label="Practice 3" value={getValue(formState.fp3)} onChange={v => handleInputChange('fp3', v)} />
+                                    <TimeInput label="Qualifying" value={getValue(formState.qualifying)} onChange={v => handleInputChange('qualifying', v)} />
+                                </>
+                            )}
 
-                                    <div className="bg-yellow-500/5 border border-yellow-500/20 p-5 rounded-xl flex-shrink-0">
-                                        <h4 className="font-bold text-yellow-500 text-sm uppercase mb-2">Overrides</h4>
-                                        <p className="text-xs text-highlight-silver mb-3">Optional: Set a custom lock time different from the default (Start of GP Quali or Sprint Quali).</p>
-                                        <TimeInput 
-                                            label="Custom Lock Time (UTC)" 
-                                            value={getValue(scheduleForm.customLockAt)} 
-                                            onChange={(v) => handleInputChange('customLockAt', v)} 
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Right Column: Timetable */}
-                                <div className="flex flex-col h-full overflow-hidden justify-center">
-                                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isSprint ? 'bg-yellow-500 text-black' : 'bg-primary-red text-pure-white'}`}>
-                                            {isSprint ? 'Sprint Format' : 'Standard Format'}
-                                        </span>
-                                        <h3 className="text-lg font-bold text-pure-white">Timetable</h3>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-4 content-start flex-1 overflow-hidden">
-                                        <TimeInput 
-                                            label="Practice 1" 
-                                            value={getValue(scheduleForm.fp1)} 
-                                            onChange={(v) => handleInputChange('fp1', v)} 
-                                        />
-                                        
-                                        {isSprint ? (
-                                            <>
-                                                <TimeInput 
-                                                    label="Practice 2 (Sprint Quali)" 
-                                                    value={getValue(scheduleForm.sprintQualifying)} 
-                                                    onChange={(v) => handleInputChange('sprintQualifying', v)} 
-                                                />
-                                                <TimeInput 
-                                                    label="Sprint Race" 
-                                                    value={getValue(scheduleForm.sprint)} 
-                                                    onChange={(v) => handleInputChange('sprint', v)} 
-                                                />
-                                                <TimeInput 
-                                                    label="Grand Prix Qualifying" 
-                                                    value={getValue(scheduleForm.qualifying)} 
-                                                    onChange={(v) => handleInputChange('qualifying', v)} 
-                                                />
-                                            </>
-                                        ) : (
-                                            <>
-                                                <TimeInput 
-                                                    label="Practice 2" 
-                                                    value={getValue(scheduleForm.fp2)} 
-                                                    onChange={(v) => handleInputChange('fp2', v)} 
-                                                />
-                                                <TimeInput 
-                                                    label="Practice 3" 
-                                                    value={getValue(scheduleForm.fp3)} 
-                                                    onChange={(v) => handleInputChange('fp3', v)} 
-                                                />
-                                                <div className="col-span-2 md:col-span-1">
-                                                    <TimeInput 
-                                                        label="Grand Prix Qualifying" 
-                                                        value={getValue(scheduleForm.qualifying)} 
-                                                        onChange={(v) => handleInputChange('qualifying', v)} 
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-
-                                        <div className="col-span-2 bg-carbon-black/40 p-3 rounded-lg border border-primary-red/30 mt-2">
-                                            <TimeInput 
-                                                label="Grand Prix Race (Start)" 
-                                                value={getValue(scheduleForm.race)} 
-                                                onChange={(v) => handleInputChange('race', v)} 
-                                                highlight
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="pt-2 border-t border-pure-white/10">
+                                <TimeInput label="Grand Prix Race" value={getValue(formState.race)} onChange={v => handleInputChange('race', v)} highlight />
                             </div>
-
-                            {/* Footer / Actions */}
-                            <div className="mt-auto pt-6 border-t border-pure-white/10 flex items-center justify-between flex-shrink-0">
-                                <div className="flex items-center gap-2 opacity-30">
-                                    <F1CarIcon className="w-5 h-5 text-pure-white" />
-                                    <span className="text-[10px] text-highlight-silver uppercase tracking-widest hidden sm:inline">Formula Fantasy One © {new Date().getFullYear()}</span>
-                                </div>
-
-                                <div className="relative">
-                                    {notification && (
-                                        <div className={`absolute bottom-full mb-4 right-0 px-4 py-2 rounded-lg shadow-xl text-sm font-bold animate-fade-in-up flex items-center gap-2 border whitespace-nowrap ${
-                                            notification.type === 'success' 
-                                            ? 'bg-green-600/90 border-green-500 text-white' 
-                                            : 'bg-red-600/90 border-red-500 text-white'
-                                        }`}>
-                                            {notification.message}
-                                        </div>
-                                    )}
-                                    <button
-                                        type="submit"
-                                        disabled={isSaving}
-                                        className="bg-green-600 hover:bg-green-500 text-pure-white font-bold py-3 px-8 rounded-lg shadow-lg disabled:opacity-50 transition-all transform hover:scale-105"
-                                    >
-                                        {isSaving ? 'Saving...' : 'Save Schedule'}
-                                    </button>
-                                </div>
+                            
+                            <div className="pt-2">
+                                <TimeInput label="Custom Lock Time (Optional)" value={getValue(formState.customLockAt)} onChange={v => handleInputChange('customLockAt', v)} />
                             </div>
-                        </form>
-                    )}
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-t border-pure-white/10 bg-carbon-black flex justify-between items-center">
+                        <button 
+                            type="button" 
+                            onClick={handleFlip}
+                            className="px-4 py-2 text-xs font-bold text-highlight-silver hover:text-pure-white transition-colors"
+                        >
+                            Discard
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={handleSaveClick}
+                            disabled={isSaving}
+                            className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-primary-red/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait transition-all transform hover:scale-105"
+                        >
+                            {isSaving ? 'Saving...' : <><SaveIcon className="w-4 h-4" /> Save Record</>}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -279,8 +256,9 @@ const TimeInput: React.FC<{ label: string; value: string; onChange: (val: string
         <input 
             type="datetime-local" 
             value={value}
-            onChange={(e) => onChange(e.target.value)} // Stores as 'YYYY-MM-DDTHH:MM' which is ISO compliant prefix
-            className={`w-full bg-carbon-black border rounded px-3 py-2 text-pure-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-red ${highlight ? 'border-primary-red font-bold text-base' : 'border-accent-gray'}`}
+            onClick={(e) => e.stopPropagation()} // Prevent flip when clicking input
+            onChange={(e) => onChange(e.target.value)} 
+            className={`w-full bg-carbon-black border rounded px-2 py-1.5 text-pure-white text-xs focus:outline-none focus:ring-1 focus:ring-primary-red ${highlight ? 'border-primary-red/50 bg-primary-red/5' : 'border-accent-gray'}`}
         />
     </div>
 );

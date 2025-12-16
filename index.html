@@ -26,6 +26,7 @@
               'flag-right': 'flagRight 0.6s ease-out 1.6s forwards',
               'spin-fast': 'spin 0.5s linear infinite',
               'spin-1s': 'spin 1s linear infinite',
+              'flare-sweep': 'flareSweep 3s ease-in-out infinite',
             },
             keyframes: {
               fadeInUp: {
@@ -56,6 +57,10 @@
               spin: {
                 from: { transform: 'rotate(0deg)' },
                 to: { transform: 'rotate(360deg)' },
+              },
+              flareSweep: {
+                '0%': { backgroundPosition: '-150% 0' },
+                '100%': { backgroundPosition: '250% 0' }
               }
             }
           }
@@ -104,14 +109,14 @@
           scrollbar-width: none;  /* Firefox */
       }
 
-      /* Carbon Fiber Pattern Class */
+      /* Carbon Fiber Pattern Class - Updated for visibility and size */
       .bg-carbon-fiber {
-        background-color: #0c0c0c;
+        background-color: #111;
         background-image: 
-          linear-gradient(45deg, #151515 25%, transparent 25%, transparent 75%, #151515 75%, #151515),
-          linear-gradient(45deg, #151515 25%, transparent 25%, transparent 75%, #151515 75%, #151515);
-        background-size: 8px 8px;
-        background-position: 0 0, 4px 4px;
+          linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a),
+          linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a);
+        background-position: 0 0, 10px 10px;
+        background-size: 20px 20px;
       }
 
       /* Traditional Checkered Flag Pattern Class */
@@ -122,6 +127,29 @@
           linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505);
         background-position: 0 0, 40px 40px; /* Offset to align checks */
         background-size: 80px 80px; /* Much larger checks */
+      }
+      
+      /* Glassy Sheen Sweep */
+      .sheen-sweep {
+        position: relative;
+        overflow: hidden;
+      }
+      .sheen-sweep::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+        transform: skewX(-25deg);
+        transition: left 0.5s;
+        pointer-events: none;
+        z-index: 20;
+      }
+      .sheen-sweep:hover::after, .sheen-sweep.animate-flare::after {
+        left: 200%;
+        transition: left 1s ease-in-out;
       }
     </style>
     <!-- Use a specific stable version of Babel Standalone to reduce variable warnings -->
