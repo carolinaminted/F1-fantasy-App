@@ -77,21 +77,21 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
     const UserCard: React.FC<{ user: User }> = ({ user }) => (
         <div 
             onClick={() => setSelectedUser(user)}
-            className="bg-accent-gray/50 rounded-lg p-4 mb-3 border border-pure-white/5 active:bg-pure-white/10"
+            className="bg-carbon-fiber rounded-xl p-4 mb-3 border border-pure-white/10 shadow-lg active:scale-[0.99] transition-all"
         >
             <div className="flex justify-between items-start mb-2">
                 <div>
                     <h3 className="font-bold text-pure-white text-lg">{user.displayName}</h3>
                     <p className="text-highlight-silver text-sm">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</p>
                 </div>
-                {user.isAdmin && <span className="bg-primary-red text-pure-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Admin</span>}
+                {user.isAdmin && <span className="bg-primary-red text-pure-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shadow-sm shadow-primary-red/50">Admin</span>}
             </div>
             <div className="flex justify-between items-center mt-3 border-t border-pure-white/5 pt-3">
                  <span className="text-xs text-highlight-silver uppercase tracking-wider">Status</span>
-                 <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                 <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                    ? 'bg-green-600/80 text-pure-white'
-                    : 'bg-primary-red/80 text-pure-white'
+                    ? 'bg-green-600/20 text-green-400 border-green-500/30'
+                    : 'bg-red-900/20 text-red-400 border-red-500/30'
                 }`}>
                     {user.duesPaidStatus || 'Unpaid'}
                 </span>
@@ -120,7 +120,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red appearance-none"
+                    className="w-full bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none transition-all"
                 />
             </div>
 
@@ -135,46 +135,48 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     </div>
 
                     {/* Desktop View */}
-                    <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                    <div className="hidden md:block bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl overflow-hidden">
                         <table className="w-full text-left">
-                            <thead className="bg-carbon-black/50">
+                            <thead className="bg-carbon-black/80 border-b border-pure-white/10 backdrop-blur-md">
                                 <tr>
-                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Name</th>
-                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver hidden md:table-cell">Email</th>
-                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Dues Status</th>
-                                    <th className="p-4 text-sm font-semibold uppercase text-highlight-silver text-center">Role</th>
+                                    <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider">Name</th>
+                                    <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider hidden md:table-cell">Email</th>
+                                    <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider text-center">Dues Status</th>
+                                    <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider text-center">Role</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-pure-white/5">
                                 {filteredUsers.map(user => (
                                     <tr 
                                         key={user.id} 
-                                        className="border-t border-accent-gray/50 hover:bg-accent-gray/70 cursor-pointer"
+                                        className="hover:bg-pure-white/5 transition-colors cursor-pointer group"
                                         onClick={() => setSelectedUser(user)}
                                     >
-                                        <td className="p-4 font-semibold">{user.displayName}</td>
-                                        <td className="p-4 text-highlight-silver hidden md:table-cell">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</td>
+                                        <td className="p-4">
+                                            <span className="font-bold text-pure-white group-hover:text-primary-red transition-colors">{user.displayName}</span>
+                                        </td>
+                                        <td className="p-4 text-highlight-silver hidden md:table-cell font-mono text-sm">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</td>
                                         <td className="p-4 text-center">
-                                             <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                             <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${
                                                 (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                                                ? 'bg-green-600/80 text-pure-white'
-                                                : 'bg-primary-red/80 text-pure-white'
+                                                ? 'bg-green-600/20 text-green-400 border-green-500/30'
+                                                : 'bg-red-900/20 text-red-400 border-red-500/30'
                                             }`}>
                                                 {user.duesPaidStatus || 'Unpaid'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
                                             {user.isAdmin ? (
-                                                <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-primary-red text-pure-white">Admin</span>
+                                                <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-primary-red text-pure-white shadow-sm shadow-primary-red/50">Admin</span>
                                             ) : (
-                                                <span className="text-highlight-silver text-xs">User</span>
+                                                <span className="text-highlight-silver text-xs font-medium">User</span>
                                             )}
                                         </td>
                                     </tr>
                                 ))}
                                 {filteredUsers.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="text-center p-8 text-highlight-silver">
+                                        <td colSpan={4} className="text-center p-8 text-highlight-silver italic">
                                             No users found for "{searchTerm}".
                                         </td>
                                     </tr>

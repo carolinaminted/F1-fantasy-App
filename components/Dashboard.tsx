@@ -71,6 +71,30 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const isAdmin = user && !!user.isAdmin;
   
+  // Easter Egg State
+  const [easterEggActive, setEasterEggActive] = useState(false);
+  const clickCount = useRef(0);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTitleClick = () => {
+    clickCount.current += 1;
+    
+    // Start reset timer on first click
+    if (clickCount.current === 1) {
+        clickTimer.current = setTimeout(() => {
+            clickCount.current = 0;
+        }, 2000); // 2 seconds window to click 5 times
+    }
+
+    if (clickCount.current >= 5) {
+        if (clickTimer.current) clearTimeout(clickTimer.current);
+        clickCount.current = 0;
+        setEasterEggActive(true);
+        // Reset after animation duration (4s)
+        setTimeout(() => setEasterEggActive(false), 4000);
+    }
+  };
+  
   // Find next event for countdown
   const nextEvent = useMemo(() => {
       const now = new Date();
@@ -93,26 +117,34 @@ const Dashboard: React.FC<DashboardProps> = ({
          <div className="absolute inset-0 bg-gradient-to-t from-carbon-black via-carbon-black/50 to-transparent z-10"></div>
          
          {/* Hero Content - Centered */}
-         <div className="relative z-20 text-center px-4 pb-20 flex flex-col items-center">
+         <div 
+            className="relative z-20 text-center px-4 pb-20 flex flex-col items-center select-none"
+            onClick={handleTitleClick}
+         >
             {/* Animated Title Block - Drives Up */}
             <div className="animate-drive-in opacity-0 relative">
                 {/* Checkered Flags Reveal - Behind Logo */}
                 {/* Added opacity-0 to flag containers to hide them initially until animation delay triggers */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex justify-center items-center -z-10 pointer-events-none">
-                    <div className="origin-bottom-right animate-flag-left opacity-0">
+                    <div className={`origin-bottom-right animate-flag-left opacity-0 ${easterEggActive ? 'opacity-100 z-50' : ''}`}>
                         {/* Flip Left Flag to wave outwards (Left) */}
-                        <div className="transform scale-x-[-1]">
+                        <div className={`transform scale-x-[-1] ${easterEggActive ? 'animate-wiggle' : ''}`}>
                             <CheckeredFlagIcon className="w-16 h-16 md:w-32 md:h-32 text-pure-white" />
                         </div>
                     </div>
-                    <div className="origin-bottom-left animate-flag-right opacity-0">
+                    <div className={`origin-bottom-left animate-flag-right opacity-0 ${easterEggActive ? 'opacity-100 z-50' : ''}`}>
                         {/* Normal Right Flag waves outwards (Right) */}
-                        <CheckeredFlagIcon className="w-16 h-16 md:w-32 md:h-32 text-pure-white" />
+                        <div className={`${easterEggActive ? 'animate-wiggle' : ''}`}>
+                            <CheckeredFlagIcon className="w-16 h-16 md:w-32 md:h-32 text-pure-white" />
+                        </div>
                     </div>
                 </div>
 
-                <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
-                <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2">
+                <div className={`relative ${easterEggActive ? 'animate-victory-lap z-50' : ''}`}>
+                    <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
+                </div>
+                
+                <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2 cursor-pointer active:scale-95 transition-transform">
                     FORMULA<br/>FANTASY ONE
                 </h1>
             </div>
@@ -121,7 +153,10 @@ const Dashboard: React.FC<DashboardProps> = ({
             {nextEvent && (
                 <div 
                     className="mt-6 animate-drive-in opacity-0 [animation-delay:100ms] w-full max-w-sm cursor-pointer group"
-                    onClick={() => setActivePage('picks', { eventId: nextEvent.id })}
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent counting clicks on the card
+                        setActivePage('picks', { eventId: nextEvent.id });
+                    }}
                     onMouseMove={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         const x = e.clientX - rect.left;

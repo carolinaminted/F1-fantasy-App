@@ -341,10 +341,14 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
     onToggle
 }) => {
     return (
-        <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden ${isActive ? 'flex-1 min-h-0' : 'flex-none'}`}>
+        <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden shadow-lg ${isActive ? 'flex-1 min-h-0 ring-1 ring-pure-white/10' : 'flex-none bg-carbon-fiber'}`}>
             <button 
                 onClick={() => onToggle(id)}
-                className={`flex items-center justify-between p-4 transition-colors ${isActive ? 'bg-carbon-black text-pure-white' : 'bg-accent-gray/20 text-highlight-silver hover:bg-accent-gray/40'}`}
+                className={`flex items-center justify-between p-4 transition-colors relative z-10 ${
+                    isActive 
+                    ? 'bg-carbon-black text-pure-white border-b border-pure-white/10' 
+                    : 'bg-transparent text-highlight-silver hover:text-pure-white hover:border-primary-red/30'
+                }`}
             >
                 <div className="flex items-center gap-3">
                     <Icon className={`w-6 h-6 ${isActive ? 'text-primary-red' : 'text-highlight-silver'}`} />
@@ -355,7 +359,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
                     <ChevronDownIcon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'rotate-180' : ''}`} />
                 </div>
             </button>
-            <div className={`flex-1 bg-carbon-black/20 overflow-hidden flex flex-col ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`flex-1 bg-carbon-fiber overflow-hidden flex flex-col relative z-0 ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
                 {isActive && children}
             </div>
         </div>
@@ -471,7 +475,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
             >
                 <div className="flex flex-col h-full">
                     {/* Controls */}
-                    <div className="p-4 border-b border-pure-white/5 bg-accent-gray/10 flex flex-col md:flex-row gap-3 justify-between items-center flex-shrink-0">
+                    <div className="p-4 border-b border-pure-white/5 bg-carbon-black/20 flex flex-col md:flex-row gap-3 justify-between items-center flex-shrink-0">
                          <div className="flex shadow-sm">
                             <LimitToggle label="Top 10" limit={10} />
                             <LimitToggle label="Top 25" limit={25} />

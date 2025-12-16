@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -27,6 +28,8 @@
               'spin-fast': 'spin 0.5s linear infinite',
               'spin-1s': 'spin 1s linear infinite',
               'flare-sweep': 'flareSweep 3s ease-in-out infinite',
+              'victory-lap': 'victoryLap 4s ease-in-out forwards',
+              'wiggle': 'wiggle 0.5s ease-in-out infinite',
             },
             keyframes: {
               fadeInUp: {
@@ -61,6 +64,20 @@
               flareSweep: {
                 '0%': { backgroundPosition: '-150% 0' },
                 '100%': { backgroundPosition: '250% 0' }
+              },
+              victoryLap: {
+                '0%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '10%': { transform: 'translate(0, 30vh) rotate(180deg)' },
+                '25%': { transform: 'translate(-40vw, 30vh) rotate(90deg)' },
+                '40%': { transform: 'translate(-40vw, -40vh) rotate(0deg)' },
+                '60%': { transform: 'translate(40vw, -40vh) rotate(-90deg)' },
+                '80%': { transform: 'translate(40vw, 30vh) rotate(-180deg)' },
+                '90%': { transform: 'translate(0, 30vh) rotate(-270deg)' },
+                '100%': { transform: 'translate(0, 0) rotate(-360deg)' },
+              },
+              wiggle: {
+                '0%, 100%': { transform: 'rotate(-10deg) scale(1.8)' },
+                '50%': { transform: 'rotate(10deg) scale(2.2)' },
               }
             }
           }

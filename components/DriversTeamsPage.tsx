@@ -11,6 +11,19 @@ interface DriversTeamsPageProps {
     setActivePage: (page: any) => void;
 }
 
+const TEAM_URLS: Record<string, string> = {
+    'mclaren': 'https://www.formula1.com/en/teams/mclaren',
+    'mercedes': 'https://www.formula1.com/en/teams/mercedes',
+    'red_bull': 'https://www.formula1.com/en/teams/red-bull-racing',
+    'ferrari': 'https://www.formula1.com/en/teams/ferrari',
+    'williams': 'https://www.formula1.com/en/teams/williams',
+    'racing_bulls': 'https://www.formula1.com/en/teams/racing-bulls',
+    'aston_martin': 'https://www.formula1.com/en/teams/aston-martin',
+    'haas': 'https://www.formula1.com/en/teams/haas',
+    'audi': 'https://www.formula1.com/en/teams/kick-sauber',
+    'alpine': 'https://www.formula1.com/en/teams/alpine',
+};
+
 const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allConstructors, setActivePage }) => {
     
     // Sort and Group Entities
@@ -55,9 +68,18 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
             return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         };
 
+        const teamUrl = TEAM_URLS[team.id];
+        const CardComponent = teamUrl ? 'a' : 'div';
+        const cardProps = teamUrl ? {
+            href: teamUrl,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+        } : {};
+
         return (
-            <div 
-                className="relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.01] hover:shadow-lg group md:h-full md:flex md:flex-col"
+            <CardComponent 
+                {...cardProps}
+                className={`relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.01] hover:shadow-lg group md:h-full md:flex md:flex-col ${teamUrl ? 'cursor-pointer' : ''}`}
                 style={{ 
                     borderColor: `${teamColor}60`, 
                     boxShadow: `0 0 20px ${hexToRgba(teamColor, 0.1)}`
@@ -73,7 +95,12 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                 <div className="relative z-10 p-4 md:p-3 md:flex-1 md:flex md:flex-col">
                     <div className="flex justify-between items-start mb-4 md:mb-1 border-b border-pure-white/10 pb-3 md:pb-2 md:flex-shrink-0">
                         <div className="flex flex-col justify-center">
-                            <h3 className="text-xl md:text-lg font-bold text-pure-white leading-none tracking-tight drop-shadow-md">{team.name}</h3>
+                            <h3 className="text-xl md:text-lg font-bold text-pure-white leading-none tracking-tight drop-shadow-md flex items-center gap-2">
+                                {team.name}
+                                {teamUrl && (
+                                    <svg className="w-3 h-3 text-highlight-silver opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                )}
+                            </h3>
                              {!team.isActive && (
                                 <span className="inline-block mt-2 md:mt-1 self-start text-[10px] font-bold uppercase bg-red-900/50 text-red-200 px-2 py-0.5 rounded border border-red-500/30">
                                     Inactive
@@ -106,7 +133,7 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                         )}
                     </div>
                 </div>
-            </div>
+            </CardComponent>
         );
     };
 

@@ -14,12 +14,12 @@ interface PointsTransparencyProps {
 }
 
 const PointTile: React.FC<{ rank: number; points: number; isTop?: boolean }> = ({ rank, points, isTop }) => (
-    <div className={`relative flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-300 hover:scale-105 ${isTop ? 'bg-gradient-to-b from-primary-red/10 to-transparent border-primary-red/30 shadow-[0_0_15px_rgba(218,41,28,0.1)]' : 'bg-carbon-black/20 border-pure-white/5 hover:bg-pure-white/5'}`}>
-        <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${isTop ? 'text-primary-red' : 'text-highlight-silver'}`}>
+    <div className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 hover:scale-105 ${isTop ? 'bg-gradient-to-b from-primary-red/10 to-transparent border-primary-red/30 shadow-[0_0_15px_rgba(218,41,28,0.1)]' : 'bg-carbon-black/20 border-pure-white/5 hover:bg-pure-white/5'}`}>
+        <span className={`text-xs md:text-sm font-black uppercase tracking-widest mb-1 ${isTop ? 'text-primary-red' : 'text-highlight-silver'}`}>
             {rank === 1 ? 'Winner' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : `P${rank}`}
         </span>
-        <span className="text-2xl font-black text-pure-white leading-none">{points}</span>
-        <span className="text-[8px] text-highlight-silver/50 uppercase tracking-widest mt-0.5">Points</span>
+        <span className="text-3xl md:text-4xl font-black text-pure-white leading-none mb-1">{points}</span>
+        <span className="text-[10px] md:text-xs font-bold text-highlight-silver/60 uppercase tracking-widest">Points</span>
     </div>
 );
 
@@ -83,10 +83,10 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                         title="Grand Prix" 
                         subtitle="Sunday Feature Race (Top 10)" 
                         icon={CheckeredFlagIcon} 
-                        className="flex-[1.3] min-h-0"
+                        className="flex-[1.1] min-h-0"
                         headerColor="bg-primary-red text-pure-white"
                     >
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 h-full content-center">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 h-full content-center">
                             {pointsSystem.grandPrixFinish.map((p, i) => (
                                 <PointTile key={i} rank={i + 1} points={p} isTop={i < 3} />
                             ))}
@@ -101,7 +101,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                         className="flex-1 min-h-0"
                         headerColor="bg-pure-white text-carbon-black"
                     >
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 h-full content-center">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 h-full content-center">
                             {pointsSystem.sprintFinish.map((p, i) => (
                                 <PointTile key={i} rank={i + 1} points={p} isTop={i === 0} />
                             ))}
