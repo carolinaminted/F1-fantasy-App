@@ -70,38 +70,42 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
 
     return (
         <>
-            <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0 md:h-[calc(100vh-6rem)] md:overflow-hidden md:flex md:flex-col">
-                <PageHeader 
-                    title="SEASON CALENDAR" 
-                    icon={CalendarIcon} 
-                    subtitle="All times displayed in EST"
-                    rightAction={RightAction}
-                />
+            <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
+                <div className="flex-none">
+                    <PageHeader 
+                        title="SEASON CALENDAR" 
+                        icon={CalendarIcon} 
+                        subtitle="All times displayed in EST"
+                        rightAction={RightAction}
+                    />
+                </div>
 
                 {/* Upcoming View - Flex Container for Desktop */}
                 {viewMode === 'upcoming' && (
                     <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-                        {/* Hero: Next Race */}
-                        {nextRace && (
-                            <div className="px-4 md:px-0 mb-6 animate-fade-in flex-none">
-                                <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
-                            </div>
-                        )}
+                        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-0 pb-8">
+                            {/* Hero: Next Race */}
+                            {nextRace && (
+                                <div className="mb-6 animate-fade-in flex-none">
+                                    <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
+                                </div>
+                            )}
 
-                        {/* Next 5 List */}
-                        <div className="px-4 md:px-2 animate-fade-in-up flex-1 min-h-0 flex flex-col">
-                            <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:h-full pb-2">
-                                {upcomingRaces.map(event => (
-                                    <div key={event.id} className="md:h-full">
-                                        <CompactEventCard 
-                                            event={event} 
-                                            schedule={schedules[event.id]} 
-                                            isNext={nextRace?.id === event.id} 
-                                            onClick={() => setSelectedEvent(event)}
-                                        />
-                                    </div>
-                                ))}
+                            {/* Next 5 List */}
+                            <div className="animate-fade-in-up">
+                                <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    {upcomingRaces.map(event => (
+                                        <div key={event.id} className="md:h-full">
+                                            <CompactEventCard 
+                                                event={event} 
+                                                schedule={schedules[event.id]} 
+                                                isNext={nextRace?.id === event.id} 
+                                                onClick={() => setSelectedEvent(event)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -109,7 +113,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
 
                 {/* Full Schedule List - Grid on Desktop */}
                 {viewMode === 'full' && (
-                    <div className="animate-fade-in md:flex-1 md:overflow-y-auto custom-scrollbar px-4 pb-6 md:p-4">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-0 pb-8 min-h-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map(event => (
                                 <EventGridCard 

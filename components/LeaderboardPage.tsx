@@ -349,7 +349,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
         <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden shadow-lg ${isActive ? 'flex-1 min-h-0 ring-1 ring-pure-white/10' : 'flex-none bg-carbon-fiber'}`}>
             <button 
                 onClick={() => onToggle(id)}
-                className={`flex items-center justify-between p-4 transition-colors relative z-10 ${
+                className={`flex items-center justify-between p-4 transition-colors relative z-10 flex-shrink-0 ${
                     isActive 
                     ? 'bg-carbon-black text-pure-white border-b border-pure-white/10' 
                     : 'bg-transparent text-highlight-silver hover:text-pure-white hover:border-primary-red/30'
@@ -459,7 +459,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     )
                 }
             >
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-0">
                      <div className="flex justify-end mb-2">
                         <div className="flex shadow-sm transform scale-90 origin-right">
                             <LimitToggle label="Top 10" limit={10} />
@@ -479,7 +479,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                 isActive={activeSection === 'list'}
                 onToggle={setActiveSection}
             >
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full min-h-0">
                     {/* Controls */}
                     <div className="p-4 border-b border-pure-white/5 bg-carbon-black/20 flex flex-col md:flex-row gap-3 justify-between items-center flex-shrink-0">
                          <div className="flex shadow-sm">
@@ -497,7 +497,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     </div>
                     
                     {/* List Content */}
-                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-0">
                         {/* Mobile Cards */}
                         <div className="md:hidden space-y-3">
                             {filteredAndSorted.map(user => (
@@ -618,7 +618,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
     }, [allPicks, timeRange, allDrivers, allConstructors, events]);
 
     return (
-        <div className="space-y-8 animate-fade-in pt-4">
+        <div className="space-y-8 animate-fade-in pt-4 pb-8">
              <div className="flex flex-col md:flex-row justify-end items-center gap-4">
                 <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
@@ -807,7 +807,7 @@ const InsightsView: React.FC<{
                 <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
 
-            <div className="flex-1 min-h-0 pb-2">
+            <div className="flex-1 min-h-0 pb-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
                     <TrendChart 
                         title="Hot Streak" 
@@ -929,7 +929,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
     }, [raceResults, pointsSystem, allDrivers, allConstructors]);
 
     return (
-        <div className="space-y-8 animate-fade-in pt-4">
+        <div className="space-y-8 animate-fade-in pt-4 pb-8">
             
             {/* Header Removed (Moved to Top Nav) */}
 
@@ -1108,169 +1108,174 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   if (view === 'menu') {
       return (
-          <div className="max-w-7xl mx-auto animate-fade-in pt-4">
-              {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+          <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto animate-fade-in">
+              <div className="flex-none pt-4">
+                  {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+                  <PageHeader 
+                      title="League Standings" 
+                      icon={LeaderboardIcon} 
+                      subtitle="Analyze league performance and trends"
+                      rightAction={
+                          <RefreshControl 
+                              onClick={handleManualRefresh} 
+                              isRefreshing={isRefreshing} 
+                              cooldown={cooldownTime}
+                              status={refreshStatus}
+                          />
+                      }
+                  />
+              </div>
               
-              <PageHeader 
-                  title="League Standings" 
-                  icon={LeaderboardIcon} 
-                  subtitle="Analyze league performance and trends"
-                  rightAction={
-                      <RefreshControl 
-                          onClick={handleManualRefresh} 
-                          isRefreshing={isRefreshing} 
-                          cooldown={cooldownTime}
-                          status={refreshStatus}
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8 min-h-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                      <NavTile 
+                        icon={LeaderboardIcon} 
+                        title="Standings" 
+                        desc="View the full league table sorted by total points." 
+                        onClick={() => setView('standings')} 
                       />
-                  }
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  <NavTile 
-                    icon={LeaderboardIcon} 
-                    title="Standings" 
-                    desc="View the full league table sorted by total points." 
-                    onClick={() => setView('standings')} 
-                  />
-                  <NavTile 
-                    icon={TrendingUpIcon} 
-                    title="Popular Picks" 
-                    desc="See which drivers and teams are trending this season." 
-                    onClick={() => setView('popular')} 
-                  />
-                   <NavTile 
-                    icon={TeamIcon} 
-                    title="Teams & Driver Results" 
-                    desc="Real-world performance breakdown with our league scoring system." 
-                    onClick={() => setView('entities')} 
-                  />
-                  <NavTile 
-                    icon={LightbulbIcon} 
-                    title="Insights" 
-                    desc="Deep dive into performance breakdowns and superlatives." 
-                    onClick={() => setView('insights')} 
-                  />
+                      <NavTile 
+                        icon={TrendingUpIcon} 
+                        title="Popular Picks" 
+                        desc="See which drivers and teams are trending this season." 
+                        onClick={() => setView('popular')} 
+                      />
+                       <NavTile 
+                        icon={TeamIcon} 
+                        title="Teams & Driver Results" 
+                        desc="Real-world performance breakdown with our league scoring system." 
+                        onClick={() => setView('entities')} 
+                      />
+                      <NavTile 
+                        icon={LightbulbIcon} 
+                        title="Insights" 
+                        desc="Deep dive into performance breakdowns and superlatives." 
+                        onClick={() => setView('insights')} 
+                      />
+                  </div>
               </div>
           </div>
       );
   }
 
   return (
-      <div className="max-w-7xl mx-auto w-full md:h-[calc(100vh-4.5rem)] md:flex md:flex-col md:overflow-hidden">
-          {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
+      <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
+          <div className="flex-none">
+              {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
 
-          <div className="mb-2 md:mb-4 flex items-center justify-between relative flex-none">
-              <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => setView('menu')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 z-10"
-                  >
-                      <BackIcon className="w-5 h-5" />
-                      Back to Hub
-                  </button>
+              <div className="mb-2 md:mb-4 flex items-center justify-between relative px-2 md:px-0">
+                  <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => setView('menu')}
+                        className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 z-10"
+                      >
+                          <BackIcon className="w-5 h-5" />
+                          Back to Hub
+                      </button>
+                  </div>
+                  
+                  {(view === 'standings') && (
+                      <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
+                          League Leaderboard
+                      </h1>
+                  )}
+
+                  {/* NEW: Driver & Team Points Title in Header (Desktop) */}
+                  {(view === 'entities') && (
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                            <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                                <TeamIcon className="w-5 h-5 text-primary-red" />
+                            </div>
+                          <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                              Driver & Team Points
+                          </h1>
+                      </div>
+                  )}
+
+                  {/* NEW: Popular Picks Title (Desktop) */}
+                  {(view === 'popular') && (
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                            <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                                <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+                            </div>
+                          <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                              Popular Picks Analysis
+                          </h1>
+                      </div>
+                  )}
+
+                  {/* NEW: Performance Trends Title (Desktop) */}
+                  {(view === 'insights') && (
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                            <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                                <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+                            </div>
+                          <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                              Performance Trends
+                          </h1>
+                      </div>
+                  )}
+                  
+                  <RefreshControl 
+                      onClick={handleManualRefresh} 
+                      isRefreshing={isRefreshing} 
+                      cooldown={cooldownTime} 
+                      status={refreshStatus}
+                  />
               </div>
-              
-              {(view === 'standings') && (
-                  <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
-                      League Leaderboard
-                  </h1>
+
+              {view === 'standings' && (
+                  <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">League Leaderboard</h1>
               )}
 
-              {/* NEW: Driver & Team Points Title in Header (Desktop) */}
-              {(view === 'entities') && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
-                        <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
-                            <TeamIcon className="w-5 h-5 text-primary-red" />
+              {/* NEW: Driver & Team Points Title (Mobile) */}
+              {view === 'entities' && (
+                   <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                                <TeamIcon className="w-6 h-6 text-primary-red" />
+                            </div>
+                            <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
+                                Driver & Team Points
+                            </h1>
                         </div>
-                      <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
-                          Driver & Team Points
-                      </h1>
-                  </div>
+                    </div>
               )}
 
-              {/* NEW: Popular Picks Title (Desktop) */}
-              {(view === 'popular') && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
-                        <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
-                            <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+              {/* NEW: Popular Picks Title (Mobile) */}
+              {view === 'popular' && (
+                   <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                                <TrendingUpIcon className="w-6 h-6 text-primary-red" />
+                            </div>
+                            <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
+                                Popular Picks Analysis
+                            </h1>
                         </div>
-                      <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
-                          Popular Picks Analysis
-                      </h1>
-                  </div>
+                    </div>
               )}
 
-              {/* NEW: Performance Trends Title (Desktop) */}
-              {(view === 'insights') && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
-                        <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
-                            <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+              {/* NEW: Performance Trends Title (Mobile) */}
+              {view === 'insights' && (
+                   <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                                <TrendingUpIcon className="w-6 h-6 text-primary-red" />
+                            </div>
+                            <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
+                                Performance Trends
+                            </h1>
                         </div>
-                      <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
-                          Performance Trends
-                      </h1>
-                  </div>
+                    </div>
               )}
-              
-              <RefreshControl 
-                  onClick={handleManualRefresh} 
-                  isRefreshing={isRefreshing} 
-                  cooldown={cooldownTime} 
-                  status={refreshStatus}
-              />
           </div>
 
-          {view === 'standings' && (
-              <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center flex-none">League Leaderboard</h1>
-          )}
-
-          {/* NEW: Driver & Team Points Title (Mobile) */}
-          {view === 'entities' && (
-               <div className="sm:hidden mb-4 flex flex-col items-center justify-center flex-none">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
-                            <TeamIcon className="w-6 h-6 text-primary-red" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
-                            Driver & Team Points
-                        </h1>
-                    </div>
-                </div>
-          )}
-
-          {/* NEW: Popular Picks Title (Mobile) */}
-          {view === 'popular' && (
-               <div className="sm:hidden mb-4 flex flex-col items-center justify-center flex-none">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
-                            <TrendingUpIcon className="w-6 h-6 text-primary-red" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
-                            Popular Picks Analysis
-                        </h1>
-                    </div>
-                </div>
-          )}
-
-          {/* NEW: Performance Trends Title (Mobile) */}
-          {view === 'insights' && (
-               <div className="sm:hidden mb-4 flex flex-col items-center justify-center flex-none">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
-                            <TrendingUpIcon className="w-6 h-6 text-primary-red" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
-                            Performance Trends
-                        </h1>
-                    </div>
-                </div>
-          )}
-
-          <div className="flex-1 min-h-0 overflow-y-auto md:overflow-y-hidden custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-2 md:px-0 pb-8">
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
-            {view === 'popular' && leaderboardCache && <div className="h-full overflow-y-auto"><PopularityView allPicks={leaderboardCache.allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} /></div>}
+            {view === 'popular' && leaderboardCache && <PopularityView allPicks={leaderboardCache.allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
-            {view === 'entities' && <div className="h-full overflow-y-auto"><EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} /></div>}
+            {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
           </div>
       </div>
   );

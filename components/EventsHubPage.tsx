@@ -12,38 +12,42 @@ interface EventsHubPageProps {
 
 const EventsHubPage: React.FC<EventsHubPageProps> = ({ setActivePage }) => {
     return (
-        <div className="max-w-6xl mx-auto px-4 py-4 md:py-8 animate-fade-in flex flex-col h-full">
-            <PageHeader 
-                title="RACE EVENTS" 
-                icon={TrackIcon} 
-                subtitle="Access the complete 2026 season schedule, official race results, and team grid."
-            />
+        <div className="flex flex-col h-full overflow-hidden max-w-6xl mx-auto px-4">
+            <div className="flex-none pt-4">
+                <PageHeader 
+                    title="RACE EVENTS" 
+                    icon={TrackIcon} 
+                    subtitle="Access the complete 2026 season schedule, official race results, and team grid."
+                />
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 flex-1">
-                <HubTile 
-                    icon={CalendarIcon}
-                    title="Schedule"
-                    subtitle="2026 Season Calendar"
-                    description="Upcoming race dates, circuit info, and session start times."
-                    onClick={() => setActivePage('schedule')}
-                    delay="0ms"
-                />
-                <HubTile 
-                    icon={TrackIcon}
-                    title="GP Results"
-                    subtitle="Race Classifications"
-                    description="Official finishing orders, fastest laps, and points awarded."
-                    onClick={() => setActivePage('gp-results')}
-                    delay="100ms"
-                />
-                <HubTile 
-                    icon={GarageIcon}
-                    title="Drivers & Teams"
-                    subtitle="The Grid"
-                    description="Constructor rosters, driver line-ups, and team details."
-                    onClick={() => setActivePage('drivers-teams')}
-                    delay="200ms"
-                />
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 h-full">
+                    <HubTile 
+                        icon={CalendarIcon}
+                        title="Schedule"
+                        subtitle="2026 Season Calendar"
+                        description="Upcoming race dates, circuit info, and session start times."
+                        onClick={() => setActivePage('schedule')}
+                        delay="0ms"
+                    />
+                    <HubTile 
+                        icon={TrackIcon}
+                        title="GP Results"
+                        subtitle="Race Classifications"
+                        description="Official finishing orders, fastest laps, and points awarded."
+                        onClick={() => setActivePage('gp-results')}
+                        delay="100ms"
+                    />
+                    <HubTile 
+                        icon={GarageIcon}
+                        title="Drivers & Teams"
+                        subtitle="The Grid"
+                        description="Constructor rosters, driver line-ups, and team details."
+                        onClick={() => setActivePage('drivers-teams')}
+                        delay="200ms"
+                    />
+                </div>
             </div>
         </div>
     );

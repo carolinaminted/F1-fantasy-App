@@ -163,15 +163,17 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
     );
 
     return (
-        <div className="flex flex-col h-full w-full max-w-7xl mx-auto md:h-[calc(100vh-6rem)] md:overflow-hidden pb-safe">
-            <PageHeader 
-                title="RACE RESULTS" 
-                icon={CheckeredFlagIcon} 
-                rightAction={SearchBar}
-            />
+        <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto pb-safe">
+            <div className="flex-none">
+                <PageHeader 
+                    title="RACE RESULTS" 
+                    icon={CheckeredFlagIcon} 
+                    rightAction={SearchBar}
+                />
+            </div>
             
             {/* Main Content Card - Fills remaining space */}
-            <div className="flex-1 min-h-0 flex flex-col bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-xl overflow-hidden relative">
+            <div className="flex-1 min-h-0 flex flex-col bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-xl overflow-hidden relative mb-8">
                 {selectedEvent ? (
                     <div className="flex flex-col h-full">
                         {/* Event Header Panel */}

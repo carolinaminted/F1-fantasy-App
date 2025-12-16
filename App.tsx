@@ -216,8 +216,19 @@ const App: React.FC = () => {
   const { showToast } = useToast();
 
   // Pages that should have a fixed (non-scrolling) viewport on desktop, allowing internal scrolling.
-  // Currently enabled for Donation and DuesPayment as requested.
-  const lockedDesktopPages: Page[] = ['donate', 'duesPayment'];
+  const lockedDesktopPages: Page[] = [
+      'donate', 
+      'duesPayment', 
+      'admin', 
+      'leaderboard', 
+      'points', 
+      'gp-results', 
+      'drivers-teams', 
+      'schedule', 
+      'events-hub', 
+      'league-hub'
+  ];
+  
   const isLockedLayout = lockedDesktopPages.includes(activePage);
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
@@ -569,7 +580,7 @@ const App: React.FC = () => {
         />;
       case 'events-hub':
         // Legacy redirect to League Hub if accessed directly, though navigation links should be updated
-        return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
+        return <EventsHubPage setActivePage={navigateToPage} />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':

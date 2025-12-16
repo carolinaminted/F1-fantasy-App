@@ -20,73 +20,76 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
     const isPaid = user?.duesPaidStatus === 'Paid';
 
     return (
-        <div className="w-full max-w-7xl mx-auto flex flex-col h-full md:h-[calc(100vh-6rem)] md:overflow-hidden pb-safe px-2 md:px-0">
-            
-            <PageHeader 
-                title="LEAGUE HEADQUARTERS" 
-                icon={LeagueIcon} 
-                subtitle="Central hub for season data, rules, and membership."
-            />
+        <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto px-2 md:px-0">
+            <div className="flex-none">
+                <PageHeader 
+                    title="LEAGUE HEADQUARTERS" 
+                    icon={LeagueIcon} 
+                    subtitle="Central hub for season data, rules, and membership."
+                />
+            </div>
             
             {/* Grid Container */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 pb-20 md:pb-0 overflow-y-auto md:overflow-visible">
-                {/* --- Race Information Section --- */}
-                <HubTile 
-                    icon={CalendarIcon}
-                    title="Schedule"
-                    subtitle="Calendar"
-                    description="Upcoming race dates and start times."
-                    onClick={() => setActivePage('schedule')}
-                    delay="0ms"
-                />
-                <HubTile 
-                    icon={TrackIcon}
-                    title="GP Results"
-                    subtitle="Classifications"
-                    description="Official finishing orders & points."
-                    onClick={() => setActivePage('gp-results')}
-                    delay="100ms"
-                />
-                <HubTile 
-                    icon={GarageIcon}
-                    title="Drivers & Teams"
-                    subtitle="The Grid"
-                    description="Constructor rosters & driver line-ups."
-                    onClick={() => setActivePage('drivers-teams')}
-                    delay="200ms"
-                />
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar md:overflow-visible pb-20 md:pb-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 h-full">
+                    {/* --- Race Information Section --- */}
+                    <HubTile 
+                        icon={CalendarIcon}
+                        title="Schedule"
+                        subtitle="Calendar"
+                        description="Upcoming race dates and start times."
+                        onClick={() => setActivePage('schedule')}
+                        delay="0ms"
+                    />
+                    <HubTile 
+                        icon={TrackIcon}
+                        title="GP Results"
+                        subtitle="Classifications"
+                        description="Official finishing orders & points."
+                        onClick={() => setActivePage('gp-results')}
+                        delay="100ms"
+                    />
+                    <HubTile 
+                        icon={GarageIcon}
+                        title="Drivers & Teams"
+                        subtitle="The Grid"
+                        description="Constructor rosters & driver line-ups."
+                        onClick={() => setActivePage('drivers-teams')}
+                        delay="200ms"
+                    />
 
-                {/* --- League Administration Section --- */}
-                <HubTile 
-                    icon={TrophyIcon}
-                    title="Scoring System"
-                    subtitle="Rules"
-                    description="Points breakdown for race results."
-                    onClick={() => setActivePage('points')}
-                    delay="300ms"
-                />
-                
-                <HubTile 
-                    icon={DuesIcon}
-                    title={isPaid ? "Membership Active" : "Pay Dues"}
-                    subtitle="Status"
-                    description={isPaid ? "You are all set for the season!" : "Settle your entry fees to unlock."}
-                    onClick={() => {
-                        if (!isPaid) setActivePage('duesPayment');
-                    }}
-                    delay="400ms"
-                    highlight={!isPaid && !!user}
-                    completed={isPaid}
-                />
+                    {/* --- League Administration Section --- */}
+                    <HubTile 
+                        icon={TrophyIcon}
+                        title="Scoring System"
+                        subtitle="Rules"
+                        description="Points breakdown for race results."
+                        onClick={() => setActivePage('points')}
+                        delay="300ms"
+                    />
+                    
+                    <HubTile 
+                        icon={DuesIcon}
+                        title={isPaid ? "Membership Active" : "Pay Dues"}
+                        subtitle="Status"
+                        description={isPaid ? "You are all set for the season!" : "Settle your entry fees to unlock."}
+                        onClick={() => {
+                            if (!isPaid) setActivePage('duesPayment');
+                        }}
+                        delay="400ms"
+                        highlight={!isPaid && !!user}
+                        completed={isPaid}
+                    />
 
-                <HubTile 
-                    icon={DonationIcon}
-                    title="Donate"
-                    subtitle="Support"
-                    description="Victory Junction & League Ops."
-                    onClick={() => setActivePage('donate')}
-                    delay="500ms"
-                />
+                    <HubTile 
+                        icon={DonationIcon}
+                        title="Donate"
+                        subtitle="Support"
+                        description="Victory Junction & League Ops."
+                        onClick={() => setActivePage('donate')}
+                        delay="500ms"
+                    />
+                </div>
             </div>
         </div>
     );

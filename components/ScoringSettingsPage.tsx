@@ -158,147 +158,151 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)] md:overflow-hidden text-pure-white max-w-7xl mx-auto w-full">
-            <PageHeader 
-                title="SCORING SETTINGS" 
-                icon={TrophyIcon} 
-                leftAction={DashboardAction}
-            />
+        <div className="flex flex-col h-full overflow-hidden text-pure-white max-w-7xl mx-auto w-full">
+            <div className="flex-none">
+                <PageHeader 
+                    title="SCORING SETTINGS" 
+                    icon={TrophyIcon} 
+                    leftAction={DashboardAction}
+                />
+            </div>
             
-            {/* Toolbar */}
-            <div className="bg-carbon-fiber backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    {/* Profile Selector */}
-                    <div className="relative w-full md:w-80 z-30">
-                        <ProfileDropdown 
-                            profiles={localSettings.profiles} 
-                            activeProfileId={localSettings.activeProfileId}
-                            selectedProfileId={editForm?.id || ''}
-                            onSelect={handleProfileSelect}
-                        />
+            <div className="flex-1 min-h-0 flex flex-col px-4 md:px-0 pb-8">
+                {/* Toolbar */}
+                <div className="bg-carbon-fiber backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        {/* Profile Selector */}
+                        <div className="relative w-full md:w-80 z-30">
+                            <ProfileDropdown 
+                                profiles={localSettings.profiles} 
+                                activeProfileId={localSettings.activeProfileId}
+                                selectedProfileId={editForm?.id || ''}
+                                onSelect={handleProfileSelect}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                         {!isActiveProfile && (
+                            <button
+                                onClick={handleDelete}
+                                disabled={isSaving}
+                                className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                            >
+                                Delete
+                            </button>
+                        )}
+                        
+                        <button
+                            onClick={handleCreateNew}
+                            disabled={isSaving}
+                            className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white hover:bg-pure-white/10 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                            + New
+                        </button>
+
+                        {!isActiveProfile && (
+                            <button
+                                onClick={handleMakeActive}
+                                disabled={isSaving}
+                                className="px-4 py-2 text-sm font-bold text-green-400 border border-green-400/30 hover:bg-green-400/10 rounded-lg transition-colors whitespace-nowrap"
+                            >
+                                Make Active
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => handleSaveProfile(true)}
+                            disabled={isSaving}
+                            className="px-6 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg shadow-primary-red/20 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                     {!isActiveProfile && (
-                        <button
-                            onClick={handleDelete}
-                            disabled={isSaving}
-                            className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                        >
-                            Delete
-                        </button>
-                    )}
-                    
-                    <button
-                        onClick={handleCreateNew}
-                        disabled={isSaving}
-                        className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white hover:bg-pure-white/10 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                        + New
-                    </button>
-
-                    {!isActiveProfile && (
-                        <button
-                            onClick={handleMakeActive}
-                            disabled={isSaving}
-                            className="px-4 py-2 text-sm font-bold text-green-400 border border-green-400/30 hover:bg-green-400/10 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                            Make Active
-                        </button>
-                    )}
-
-                    <button
-                        onClick={() => handleSaveProfile(true)}
-                        disabled={isSaving}
-                        className="px-6 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg shadow-primary-red/20 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto bg-carbon-black/30 rounded-xl border border-pure-white/5 p-6 md:p-8 custom-scrollbar">
-                {editForm ? (
-                    <div className="max-w-5xl mx-auto space-y-8">
-                        
-                        {/* Title & Meta */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end border-b border-pure-white/10 pb-6">
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Profile Name</label>
-                                <input 
-                                    type="text" 
-                                    value={editForm.name}
-                                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                    className="w-full bg-transparent border-b-2 border-accent-gray focus:border-primary-red text-3xl font-bold text-pure-white placeholder-pure-white/20 focus:outline-none transition-colors py-2"
-                                    placeholder="Enter profile name..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Fastest Lap Bonus</label>
-                                <div className="flex items-center gap-3 bg-carbon-fiber p-2 rounded-lg border border-pure-white/5 shadow-lg">
-                                    <FastestLapIcon className="w-8 h-8 text-purple-500" />
-                                    <div className="flex-1">
-                                         <ScoringInput 
-                                            value={editForm.config.fastestLap}
-                                            onChange={handleScalarChange}
-                                            className="w-full bg-transparent text-xl font-bold text-pure-white focus:outline-none text-right"
-                                        />
+                {/* Main Content Area - Scrollable */}
+                <div className="flex-1 overflow-y-auto bg-carbon-black/30 rounded-xl border border-pure-white/5 p-6 md:p-8 custom-scrollbar">
+                    {editForm ? (
+                        <div className="max-w-5xl mx-auto space-y-8">
+                            
+                            {/* Title & Meta */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end border-b border-pure-white/10 pb-6">
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Profile Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                        className="w-full bg-transparent border-b-2 border-accent-gray focus:border-primary-red text-3xl font-bold text-pure-white placeholder-pure-white/20 focus:outline-none transition-colors py-2"
+                                        placeholder="Enter profile name..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Fastest Lap Bonus</label>
+                                    <div className="flex items-center gap-3 bg-carbon-fiber p-2 rounded-lg border border-pure-white/5 shadow-lg">
+                                        <FastestLapIcon className="w-8 h-8 text-purple-500" />
+                                        <div className="flex-1">
+                                             <ScoringInput 
+                                                value={editForm.config.fastestLap}
+                                                onChange={handleScalarChange}
+                                                className="w-full bg-transparent text-xl font-bold text-pure-white focus:outline-none text-right"
+                                            />
+                                        </div>
+                                        <span className="text-sm font-bold text-highlight-silver pr-2">pts</span>
                                     </div>
-                                    <span className="text-sm font-bold text-highlight-silver pr-2">pts</span>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Points Grid */}
-                        <div className="space-y-8">
-                            
-                            {/* Row 1: Race Finishes */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <PointArraySection 
-                                    title="Grand Prix Finish" 
-                                    subtitle="Positions 1-10"
-                                    values={editForm.config.grandPrixFinish}
-                                    onChange={(idx, val) => handleArrayChange('grandPrixFinish', idx, val)}
-                                    colorClass="text-primary-red"
-                                />
-                                <PointArraySection 
-                                    title="Sprint Finish" 
-                                    subtitle="Positions 1-8"
-                                    values={editForm.config.sprintFinish}
-                                    onChange={(idx, val) => handleArrayChange('sprintFinish', idx, val)}
-                                    colorClass="text-yellow-500"
-                                />
+                            {/* Points Grid */}
+                            <div className="space-y-8">
+                                
+                                {/* Row 1: Race Finishes */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <PointArraySection 
+                                        title="Grand Prix Finish" 
+                                        subtitle="Positions 1-10"
+                                        values={editForm.config.grandPrixFinish}
+                                        onChange={(idx, val) => handleArrayChange('grandPrixFinish', idx, val)}
+                                        colorClass="text-primary-red"
+                                    />
+                                    <PointArraySection 
+                                        title="Sprint Finish" 
+                                        subtitle="Positions 1-8"
+                                        values={editForm.config.sprintFinish}
+                                        onChange={(idx, val) => handleArrayChange('sprintFinish', idx, val)}
+                                        colorClass="text-yellow-500"
+                                    />
+                                </div>
+
+                                {/* Row 2: Quali */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <PointArraySection 
+                                        title="GP Qualifying" 
+                                        subtitle="Positions 1-3"
+                                        values={editForm.config.gpQualifying}
+                                        onChange={(idx, val) => handleArrayChange('gpQualifying', idx, val)}
+                                        colorClass="text-blue-500"
+                                    />
+                                    <PointArraySection 
+                                        title="Sprint Qualifying" 
+                                        subtitle="Positions 1-3"
+                                        values={editForm.config.sprintQualifying}
+                                        onChange={(idx, val) => handleArrayChange('sprintQualifying', idx, val)}
+                                        colorClass="text-blue-400"
+                                    />
+                                </div>
+
                             </div>
-
-                            {/* Row 2: Quali */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <PointArraySection 
-                                    title="GP Qualifying" 
-                                    subtitle="Positions 1-3"
-                                    values={editForm.config.gpQualifying}
-                                    onChange={(idx, val) => handleArrayChange('gpQualifying', idx, val)}
-                                    colorClass="text-blue-500"
-                                />
-                                <PointArraySection 
-                                    title="Sprint Qualifying" 
-                                    subtitle="Positions 1-3"
-                                    values={editForm.config.sprintQualifying}
-                                    onChange={(idx, val) => handleArrayChange('sprintQualifying', idx, val)}
-                                    colorClass="text-blue-400"
-                                />
-                            </div>
-
                         </div>
-                    </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-highlight-silver opacity-50">
-                        <TrophyIcon className="w-24 h-24 mb-4" />
-                        <p className="text-xl">Select or create a profile to edit settings.</p>
-                    </div>
-                )}
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-highlight-silver opacity-50">
+                            <TrophyIcon className="w-24 h-24 mb-4" />
+                            <p className="text-xl">Select or create a profile to edit settings.</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

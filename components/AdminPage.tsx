@@ -15,50 +15,56 @@ interface AdminPageProps {
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     return (
-        <div className="max-w-5xl mx-auto h-full flex flex-col">
-            <PageHeader 
-                title="ADMIN DASHBOARD" 
-                icon={AdminIcon} 
-                subtitle="League Controls & Configuration"
-            />
+        <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex-none">
+                <PageHeader 
+                    title="ADMIN DASHBOARD" 
+                    icon={AdminIcon} 
+                    subtitle="League Controls & Configuration"
+                />
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 px-4 md:px-0">
-                 <AdminTile
-                    icon={TeamIcon}
-                    title="Manage Drivers & Teams"
-                    description="Update the active grid, transfers, and classes."
-                    onClick={() => setAdminSubPage('entities')}
-                />
-                <AdminTile
-                    icon={CalendarIcon}
-                    title="Schedule Manager"
-                    description="Set race dates, start times, and session details."
-                    onClick={() => setAdminSubPage('schedule')}
-                />
-                <AdminTile
-                    icon={TrackIcon}
-                    title="Results & Locks Manager"
-                    description="Enter race results and lock/unlock pick forms."
-                    onClick={() => setAdminSubPage('results')}
-                />
-                <AdminTile
-                    icon={ProfileIcon}
-                    title="Manage Users"
-                    description="Search users, manage dues, and view profiles."
-                    onClick={() => setAdminSubPage('manage-users')}
-                />
-                <AdminTile
-                    icon={TrophyIcon}
-                    title="Scoring Settings"
-                    description="Configure points awarded for race results."
-                    onClick={() => setAdminSubPage('scoring')}
-                />
-                <AdminTile
-                    icon={TicketIcon}
-                    title="Invitation Codes"
-                    description="Create and manage registration codes."
-                    onClick={() => setAdminSubPage('invitations')}
-                />
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-4 md:px-0 pb-8">
+                <div className="max-w-5xl mx-auto w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                         <AdminTile
+                            icon={TeamIcon}
+                            title="Manage Drivers & Teams"
+                            description="Update the active grid, transfers, and classes."
+                            onClick={() => setAdminSubPage('entities')}
+                        />
+                        <AdminTile
+                            icon={CalendarIcon}
+                            title="Schedule Manager"
+                            description="Set race dates, start times, and session details."
+                            onClick={() => setAdminSubPage('schedule')}
+                        />
+                        <AdminTile
+                            icon={TrackIcon}
+                            title="Results & Locks Manager"
+                            description="Enter race results and lock/unlock pick forms."
+                            onClick={() => setAdminSubPage('results')}
+                        />
+                        <AdminTile
+                            icon={ProfileIcon}
+                            title="Manage Users"
+                            description="Search users, manage dues, and view profiles."
+                            onClick={() => setAdminSubPage('manage-users')}
+                        />
+                        <AdminTile
+                            icon={TrophyIcon}
+                            title="Scoring Settings"
+                            description="Configure points awarded for race results."
+                            onClick={() => setAdminSubPage('scoring')}
+                        />
+                        <AdminTile
+                            icon={TicketIcon}
+                            title="Invitation Codes"
+                            description="Create and manage registration codes."
+                            onClick={() => setAdminSubPage('invitations')}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );
