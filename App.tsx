@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -39,7 +40,7 @@ import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { onAuthStateChanged, signOut } from '@firebase/auth';
+import { onAuthStateChanged } from '@firebase/auth';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks } from './services/firestoreService.ts';
@@ -161,7 +162,7 @@ const App: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Implement Session Security
-  const { showWarning, idleExpiryTime, continueSession } = useSessionGuard(user);
+  const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
   
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
@@ -395,12 +396,11 @@ const App: React.FC = () => {
   
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await sessionLogout();
     } catch (error) {
       console.error("Logout error", error);
     }
-    // Hard refresh to completely clear application state
-    window.location.href = '/';
+    // State clearing is handled by onAuthStateChanged listener
   };
 
   const handleResultsUpdate = async (eventId: string, results: any) => {
