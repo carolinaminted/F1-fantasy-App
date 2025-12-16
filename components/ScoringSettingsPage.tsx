@@ -6,6 +6,7 @@ import { BackIcon } from './icons/BackIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DEFAULT_POINTS_SYSTEM } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ScoringSettingsPageProps {
@@ -146,22 +147,27 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
 
     const isActiveProfile = editForm?.id === localSettings.activeProfileId;
 
+    const RightAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col h-[calc(100vh-6rem)] md:overflow-hidden text-pure-white max-w-7xl mx-auto w-full">
+            <PageHeader 
+                title="SCORING SETTINGS" 
+                icon={TrophyIcon} 
+                rightAction={RightAction}
+            />
             
-            {/* Header / Toolbar */}
-            <header className="bg-carbon-fiber backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
+            {/* Toolbar */}
+            <div className="bg-carbon-fiber backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                    <button 
-                        onClick={() => setAdminSubPage('dashboard')}
-                        className="p-2 hover:bg-pure-white/10 rounded-full transition-colors"
-                        title="Back to Dashboard"
-                    >
-                        <BackIcon className="w-6 h-6 text-highlight-silver" />
-                    </button>
-                    
-                    <div className="h-8 w-px bg-pure-white/10 hidden md:block"></div>
-
                     {/* Profile Selector */}
                     <div className="relative w-full md:w-80 z-30">
                         <ProfileDropdown 
@@ -211,7 +217,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                         {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
-            </header>
+            </div>
 
             {/* Main Content Area - Scrollable */}
             <div className="flex-1 overflow-y-auto bg-carbon-black/30 rounded-xl border border-pure-white/5 p-6 md:p-8 custom-scrollbar">

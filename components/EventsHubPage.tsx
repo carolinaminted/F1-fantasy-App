@@ -3,6 +3,7 @@ import React from 'react';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { GarageIcon } from './icons/GarageIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { Page } from '../App.tsx';
 
 interface EventsHubPageProps {
@@ -11,15 +12,14 @@ interface EventsHubPageProps {
 
 const EventsHubPage: React.FC<EventsHubPageProps> = ({ setActivePage }) => {
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 animate-fade-in">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl md:text-5xl font-bold text-pure-white mb-4">Race Events Hub</h1>
-                <p className="text-lg text-highlight-silver max-w-2xl mx-auto">
-                    Access the complete 2026 season schedule, official race results, and team grid information all in one place.
-                </p>
-            </div>
+        <div className="max-w-6xl mx-auto px-4 py-4 md:py-8 animate-fade-in flex flex-col h-full">
+            <PageHeader 
+                title="RACE EVENTS" 
+                icon={TrackIcon} 
+                subtitle="Access the complete 2026 season schedule, official race results, and team grid."
+            />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 flex-1">
                 <HubTile 
                     icon={CalendarIcon}
                     title="Schedule"

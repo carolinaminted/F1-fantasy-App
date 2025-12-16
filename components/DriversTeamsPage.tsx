@@ -1,9 +1,13 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Driver, Constructor, EntityClass } from '../types.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { GarageIcon } from './icons/GarageIcon.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
+import { DriverIcon } from './icons/DriverIcon.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface DriversTeamsPageProps {
     allDrivers: Driver[];
@@ -25,6 +29,10 @@ const TEAM_URLS: Record<string, string> = {
 };
 
 const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allConstructors, setActivePage }) => {
+    // Note: State logic for toggling views isn't strictly needed if we show everything, 
+    // but the original code had checks. Assuming we just show the grid. 
+    // If the user wants separate views, we can implement that. 
+    // The previous implementation showed all on desktop in columns.
     
     // Sort and Group Entities
     const { classATeams, classBTeams } = useMemo(() => {
@@ -48,6 +56,12 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
     const getTeamDrivers = (teamId: string) => {
         return allDrivers.filter(d => d.constructorId === teamId).sort((a, b) => a.name.localeCompare(b.name));
     };
+
+    const HeaderControls = (
+        <div className="text-xs font-bold text-highlight-silver bg-accent-gray/30 px-3 py-1.5 rounded-full border border-pure-white/10 hidden sm:block">
+            2026 Season Grid
+        </div>
+    );
 
     const TeamCard: React.FC<{ team: Constructor }> = ({ team }) => {
         const drivers = getTeamDrivers(team.id);
@@ -139,24 +153,12 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
 
     return (
         <div className="flex flex-col text-pure-white max-w-7xl mx-auto w-full md:h-[calc(100vh-6rem)] md:overflow-hidden">
-             {/* Header */}
-             <div className="flex-shrink-0 flex items-center justify-between mb-6 px-2 md:px-0 pt-4 md:pt-0">
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={() => setActivePage('home')}
-                        className="md:hidden p-2 -ml-2 text-highlight-silver hover:text-pure-white"
-                    >
-                        <BackIcon className="w-5 h-5" />
-                    </button>
-                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-                        <GarageIcon className="w-8 h-8 text-primary-red"/> 
-                        <span>Drivers & Teams</span>
-                    </h1>
-                </div>
-                <div className="text-xs font-bold text-highlight-silver bg-accent-gray/30 px-3 py-1.5 rounded-full border border-pure-white/10 hidden sm:block">
-                    2026 Season Grid
-                </div>
-            </div>
+             <PageHeader 
+                title="DRIVERS & TEAMS" 
+                icon={GarageIcon} 
+                subtitle="Constructor Rosters & Driver Line-ups"
+                rightAction={HeaderControls}
+            />
 
             {/* Grid Area */}
             <div className="flex-1 min-h-0 px-1 md:px-0 pb-12 md:pb-0">

@@ -7,6 +7,7 @@ import { TeamIcon } from './icons/TeamIcon.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface AdminPageProps {
     setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
@@ -14,11 +15,14 @@ interface AdminPageProps {
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     return (
-        <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold text-pure-white mb-8 text-center flex items-center justify-center gap-3">
-                <AdminIcon className="w-8 h-8"/> Admin Dashboard
-            </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="max-w-5xl mx-auto h-full flex flex-col">
+            <PageHeader 
+                title="ADMIN DASHBOARD" 
+                icon={AdminIcon} 
+                subtitle="League Controls & Configuration"
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 px-4 md:px-0">
                  <AdminTile
                     icon={TeamIcon}
                     title="Manage Drivers & Teams"
@@ -71,11 +75,11 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, description, o
   return (
     <button
       onClick={onClick}
-      className="bg-carbon-fiber rounded-lg p-6 text-left border border-pure-white/10 hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg"
+      className="bg-carbon-fiber rounded-lg p-6 text-left border border-pure-white/10 hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg flex flex-col h-full"
     >
       <Icon className="w-10 h-10 text-primary-red mb-4" />
       <h3 className="text-xl font-bold text-pure-white mb-2">{title}</h3>
-      <p className="text-highlight-silver">{description}</p>
+      <p className="text-highlight-silver flex-grow">{description}</p>
     </button>
   );
 };

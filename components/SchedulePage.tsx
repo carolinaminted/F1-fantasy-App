@@ -4,6 +4,7 @@ import { Event, EventSchedule } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { CircuitRoute } from './icons/CircuitRoutes.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
@@ -30,53 +31,52 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
         return events.slice(idx, idx + 5);
     }, [nextRace, events]);
 
+    const RightAction = (
+        <div className="flex flex-col items-center md:items-end gap-2">
+            <div className="flex bg-accent-gray rounded-lg p-1 shadow-lg">
+                <button
+                    onClick={() => setViewMode('upcoming')}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'upcoming' ? 'bg-primary-red text-pure-white shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                >
+                    Upcoming
+                </button>
+                <button
+                    onClick={() => setViewMode('full')}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'full' ? 'bg-primary-red text-pure-white shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                >
+                    Full Season
+                </button>
+            </div>
+
+            {/* Legend - Only show in full view */}
+            {viewMode === 'full' && (
+                <div className="flex items-center gap-3 bg-carbon-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-pure-white/10 shadow-xl animate-fade-in origin-top">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-highlight-silver shadow-[0_0_5px_#C0C0C0]"></div>
+                        <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Race</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_5px_#EAB308]"></div>
+                        <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Sprint</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-red shadow-[0_0_5px_#DA291C]"></div>
+                        <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Next</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <>
             <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0 md:h-[calc(100vh-6rem)] md:overflow-hidden md:flex md:flex-col">
-                <div className="flex-none flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 px-4 md:px-0 pt-4 md:pt-0 gap-4">
-                    <div className="flex flex-col">
-                        <h1 className="text-3xl font-bold text-pure-white flex items-center gap-3">
-                            <CalendarIcon className="w-8 h-8 text-primary-red" />
-                            Race Calendar
-                        </h1>
-                        <p className="text-xs text-highlight-silver mt-1 ml-11">All times displayed in EST</p>
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
-                        {/* Legend - Only show in full view */}
-                        {viewMode === 'full' && (
-                            <div className="hidden sm:flex items-center gap-3 bg-carbon-black/40 px-3 py-1.5 rounded-lg border border-pure-white/5">
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-highlight-silver shadow-[0_0_5px_#C0C0C0]"></div>
-                                    <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider">Race</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_5px_#EAB308]"></div>
-                                    <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider">Sprint</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-primary-red shadow-[0_0_5px_#DA291C]"></div>
-                                    <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider">Next</span>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex bg-accent-gray rounded-lg p-1">
-                            <button
-                                onClick={() => setViewMode('upcoming')}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'upcoming' ? 'bg-primary-red text-pure-white' : 'text-highlight-silver hover:text-pure-white'}`}
-                            >
-                                Upcoming
-                            </button>
-                            <button
-                                onClick={() => setViewMode('full')}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'full' ? 'bg-primary-red text-pure-white' : 'text-highlight-silver hover:text-pure-white'}`}
-                            >
-                                Full Season
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader 
+                    title="SEASON CALENDAR" 
+                    icon={CalendarIcon} 
+                    subtitle="All times displayed in EST"
+                    rightAction={RightAction}
+                />
 
                 {/* Upcoming View - Flex Container for Desktop */}
                 {viewMode === 'upcoming' && (
@@ -365,7 +365,6 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
     if (event.hasSprint) accentColor = '#EAB308'; 
     if (isNext) accentColor = '#DA291C'; 
 
-    const lockTime = schedule?.customLockAt || event.lockAtUtc;
     const qualiTime = event.hasSprint ? schedule?.sprintQualifying : schedule?.qualifying;
     const qualiLabel = event.hasSprint ? "Sprint Quali" : "Qualifying";
 
@@ -407,32 +406,21 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                     </div>
                 </div>
 
-                <div className="mt-auto w-full flex flex-col gap-3">
-                    {/* Picks Due Row - Stronger Emphasis */}
-                    <div className="bg-primary-red rounded-lg p-3 border border-primary-red/50 flex items-center justify-between shadow-lg shadow-primary-red/10">
-                        <div>
-                            <p className="text-[10px] text-pure-white/90 uppercase font-black tracking-wider mb-0.5">Picks Due</p>
-                            <p className="font-extrabold text-base text-pure-white">
-                                {formatDate(lockTime)}
-                            </p>
-                        </div>
-                        <div className="text-right">
-                             <p className="font-mono text-base font-bold text-pure-white">
-                                {formatTime(lockTime)}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Qualifying/Sprint Quali Row */}
-                    <div className="px-3 flex items-center justify-between w-full">
+                <div className="mt-auto w-full pt-4 border-t border-pure-white/10">
+                    <div className="flex items-end justify-between w-full">
                         <div>
                             <p className="text-[10px] text-highlight-silver uppercase font-bold tracking-wider mb-0.5">{qualiLabel}</p>
                             <p className="font-semibold text-base text-ghost-white">
                                 {qualiTime ? formatDate(qualiTime) : 'TBA'}
                             </p>
                         </div>
-                        <div className="text-right">
-                             <p className="font-mono text-base font-bold text-highlight-silver">
+                        <div className="text-right flex flex-col items-end">
+                             <div className="mb-1">
+                                 <span className="bg-primary-red text-pure-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    Picks Due
+                                 </span>
+                             </div>
+                             <p className="font-mono text-base font-bold text-pure-white">
                                 {qualiTime ? formatTime(qualiTime) : '-'}
                             </p>
                         </div>

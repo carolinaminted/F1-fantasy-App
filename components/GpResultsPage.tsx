@@ -6,6 +6,7 @@ import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface GpResultsPageProps {
   raceResults: RaceResults;
@@ -106,69 +107,68 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
         </button>
     );
 
-    return (
-        <div className="flex flex-col h-full w-full max-w-7xl mx-auto md:h-[calc(100vh-6rem)] md:overflow-hidden pb-safe">
-            {/* Header & Controls Bar */}
-            <div className="flex-none relative mb-4 pt-2 md:pt-0">
-                <h1 className="text-2xl md:text-3xl font-bold text-pure-white flex items-center justify-center gap-3 mb-4 md:mb-0 text-center w-full">
-                    <CheckeredFlagIcon className="w-8 h-8 text-primary-red" />
-                    Grand Prix Results
-                </h1>
-                
-                {/* Search / Dropdown Bar - Absolute Right on Desktop */}
-                <div className="relative w-full md:w-72 z-40 md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2" ref={dropdownRef}>
-                    <div className="relative group">
-                        <input
-                            type="text"
-                            aria-label="Select Event"
-                            placeholder="Select Grand Prix..."
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setIsDropdownOpen(true); }}
-                            onFocus={(e) => { setIsDropdownOpen(true); e.target.select(); }}
-                            className="w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent transition-all text-sm h-9"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-highlight-silver group-focus-within:text-primary-red transition-colors">
-                            <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                        </div>
-                    </div>
-
-                    {isDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col animate-fade-in-down">
-                            <div className="flex-shrink-0 p-2 bg-carbon-black/95 border-b border-pure-white/10 grid grid-cols-3 gap-2 backdrop-blur-sm sticky top-0 z-50">
-                                <FilterButton label="All" value="all" />
-                                <FilterButton label="Results" value="results" />
-                                <FilterButton label="Pending" value="pending" />
-                            </div>
-                            <div className="overflow-y-auto custom-scrollbar">
-                                {filteredEvents.length > 0 ? (
-                                    filteredEvents.map(event => {
-                                        const resultsIn = hasResults(event.id);
-                                        return (
-                                            <button
-                                                key={event.id}
-                                                onClick={() => handleEventSelect(event)}
-                                                className={`w-full text-left px-3 py-2 border-b border-pure-white/5 last:border-0 hover:bg-pure-white/5 transition-colors flex items-center justify-between group ${selectedEventId === event.id ? 'bg-pure-white/10' : ''}`}
-                                            >
-                                                <div>
-                                                    <div className="font-bold text-pure-white text-xs">R{event.round}: {event.name}</div>
-                                                    <div className="text-[10px] text-highlight-silver">{event.location}</div>
-                                                </div>
-                                                {resultsIn && (
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
-                                                )}
-                                            </button>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="p-3 text-center text-highlight-silver text-xs">
-                                        No events found.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+    const SearchBar = (
+        <div className="relative w-full md:w-72" ref={dropdownRef}>
+            <div className="relative group">
+                <input
+                    type="text"
+                    aria-label="Select Event"
+                    placeholder="Select Grand Prix..."
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setIsDropdownOpen(true); }}
+                    onFocus={(e) => { setIsDropdownOpen(true); e.target.select(); }}
+                    className="w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent transition-all text-sm h-9"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-highlight-silver group-focus-within:text-primary-red transition-colors">
+                    <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
             </div>
+
+            {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col animate-fade-in-down z-50">
+                    <div className="flex-shrink-0 p-2 bg-carbon-black/95 border-b border-pure-white/10 grid grid-cols-3 gap-2 backdrop-blur-sm sticky top-0 z-50">
+                        <FilterButton label="All" value="all" />
+                        <FilterButton label="Results" value="results" />
+                        <FilterButton label="Pending" value="pending" />
+                    </div>
+                    <div className="overflow-y-auto custom-scrollbar">
+                        {filteredEvents.length > 0 ? (
+                            filteredEvents.map(event => {
+                                const resultsIn = hasResults(event.id);
+                                return (
+                                    <button
+                                        key={event.id}
+                                        onClick={() => handleEventSelect(event)}
+                                        className={`w-full text-left px-3 py-2 border-b border-pure-white/5 last:border-0 hover:bg-pure-white/5 transition-colors flex items-center justify-between group ${selectedEventId === event.id ? 'bg-pure-white/10' : ''}`}
+                                    >
+                                        <div>
+                                            <div className="font-bold text-pure-white text-xs">R{event.round}: {event.name}</div>
+                                            <div className="text-[10px] text-highlight-silver">{event.location}</div>
+                                        </div>
+                                        {resultsIn && (
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
+                                        )}
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="p-3 text-center text-highlight-silver text-xs">
+                                No events found.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="flex flex-col h-full w-full max-w-7xl mx-auto md:h-[calc(100vh-6rem)] md:overflow-hidden pb-safe">
+            <PageHeader 
+                title="RACE RESULTS" 
+                icon={CheckeredFlagIcon} 
+                rightAction={SearchBar}
+            />
             
             {/* Main Content Card - Fills remaining space */}
             <div className="flex-1 min-h-0 flex flex-col bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-xl overflow-hidden relative">

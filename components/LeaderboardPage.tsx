@@ -18,6 +18,7 @@ import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 // --- Shared Types & Helpers ---
 
@@ -78,7 +79,7 @@ const RefreshControl: React.FC<{
                     flex items-center justify-center gap-2 p-2 rounded-lg transition-all duration-200 border
                     ${(isRefreshing || cooldown > 0)
                         ? 'bg-carbon-black border-accent-gray text-highlight-silver/50 cursor-not-allowed'
-                        : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-primary-red hover:border-primary-red hover:shadow-[0_0_10px_rgba(218,41,28,0.2)]'
+                        : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-pure-white hover:border-primary-red hover:shadow-[0_0_10px_rgba(218,41,28,0.2)]'
                     }
                 `}
                 title={cooldown > 0 ? `Wait ${cooldown}s` : "Refresh Data"}
@@ -88,15 +89,19 @@ const RefreshControl: React.FC<{
                         {cooldown}s
                     </span>
                 ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin text-primary-red' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    <div className="flex items-center gap-2 px-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin text-primary-red' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="text-sm font-bold uppercase hidden md:inline">Refresh</span>
+                    </div>
                 )}
             </button>
         </div>
     );
 };
 
+// ... (Rest of sub-components: NavTile, SimpleBarChart, ConstructorPodium, RaceChart, AccordionItem, StandingsView, PopularityView, InsightsView, EntityStatsView remain unchanged)
 const NavTile: React.FC<{ icon: any; title: string; desc: string; onClick: () => void }> = ({ icon: Icon, title, desc, onClick }) => (
     <button
         onClick={onClick}
@@ -548,6 +553,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     );
 };
 
+// ... (PopularityView, InsightsView, EntityStatsView remain unchanged)
 const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ allPicks, allDrivers, allConstructors, events }) => {
     // ... (No Changes)
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all'); // mapped to event counts
@@ -1105,18 +1111,19 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           <div className="max-w-7xl mx-auto animate-fade-in pt-4">
               {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
               
-              <div className="flex justify-center items-center mb-2 relative">
-                  <h1 className="text-3xl md:text-4xl font-bold text-center text-pure-white">Leaderboard Hub</h1>
-                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+              <PageHeader 
+                  title="League Standings" 
+                  icon={LeaderboardIcon} 
+                  subtitle="Analyze league performance and trends"
+                  rightAction={
                       <RefreshControl 
                           onClick={handleManualRefresh} 
                           isRefreshing={isRefreshing} 
                           cooldown={cooldownTime}
                           status={refreshStatus}
                       />
-                  </div>
-              </div>
-              <p className="text-center text-highlight-silver mb-8 md:mb-12">Analyze league performance and trends.</p>
+                  }
+              />
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                   <NavTile 

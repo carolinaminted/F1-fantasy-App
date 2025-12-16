@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types.ts';
 import { getAllUsers, updateUserDuesStatus } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
-import { ProfileIcon } from './icons/ProfileIcon.tsx';
+import { DuesIcon } from './icons/DuesIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
@@ -116,23 +117,26 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
         </div>
     );
 
+    const RightAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
         <>
-        <div className="max-w-7xl mx-auto text-pure-white">
-            <div className="flex items-center justify-between mb-8">
-                <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
-                >
-                    <BackIcon className="w-5 h-5" />
-                    Back
-                </button>
-                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-right">
-                    Dues Status <ProfileIcon className="w-8 h-8"/>
-                </h1>
-            </div>
+        <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
+            <PageHeader 
+                title="DUES STATUS" 
+                icon={DuesIcon} 
+                rightAction={RightAction}
+            />
 
-            <div className="mb-6">
+            <div className="mb-6 px-4 md:px-0">
                 <input
                     type="text"
                     placeholder="Search by name or email..."
@@ -145,7 +149,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
             {isLoading ? (
                 <ListSkeleton />
             ) : (
-                <>
+                <div className="flex-1 overflow-y-auto px-4 md:px-0 pb-8 custom-scrollbar">
                     {/* Mobile View */}
                     <div className="md:hidden">
                         {filteredUsers.map(user => <UserCard key={user.id} user={user} />)}
@@ -155,7 +159,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
                     {/* Desktop View */}
                     <div className="hidden md:block bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
                         <table className="w-full text-left">
-                            <thead className="bg-carbon-black/50">
+                            <thead className="bg-carbon-black/50 sticky top-0 z-10 backdrop-blur-sm">
                                 <tr>
                                     <th className="p-4 text-sm font-semibold uppercase text-highlight-silver">Name</th>
                                     <th className="p-4 text-sm font-semibold uppercase text-highlight-silver hidden md:table-cell">Email</th>
@@ -192,7 +196,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
                             </tbody>
                         </table>
                     </div>
-                </>
+                </div>
             )}
         </div>
         <UserModal />

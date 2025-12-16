@@ -4,6 +4,7 @@ import { User, InvitationCode } from '../types.ts';
 import { getInvitationCodes, createInvitationCode, createBulkInvitationCodes } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
@@ -82,23 +83,26 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         return date.toLocaleDateString();
     };
 
+    const RightAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
-        <div className="max-w-7xl mx-auto text-pure-white">
-            <div className="flex items-center justify-between mb-8">
-                 <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
-                >
-                    <BackIcon className="w-5 h-5" />
-                    Back
-                </button>
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-right">
-                    Invitation Manager <TicketIcon className="w-8 h-8 text-primary-red"/>
-                </h1>
-            </div>
+        <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
+            <PageHeader 
+                title="INVITATION MANAGER" 
+                icon={TicketIcon} 
+                rightAction={RightAction}
+            />
 
             {/* Controls */}
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center">
+            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-4 ring-1 ring-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center px-4 md:px-0">
                 <div className="flex bg-carbon-black rounded-lg p-1">
                     {(['all', 'active', 'used'] as const).map(f => (
                         <button 
@@ -134,43 +138,45 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
 
             {/* List */}
             {isLoading ? <ListSkeleton /> : (
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-carbon-black/50">
-                            <tr>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Code</th>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center">Status</th>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Created</th>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Used By</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredCodes.map(code => (
-                                <tr key={code.code} className="border-t border-accent-gray/50 hover:bg-pure-white/5">
-                                    <td className="p-4 font-mono font-bold text-pure-white tracking-wider">{code.code}</td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${getStatusColor(code.status)}`}>
-                                            {code.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">{formatDate(code.createdAt)}</td>
-                                    <td className="p-4 hidden md:table-cell">
-                                        {code.usedByEmail ? (
-                                            <div className="text-xs">
-                                                <span className="text-pure-white block">{code.usedByEmail}</span>
-                                                <span className="text-highlight-silver block">{formatDate(code.usedAt)}</span>
-                                            </div>
-                                        ) : <span className="text-highlight-silver text-xs">-</span>}
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredCodes.length === 0 && (
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8">
+                    <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-carbon-black/50 sticky top-0 z-10 backdrop-blur-sm">
                                 <tr>
-                                    <td colSpan={4} className="p-8 text-center text-highlight-silver italic">No codes found.</td>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Code</th>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center">Status</th>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Created</th>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Used By</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredCodes.map(code => (
+                                    <tr key={code.code} className="border-t border-accent-gray/50 hover:bg-pure-white/5">
+                                        <td className="p-4 font-mono font-bold text-pure-white tracking-wider">{code.code}</td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${getStatusColor(code.status)}`}>
+                                                {code.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">{formatDate(code.createdAt)}</td>
+                                        <td className="p-4 hidden md:table-cell">
+                                            {code.usedByEmail ? (
+                                                <div className="text-xs">
+                                                    <span className="text-pure-white block">{code.usedByEmail}</span>
+                                                    <span className="text-highlight-silver block">{formatDate(code.usedAt)}</span>
+                                                </div>
+                                            ) : <span className="text-highlight-silver text-xs">-</span>}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredCodes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="p-8 text-center text-highlight-silver italic">No codes found.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

@@ -6,6 +6,7 @@ import { RACE_RESULTS } from '../constants.ts';
 import { Event, PickSelection, User, PointsSystem, Driver, Constructor } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface HomePageProps {
   user: User;
@@ -56,41 +57,42 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
 
+  // Selector Component extracted for cleaner render in PageHeader
+  const EventSelector = (
+      <div className="relative w-full md:w-80">
+          <label htmlFor="event-selector" className="sr-only">Select Event</label>
+          <select
+              id="event-selector"
+              value={selectedEvent.id}
+              onChange={(e) => {
+                  const event = events.find(ev => ev.id === e.target.value);
+                  if (event) setSelectedEvent(event);
+              }}
+              className="w-full bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none transition-all cursor-pointer hover:border-highlight-silver"
+          >
+              {events.map(event => {
+                  const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+                  return (
+                      <option key={event.id} value={event.id}>
+                         {isLocked ? '🔒' : '🟢'} Round {event.round}: {event.name}
+                      </option>
+                  );
+              })}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-highlight-silver">
+            <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+          </div>
+      </div>
+  );
+
   return (
     <div className="w-full max-w-7xl mx-auto px-0 md:px-4 flex flex-col md:h-[calc(100vh-6rem)]">
-      {/* Header & Selector */}
-      <div className="flex flex-col items-center justify-center relative mb-8 gap-4 px-4 md:px-0 pt-4 md:pt-0 flex-none">
-        <h1 className="text-3xl font-bold text-pure-white flex items-center justify-center gap-3 text-center">
-            <PicksIcon className="w-8 h-8 text-primary-red" />
-            Grand Prix Picks
-        </h1>
-
-        {/* Event Selector - Stacked on Mobile, Absolute Right on Desktop */}
-        <div className="relative w-full md:w-auto md:absolute md:right-0 top-0">
-            <label htmlFor="event-selector" className="sr-only">Select Event</label>
-            <select
-                id="event-selector"
-                value={selectedEvent.id}
-                onChange={(e) => {
-                    const event = events.find(ev => ev.id === e.target.value);
-                    if (event) setSelectedEvent(event);
-                }}
-                className="w-full md:w-80 bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none"
-            >
-                {events.map(event => {
-                    const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
-                    return (
-                        <option key={event.id} value={event.id}>
-                           {isLocked ? '🔒' : '🟢'} Round {event.round}: {event.name}
-                        </option>
-                    );
-                })}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-highlight-silver">
-              <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-            </div>
-        </div>
-      </div>
+      {/* Unified Header */}
+      <PageHeader 
+          title="Grand Prix Picks" 
+          icon={PicksIcon} 
+          rightAction={EventSelector}
+      />
       
       {/* Form Container: Scrollable on mobile, strictly fitted on Desktop (internal scroll if needed) */}
       <div className="flex-1 md:overflow-y-auto md:min-h-0 custom-scrollbar pb-safe">

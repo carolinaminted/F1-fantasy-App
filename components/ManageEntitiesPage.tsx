@@ -7,6 +7,7 @@ import { TeamIcon } from './icons/TeamIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { GarageIcon } from './icons/GarageIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ManageEntitiesPageProps {
@@ -124,22 +125,25 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         });
     };
 
+    const RightAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
-        <div className="max-w-6xl mx-auto text-pure-white">
-            <div className="relative flex items-center justify-center mb-8 px-2 md:px-0 pt-4 md:pt-0">
-                 <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors"
-                >
-                    <BackIcon className="w-5 h-5" />
-                    Back
-                </button>
-                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3 text-center">
-                    Manage Roster <GarageIcon className="w-8 h-8 text-primary-red"/>
-                </h1>
-            </div>
+        <div className="max-w-6xl mx-auto text-pure-white flex flex-col h-full">
+            <PageHeader 
+                title="MANAGE ROSTER" 
+                icon={GarageIcon} 
+                rightAction={RightAction}
+            />
             
-            <div className="flex gap-3 mb-6 justify-center items-center">
+            <div className="flex gap-3 mb-6 justify-center items-center px-4 md:px-0">
                 <button
                     onClick={() => setActiveTab('drivers')}
                     className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-lg font-bold transition-colors text-sm md:text-base ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black' : 'bg-accent-gray text-highlight-silver'}`}
@@ -165,101 +169,103 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                 </button>
             </div>
 
-            <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg overflow-hidden">
-                <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10">
-                    <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
-                    
-                    <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1">
-                        {(['all', 'active', 'inactive'] as const).map((status) => (
-                            <button
-                                key={status}
-                                onClick={() => setFilterStatus(status)}
-                                className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors ${
-                                    filterStatus === status 
-                                    ? 'bg-primary-red text-pure-white' 
-                                    : 'text-highlight-silver hover:text-pure-white'
-                                }`}
-                            >
-                                {status}
-                            </button>
-                        ))}
-                    </div>
-
-                    <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-500 text-pure-white px-4 py-1.5 rounded text-sm font-bold w-full md:w-auto">
-                        + Add New
-                    </button>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-carbon-black/30">
-                            <tr>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Name</th>
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Class</th>
-                                {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Team</th>}
-                                {activeTab === 'teams' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Color</th>}
-                                <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center hidden md:table-cell">Active</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {getFilteredEntities().map((entity) => (
-                                <tr 
-                                    key={entity.id} 
-                                    onClick={() => openModal(entity)}
-                                    className="border-t border-pure-white/5 hover:bg-pure-white/5 cursor-pointer"
+            <div className="flex-1 overflow-hidden px-4 md:px-0 pb-8 flex flex-col">
+                <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg overflow-hidden flex flex-col flex-1">
+                    <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
+                        <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
+                        
+                        <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1">
+                            {(['all', 'active', 'inactive'] as const).map((status) => (
+                                <button
+                                    key={status}
+                                    onClick={() => setFilterStatus(status)}
+                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors ${
+                                        filterStatus === status 
+                                        ? 'bg-primary-red text-pure-white' 
+                                        : 'text-highlight-silver hover:text-pure-white'
+                                    }`}
                                 >
-                                    <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${entity.class === EntityClass.A ? 'bg-[#FCD12A] text-black' : 'bg-blue-900 text-blue-100'}`}>
-                                            Class {entity.class}
-                                        </span>
-                                    </td>
-                                    {activeTab === 'drivers' && (
-                                        <td className="p-4">
-                                            {(() => {
-                                                const teamId = (entity as Driver).constructorId;
-                                                const team = constructors.find(c => c.id === teamId);
-                                                const color = team?.color || '#888888';
-                                                return (
-                                                    <span 
-                                                        className="inline-block px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border border-white/10"
-                                                        style={{ 
-                                                            backgroundColor: `${color}33`, 
-                                                            color: color,
-                                                            borderColor: `${color}40`
-                                                        }}
-                                                    >
-                                                        {team?.name || teamId}
-                                                    </span>
-                                                );
-                                            })()}
-                                        </td>
-                                    )}
-                                    {activeTab === 'teams' && (
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <div 
-                                                    className="w-4 h-4 rounded-full border border-white/20" 
-                                                    style={{ backgroundColor: (entity as Constructor).color }}
-                                                />
-                                                <span className="text-xs text-highlight-silver">{(entity as Constructor).color}</span>
-                                            </div>
-                                        </td>
-                                    )}
-                                    <td className="p-4 text-center hidden md:table-cell">
-                                         <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleActive(entity.id, activeTab);
-                                            }}
-                                            className={`px-3 py-1 rounded-full text-xs font-bold w-20 ${entity.isActive ? 'bg-green-600/80 text-pure-white' : 'bg-red-900/50 text-red-200'}`}
-                                         >
-                                            {entity.isActive ? 'Active' : 'Inactive'}
-                                         </button>
-                                    </td>
-                                </tr>
+                                    {status}
+                                </button>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+
+                        <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-500 text-pure-white px-4 py-1.5 rounded text-sm font-bold w-full md:w-auto">
+                            + Add New
+                        </button>
+                    </div>
+                    <div className="overflow-y-auto flex-1 custom-scrollbar">
+                        <table className="w-full text-left">
+                            <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
+                                <tr>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Name</th>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Class</th>
+                                    {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Team</th>}
+                                    {activeTab === 'teams' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Color</th>}
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center hidden md:table-cell">Active</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {getFilteredEntities().map((entity) => (
+                                    <tr 
+                                        key={entity.id} 
+                                        onClick={() => openModal(entity)}
+                                        className="border-t border-pure-white/5 hover:bg-pure-white/5 cursor-pointer"
+                                    >
+                                        <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${entity.class === EntityClass.A ? 'bg-[#FCD12A] text-black' : 'bg-blue-900 text-blue-100'}`}>
+                                                Class {entity.class}
+                                            </span>
+                                        </td>
+                                        {activeTab === 'drivers' && (
+                                            <td className="p-4">
+                                                {(() => {
+                                                    const teamId = (entity as Driver).constructorId;
+                                                    const team = constructors.find(c => c.id === teamId);
+                                                    const color = team?.color || '#888888';
+                                                    return (
+                                                        <span 
+                                                            className="inline-block px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border border-white/10"
+                                                            style={{ 
+                                                                backgroundColor: `${color}33`, 
+                                                                color: color,
+                                                                borderColor: `${color}40`
+                                                            }}
+                                                        >
+                                                            {team?.name || teamId}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
+                                        )}
+                                        {activeTab === 'teams' && (
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div 
+                                                        className="w-4 h-4 rounded-full border border-white/20" 
+                                                        style={{ backgroundColor: (entity as Constructor).color }}
+                                                    />
+                                                    <span className="text-xs text-highlight-silver">{(entity as Constructor).color}</span>
+                                                </div>
+                                            </td>
+                                        )}
+                                        <td className="p-4 text-center hidden md:table-cell">
+                                             <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleActive(entity.id, activeTab);
+                                                }}
+                                                className={`px-3 py-1 rounded-full text-xs font-bold w-20 ${entity.isActive ? 'bg-green-600/80 text-pure-white' : 'bg-red-900/50 text-red-200'}`}
+                                             >
+                                                {entity.isActive ? 'Active' : 'Inactive'}
+                                             </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

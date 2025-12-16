@@ -150,14 +150,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                                 className="w-full text-left px-4 py-3 text-sm font-semibold text-pure-white hover:bg-pure-white/10 rounded-lg flex items-center gap-3 transition-colors"
                             >
                                 <LeagueIcon className="w-4 h-4 text-highlight-silver" />
-                                League
-                            </button>
-                            <button 
-                                onClick={() => { navigateToPage('events-hub'); setIsDropdownOpen(false); }}
-                                className="w-full text-left px-4 py-3 text-sm font-semibold text-pure-white hover:bg-pure-white/10 rounded-lg flex items-center gap-3 transition-colors"
-                            >
-                                <TrackIcon className="w-4 h-4 text-highlight-silver" />
-                                Events
+                                League Hub
                             </button>
                             
                             <div className="h-px bg-pure-white/10 my-1 mx-2"></div>
@@ -180,24 +173,14 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
                 <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
                 
-                {/* Consolidated Events Item */}
-                <SideNavItem 
-                    icon={TrackIcon} 
-                    label="Events" 
-                    page="events-hub" 
-                    activePage={activePage} 
-                    setActivePage={navigateToPage} 
-                    isParentActive={['events-hub', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
-                />
-                
-                {/* Consolidated League Item */}
+                {/* Consolidated League Item - Now includes events and league pages */}
                 <SideNavItem 
                     icon={LeagueIcon} 
                     label="League" 
                     page="league-hub" 
                     activePage={activePage} 
                     setActivePage={navigateToPage} 
-                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment'].includes(activePage)}
+                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
                 />
 
                 {isUserAdmin(user) && (
@@ -580,7 +563,8 @@ const App: React.FC = () => {
             refreshLeaderboard={fetchLeaderboardData}
         />;
       case 'events-hub':
-        return <EventsHubPage setActivePage={navigateToPage} />;
+        // Legacy redirect to League Hub if accessed directly, though navigation links should be updated
+        return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':
@@ -691,7 +675,7 @@ const App: React.FC = () => {
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={CalendarIcon} label="Schedule" page="schedule" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             {isUserAdmin(user) && (
               <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />

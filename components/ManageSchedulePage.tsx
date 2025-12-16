@@ -8,6 +8,7 @@ import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { CircuitRoute } from './icons/CircuitRoutes.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ManageSchedulePageProps {
@@ -34,20 +35,23 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
 
     const selectedEvent = EVENTS.find(e => e.id === editingEventId);
 
+    const RightAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white md:h-[calc(100vh-6rem)]">
-            <div className="relative flex items-center justify-center mb-6 flex-shrink-0 px-4 md:px-0 pt-2">
-                 <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="absolute left-4 md:left-0 flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors z-10"
-                >
-                    <BackIcon className="w-5 h-5" />
-                    Back
-                </button>
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-center">
-                    Schedule Manager <CalendarIcon className="w-8 h-8 text-primary-red"/>
-                </h1>
-            </div>
+            <PageHeader 
+                title="SCHEDULE MANAGER" 
+                icon={CalendarIcon} 
+                rightAction={RightAction}
+            />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

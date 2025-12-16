@@ -2,9 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
-import { AdminIcon } from './icons/AdminIcon.tsx';
+import { TrackIcon } from './icons/TrackIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ResultsManagerPageProps {
@@ -61,9 +62,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             });
 
             // Snapshot 2: Scoring Rules (New)
-            // We inject the CURRENT active rules into this result record.
-            // This ensures if we change rules later, this race's points are locked in history.
-            
             const resultsWithSnapshot = {
                 ...results,
                 driverTeams: driverTeamsSnapshot,
@@ -97,24 +95,23 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         );
     };
 
+    const RightAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
-        // Desktop: Calculated height (100vh - 6rem padding) to fit exactly in App shell without scrolling the page.
-        // Mobile: Natural height to allow standard page scrolling.
-        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white p-2 md:p-0 md:h-[calc(100vh-6rem)] md:overflow-hidden">
-            <div className="flex items-center justify-between mb-2 md:mb-4 flex-shrink-0">
-                 <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors text-sm py-2"
-                >
-                    <BackIcon className="w-4 h-4" />
-                    Back
-                </button>
-                <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-right">
-                    <span className="hidden md:inline">Results Manager</span>
-                    <span className="md:hidden">Results</span>
-                    <AdminIcon className="w-6 h-6"/>
-                </h1>
-            </div>
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white md:h-[calc(100vh-6rem)] md:overflow-hidden pb-safe px-2 md:px-0">
+            <PageHeader 
+                title="RESULTS MANAGER" 
+                icon={TrackIcon} 
+                rightAction={RightAction}
+            />
             
             {/* Control Bar */}
             <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-3 mb-2 md:mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center justify-between flex-shrink-0">
@@ -149,7 +146,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             </div>
 
             {/* Main Form Area */}
-            {/* Mobile: Standard block, auto height. Desktop: Flex-1, hidden overflow (internal scroll in form) */}
             <div className="w-full max-w-6xl mx-auto md:flex-1 md:min-h-0 md:flex md:flex-col pb-8 md:pb-0">
                 {selectedEvent ? (
                     <div className="bg-carbon-fiber rounded-lg p-2 md:p-4 border border-pure-white/10 shadow-lg md:h-full md:flex md:flex-col">
@@ -167,7 +163,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-64 md:h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
-                        <AdminIcon className="w-12 h-12 text-accent-gray mb-4" />
+                        <TrackIcon className="w-12 h-12 text-accent-gray mb-4" />
                         <h3 className="text-lg font-bold text-highlight-silver mb-2">No Event Selected</h3>
                         <p className="text-highlight-silver/70 text-sm">Select an event from the dropdown above.</p>
                     </div>

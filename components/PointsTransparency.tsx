@@ -6,6 +6,7 @@ import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface PointsTransparencyProps {
     pointsSystem: PointsSystem;
@@ -61,16 +62,11 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto space-y-4 pb-2 md:h-[calc(100vh-6rem)] md:overflow-hidden">
             
-            {/* Page Header */}
-            <div className="flex-none text-center md:text-left flex flex-col md:flex-row items-center gap-4 border-b border-pure-white/10 pb-4">
-                <div className="bg-primary-red/10 p-3 rounded-full">
-                    <TrophyIcon className="w-8 h-8 text-primary-red" />
-                </div>
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-pure-white">Scoring System</h1>
-                    <p className="text-highlight-silver text-sm">Official point distributions for the 2026 Season.</p>
-                </div>
-            </div>
+            <PageHeader 
+                title="SCORING RULES" 
+                icon={TrophyIcon} 
+                subtitle="Official point distributions for the 2026 Season."
+            />
 
             {/* Dashboard Grid - Two Columns: Left (Events) Right (Meta) */}
             <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-4">

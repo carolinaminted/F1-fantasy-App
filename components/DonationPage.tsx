@@ -3,6 +3,8 @@ import React from 'react';
 import { User } from '../types.ts';
 import { Page } from '../App.tsx';
 import { PAYPAL_DONATION_URL } from '../constants.ts';
+import { PageHeader } from './ui/PageHeader.tsx';
+import { DonationIcon } from './icons/DonationIcon.tsx';
 
 interface DonationPageProps {
   user: User | null;
@@ -11,10 +13,14 @@ interface DonationPageProps {
 
 const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
     return (
-        <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-center mb-8">Make a Donation</h1>
+        <div className="max-w-7xl mx-auto h-full flex flex-col">
+            <PageHeader 
+                title="SUPPORT THE LEAGUE" 
+                icon={DonationIcon} 
+                subtitle="Help keep the league running." 
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] md:gap-8 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] md:gap-8 items-stretch pb-8 px-4 md:px-0">
                 {/* Victory Junction Tile */}
                 <div className="bg-carbon-fiber p-6 rounded-lg border border-pure-white/10 shadow-lg text-center flex flex-col h-full">
                     <h2 className="text-xl font-semibold text-pure-white">Donate directly to Victory Junction</h2>
