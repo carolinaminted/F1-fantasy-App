@@ -366,11 +366,13 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
     if (isNext) accentColor = '#DA291C'; 
 
     const lockTime = schedule?.customLockAt || event.lockAtUtc;
+    const qualiTime = event.hasSprint ? schedule?.sprintQualifying : schedule?.qualifying;
+    const qualiLabel = event.hasSprint ? "Sprint Quali" : "Qualifying";
 
     return (
         <button 
             onClick={onClick}
-            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group flex flex-col h-full min-h-[160px] focus:outline-none focus:ring-2 focus:ring-pure-white/20"
+            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group flex flex-col h-full min-h-[180px] focus:outline-none focus:ring-2 focus:ring-pure-white/20"
             style={{ 
                 borderColor: `${accentColor}60`, 
                 boxShadow: isNext ? `0 0 20px ${hexToRgba(accentColor, 0.2)}` : `0 0 10px ${hexToRgba(accentColor, 0.05)}`
@@ -382,56 +384,56 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                 style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 75%)` }}
             />
 
-            <div className="relative z-10 p-4 flex flex-col h-full w-full">
-                <div className="flex justify-between items-start mb-3 w-full">
+            <div className="relative z-10 p-5 flex flex-col h-full w-full">
+                <div className="flex justify-between items-start mb-4 w-full">
                     <div className="flex flex-col overflow-hidden">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider">Round</span>
-                            <span className="text-xl font-black text-pure-white leading-none">{event.round}</span>
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs font-bold text-highlight-silver uppercase tracking-wider">Round</span>
+                            <span className="text-2xl font-black text-pure-white leading-none">{event.round}</span>
                         </div>
-                        <h3 className="text-lg font-bold text-pure-white leading-tight truncate">{event.name}</h3>
-                        <p className="text-xs text-highlight-silver truncate">{event.location}, {event.country}</p>
+                        <h3 className="text-xl font-bold text-pure-white leading-tight truncate">{event.name}</h3>
+                        <p className="text-sm text-highlight-silver truncate mt-0.5">{event.location}, {event.country}</p>
                     </div>
                     
                     {/* Vertical Pill Indicator & Icon */}
                     <div className="flex items-center gap-3 flex-shrink-0 ml-2">
                         {event.hasSprint && (
-                            <SprintIcon className="w-6 h-6 text-yellow-500 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]" />
+                            <SprintIcon className="w-7 h-7 text-yellow-500 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]" />
                         )}
                         <div 
-                            className="w-1.5 h-8 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]" 
+                            className="w-2 h-10 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]" 
                             style={{ backgroundColor: accentColor, boxShadow: `0 0 8px ${accentColor}` }} 
                         />
                     </div>
                 </div>
 
-                <div className="mt-auto w-full flex flex-col gap-2">
+                <div className="mt-auto w-full flex flex-col gap-3">
                     {/* Picks Due Row - Stronger Emphasis */}
-                    <div className="bg-primary-red/10 rounded-lg p-2 border border-primary-red/30 flex items-center justify-between">
+                    <div className="bg-primary-red rounded-lg p-3 border border-primary-red/50 flex items-center justify-between shadow-lg shadow-primary-red/10">
                         <div>
-                            <p className="text-[9px] text-primary-red uppercase font-black tracking-wider mb-0.5">Picks Due</p>
-                            <p className="font-bold text-sm text-pure-white">
+                            <p className="text-[10px] text-pure-white/90 uppercase font-black tracking-wider mb-0.5">Picks Due</p>
+                            <p className="font-extrabold text-base text-pure-white">
                                 {formatDate(lockTime)}
                             </p>
                         </div>
                         <div className="text-right">
-                             <p className="font-mono text-sm font-bold text-pure-white">
+                             <p className="font-mono text-base font-bold text-pure-white">
                                 {formatTime(lockTime)}
                             </p>
                         </div>
                     </div>
 
-                    {/* Grand Prix Row - Secondary */}
-                    <div className="px-2 flex items-center justify-between w-full opacity-60 group-hover:opacity-100 transition-opacity">
+                    {/* Qualifying/Sprint Quali Row */}
+                    <div className="px-3 flex items-center justify-between w-full">
                         <div>
-                            <p className="text-[9px] text-highlight-silver uppercase font-bold tracking-wider mb-0.5">Grand Prix</p>
-                            <p className="font-semibold text-sm text-ghost-white">
-                                {schedule?.race ? formatDate(schedule.race) : 'TBA'}
+                            <p className="text-[10px] text-highlight-silver uppercase font-bold tracking-wider mb-0.5">{qualiLabel}</p>
+                            <p className="font-semibold text-base text-ghost-white">
+                                {qualiTime ? formatDate(qualiTime) : 'TBA'}
                             </p>
                         </div>
                         <div className="text-right">
-                             <p className="font-mono text-sm font-bold text-highlight-silver">
-                                {schedule?.race ? formatTime(schedule.race) : '-'}
+                             <p className="font-mono text-base font-bold text-highlight-silver">
+                                {qualiTime ? formatTime(qualiTime) : '-'}
                             </p>
                         </div>
                     </div>
