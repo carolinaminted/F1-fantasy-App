@@ -365,10 +365,12 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
     if (event.hasSprint) accentColor = '#EAB308'; 
     if (isNext) accentColor = '#DA291C'; 
 
+    const lockTime = schedule?.customLockAt || event.lockAtUtc;
+
     return (
         <button 
             onClick={onClick}
-            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group flex flex-col h-full min-h-[140px] focus:outline-none focus:ring-2 focus:ring-pure-white/20"
+            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group flex flex-col h-full min-h-[160px] focus:outline-none focus:ring-2 focus:ring-pure-white/20"
             style={{ 
                 borderColor: `${accentColor}60`, 
                 boxShadow: isNext ? `0 0 20px ${hexToRgba(accentColor, 0.2)}` : `0 0 10px ${hexToRgba(accentColor, 0.05)}`
@@ -403,17 +405,35 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                     </div>
                 </div>
 
-                <div className="mt-auto pt-3 border-t border-pure-white/10 flex items-end justify-between w-full">
-                    <div>
-                        <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Grand Prix</p>
-                        <p className={`font-bold text-sm ${isNext ? 'text-pure-white' : 'text-ghost-white'}`}>
-                            {schedule?.race ? formatDate(schedule.race) : 'TBA'}
-                        </p>
+                <div className="mt-auto w-full space-y-2">
+                    {/* Picks Due Row */}
+                    <div className="pt-2 border-t border-pure-white/10 flex items-end justify-between w-full">
+                        <div>
+                            <p className="text-[10px] text-primary-red uppercase mb-0.5 font-bold">Picks Due</p>
+                            <p className="font-bold text-sm text-ghost-white">
+                                {formatDate(lockTime)}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                             <p className="font-mono text-sm font-bold text-highlight-silver group-hover:text-pure-white transition-colors">
+                                {formatTime(lockTime)}
+                            </p>
+                        </div>
                     </div>
-                    <div className="text-right">
-                         <p className={`font-mono text-lg font-bold ${isNext ? 'text-primary-red' : 'text-highlight-silver group-hover:text-pure-white transition-colors'}`}>
-                            {schedule?.race ? formatTime(schedule.race) : '-'}
-                        </p>
+
+                    {/* Grand Prix Row */}
+                    <div className="pt-2 border-t border-pure-white/5 flex items-end justify-between w-full opacity-80 group-hover:opacity-100 transition-opacity">
+                        <div>
+                            <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Grand Prix</p>
+                            <p className={`font-bold text-sm ${isNext ? 'text-pure-white' : 'text-ghost-white'}`}>
+                                {schedule?.race ? formatDate(schedule.race) : 'TBA'}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                             <p className={`font-mono text-lg font-bold ${isNext ? 'text-primary-red' : 'text-highlight-silver group-hover:text-pure-white transition-colors'}`}>
+                                {schedule?.race ? formatTime(schedule.race) : '-'}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

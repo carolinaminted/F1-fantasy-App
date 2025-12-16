@@ -612,9 +612,8 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
     }, [allPicks, timeRange, allDrivers, allConstructors, events]);
 
     return (
-        <div className="space-y-8 animate-fade-in">
-             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 className="text-2xl font-bold text-pure-white">Popular Picks Analysis</h2>
+        <div className="space-y-8 animate-fade-in pt-4">
+             <div className="flex flex-col md:flex-row justify-end items-center gap-4">
                 <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
                          <button
@@ -1186,6 +1185,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       </h1>
                   </div>
               )}
+
+              {/* NEW: Popular Picks Title (Desktop) */}
+              {(view === 'popular') && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                        <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                            <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+                        </div>
+                      <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                          Popular Picks Analysis
+                      </h1>
+                  </div>
+              )}
               
               <RefreshControl 
                   onClick={handleManualRefresh} 
@@ -1208,6 +1219,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                         </div>
                         <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
                             Driver & Team Points
+                        </h1>
+                    </div>
+                </div>
+          )}
+
+          {/* NEW: Popular Picks Title (Mobile) */}
+          {view === 'popular' && (
+               <div className="sm:hidden mb-4 flex flex-col items-center justify-center flex-none">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                            <TrendingUpIcon className="w-6 h-6 text-primary-red" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
+                            Popular Picks Analysis
                         </h1>
                     </div>
                 </div>
