@@ -72,7 +72,7 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?:
 };
 
 const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon: Icon, label, value }) => (
-    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-fiber w-full h-full min-h-[120px] border border-pure-white/20 shadow-lg hover:border-primary-red/50 transition-all duration-200">
+    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-black/60 w-full h-full min-h-[120px] border border-pure-white/10 shadow-lg hover:border-primary-red/50 transition-all duration-200 backdrop-blur-sm">
         <Icon className="w-8 h-8 text-primary-red mb-3" />
         <span className="text-xs font-bold uppercase text-highlight-silver mb-1">{label}</span>
         <span className="font-bold text-lg text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
@@ -334,7 +334,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     const relevantEvents = events.filter(e => seasonPicks[e.id] && raceResults[e.id]);
 
     if (relevantEvents.length === 0) {
-        detailsContent.push(<p key="no-picks" className="text-highlight-silver">No picks submitted for completed events yet.</p>);
+        detailsContent.push(<p key="no-picks" className="text-highlight-silver text-center">No picks submitted for completed events yet.</p>);
     } else {
         relevantEvents.forEach(event => {
             const picks = seasonPicks[event.id];
@@ -398,9 +398,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
             if (eventEntries.length > 0) {
                  detailsContent.push(
-                    <div key={event.id}>
-                        <h4 className="font-bold text-primary-red">{event.name}</h4>
-                        <ul className="list-disc list-inside ml-2 text-ghost-white text-sm">
+                    <div key={event.id} className="text-center">
+                        <h4 className="font-bold text-primary-red mb-2">{event.name}</h4>
+                        <ul className="list-none space-y-1 text-ghost-white text-sm">
                             {eventEntries}
                         </ul>
                     </div>
@@ -410,10 +410,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     }
 
     if (detailsContent.length === 0 || (detailsContent.length === 1 && (detailsContent[0] as any)?.key === 'no-picks')) {
-        detailsContent.push(<p key="no-points" className="text-highlight-silver mt-4">No points scored in this category for any completed events.</p>);
+        detailsContent.push(<p key="no-points" className="text-highlight-silver mt-4 text-center">No points scored in this category for any completed events.</p>);
     }
 
-    setModalData({ title, content: <div className="space-y-4">{detailsContent}</div> });
+    setModalData({ title, content: <div className="space-y-6">{detailsContent}</div> });
   };
 
   const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali') => {
@@ -483,7 +483,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
        eventEntries.push(<li key="no-points" className="text-highlight-silver">No points scored in this category.</li>);
     }
     
-    const finalContent = <ul className="list-disc list-inside ml-2 text-ghost-white text-sm space-y-1">{eventEntries}</ul>
+    const finalContent = <ul className="list-none space-y-1 text-ghost-white text-sm text-center">{eventEntries}</ul>
 
     setModalData({ title, content: finalContent });
   };
@@ -544,7 +544,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       {/* Profile Info Section */}
-      <div className="bg-checkered-flag rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
+      <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
         <div className="flex flex-col items-center justify-center mb-8 relative z-10">
             {/* Edit Details Button */}
             {!isEditingProfile && setActivePage && (
@@ -571,7 +571,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
         
         {isEditingProfile ? (
-            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-fiber border border-pure-white/10 shadow-2xl p-6 rounded-lg">
+            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-black/50 border border-pure-white/10 shadow-2xl p-6 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">First Name</label>
@@ -663,9 +663,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             {/* Scoring Breakdown Section */}
             <div>
                 <h2 className="text-2xl font-bold mb-4 text-center">Scoring Breakdown</h2>
-                <div className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                <div className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden bg-carbon-fiber shadow-lg">
                     {/* Hero Stats */}
-                    <div className="grid grid-cols-2 divide-x divide-pure-white/10 bg-carbon-black/50 border-b border-pure-white/10">
+                    <div className="grid grid-cols-2 divide-x divide-pure-white/10 bg-black/20 border-b border-pure-white/10">
                         <div className="p-6 text-center">
                             <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2">Total Points</p>
                             <p className="text-3xl md:text-4xl font-black text-pure-white">{scoreRollup.totalPoints}</p>
@@ -709,7 +709,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             {/* Selection Counts Section */}
             <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
-            <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
+            <div className="rounded-lg p-6 ring-1 ring-pure-white/10 bg-carbon-fiber shadow-lg">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                 <CollapsibleUsageList
                     title="Class A Teams"
@@ -765,7 +765,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     const rawPoints = eventPoints.totalPoints + (eventPoints.penaltyPoints || 0);
 
                     return (
-                        <div key={event.id} className="relative rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
+                        <div key={event.id} className="relative rounded-lg ring-1 ring-pure-white/10 overflow-hidden bg-carbon-fiber shadow-lg">
                              {/* Penalty Badge Overlay */}
                              {hasPenalty && (
                                 <div className="absolute top-2 left-1/2 transform -translate-x-1/2 -rotate-6 border-4 border-red-500 text-red-500 font-black text-xl px-4 py-1 opacity-80 pointer-events-none z-10 whitespace-nowrap">
@@ -787,7 +787,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                 </div>
                             </button>
                             {isExpanded && (
-                                <div className="p-4 border-t border-accent-gray/50 text-sm">
+                                <div className="p-4 border-t border-accent-gray/50 text-sm bg-black/20">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <h4 className="font-bold text-primary-red mb-2">Teams</h4>
@@ -869,8 +869,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             <div className="bg-carbon-fiber rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto border border-pure-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-bold text-pure-white">{modalData.title}</h3>
-                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white text-3xl leading-none">&times;</button>
+                        <h3 className="text-2xl font-bold text-pure-white text-center flex-1">{modalData.title}</h3>
+                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white text-3xl leading-none ml-4">&times;</button>
                     </div>
                     {modalData.content}
                 </div>
