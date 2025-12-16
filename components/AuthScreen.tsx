@@ -101,16 +101,7 @@ const AuthScreen: React.FC = () => {
       zIndex: 2000
     });
 
-    // Secret Auto-fill for Demo/Testing (Only works on Details step)
-    if (!isResetting && signupStep === 'details') {
-      const randomId = Math.floor(Math.random() * 1000);
-      setFirstName('Test');
-      setLastName('Principal');
-      setDisplayName('Test Principal');
-      if(!email) setEmail(`test.user.${randomId}@fantasy.f1`);
-      setPassword('password123');
-      setConfirmPassword('password123');
-    }
+    // Note: Test auto-fill backdoor logic removed for production security [S1C-03].
     
     setError(null);
     setResetMessage(null);
