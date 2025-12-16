@@ -1,6 +1,6 @@
 
 // Fix: Implement the main App component to provide structure, state management, and navigation.
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
 import HomePage from './components/HomePage.tsx';
@@ -24,7 +24,8 @@ import SchedulePage from './components/SchedulePage.tsx';
 import EventsHubPage from './components/EventsHubPage.tsx';
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
-import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule } from './types.ts';
+import ErrorBoundary from './components/ErrorBoundary.tsx';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule, LeaderboardCache } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -161,6 +162,9 @@ const App: React.FC = () => {
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
+  // Data Cache for Leaderboard to prevent redundant fetches on tab switch
+  const [leaderboardCache, setLeaderboardCache] = useState<LeaderboardCache | null>(null);
+
   // Implement Session Security
   const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
   
@@ -199,13 +203,39 @@ const App: React.FC = () => {
       return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers).totalPoints;
   }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user]);
 
+  // Centralized Data Fetch for Leaderboard
+  const fetchLeaderboardData = useCallback(async () => {
+      try {
+          const { users, allPicks, source } = await getAllUsersAndPicks();
+          setLeaderboardCache({
+              users,
+              allPicks,
+              source,
+              lastUpdated: Date.now()
+          });
+      } catch (e) {
+          console.error("Failed to fetch leaderboard data", e);
+      }
+  }, []);
+
   // Fallback to fetch global rank if missing (e.g. cloud function hasn't run yet)
   useEffect(() => {
       const fetchRankFallback = async () => {
           if (user && !user.rank && user.id && currentTotalPoints > 0) {
               try {
-                  const { users: allUsersList, allPicks } = await getAllUsersAndPicks();
-                  const validUsers = allUsersList.filter(u => u.displayName !== 'Admin Principal');
+                  // Use cache if available to avoid extra reads
+                  let usersList = leaderboardCache?.users;
+                  let allPicks = leaderboardCache?.allPicks;
+
+                  if (!usersList || !allPicks) {
+                      const data = await getAllUsersAndPicks();
+                      usersList = data.users;
+                      allPicks = data.allPicks;
+                      // Update cache while we are at it
+                      setLeaderboardCache({ ...data, lastUpdated: Date.now() });
+                  }
+
+                  const validUsers = usersList.filter(u => u.displayName !== 'Admin Principal');
                   
                   const scores = validUsers.map(u => {
                       // If public profile has points, use them. Otherwise calc.
@@ -230,7 +260,7 @@ const App: React.FC = () => {
       if (user && !user.rank) {
           fetchRankFallback();
       }
-  }, [user?.id, user?.rank, raceResults, activePointsSystem, allDrivers, currentTotalPoints]);
+  }, [user?.id, user?.rank, raceResults, activePointsSystem, allDrivers, currentTotalPoints, leaderboardCache]);
 
   useEffect(() => {
     let unsubscribeResults = () => {};
@@ -353,6 +383,7 @@ const App: React.FC = () => {
         setFormLocks({});
         setEventSchedules({});
         setScoringSettings(defaultSettings);
+        setLeaderboardCache(null);
         // Reset to default constants
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
@@ -468,7 +499,16 @@ const App: React.FC = () => {
         />;
         return null;
       case 'leaderboard':
-        return <LeaderboardPage currentUser={user} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+        return <LeaderboardPage 
+            currentUser={user} 
+            raceResults={raceResults} 
+            pointsSystem={activePointsSystem} 
+            allDrivers={allDrivers} 
+            allConstructors={allConstructors} 
+            events={mergedEvents}
+            leaderboardCache={leaderboardCache}
+            refreshLeaderboard={fetchLeaderboardData}
+        />;
       case 'events-hub':
         return <EventsHubPage setActivePage={navigateToPage} />;
       case 'league-hub':
@@ -566,7 +606,10 @@ const App: React.FC = () => {
             {/* Replaced broken image with CSS Class 'bg-carbon-fiber' defined in index.html */}
             <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             <main className="relative p-4 md:p-8 min-h-full">
-                {renderPage()}
+                {/* Wrap main content in ErrorBoundary. Key ensures it resets on page change. */}
+                <ErrorBoundary key={`${activePage}-${adminSubPage}`}>
+                    {renderPage()}
+                </ErrorBoundary>
             </main>
         </div>
 

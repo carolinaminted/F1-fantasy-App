@@ -1,10 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
-import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult } from '../types.ts';
-import { getAllUsersAndPicks } from '../services/firestoreService.ts';
-import { db } from '../services/firebase.ts';
-import { onSnapshot, collection } from '@firebase/firestore';
+import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { TrendingUpIcon } from './icons/TrendingUpIcon.tsx';
@@ -44,6 +41,8 @@ interface LeaderboardPageProps {
   allDrivers: Driver[];
   allConstructors: Constructor[];
   events: Event[];
+  leaderboardCache: LeaderboardCache | null;
+  refreshLeaderboard: () => Promise<void>;
 }
 
 const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constructor[]) => {
@@ -51,6 +50,52 @@ const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constr
 };
 
 // --- Sub-Components ---
+
+// NEW: Refresh Control Button with Feedback & Cooldown
+const RefreshControl: React.FC<{ 
+    onClick: () => void; 
+    isRefreshing: boolean; 
+    cooldown: number;
+    status: 'idle' | 'success' | 'error';
+}> = ({ onClick, isRefreshing, cooldown, status }) => {
+    
+    return (
+        <div className="relative flex items-center">
+            {/* Status Toast */}
+            {status !== 'idle' && (
+                <div className={`
+                    absolute right-full mr-3 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg animate-fade-in
+                    ${status === 'success' ? 'bg-green-500 text-carbon-black' : 'bg-red-500 text-pure-white'}
+                `}>
+                    {status === 'success' ? 'Data Updated ✓' : 'Update Failed ✕'}
+                </div>
+            )}
+
+            <button 
+                onClick={onClick}
+                disabled={isRefreshing || cooldown > 0}
+                className={`
+                    flex items-center justify-center gap-2 p-2 rounded-lg transition-all duration-200 border
+                    ${(isRefreshing || cooldown > 0)
+                        ? 'bg-carbon-black border-accent-gray text-highlight-silver/50 cursor-not-allowed'
+                        : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-primary-red hover:border-primary-red hover:shadow-[0_0_10px_rgba(218,41,28,0.2)]'
+                    }
+                `}
+                title={cooldown > 0 ? `Wait ${cooldown}s` : "Refresh Data"}
+            >
+                {cooldown > 0 ? (
+                    <span className="text-xs font-mono font-bold w-12 text-center">
+                        {cooldown}s
+                    </span>
+                ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin text-primary-red' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                )}
+            </button>
+        </div>
+    );
+};
 
 const NavTile: React.FC<{ icon: any; title: string; desc: string; onClick: () => void }> = ({ icon: Icon, title, desc, onClick }) => (
     <button
@@ -970,120 +1015,111 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
 // --- Main Page ---
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events, leaderboardCache, refreshLeaderboard }) => {
   const [view, setView] = useState<ViewState>('menu');
   
-  // Data State
-  const [rawUsers, setRawUsers] = useState<User[]>([]);
-  const [allPicks, setAllPicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
+  // Local Data State
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [dataSource, setDataSource] = useState<'public' | 'private_fallback'>('public');
+  // Refresh Controls State
+  const [cooldownTime, setCooldownTime] = useState(0);
+  const [refreshStatus, setRefreshStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // 1. Initial Load of Everything
+  // Timer Effect for Cooldown
   useEffect(() => {
-    const loadInitialData = async () => {
-        setIsLoading(true);
-        const { users, allPicks: picksData, source } = await getAllUsersAndPicks();
-        
-        setAllPicks(picksData);
-        setDataSource(source || 'public');
-        
-        // If we are falling back to private collection (admin only), 
-        // the listener below on 'public_users' will likely be empty or fail.
-        // So we seed rawUsers here regardless.
-        setRawUsers(users);
-        setIsLoading(false);
-    };
-    loadInitialData();
-  }, []);
+      let timer: any;
+      if (cooldownTime > 0) {
+          timer = setTimeout(() => setCooldownTime(t => t - 1), 1000);
+      }
+      return () => clearTimeout(timer);
+  }, [cooldownTime]);
 
-  // 2. Real-time Listener for Public Names/Scores
+  // Load logic: If cache is empty, fetch. If cache exists, process it.
   useEffect(() => {
-      // Only listen if we are in normal public mode
-      if (dataSource === 'private_fallback') return;
+      if (!leaderboardCache) {
+          // If no cache, trigger fetch from parent
+          refreshLeaderboard();
+      } else {
+          // Process Cached Data
+          processLeaderboardData();
+      }
+  }, [leaderboardCache, raceResults, pointsSystem, allDrivers, currentUser]);
 
-      const unsubscribe = onSnapshot(collection(db, 'public_users'), (snapshot) => {
-          if (snapshot.empty) return; // Don't override if empty
+  const processLeaderboardData = () => {
+      if (!leaderboardCache) return;
 
-          const users = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-              email: '', // Public profile doesn't have email
-              isAdmin: false
-          } as User));
+      const { users, allPicks } = leaderboardCache;
+      
+      // Filter out Admin Principal explicitly if desired
+      const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
+
+      // Helper to ensure numbers
+      const safeNum = (val: any) => {
+          const n = Number(val);
+          return Number.isNaN(n) ? 0 : n;
+      };
+
+      const processed: ProcessedUser[] = validUsers.map(user => {
+          let gp = 0, sprint = 0, quali = 0, fl = 0;
+          let totalPoints = 0;
+
+          // Prefer calculating client-side to ensure sync with live raceResults prop
+          // even if leaderboardCache has old totalPoints from snapshot.
+          const userPicks = allPicks[user.id] || {};
+          const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
           
-          setRawUsers(users);
-      }, (error) => {
-          console.error("Leaderboard listener error:", error);
+          totalPoints = safeNum(scoreData.totalPoints);
+          gp = safeNum(scoreData.grandPrixPoints);
+          sprint = safeNum(scoreData.sprintPoints);
+          quali = safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints);
+          fl = safeNum(scoreData.fastestLapPoints);
+
+          // CRITICAL FIX: Ensure the current user's display name is always fresh from the session prop.
+          const isCurrentUser = currentUser && user.id === currentUser.id;
+          const displayName = isCurrentUser ? currentUser.displayName : user.displayName;
+
+          return {
+              ...user,
+              displayName,
+              totalPoints,
+              rank: user.rank || 0,
+              breakdown: { gp, quali, sprint, fl }
+          };
       });
 
-      return () => unsubscribe();
-  }, [dataSource]);
+      // We still sort here for display index
+      processed.sort((a, b) => b.totalPoints - a.totalPoints);
+      processed.forEach((u, i) => u.displayRank = i + 1); // Client-side display rank
 
-  // 3. Processing Effect (Merges raw data with picks/scoring)
-  useEffect(() => {
-        // Filter out Admin Principal explicitly if desired
-        const validUsers = rawUsers.filter(u => u.displayName !== 'Admin Principal');
+      setProcessedUsers(processed);
+  };
 
-        // Helper to ensure numbers
-        const safeNum = (val: any) => {
-            const n = Number(val);
-            return Number.isNaN(n) ? 0 : n;
-        };
+  const handleManualRefresh = async () => {
+      if (cooldownTime > 0 || isRefreshing) return;
 
-        const processed: ProcessedUser[] = validUsers.map(user => {
-            // FIX: Normalize property names for breakdowns.
-            // Firestore data uses: { gp, sprint, quali, fl }
-            // Local calculation uses: { grandPrixPoints, sprintPoints, gpQualifyingPoints, fastestLapPoints }
-            
-            let gp = 0, sprint = 0, quali = 0, fl = 0;
-            let totalPoints = 0;
+      setIsRefreshing(true);
+      setRefreshStatus('idle');
 
-            if (user.totalPoints !== undefined) {
-                 // Use pre-calculated data
-                 totalPoints = safeNum(user.totalPoints);
-                 const bd = (user as any).breakdown;
-                 if (bd) {
-                     gp = safeNum(bd.gp);
-                     sprint = safeNum(bd.sprint);
-                     quali = safeNum(bd.quali);
-                     fl = safeNum(bd.fl);
-                 }
-            } else {
-                 // Calculate locally
-                 const userPicks = allPicks[user.id] || {};
-                 const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
-                 
-                 totalPoints = safeNum(scoreData.totalPoints);
-                 gp = safeNum(scoreData.grandPrixPoints);
-                 sprint = safeNum(scoreData.sprintPoints);
-                 quali = safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints);
-                 fl = safeNum(scoreData.fastestLapPoints);
-            }
-
-            // CRITICAL FIX: Ensure the current user's display name is always fresh from the session prop.
-            const isCurrentUser = currentUser && user.id === currentUser.id;
-            const displayName = isCurrentUser ? currentUser.displayName : user.displayName;
-
-            return {
-                ...user,
-                displayName,
-                totalPoints,
-                rank: user.rank || 0,
-                breakdown: { gp, quali, sprint, fl }
-            };
-        });
-
-        // We still sort here for display index
-        processed.sort((a, b) => b.totalPoints - a.totalPoints);
-        processed.forEach((u, i) => u.displayRank = i + 1); // Client-side display rank
-
-        setProcessedUsers(processed);
-  }, [rawUsers, allPicks, raceResults, pointsSystem, allDrivers, currentUser]);
+      try {
+          await refreshLeaderboard();
+          setRefreshStatus('success');
+          setCooldownTime(30); // 30s Cooldown to prevent spam
+          
+          // Hide success message after 3s
+          setTimeout(() => setRefreshStatus('idle'), 3000);
+      } catch (e) {
+          console.error(e);
+          setRefreshStatus('error');
+          setTimeout(() => setRefreshStatus('idle'), 3000);
+      } finally {
+          setIsRefreshing(false);
+      }
+  };
 
   const isUserAdmin = currentUser && !!currentUser.isAdmin;
+  const isLoading = !leaderboardCache && processedUsers.length === 0;
+  const dataSource = leaderboardCache?.source || 'public';
 
   if (isLoading) {
       return <ListSkeleton rows={10} />;
@@ -1113,7 +1149,17 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           <div className="max-w-7xl mx-auto animate-fade-in pt-4">
               {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
               
-              <h1 className="text-3xl md:text-4xl font-bold text-center text-pure-white mb-2">Leaderboard Hub</h1>
+              <div className="flex justify-center items-center mb-2 relative">
+                  <h1 className="text-3xl md:text-4xl font-bold text-center text-pure-white">Leaderboard Hub</h1>
+                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+                      <RefreshControl 
+                          onClick={handleManualRefresh} 
+                          isRefreshing={isRefreshing} 
+                          cooldown={cooldownTime}
+                          status={refreshStatus}
+                      />
+                  </div>
+              </div>
               <p className="text-center text-highlight-silver mb-8 md:mb-12">Analyze league performance and trends.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -1174,8 +1220,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                   </h1>
               )}
               
-              {/* Spacer div to balance flex layout if needed */}
-              <div className="w-4"></div>
+              {/* Refresh Button on Views */}
+              <RefreshControl 
+                  onClick={handleManualRefresh} 
+                  isRefreshing={isRefreshing} 
+                  cooldown={cooldownTime}
+                  status={refreshStatus}
+              />
           </div>
 
           {/* Mobile Title */}
@@ -1185,8 +1236,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
           <div className="flex-1 min-h-0 overflow-y-auto md:overflow-y-hidden custom-scrollbar">
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
-            {view === 'popular' && <div className="h-full overflow-y-auto"><PopularityView allPicks={allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} /></div>}
-            {view === 'insights' && <InsightsView users={processedUsers} allPicks={allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
+            {view === 'popular' && leaderboardCache && <div className="h-full overflow-y-auto"><PopularityView allPicks={leaderboardCache.allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} /></div>}
+            {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
             {view === 'entities' && <div className="h-full overflow-y-auto"><EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} /></div>}
           </div>
       </div>

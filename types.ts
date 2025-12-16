@@ -157,3 +157,10 @@ export interface EventPointsBreakdown {
     sprintQualifyingPoints: number;
     penaltyPoints: number; // New field
 }
+
+export interface LeaderboardCache {
+    users: User[];
+    allPicks: { [userId: string]: { [eventId: string]: PickSelection } };
+    source: 'public' | 'private_fallback';
+    lastUpdated: number;
+}
