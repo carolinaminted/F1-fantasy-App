@@ -405,32 +405,32 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                     </div>
                 </div>
 
-                <div className="mt-auto w-full space-y-2">
-                    {/* Picks Due Row */}
-                    <div className="pt-2 border-t border-pure-white/10 flex items-end justify-between w-full">
+                <div className="mt-auto w-full flex flex-col gap-2">
+                    {/* Picks Due Row - Stronger Emphasis */}
+                    <div className="bg-primary-red/10 rounded-lg p-2 border border-primary-red/30 flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] text-primary-red uppercase mb-0.5 font-bold">Picks Due</p>
-                            <p className="font-bold text-sm text-ghost-white">
+                            <p className="text-[9px] text-primary-red uppercase font-black tracking-wider mb-0.5">Picks Due</p>
+                            <p className="font-bold text-sm text-pure-white">
                                 {formatDate(lockTime)}
                             </p>
                         </div>
                         <div className="text-right">
-                             <p className="font-mono text-sm font-bold text-highlight-silver group-hover:text-pure-white transition-colors">
+                             <p className="font-mono text-sm font-bold text-pure-white">
                                 {formatTime(lockTime)}
                             </p>
                         </div>
                     </div>
 
-                    {/* Grand Prix Row */}
-                    <div className="pt-2 border-t border-pure-white/5 flex items-end justify-between w-full opacity-80 group-hover:opacity-100 transition-opacity">
+                    {/* Grand Prix Row - Secondary */}
+                    <div className="px-2 flex items-center justify-between w-full opacity-60 group-hover:opacity-100 transition-opacity">
                         <div>
-                            <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Grand Prix</p>
-                            <p className={`font-bold text-sm ${isNext ? 'text-pure-white' : 'text-ghost-white'}`}>
+                            <p className="text-[9px] text-highlight-silver uppercase font-bold tracking-wider mb-0.5">Grand Prix</p>
+                            <p className="font-semibold text-sm text-ghost-white">
                                 {schedule?.race ? formatDate(schedule.race) : 'TBA'}
                             </p>
                         </div>
                         <div className="text-right">
-                             <p className={`font-mono text-lg font-bold ${isNext ? 'text-primary-red' : 'text-highlight-silver group-hover:text-pure-white transition-colors'}`}>
+                             <p className="font-mono text-sm font-bold text-highlight-silver">
                                 {schedule?.race ? formatTime(schedule.race) : '-'}
                             </p>
                         </div>
