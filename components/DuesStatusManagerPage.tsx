@@ -5,6 +5,7 @@ import { getAllUsers, updateUserDuesStatus } from '../services/firestoreService.
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface DuesStatusManagerPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -16,6 +17,7 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
     const [isLoading, setIsLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -45,10 +47,11 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
             await updateUserDuesStatus(selectedUser.id, status);
             // Update local state for immediate feedback
             setAllUsers(prevUsers => prevUsers.map(u => u.id === selectedUser.id ? { ...u, duesPaidStatus: status } : u));
+            showToast(`Updated ${selectedUser.displayName} to ${status}`, 'success');
             setSelectedUser(null);
         } catch (error) {
             console.error("Failed to update status", error);
-            alert("An error occurred. Please try again.");
+            showToast("An error occurred. Please try again.", 'error');
         } finally {
             setIsUpdating(false);
         }

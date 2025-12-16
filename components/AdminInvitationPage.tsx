@@ -5,6 +5,7 @@ import { getInvitationCodes, createInvitationCode, createBulkInvitationCodes } f
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminInvitationPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -17,6 +18,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     const [filter, setFilter] = useState<'all' | 'active' | 'used'>('all');
     const [isCreating, setIsCreating] = useState(false);
     const [bulkAmount, setBulkAmount] = useState(1);
+    const { showToast } = useToast();
 
     const loadCodes = async () => {
         setIsLoading(true);
@@ -25,7 +27,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
             setCodes(data);
         } catch (error) {
             console.error(error);
-            alert("Failed to load codes.");
+            showToast("Failed to load codes.", 'error');
         } finally {
             setIsLoading(false);
         }
@@ -46,9 +48,10 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
             }
             await loadCodes();
             setBulkAmount(1); // Reset
+            showToast(`${bulkAmount} code(s) created successfully.`, 'success');
         } catch (error) {
             console.error(error);
-            alert("Failed to create code.");
+            showToast("Failed to create code.", 'error');
         } finally {
             setIsCreating(false);
         }

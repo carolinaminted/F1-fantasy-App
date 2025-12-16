@@ -7,6 +7,7 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -52,6 +53,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+  const { showToast } = useToast();
 
   const isSubmitted = !!initialPicksForEvent;
   // Admin can edit even if locked.
@@ -116,7 +118,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     const lockTime = new Date(event.lockAtUtc).getTime();
     if (Date.now() >= lockTime) {
         if (!user.isAdmin) {
-            alert("Submissions for this event are closed.");
+            showToast("Submissions for this event are closed.", 'error');
             return;
         } else {
              // Optional: Warn admin
@@ -130,7 +132,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         onPicksSubmit(event.id, picks);
         setIsEditing(false);
     } else {
-        alert("Please complete all selections before submitting.");
+        showToast("Please complete all selections before submitting.", 'error');
     }
   };
   

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -20,15 +19,21 @@
             },
             animation: {
               'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+              'fade-in-down': 'fadeInDown 0.5s ease-out forwards',
               'drive-in': 'driveIn 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
               'peek-up': 'peekUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-              // Delay increased to 1.6s to start strictly after drive-in (1.5s) finishes
               'flag-left': 'flagLeft 0.6s ease-out 1.6s forwards',
               'flag-right': 'flagRight 0.6s ease-out 1.6s forwards',
+              'spin-fast': 'spin 0.5s linear infinite',
+              'spin-1s': 'spin 1s linear infinite',
             },
             keyframes: {
               fadeInUp: {
                 '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              fadeInDown: {
+                '0%': { opacity: '0', transform: 'translateY(-20px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
               },
               driveIn: {
@@ -47,6 +52,10 @@
               flagRight: {
                 '0%': { opacity: '0', transform: 'translateX(0) translateY(0) rotate(0deg) scale(0.5)' },
                 '100%': { opacity: '0.1', transform: 'translateX(80px) translateY(-20px) rotate(30deg) scale(1.8)' },
+              },
+              spin: {
+                from: { transform: 'rotate(0deg)' },
+                to: { transform: 'rotate(360deg)' },
               }
             }
           }

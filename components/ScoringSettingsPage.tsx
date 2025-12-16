@@ -6,6 +6,7 @@ import { BackIcon } from './icons/BackIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DEFAULT_POINTS_SYSTEM } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
@@ -16,6 +17,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const [localSettings, setLocalSettings] = useState<ScoringSettingsDoc>(settings);
     const [editForm, setEditForm] = useState<ScoringProfile | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const { showToast } = useToast();
     
     // Initialize with active profile or first available
     useEffect(() => {
@@ -54,7 +56,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const handleDelete = async () => {
         if (!editForm) return;
         if (editForm.id === localSettings.activeProfileId) {
-            alert("Cannot delete the active profile.");
+            showToast("Cannot delete the active profile.", 'error');
             return;
         }
         if (!window.confirm(`Are you sure you want to delete "${editForm.name}"?`)) return;
@@ -69,9 +71,10 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
             // Switch to active profile
             const active = newSettings.profiles.find(p => p.id === newSettings.activeProfileId) || newSettings.profiles[0];
             setEditForm(active ? JSON.parse(JSON.stringify(active)) : null);
+            showToast("Profile deleted.", 'success');
         } catch (e) {
             console.error(e);
-            alert("Failed to delete profile.");
+            showToast("Failed to delete profile.", 'error');
         } finally {
             setIsSaving(false);
         }
@@ -87,10 +90,10 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
         try {
             await saveScoringSettings(newSettings);
             setLocalSettings(newSettings);
-            alert(`"${editForm.name}" is now the active scoring system.`);
+            showToast(`"${editForm.name}" is now the active scoring system.`, 'success');
         } catch (e) {
             console.error(e);
-            alert("Failed to update active profile.");
+            showToast("Failed to update active profile.", 'error');
         } finally {
             setIsSaving(false);
         }
@@ -115,10 +118,10 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
         try {
             await saveScoringSettings(newSettings);
             setLocalSettings(newSettings);
-            if (showAlert) alert("Profile saved successfully.");
+            if (showAlert) showToast("Profile saved successfully.", 'success');
         } catch (e) {
             console.error(e);
-            alert("Failed to save profile.");
+            showToast("Failed to save profile.", 'error');
         } finally {
             setIsSaving(false);
         }

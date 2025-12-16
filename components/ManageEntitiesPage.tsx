@@ -6,6 +6,7 @@ import { BackIcon } from './icons/BackIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ManageEntitiesPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -32,6 +33,8 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
     const [formTeamId, setFormTeamId] = useState('');
     const [formIsActive, setFormIsActive] = useState(true);
     const [formColor, setFormColor] = useState('#FFFFFF');
+
+    const { showToast } = useToast();
 
     const openModal = (entity?: Driver | Constructor) => {
         if (entity) {
@@ -62,10 +65,10 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         try {
             await saveLeagueEntities(drivers, constructors);
             onUpdateEntities(drivers, constructors);
-            alert("Changes saved successfully!");
+            showToast("Changes saved successfully!", 'success');
         } catch (e) {
             console.error(e);
-            alert("Failed to save changes.");
+            showToast("Failed to save changes.", 'error');
         } finally {
             setIsSaving(false);
         }

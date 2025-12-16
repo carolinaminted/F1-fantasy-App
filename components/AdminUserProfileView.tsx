@@ -6,6 +6,7 @@ import ProfilePage from './ProfilePage.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { ProfileSkeleton } from './LoadingSkeleton.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -29,6 +30,8 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     const [isSavingAdmin, setIsSavingAdmin] = useState(false);
     const [isSavingDues, setIsSavingDues] = useState(false);
 
+    const { showToast } = useToast();
+
     useEffect(() => {
         const fetchPicks = async () => {
             setIsLoading(true);
@@ -49,10 +52,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
         try {
             await updateUserAdminStatus(targetUser.id, isAdminState);
             onUpdateUser({ ...targetUser, isAdmin: isAdminState });
-            alert(`Successfully ${isAdminState ? 'granted' : 'revoked'} admin privileges for ${targetUser.displayName}.`);
+            showToast(`Successfully ${isAdminState ? 'granted' : 'revoked'} admin privileges for ${targetUser.displayName}.`, 'success');
         } catch (error) {
             console.error("Failed to update admin status", error);
-            alert("Failed to update admin status. Please try again.");
+            showToast("Failed to update admin status. Please try again.", 'error');
             setIsAdminState(!!targetUser.isAdmin); // Revert
         } finally {
             setIsSavingAdmin(false);
@@ -65,10 +68,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
         try {
             await updateUserDuesStatus(targetUser.id, newStatus);
             onUpdateUser({ ...targetUser, duesPaidStatus: newStatus });
-            alert(`Successfully updated dues status to ${newStatus} for ${targetUser.displayName}.`);
+            showToast(`Successfully updated dues status to ${newStatus} for ${targetUser.displayName}.`, 'success');
         } catch (error) {
             console.error("Failed to update dues status", error);
-            alert("Failed to update dues status. Please try again.");
+            showToast("Failed to update dues status. Please try again.", 'error');
             setIsDuesPaidState(targetUser.duesPaidStatus === 'Paid'); // Revert
         } finally {
             setIsSavingDues(false);
@@ -87,10 +90,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                     penaltyReason: reason
                 }
             }));
-            alert("Penalty applied successfully.");
+            showToast("Penalty applied successfully.", 'success');
         } catch (error) {
             console.error("Failed to update penalty", error);
-            alert("Failed to apply penalty. Please try again.");
+            showToast("Failed to apply penalty. Please try again.", 'error');
         }
     };
 

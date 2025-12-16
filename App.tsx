@@ -48,6 +48,7 @@ import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceRes
 import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
+import { useToast } from './contexts/ToastContext.tsx';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'events-hub' | 'league-hub';
@@ -162,6 +163,8 @@ const App: React.FC = () => {
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
+  const { showToast } = useToast();
+
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
   const [leaderboardCache, setLeaderboardCache] = useState<LeaderboardCache | null>(null);
 
@@ -418,10 +421,10 @@ const App: React.FC = () => {
       await saveUserPicks(user.id, eventId, picks, !!user.isAdmin);
       const updatedPicks = await getUserPicks(user.id);
       setSeasonPicks(updatedPicks);
-      alert(`Picks for ${eventId} submitted successfully!`);
+      showToast(`Picks for ${eventId} submitted successfully!`, 'success');
     } catch (error) {
       console.error("Failed to submit picks:", error);
-      alert(`Error: Could not submit picks for ${eventId}. Please check your connection and try again.`);
+      showToast(`Error: Could not submit picks for ${eventId}. Please check your connection and try again.`, 'error');
     }
   };
   
@@ -453,7 +456,7 @@ const App: React.FC = () => {
       await saveFormLocks(newLocks);
     } catch (error) {
       console.error("Failed to save form locks:", error);
-      alert(`Error: Could not update lock status for ${eventId}. Reverting change.`);
+      showToast(`Error: Could not update lock status for ${eventId}. Reverting change.`, 'error');
       setFormLocks(originalLocks);
     }
   };

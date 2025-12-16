@@ -5,6 +5,7 @@ import ResultsForm from './ResultsForm.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
@@ -22,6 +23,7 @@ type FilterType = 'all' | 'added' | 'pending';
 const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock, activePointsSystem, events }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [filter, setFilter] = useState<FilterType>('all');
+    const { showToast } = useToast();
 
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
@@ -69,9 +71,10 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             };
 
             await onResultsUpdate(eventId, resultsWithSnapshot);
+            showToast(`Results for ${eventId} saved successfully!`, 'success');
             return true;
         } catch (error) {
-            alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+            showToast(`Error: Could not update results for ${eventId}. Please check your connection and try again.`, 'error');
             return false;
         }
     };

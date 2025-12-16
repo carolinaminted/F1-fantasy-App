@@ -1,6 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
+import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
@@ -40,6 +41,11 @@ const AuthScreen: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
 
+  // Easter Egg State
+  const [easterEggStage, setEasterEggStage] = useState<'idle' | 'enter' | 'donuts' | 'celebrate' | 'exit'>('idle');
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Timer for Countdown (UX Only - Server enforces actual block)
   useEffect(() => {
       let interval: any;
@@ -72,6 +78,26 @@ const AuthScreen: React.FC = () => {
       setConfirmPassword('');
   };
 
+  const triggerEasterEgg = () => {
+      setEasterEggStage('enter');
+      // Drive in (1s)
+      setTimeout(() => {
+          setEasterEggStage('donuts');
+          // Spin 2 laps (2s)
+          setTimeout(() => {
+              setEasterEggStage('celebrate'); // Stop & Show Trophy
+              // Pause (1.5s)
+              setTimeout(() => {
+                  setEasterEggStage('exit');
+                  // Drive away (1s)
+                  setTimeout(() => {
+                      setEasterEggStage('idle');
+                  }, 1000);
+              }, 1500);
+          }, 2000);
+      }, 1000);
+  }
+
   const handleLogoClick = async () => {
     // Checkered Flag Confetti Celebration
     confetti({
@@ -85,9 +111,25 @@ const AuthScreen: React.FC = () => {
     
     setError(null);
     setResetMessage(null);
+
+    // Easter Egg Logic: 5 clicks in 11 seconds
+    clickCountRef.current += 1;
+    
+    // Start timer on first click
+    if (clickCountRef.current === 1) {
+        clickTimerRef.current = setTimeout(() => {
+            clickCountRef.current = 0; // Reset after 11s
+        }, 11000);
+    }
+
+    if (clickCountRef.current === 5) {
+        if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+        clickCountRef.current = 0;
+        triggerEasterEgg();
+    }
   };
 
-  // --- Step 0: Validate Invitation Code ---
+  // ... (Keep existing handler functions: handleValidateInvitation, handleSendCode, handleVerifyCode, handleSignup, handleLogin, handleResetPassword) ...
   const handleValidateInvitation = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -465,10 +507,63 @@ const AuthScreen: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto w-full">
-      <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl">
+    <div className="max-w-md mx-auto w-full relative">
+      {/* Easter Egg Overlay */}
+      {easterEggStage !== 'idle' && (
+          <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+              {/* Spinner Container (Rotates the car around the center) */}
+              {/* Size corresponds to the orbit diameter + margin */}
+              <div className={`relative w-[700px] h-[700px] flex items-center justify-center ${easterEggStage === 'donuts' ? 'animate-spin-1s' : ''}`}>
+                  
+                  {/* Car Container (Translates car to the "track" edge and handles orientation) */}
+                  <div 
+                      className="absolute transition-all duration-[1000ms] ease-in-out"
+                      style={{
+                          transform: `
+                              translateX(${
+                                  // Orientation logic:
+                                  // F1CarIcon naturally points UP.
+                                  // When at Left (-350px): 
+                                  //   - Tangent (Up) is 0deg.
+                                  //   - Drive Right is 90deg.
+                                  // Exit right
+                                  easterEggStage === 'exit' ? '120vw' : 
+                                  // Start far left
+                                  easterEggStage === 'enter' ? '-120vw' : 
+                                  // Orbit radius (Left side)
+                                  '-350px' 
+                              })
+                              rotate(${
+                                  easterEggStage === 'enter' ? '90deg' : // Driving in (Right)
+                                  easterEggStage === 'donuts' ? '0deg' : // Orbiting (Tangent/Up at 9 o'clock)
+                                  easterEggStage === 'celebrate' || easterEggStage === 'exit' ? '90deg' : // Turning to exit (Right)
+                                  '90deg' 
+                              })
+                          `,
+                          // Override position for enter state to start from left
+                          left: '50%', 
+                          top: '50%',
+                          marginLeft: '-6rem', // Half of car width (w-48 = 12rem) roughly
+                          marginTop: '-6rem'
+                      }}
+                  >
+                      {/* Car Graphic */}
+                      <div className="relative">
+                          <F1CarIcon className="w-48 h-48 text-primary-red drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" />
+                          
+                          {/* Trophy Reveal */}
+                          <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-opacity duration-500 ${easterEggStage === 'celebrate' || easterEggStage === 'exit' ? 'opacity-100' : 'opacity-0'}`}>
+                              <TrophyIcon className="w-24 h-24 text-yellow-400 drop-shadow-lg animate-bounce" />
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl relative z-10">
         <div 
-          className="flex flex-col items-center mb-6 cursor-pointer"
+          className="flex flex-col items-center mb-6 cursor-pointer select-none"
           onClick={handleLogoClick}
         >
           <F1FantasyLogo className="w-64 h-auto mb-4"/>

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { User } from '../types.ts';
 import { Page } from '../App.tsx';
@@ -7,6 +8,7 @@ import { CopyIcon } from './icons/CopyIcon.tsx';
 import { PayPalIcon } from './icons/PayPalIcon.tsx';
 import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, PAYPAL_PAY_DUES_URL } from '../constants.ts';
 import { logDuesPaymentInitiation } from '../services/firestoreService.ts';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface DuesPaymentPageProps {
     user: User;
@@ -16,6 +18,7 @@ interface DuesPaymentPageProps {
 const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [copySuccess, setCopySuccess] = useState('');
+    const { showToast } = useToast();
 
     const memo = useMemo(() => {
         const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -39,7 +42,7 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
             window.open(PAYPAL_PAY_DUES_URL, '_blank', 'noopener,noreferrer');
         } catch (error) {
             console.error("Payment initiation failed:", error);
-            alert("Could not initiate payment. Please try again.");
+            showToast("Could not initiate payment. Please try again.", 'error');
         } finally {
             setIsProcessing(false);
         }
