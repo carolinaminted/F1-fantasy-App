@@ -21,7 +21,6 @@ import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
 import SchedulePage from './components/SchedulePage.tsx';
-import EventsHubPage from './components/EventsHubPage.tsx';
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -52,7 +51,7 @@ import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 import { useToast } from './contexts/ToastContext.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'events-hub' | 'league-hub';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -225,7 +224,6 @@ const App: React.FC = () => {
       'gp-results', 
       'drivers-teams', 
       'schedule', 
-      'events-hub', 
       'league-hub'
   ];
   
@@ -578,9 +576,6 @@ const App: React.FC = () => {
             leaderboardCache={leaderboardCache}
             refreshLeaderboard={fetchLeaderboardData}
         />;
-      case 'events-hub':
-        // Legacy redirect to League Hub if accessed directly, though navigation links should be updated
-        return <EventsHubPage setActivePage={navigateToPage} />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':

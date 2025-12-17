@@ -773,7 +773,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                 </div>
                             )}
 
-                            <button className={`w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors ${hasPenalty ? 'bg-red-900/10' : ''}`} onClick={() => toggleEvent(event.id)}>
+                            <button className={`w-full py-5 px-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors ${hasPenalty ? 'bg-red-900/10' : ''}`} onClick={() => toggleEvent(event.id)}>
                                 <div>
                                     <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
                                     <p className="text-sm text-highlight-silver">{event.country}</p>
