@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
+import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
@@ -24,16 +24,8 @@ import { PageHeader } from './ui/PageHeader.tsx';
 
 type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
 
-interface ProcessedUser extends User {
-    // Legacy fields preserved for InsightsView usage, but main ranking uses root totalPoints
-    breakdown: {
-        gp: number;
-        quali: number;
-        sprint: number;
-        fl: number;
-    };
-    displayRank?: number;
-}
+// Interface now extends User from types.ts which includes breakdown/displayRank
+type ProcessedUser = User;
 
 interface LeaderboardPageProps {
   currentUser: User | null;
@@ -694,14 +686,14 @@ const InsightsView: React.FC<{
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
         
-        const findMax = (key: keyof ProcessedUser['breakdown']) => {
+        const findMax = (key: keyof NonNullable<ProcessedUser['breakdown']>) => {
             const validUsers = users.filter(u => u.breakdown && typeof u.breakdown[key] === 'number');
             if (validUsers.length === 0) return null;
 
-            const sorted = [...validUsers].sort((a, b) => b.breakdown[key] - a.breakdown[key]);
-            if (sorted[0].breakdown[key] <= 0) return null;
+            const sorted = [...validUsers].sort((a, b) => (b.breakdown?.[key] || 0) - (a.breakdown?.[key] || 0));
+            if ((sorted[0].breakdown?.[key] || 0) <= 0) return null;
             
-            return { user: sorted[0], score: sorted[0].breakdown[key] };
+            return { user: sorted[0], score: sorted[0].breakdown![key] };
         };
 
         return {
@@ -888,13 +880,21 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             };
 
             // GP Finish
-            results.grandPrixFinish.forEach((did, idx) => addPoints(did, pointsSystem.grandPrixFinish[idx] || 0, 'race'));
+            if (results.grandPrixFinish) {
+                results.grandPrixFinish.forEach((did, idx) => addPoints(did, pointsSystem.grandPrixFinish[idx] || 0, 'race'));
+            }
             // Sprint Finish
-            results.sprintFinish?.forEach((did, idx) => addPoints(did, pointsSystem.sprintFinish[idx] || 0, 'sprint'));
+            if (results.sprintFinish) {
+                results.sprintFinish.forEach((did, idx) => addPoints(did, pointsSystem.sprintFinish[idx] || 0, 'sprint'));
+            }
             // GP Quali
-            results.gpQualifying.forEach((did, idx) => addPoints(did, pointsSystem.gpQualifying[idx] || 0, 'quali'));
+            if (results.gpQualifying) {
+                results.gpQualifying.forEach((did, idx) => addPoints(did, pointsSystem.gpQualifying[idx] || 0, 'quali'));
+            }
             // Sprint Quali
-            results.sprintQualifying?.forEach((did, idx) => addPoints(did, pointsSystem.sprintQualifying[idx] || 0, 'quali'));
+            if (results.sprintQualifying) {
+                results.sprintQualifying.forEach((did, idx) => addPoints(did, pointsSystem.sprintQualifying[idx] || 0, 'quali'));
+            }
             
             // Fastest Lap
             if (results.fastestLap) {
@@ -1029,52 +1029,23 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       if (!leaderboardCache) {
           refreshLeaderboard();
       } else {
-          processLeaderboardData();
+          // Offload calculation to async service to prevent blocking UI
+          processLeaderboardStats(
+              leaderboardCache.users,
+              leaderboardCache.allPicks,
+              raceResults,
+              pointsSystem,
+              allDrivers,
+              currentUser
+          ).then(data => {
+              setProcessedUsers(data);
+          }).catch(err => {
+              console.error("Leaderboard calculation failed", err);
+              // Fallback to empty list or handle error UI
+              setProcessedUsers([]);
+          });
       }
   }, [leaderboardCache, raceResults, pointsSystem, allDrivers, currentUser]);
-
-  const processLeaderboardData = () => {
-      if (!leaderboardCache) return;
-
-      const { users, allPicks } = leaderboardCache;
-      
-      const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
-
-      const safeNum = (val: any) => {
-          const n = Number(val);
-          return Number.isNaN(n) ? 0 : n;
-      };
-
-      const processed: ProcessedUser[] = validUsers.map(user => {
-          let gp = 0, sprint = 0, quali = 0, fl = 0;
-          let totalPoints = 0;
-
-          const userPicks = allPicks[user.id] || {};
-          const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
-          
-          totalPoints = safeNum(scoreData.totalPoints);
-          gp = safeNum(scoreData.grandPrixPoints);
-          sprint = safeNum(scoreData.sprintPoints);
-          quali = safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints);
-          fl = safeNum(scoreData.fastestLapPoints);
-
-          const isCurrentUser = currentUser && user.id === currentUser.id;
-          const displayName = isCurrentUser ? currentUser.displayName : user.displayName;
-
-          return {
-              ...user,
-              displayName,
-              totalPoints,
-              rank: user.rank || 0,
-              breakdown: { gp, quali, sprint, fl }
-          };
-      });
-
-      processed.sort((a, b) => b.totalPoints - a.totalPoints);
-      processed.forEach((u, i) => u.displayRank = i + 1);
-
-      setProcessedUsers(processed);
-  };
 
   const handleManualRefresh = async () => {
       if (cooldownTime > 0 || isRefreshing) return;

@@ -18,6 +18,14 @@ export interface User {
   totalPoints?: number;
   rank?: number;
   prevRank?: number; // For trending indicators
+  // Breakdown of points for insights
+  breakdown?: {
+      gp: number;
+      quali: number;
+      sprint: number;
+      fl: number;
+  };
+  displayRank?: number; // Client-side calculated rank for display
 }
 
 export interface InvitationCode {

@@ -1,6 +1,6 @@
 
 import { EVENTS } from '../constants.ts';
-import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor, EventPointsBreakdown } from '../types.ts';
+import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
 
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
@@ -22,7 +22,7 @@ export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelec
 };
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
-  if (!driverId || !results) return 0;
+  if (!driverId || !results || !points) return 0;
   const pos = results.indexOf(driverId);
   return pos !== -1 ? (points[pos] || 0) : 0;
 };
@@ -64,19 +64,24 @@ export const calculatePointsForEvent = (
         const constructorId = getConstructorForDriver(driverId);
         if (constructorId) {
             initTeamScore(constructorId);
-            const points = pointsArray[posIndex] || 0;
+            // Defensive check: ensure pointsArray exists before accessing index
+            const points = (pointsArray && pointsArray[posIndex]) ? pointsArray[posIndex] : 0;
             teamScores[constructorId][type] += points;
         }
     };
 
     // Scan Grand Prix
-    results.grandPrixFinish.forEach((dId, idx) => awardTeamPoints(dId, idx, pointsSystem.grandPrixFinish, 'gp'));
+    if (results.grandPrixFinish) {
+        results.grandPrixFinish.forEach((dId, idx) => awardTeamPoints(dId, idx, pointsSystem.grandPrixFinish, 'gp'));
+    }
     // Scan Sprint
     if (results.sprintFinish) {
         results.sprintFinish.forEach((dId, idx) => awardTeamPoints(dId, idx, pointsSystem.sprintFinish, 'sprint'));
     }
     // Scan GP Quali
-    results.gpQualifying.forEach((dId, idx) => awardTeamPoints(dId, idx, pointsSystem.gpQualifying, 'gpQuali'));
+    if (results.gpQualifying) {
+        results.gpQualifying.forEach((dId, idx) => awardTeamPoints(dId, idx, pointsSystem.gpQualifying, 'gpQuali'));
+    }
     // Scan Sprint Quali
     if (results.sprintQualifying) {
         results.sprintQualifying.forEach((dId, idx) => awardTeamPoints(dId, idx, pointsSystem.sprintQualifying, 'sprintQuali'));
@@ -90,7 +95,7 @@ export const calculatePointsForEvent = (
     let teamSprintQualifyingPoints = 0;
 
     // Sum Team Points
-    const pickedTeams = [...picks.aTeams, picks.bTeam].filter(Boolean) as string[];
+    const pickedTeams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
     pickedTeams.forEach(teamId => {
         const scores = teamScores[teamId];
         if (scores) {
@@ -122,7 +127,7 @@ export const calculatePointsForEvent = (
     // Fastest Lap
     let fastestLapPoints = 0;
     if (picks.fastestLap && picks.fastestLap === results.fastestLap) {
-        fastestLapPoints = pointsSystem.fastestLap;
+        fastestLapPoints = pointsSystem.fastestLap || 0;
     }
 
     const grandPrixPoints = teamGrandPrixPoints + driverGrandPrixPoints;
@@ -178,4 +183,67 @@ export const calculateScoreRollup = (
     });
 
     return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints };
+};
+
+/**
+ * Optimized Leaderboard Calculation
+ * 1. Checks for pre-calculated stats (Public Profile) first.
+ * 2. Falls back to raw calculation only if necessary.
+ * 3. Yields to main thread to avoid blocking UI.
+ */
+export const processLeaderboardStats = async (
+    users: User[],
+    allPicks: { [userId: string]: { [eventId: string]: PickSelection } },
+    raceResults: RaceResults,
+    pointsSystem: PointsSystem,
+    allDrivers: Driver[],
+    currentUser: User | null
+): Promise<User[]> => {
+    // Non-blocking yield to allow UI rendering before heavy processing
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
+
+    const processed = validUsers.map(user => {
+        // FAST PATH: Use pre-calculated public data if available
+        // Requires totalPoints and breakdown to be present in the public record.
+        if (typeof user.totalPoints === 'number' && user.breakdown) {
+             const isCurrentUser = currentUser && user.id === currentUser.id;
+             return {
+                 ...user,
+                 displayName: isCurrentUser ? currentUser.displayName : user.displayName,
+                 // displayRank will be re-calculated after sorting to ensure client-side consistency
+             };
+        }
+
+        // SLOW PATH: Calculate from raw picks (Fallback / Private Collection Data)
+        const userPicks = allPicks[user.id] || {};
+        const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+        
+        const safeNum = (val: any) => Number.isNaN(Number(val)) ? 0 : Number(val);
+
+        const breakdown = {
+            gp: safeNum(scoreData.grandPrixPoints),
+            sprint: safeNum(scoreData.sprintPoints),
+            quali: safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints),
+            fl: safeNum(scoreData.fastestLapPoints)
+        };
+
+        const isCurrentUser = currentUser && user.id === currentUser.id;
+        
+        return {
+            ...user,
+            displayName: isCurrentUser ? currentUser.displayName : user.displayName,
+            totalPoints: safeNum(scoreData.totalPoints),
+            breakdown
+        };
+    });
+
+    // Sort descending by Total Points
+    processed.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+
+    // Assign Ranks
+    processed.forEach((u, i) => u.displayRank = i + 1);
+
+    return processed;
 };
