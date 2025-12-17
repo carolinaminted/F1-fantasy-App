@@ -7,7 +7,6 @@ import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
-import { TrackIcon } from './icons/TrackIcon.tsx';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -265,12 +264,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                     label="Profile" 
                     sub="History & Stats" 
                     onClick={() => setActivePage('profile')} 
-                />
-                <QuickAction 
-                    icon={TrackIcon} 
-                    label="Events" 
-                    sub="Schedule & Results" 
-                    onClick={() => setActivePage('events-hub')} 
                 />
                 <QuickAction 
                     icon={LeagueIcon} 
