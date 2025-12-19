@@ -2,7 +2,6 @@ import React, { ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
-  // Made children optional to resolve 'missing property children' error when used with nested JSX.
   children?: ReactNode;
   onReset?: () => void;
 }
@@ -12,32 +11,31 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Explicitly extend React.Component to ensure that 'props', 'state', and 'setState' are correctly identified as inherited members by the TypeScript compiler.
+/* Fix: Explicitly use React.Component with generics to ensure 'this.props' and 'this.setState' are correctly typed and visible. */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Initialize state using property initializer.
-  state: ErrorBoundaryState = {
+  /* Fix: Correctly typed initial state */
+  public state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
 
-  // Fix: Ensure constructor correctly passes props to the base class.
+  /* Fix: Explicitly passing props to super to satisfy base class requirement. */
   constructor(props: ErrorBoundaryProps) {
     super(props);
   }
 
-  // Fix: Use static method correctly to derive error state.
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  /* Fix: Required static method for ErrorBoundary to catch errors during render. */
+  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  // Fix: Explicitly typed componentDidCatch.
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log the error to an error reporting service or console
+  /* Fix: Standard lifecycle method for logging caught errors. */
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  // Fix: handleReload now correctly accesses inherited members 'this.props' and 'this.setState' from React.Component.
-  handleReload = () => {
+  /* Fix: Use arrow function for consistent 'this' context when accessing this.props and this.setState. */
+  public handleReload = (): void => {
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -47,8 +45,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   };
 
-  render() {
-    // Fix: Access state and props via destructuring from 'this' as inherited from React.Component.
+  public render(): ReactNode {
+    /* Fix: Accessing state and props via 'this' works correctly now with React.Component inheritance confirmed. */
     const { hasError, error } = this.state;
     const { children } = this.props;
 

@@ -40,11 +40,9 @@ import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
 import { auth, db } from './services/firebase.ts';
-// Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onAuthStateChanged } from '@firebase/auth';
-// Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
@@ -214,7 +212,6 @@ const App: React.FC = () => {
   
   const { showToast } = useToast();
 
-  // Pages that should have a fixed (non-scrolling) viewport on desktop, allowing internal scrolling.
   const lockedDesktopPages: Page[] = [
       'donate', 
       'duesPayment', 
@@ -270,57 +267,54 @@ const App: React.FC = () => {
       return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers).totalPoints;
   }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user]);
 
-  // Centralized Data Fetch for Leaderboard
+  // Centralized Data Fetch for Leaderboard (Standard Batch)
   const fetchLeaderboardData = useCallback(async () => {
       try {
-          const { users, allPicks, source } = await getAllUsersAndPicks();
+          const { users, allPicks, lastDoc, source } = await getAllUsersAndPicks();
           setLeaderboardCache({
               users,
               allPicks,
               source,
-              lastUpdated: Date.now()
-          });
+              lastUpdated: Date.now(),
+              lastDoc // Store for further pagination if needed
+          } as any);
       } catch (e) {
           console.error("Failed to fetch leaderboard data", e);
       }
   }, []);
 
-  // Fallback to fetch global rank if missing (e.g. cloud function hasn't run yet)
+  // Fallback to fetch global rank if missing [S1C-01 Updated for Batching]
   useEffect(() => {
       const fetchRankFallback = async () => {
           if (user && !user.rank && user.id && currentTotalPoints > 0) {
               try {
-                  // Use cache if available to avoid extra reads
                   let usersList = leaderboardCache?.users;
                   let allPicks = leaderboardCache?.allPicks;
 
                   if (!usersList || !allPicks) {
+                      // Fetch first batch to see if user is in it
                       const data = await getAllUsersAndPicks();
                       usersList = data.users;
                       allPicks = data.allPicks;
-                      // Update cache while we are at it
-                      setLeaderboardCache({ ...data, lastUpdated: Date.now() });
+                      setLeaderboardCache({ ...data, lastUpdated: Date.now() } as any);
                   }
 
                   const validUsers = usersList.filter(u => u.displayName !== 'Admin Principal');
                   
                   const scores = validUsers.map(u => {
-                      // If public profile has points, use them. Otherwise calc.
-                      if (u.totalPoints !== undefined) return { uid: u.id, points: u.totalPoints };
-                      
+                      if (u.totalPoints !== undefined) return { uid: u.id, points: u.totalPoints, rank: u.rank };
                       const picks = allPicks[u.id] || {};
                       const score = calculateScoreRollup(picks, raceResults, activePointsSystem, allDrivers);
                       return { uid: u.id, points: score.totalPoints };
                   });
                   
+                  // Rank is derived from sorted points
                   scores.sort((a, b) => b.points - a.points);
                   const index = scores.findIndex(s => s.uid === user.id);
                   if (index !== -1) {
-                      setUser(prev => prev ? { ...prev, rank: index + 1 } : prev);
+                      setUser(prev => prev ? { ...prev, rank: scores[index].rank || index + 1 } : prev);
                   }
-              } catch (e) {
-                  // Silent fail on rank fallback
-              }
+              } catch (e) { /* silent fail */ }
           }
       };
       
@@ -338,7 +332,6 @@ const App: React.FC = () => {
     let unsubscribePublicProfile = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Clean up previous listeners before setting new ones or logging out
       unsubscribeResults();
       unsubscribeLocks();
       unsubscribeProfile();
@@ -348,44 +341,38 @@ const App: React.FC = () => {
 
       setIsLoading(true);
       if (firebaseUser) {
-        // Load Dynamic Entities (Drivers/Teams)
         const entities = await getLeagueEntities();
         if (entities) {
             setAllDrivers(entities.drivers);
             setAllConstructors(entities.constructors);
         } else {
-            // Seed DB if empty
             await saveLeagueEntities(DRIVERS, CONSTRUCTORS);
         }
 
-        // Load Event Schedules
         const schedulesRef = doc(db, 'app_state', 'event_schedules');
         unsubscribeSchedules = onSnapshot(schedulesRef, (docSnap) => {
             if (docSnap.exists()) {
                 setEventSchedules(docSnap.data() as { [eventId: string]: EventSchedule });
             }
-        }, (error) => console.error("Firestore listener error (event_schedules):", error));
+        });
 
-        // Listen to global app state
         const resultsRef = doc(db, 'app_state', 'race_results');
         unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
           if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
             setRaceResults(docSnap.data() as RaceResults);
           } else {
-            console.log("No race results found. Seeding with initial data.");
             saveRaceResults(RACE_RESULTS);
           }
-        }, (error) => console.error("Firestore listener error (race_results):", error));
+        });
 
         const locksRef = doc(db, 'app_state', 'form_locks');
         unsubscribeLocks = onSnapshot(locksRef, (docSnap) => {
             if (docSnap.exists()) {
                 setFormLocks(docSnap.data());
             } else {
-                console.log("Form locks not found. Creating a new one.");
                 saveFormLocks({});
             }
-        }, (error) => console.error("Firestore listener error (form_locks):", error));
+        });
 
         const pointsRef = doc(db, 'app_state', 'scoring_config');
         unsubscribePoints = onSnapshot(pointsRef, (docSnap) => {
@@ -394,7 +381,6 @@ const App: React.FC = () => {
                 if (data.profiles && Array.isArray(data.profiles)) {
                     setScoringSettings(data as ScoringSettingsDoc);
                 } else {
-                    console.log("Migrating legacy scoring config to profiles...");
                     const migratedSettings: ScoringSettingsDoc = {
                         activeProfileId: 'legacy',
                         profiles: [{ id: 'legacy', name: 'Legacy Config', config: data as PointsSystem }]
@@ -402,18 +388,15 @@ const App: React.FC = () => {
                     setScoringSettings(migratedSettings);
                 }
             } else {
-                console.log("Points system config not found. Seeding default.");
                 saveScoringSettings(defaultSettings);
             }
-        }, (error) => console.error("Firestore listener error (scoring_config):", error));
+        });
 
-        // Listener for Public Profile (Rank & Points)
         const publicProfileRef = doc(db, 'public_users', firebaseUser.uid);
         unsubscribePublicProfile = onSnapshot(publicProfileRef, (snap) => {
             if (snap.exists()) {
                 const data = snap.data();
                 setUser(prev => {
-                    // Only update if we have a user state and IDs match
                     if (prev && prev.id === firebaseUser.uid) {
                         return { ...prev, rank: data.rank, totalPoints: data.totalPoints };
                     }
@@ -422,14 +405,12 @@ const App: React.FC = () => {
             }
         });
 
-        // Listen to private user profile
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
           if (profileSnap.exists()) {
             const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
             const userPicks = await getUserPicks(firebaseUser.uid);
             
-            // Merge with existing state to preserve rank/points from public listener if it fired first
             setUser(prev => ({
                 ...userProfile,
                 rank: prev?.rank,
@@ -438,12 +419,9 @@ const App: React.FC = () => {
             
             setSeasonPicks(userPicks);
             setIsAuthenticated(true);
-          } else {
-            console.log("User profile not found. This may occur briefly during sign-up. Waiting for creation...");
           }
         });
       } else {
-        // User logged out, clear all state
         setUser(null);
         setSeasonPicks({});
         setRaceResults({});
@@ -451,7 +429,6 @@ const App: React.FC = () => {
         setEventSchedules({});
         setScoringSettings(defaultSettings);
         setLeaderboardCache(null);
-        // Reset to default constants
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
         setIsAuthenticated(false);
@@ -470,12 +447,10 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Ensure scroll resets to top whenever the active page changes
   useEffect(() => {
     if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
     }
-    // Also scroll window for mobile if layout behaves as document flow
     window.scrollTo(0, 0);
   }, [activePage, adminSubPage]);
 
@@ -488,7 +463,7 @@ const App: React.FC = () => {
       showToast(`Picks for ${eventId} submitted successfully!`, 'success');
     } catch (error) {
       console.error("Failed to submit picks:", error);
-      showToast(`Error: Could not submit picks for ${eventId}. Please check your connection and try again.`, 'error');
+      showToast(`Error: Could not submit picks for ${eventId}.`, 'error');
     }
   };
   
@@ -498,7 +473,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Logout error", error);
     }
-    // State clearing is handled by onAuthStateChanged listener
   };
 
   const handleResultsUpdate = async (eventId: string, results: any) => {
@@ -514,13 +488,13 @@ const App: React.FC = () => {
   const handleToggleFormLock = async (eventId: string) => {
     const originalLocks = { ...formLocks };
     const newLocks = { ...formLocks, [eventId]: !formLocks[eventId] };
-    setFormLocks(newLocks); // Optimistic UI update
+    setFormLocks(newLocks); 
 
     try {
       await saveFormLocks(newLocks);
     } catch (error) {
       console.error("Failed to save form locks:", error);
-      showToast(`Error: Could not update lock status for ${eventId}. Reverting change.`, 'error');
+      showToast(`Error: Could not update lock status for ${eventId}.`, 'error');
       setFormLocks(originalLocks);
     }
   };
@@ -530,7 +504,6 @@ const App: React.FC = () => {
     setAllConstructors(newConstructors);
   };
 
-  // Callback for when admin updates schedule
   const handleScheduleUpdate = async () => {
       const schedules = await getEventSchedules();
       setEventSchedules(schedules);
@@ -632,15 +605,11 @@ const App: React.FC = () => {
     return <AppSkeleton />;
   }
 
-  // Changed layout structure: fixed full screen shell with scrollable inner container
-  // This ensures scrolling happens on the inner div on all devices, fixing the scroll reset issue
   const appContent = (
     <div className="fixed inset-0 bg-carbon-black text-ghost-white flex flex-col md:flex-row overflow-hidden">
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} livePoints={currentTotalPoints} />
       
-      {/* Main Column */}
       <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-        {/* Mobile Header */}
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
            <>
@@ -662,33 +631,19 @@ const App: React.FC = () => {
          )}
         </header>
 
-        {/* 
-          Main Content Container (Scrollable Area)
-          Using flex-1 with overflow-y-auto ensures THIS element scrolls, not the body.
-          pb-[6rem] accounts for bottom nav on mobile.
-          
-          UPDATE: Conditionally apply md:overflow-hidden for pages that handle their own internal scrolling (Flex-Lock).
-        */}
         <div 
             ref={scrollContainerRef} 
             className={`relative flex-1 overflow-y-auto pb-[6rem] pb-safe ${isLockedLayout ? 'md:overflow-hidden md:pb-0' : 'md:pb-8'}`}
         >
-            {/* Replaced broken image with CSS Class 'bg-carbon-fiber' defined in index.html */}
             <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             
-            {/* Main Wrapper: Needs full height if locked to allow children to expand */}
             <main className={`relative p-4 md:p-8 ${isLockedLayout ? 'h-full' : 'min-h-full'}`}>
-                {/* Wrap main content in ErrorBoundary. Resetting on page change can be done by providing a key, but standard React attributes like 'key' are always valid for elements. */}
                 <ErrorBoundary onReset={() => {}}>
                     {renderPage()}
                 </ErrorBoundary>
             </main>
         </div>
 
-        {/* 
-            Mobile Bottom Navigation
-            Fixed position inside the flex container, overlaid at bottom
-        */}
         <nav className={`absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-6' : 'grid-cols-5'} md:hidden z-50 pb-safe`}>
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
@@ -700,7 +655,6 @@ const App: React.FC = () => {
             )}
         </nav>
 
-        {/* Session Warning Modal */}
         <SessionWarningModal 
             isOpen={showWarning} 
             expiryTime={idleExpiryTime} 

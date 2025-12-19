@@ -11,6 +11,8 @@ import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
+/* Fix: Import DriverIcon to resolve name collision/missing name error */
+import { DriverIcon } from './icons/DriverIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
@@ -18,12 +20,12 @@ import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
+import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks } from '../services/firestoreService.ts';
 
 // --- Shared Types & Helpers ---
 
 type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
 
-// Interface now extends User from types.ts which includes breakdown/displayRank
 type ProcessedUser = User;
 
 interface LeaderboardPageProps {
@@ -52,7 +54,6 @@ const RefreshControl: React.FC<{
     
     return (
         <div className="relative flex items-center">
-            {/* Status Toast */}
             {status !== 'idle' && (
                 <div className={`
                     absolute right-full mr-3 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg animate-fade-in
@@ -97,12 +98,10 @@ const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: stri
         className="group relative overflow-hidden rounded-xl p-5 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full w-full bg-carbon-fiber animate-fade-in-up"
         style={{ animationDelay: delay }}
     >
-        {/* Background Icon (Huge & Faded) */}
         <div className="absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 text-pure-white">
             <Icon className="w-48 h-48" />
         </div>
         
-        {/* Header Section */}
         <div className="flex items-start justify-between mb-3 relative z-10">
              <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
                 <Icon className="w-5 h-5" />
@@ -110,13 +109,11 @@ const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: stri
             <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
         </div>
         
-        {/* Content Section */}
         <div className="relative z-10 flex-grow flex flex-col justify-center">
             <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
             <p className="text-highlight-silver/70 text-sm leading-snug">{desc}</p>
         </div>
         
-        {/* Footer Action */}
         <div className="mt-3 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
             <span>Access</span>
             <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
@@ -158,9 +155,7 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
 
     return (
         <div className="flex flex-col gap-8">
-            {/* Podium Visual */}
             <div className="flex justify-center items-end gap-2 md:gap-6 h-56 md:h-72 pt-4 pb-0 relative">
-                 {/* P2 (Left) */}
                  {data[1] && (
                     <div className="flex flex-col items-center w-1/3 max-w-[120px] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                         <div className="mb-2 text-center">
@@ -180,7 +175,6 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
                     </div>
                  )}
                  
-                 {/* P1 (Center) */}
                  {data[0] && (
                     <div className="flex flex-col items-center w-1/3 max-w-[140px] z-10 -mx-1 animate-fade-in-up">
                         <div className="mb-3 text-center">
@@ -201,7 +195,6 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
                     </div>
                  )}
                  
-                 {/* P3 (Right) */}
                  {data[2] && (
                     <div className="flex flex-col items-center w-1/3 max-w-[120px] animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                         <div className="mb-2 text-center">
@@ -222,7 +215,6 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
                  )}
             </div>
 
-            {/* Rest of Field List */}
             {rest.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t border-pure-white/10">
                     {rest.map((team, idx) => (
@@ -239,28 +231,20 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
     );
 };
 
-const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ users, limit }) => {
+const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMore: () => void, isPaging: boolean }> = ({ users, hasMore, onFetchMore, isPaging }) => {
     const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
 
     if (users.length === 0) return null;
-
-    const getRowClass = () => {
-        if (limit === 10) return 'h-10 md:h-14';
-        if (limit === 25) return 'h-8 md:h-10';
-        return 'h-7 md:h-8';
-    };
-    
-    const rowClass = getRowClass();
     
     return (
         <div className="w-full py-2 px-1 md:px-2 md:py-4">
             <div className="relative">
                 <div className="absolute top-0 bottom-0 right-10 md:right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
 
-                <div className="space-y-1 relative z-10">
+                <div className="space-y-1 relative z-10 pb-8">
                     {users.map((user, idx) => {
                         const points = user.totalPoints || 0;
-                        const rank = user.displayRank || idx + 1;
+                        const rank = user.rank || idx + 1;
                         const percent = (points / maxPoints) * 100;
                         
                         let carColor = "text-primary-red"; 
@@ -278,7 +262,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                         }
 
                         return (
-                            <div key={user.id} className={`flex items-center gap-2 md:gap-3 ${rowClass} group hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors`}>
+                            <div key={user.id} className="flex items-center gap-2 md:gap-3 h-10 md:h-12 group hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors">
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
@@ -293,9 +277,6 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                                     >
                                         <div className="relative">
                                             <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
-                                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-carbon-black border border-pure-white/20 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none hidden md:block">
-                                                {points} pts
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -305,6 +286,24 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
                             </div>
                         );
                     })}
+
+                    {/* Pagination [S1C-01] */}
+                    {hasMore && (
+                        <div className="flex justify-center pt-8">
+                            <button 
+                                onClick={onFetchMore}
+                                disabled={isPaging}
+                                className="bg-carbon-black hover:bg-accent-gray text-pure-white font-bold py-2.5 px-8 rounded-lg border border-pure-white/10 shadow-lg flex items-center gap-3 transition-all transform active:scale-95"
+                            >
+                                {isPaging ? (
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ) : (
+                                    <CheckeredFlagIcon className="w-5 h-5 text-primary-red" />
+                                )}
+                                Load More Grid
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -313,60 +312,30 @@ const RaceChart: React.FC<{ users: ProcessedUser[], limit: FilterLimit }> = ({ u
 
 // --- Views ---
 
-type FilterLimit = 10 | 25 | 1000;
-
-const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null }> = ({ users, currentUser }) => {
-    const [viewLimit, setViewLimit] = useState<FilterLimit>(25);
-
-    const chartData = useMemo(() => {
-        const sorted = [...users].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
-        return sorted.map((u, i) => ({ ...u, displayRank: i + 1 })).slice(0, viewLimit);
-    }, [users, viewLimit]);
-
-    const LimitToggle: React.FC<{ label: string; limit: FilterLimit }> = ({ label, limit }) => (
-        <button
-            onClick={() => setViewLimit(limit)}
-            className={`px-3 py-2 text-xs md:text-sm font-bold first:rounded-l-lg last:rounded-r-lg border-y border-l last:border-r transition-colors ${
-                viewLimit === limit
-                ? 'bg-primary-red text-pure-white border-primary-red z-10 shadow-lg'
-                : 'bg-carbon-black text-highlight-silver border-accent-gray hover:bg-accent-gray'
-            }`}
-        >
-            {label}
-        </button>
-    );
-
+const StandingsView: React.FC<{ 
+    users: ProcessedUser[]; 
+    currentUser: User | null;
+    hasMore: boolean;
+    onFetchMore: () => void;
+    isPaging: boolean;
+}> = ({ users, currentUser, hasMore, onFetchMore, isPaging }) => {
     const raceLeader = Math.max(...users.map(u => u.totalPoints || 0), 0);
 
     return (
         <div className="flex flex-col h-full animate-fade-in pb-safe overflow-hidden">
-            {/* Main Panel */}
             <div className="flex flex-col h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
-                {/* Visual Header */}
                 <div className="flex-none bg-carbon-black/60 text-pure-white border-b border-pure-white/10 p-4 flex items-center justify-between z-10">
                     <div className="flex items-center gap-3">
                         <LeaderboardIcon className="w-6 h-6 text-primary-red" />
                         <span className="font-bold text-lg uppercase tracking-wider italic">League Standings</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-xs font-bold text-highlight-silver hidden sm:flex items-center gap-2">
-                            Race Leader: {raceLeader} PTS <CheckeredFlagIcon className="w-4 h-4 text-pure-white"/>
-                        </div>
+                    <div className="text-xs font-bold text-highlight-silver hidden sm:flex items-center gap-2">
+                        Race Leader: {raceLeader} PTS <CheckeredFlagIcon className="w-4 h-4 text-pure-white"/>
                     </div>
                 </div>
 
-                {/* Content Container */}
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                     <div className="p-4 border-b border-pure-white/5 flex justify-end bg-carbon-black/20">
-                        <div className="flex shadow-sm transform scale-90 origin-right">
-                            <LimitToggle label="Top 10" limit={10} />
-                            <LimitToggle label="Top 25" limit={25} />
-                            <LimitToggle label="All" limit={1000} />
-                        </div>
-                     </div>
-                     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0">
-                         <RaceChart users={chartData} limit={viewLimit} />
-                     </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0">
+                    <RaceChart users={users} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} />
                 </div>
             </div>
         </div>
@@ -430,8 +399,8 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
     }, [allPicks, timeRange, allDrivers, allConstructors, events]);
 
     return (
-        <div className="space-y-8 animate-fade-in pt-4 pb-8 h-full overflow-y-auto custom-scrollbar">
-             <div className="flex flex-col md:flex-row justify-end items-center gap-4">
+        <div className="flex flex-col h-full animate-fade-in gap-4 pt-2 pb-4 overflow-hidden">
+             <div className="flex-none flex flex-col md:flex-row justify-end items-center gap-4">
                 <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
                          <button
@@ -447,30 +416,35 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
-                    <SimpleBarChart data={stats.teams} />
+            <div className="flex-1 grid grid-rows-2 gap-4 min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Most Picked Teams</h3>
+                        <div className="flex-1 overflow-hidden">
+                             <SimpleBarChart data={stats.teams} />
+                        </div>
+                    </div>
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Most Picked Drivers</h3>
+                        <div className="flex-1 overflow-hidden">
+                             <SimpleBarChart data={stats.drivers} />
+                        </div>
+                    </div>
                 </div>
-                 <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Drivers</h3>
-                    <SimpleBarChart data={stats.drivers} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Least Picked Teams</h3>
+                        <div className="flex-1 overflow-hidden">
+                            <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
+                        </div>
+                    </div>
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Least Picked Drivers</h3>
+                        <div className="flex-1 overflow-hidden">
+                            <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Teams</h3>
-                    <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
-                </div>
-                 <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 shadow-lg">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Drivers</h3>
-                    <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
-                </div>
-            </div>
-            
-            <div className="bg-accent-gray/30 p-4 rounded-lg text-center text-sm text-highlight-silver border border-pure-white/5">
-                Data reflects locked-in selections for {timeRange === 'all' ? 'the entire season' : `the last ${timeRange === '30' ? '3' : timeRange === '60' ? '5' : '8'} race events`}.
             </div>
         </div>
     );
@@ -496,63 +470,25 @@ const InsightsView: React.FC<{
         return { gp: findMax('gp'), quali: findMax('quali'), sprint: findMax('sprint'), fl: findMax('fl') };
     }, [users]);
 
-    const trendData = useMemo(() => {
-        const completedEvents = events.filter(e => {
-            const r = raceResults[e.id];
-            return r && (r.grandPrixFinish?.some(p => p) || !!r.fastestLap);
-        });
-        const last3Events = completedEvents.slice(-3);
-        const last6Events = completedEvents.slice(-6);
-        const firstHalfEvents = completedEvents.filter(e => e.round <= 12);
-        const secondHalfEvents = completedEvents.filter(e => e.round > 12);
+    const chartData = useMemo(() => {
+        const sortedBy = (key: keyof NonNullable<ProcessedUser['breakdown']>) => 
+            [...users]
+                .filter(u => u.breakdown)
+                .sort((a, b) => (b.breakdown![key] || 0) - (a.breakdown![key] || 0))
+                .slice(0, 5)
+                .map(u => ({ label: u.displayName, value: u.breakdown![key] || 0 }));
 
-        const getRangeLeaderboard = (eventsSubset: Event[]) => {
-            if (eventsSubset.length === 0) return [];
-            const userScores = users.map(user => {
-                const userPicks = allPicks[user.id] || {};
-                let rangeTotal = 0;
-                eventsSubset.forEach(event => {
-                    const picks = userPicks[event.id];
-                    const results = raceResults[event.id];
-                    if (picks && results) {
-                        const score = calculatePointsForEvent(picks, results, pointsSystem, allDrivers);
-                        const safeScore = isNaN(score.totalPoints) ? 0 : score.totalPoints;
-                        rangeTotal += safeScore;
-                    }
-                });
-                return { label: user.displayName, value: rangeTotal };
-            });
-            return userScores
-                .filter(u => u.value > 0)
-                .sort((a, b) => b.value - a.value)
-                .slice(0, 10);
+        return {
+            total: [...users].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)).slice(0, 5).map(u => ({ label: u.displayName, value: u.totalPoints || 0 })),
+            gp: sortedBy('gp'),
+            quali: sortedBy('quali'),
+            sprint: sortedBy('sprint'),
+            fl: sortedBy('fl')
         };
-        return { last3: getRangeLeaderboard(last3Events), last6: getRangeLeaderboard(last6Events), firstHalf: getRangeLeaderboard(firstHalfEvents), secondHalf: getRangeLeaderboard(secondHalfEvents) };
-    }, [users, allPicks, raceResults, pointsSystem, allDrivers, events]);
-
-    const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
-         <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg h-full">
-            <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5 flex-shrink-0">
-                <Icon className="w-8 h-8" />
-            </div>
-            <div className="min-w-0">
-                <p className="text-xs font-bold text-highlight-silver uppercase tracking-wider truncate">{title}</p>
-                {data ? (
-                    <>
-                        <p className="text-xl font-bold text-pure-white truncate">{data.user.displayName}</p>
-                        <p className="text-4xl md:text-5xl font-black text-primary-red font-mono mt-1 leading-none">
-                            {Number(data.score || 0).toLocaleString()} <span className="text-xs font-bold text-highlight-silver align-top">PTS</span>
-                        </p>
-                    </>
-                ) : (
-                    <p className="text-sm text-highlight-silver italic mt-1">No data yet</p>
-                )}
-            </div>
-        </div>
-    );
+    }, [users]);
 
     const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
-        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg overflow-hidden">
+        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg overflow-hidden border border-pure-white/5">
             <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2 flex-none">
                 <div>
                     <h3 className="text-lg font-bold text-pure-white">{title}</h3>
@@ -560,7 +496,6 @@ const InsightsView: React.FC<{
                 </div>
                 {Icon && <Icon className="w-5 h-5 text-primary-red" />}
             </div>
-            
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {data.length > 0 ? (
                     <div className="space-y-3">
@@ -575,7 +510,7 @@ const InsightsView: React.FC<{
                                     <div className="w-full bg-carbon-black rounded-full h-1.5 border border-pure-white/5">
                                         <div 
                                             className={`h-1.5 rounded-full ${idx === 0 ? 'bg-yellow-400' : 'bg-highlight-silver/50'}`} 
-                                            style={{ width: `${(item.value / data[0].value) * 100}%` }}
+                                            style={{ width: `${(item.value / Math.max(data[0].value, 1)) * 100}%` }}
                                         />
                                     </div>
                                 </div>
@@ -592,7 +527,8 @@ const InsightsView: React.FC<{
     );
 
     return (
-        <div className="flex flex-col h-full gap-4 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
+            {/* Top Superlatives */}
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
                 <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
@@ -600,17 +536,37 @@ const InsightsView: React.FC<{
                 <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
 
-            <div className="flex-1 min-h-[400px] pb-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
-                    <TrendChart title="Hot Streak" subtitle="Last 3 Races" data={trendData.last3} icon={TrendingUpIcon} />
-                    <TrendChart title="Form Guide" subtitle="Last 6 Races" data={trendData.last6} icon={LightbulbIcon} />
-                    <TrendChart title="Early Season" subtitle="First Half (Rounds 1-12)" data={trendData.firstHalf} icon={CalendarIcon} />
-                    <TrendChart title="Late Season" subtitle="Second Half (Rounds 13-24)" data={trendData.secondHalf} icon={CalendarIcon} />
-                </div>
+            {/* Detailed Analytics Grid */}
+            <div className="flex-none grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-4">
+                <TrendChart title="Overall Power Ranking" subtitle="Top 5 Total Points" data={chartData.total} icon={TrophyIcon} />
+                <TrendChart title="Qualifying Masters" subtitle="Top 5 Quali Points" data={chartData.quali} icon={PolePositionIcon} />
+                <TrendChart title="Sunday Specialists" subtitle="Top 5 Grand Prix Points" data={chartData.gp} icon={CheckeredFlagIcon} />
+                <TrendChart title="Sprint Specialists" subtitle="Top 5 Sprint Points" data={chartData.sprint} icon={SprintIcon} />
             </div>
         </div>
     );
 };
+
+const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
+    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg h-full border border-pure-white/5">
+       <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5 flex-shrink-0 shadow-inner">
+           <Icon className="w-8 h-8" />
+       </div>
+       <div className="min-w-0">
+           <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider truncate mb-0.5">{title}</p>
+           {data ? (
+               <>
+                   <p className="text-xl font-bold text-pure-white truncate">{data.user.displayName}</p>
+                   <p className="text-3xl md:text-4xl font-black text-primary-red font-mono mt-1 leading-none drop-shadow-md">
+                       {Number(data.score || 0).toLocaleString()} <span className="text-[10px] font-bold text-highlight-silver align-top uppercase">pts</span>
+                   </p>
+               </>
+           ) : (
+               <p className="text-sm text-highlight-silver italic mt-1">No data yet</p>
+           )}
+       </div>
+   </div>
+);
 
 const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
     const stats = useMemo(() => {
@@ -654,54 +610,59 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             }
         };
 
-        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, type: 'team' | 'driver', limit?: number, keepZeros: boolean = false) => {
+        const formatData = (source: Record<string, any>, valueFn: (k: string) => number, nameFn: (id: string) => string, type: 'team' | 'driver', limitCount?: number, keepZeros: boolean = false) => {
             return Object.keys(source)
                 .map(id => ({ label: nameFn(id), value: valueFn(id), color: getColor(id, type) }))
                 .sort((a, b) => b.value !== a.value ? b.value - a.value : a.label.localeCompare(b.label))
                 .filter(item => keepZeros || item.value > 0)
-                .slice(0, limit);
+                .slice(0, limitCount);
         };
         const getName = (id: string) => getEntityName(id, allDrivers, allConstructors);
-        return { teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, 'team', undefined, true), driversTotal: formatData(driverScores, (id) => driverScores[id].total, getName, 'driver', 10), driversSprint: formatData(driverScores, (id) => driverScores[id].sprint, getName, 'driver', 5), driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 'driver', 5), driversFL: formatData(driverScores, (id) => driverScores[id].fl, getName, 'driver', 5) };
+        return { 
+            teamsTotal: formatData(teamScores, (id) => teamScores[id], getName, 'team', undefined, true), 
+            driversTotal: formatData(driverScores, (id) => driverScores[id].total, getName, 'driver', 10), 
+            driversSprint: formatData(driverScores, (id) => driverScores[id].sprint, getName, 'driver', 5), 
+            driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 'driver', 5), 
+            driversFL: formatData(driverScores, (id) => driverScores[id].fl, getName, 'driver', 5) 
+        };
     }, [raceResults, pointsSystem, allDrivers, allConstructors]);
 
     return (
-        <div className="space-y-8 animate-fade-in pt-4 pb-8 h-full overflow-y-auto custom-scrollbar">
-            <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
-                <div className="mb-6">
+        <div className="space-y-8 animate-fade-in pt-4 pb-12 h-full overflow-y-auto custom-scrollbar px-1">
+            <div className="bg-carbon-fiber shadow-lg rounded-xl p-6 border border-pure-white/10">
+                <div className="mb-8">
                     <h3 className="text-xl font-bold text-pure-white uppercase tracking-wider flex items-center gap-3">
                         <TeamIcon className="w-6 h-6 text-primary-red"/> Constructor Standings
                     </h3>
-                    <p className="text-xs text-highlight-silver italic mt-1 ml-9">* Calculated with league custom scoring system</p>
+                    <p className="text-xs text-highlight-silver italic mt-1 ml-9">* Points earned by both drivers per constructor</p>
                 </div>
                 <ConstructorPodium data={stats.teamsTotal} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <CheckeredFlagIcon className="w-5 h-5 text-primary-red"/> Top 10 Drivers (Total)
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-carbon-fiber rounded-xl p-6 border border-pure-white/10 shadow-lg">
+                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <DriverIcon className="w-5 h-5 text-primary-red" /> Driver Top 10 (Overall)
                     </h3>
-                    {stats.driversTotal.length > 0 ? <SimpleBarChart data={stats.driversTotal} /> : <p className="text-highlight-silver italic">No points scored yet.</p>}
+                    <SimpleBarChart data={stats.driversTotal} />
                 </div>
-                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <SprintIcon className="w-5 h-5 text-yellow-500"/> Top 5 Sprint Performers
+                <div className="bg-carbon-fiber rounded-xl p-6 border border-pure-white/10 shadow-lg">
+                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <PolePositionIcon className="w-5 h-5 text-blue-500" /> Qualifying Kings
                     </h3>
-                    {stats.driversSprint.length > 0 ? <SimpleBarChart data={stats.driversSprint} /> : <p className="text-highlight-silver italic">No sprint points scored yet.</p>}
+                    <SimpleBarChart data={stats.driversQuali} />
                 </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <PolePositionIcon className="w-5 h-5 text-blue-500"/> Top 5 Qualifying Performers
+                <div className="bg-carbon-fiber rounded-xl p-6 border border-pure-white/10 shadow-lg">
+                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <SprintIcon className="w-5 h-5 text-yellow-500" /> Sprint Specialists
                     </h3>
-                    {stats.driversQuali.length > 0 ? <SimpleBarChart data={stats.driversQuali} /> : <p className="text-highlight-silver italic">No qualifying points scored yet.</p>}
+                    <SimpleBarChart data={stats.driversSprint} />
                 </div>
-                <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
-                    <h3 className="text-lg font-bold text-highlight-silver mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <FastestLapIcon className="w-5 h-5 text-purple-500"/> Fastest Lap Kings (Wins)
+                <div className="bg-carbon-fiber rounded-xl p-6 border border-pure-white/10 shadow-lg">
+                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <FastestLapIcon className="w-5 h-5 text-purple-500" /> Fastest Lap Counts
                     </h3>
-                    {stats.driversFL.length > 0 ? <SimpleBarChart data={stats.driversFL} max={Math.max(...stats.driversFL.map(d => d.value), 3)} /> : <p className="text-highlight-silver italic">No fastest laps recorded yet.</p>}
+                    <SimpleBarChart data={stats.driversFL} />
                 </div>
             </div>
         </div>
@@ -714,8 +675,11 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [view, setView] = useState<ViewState>('menu');
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPaging, setIsPaging] = useState(false);
   const [cooldownTime, setCooldownTime] = useState(0);
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
       let timer: any;
@@ -723,18 +687,38 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       return () => clearTimeout(timer);
   }, [cooldownTime]);
 
+  const loadProcessedData = async (usersBatch: User[], picksBatch: any, isMore = false) => {
+      const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser);
+      if (isMore) {
+          setProcessedUsers(prev => [...prev, ...processedBatch]);
+      } else {
+          setProcessedUsers(processedBatch);
+      }
+  };
+
   useEffect(() => {
       if (!leaderboardCache) {
           refreshLeaderboard();
       } else {
-          processLeaderboardStats(leaderboardCache.users, leaderboardCache.allPicks, raceResults, pointsSystem, allDrivers, currentUser).then(data => {
-              setProcessedUsers(data);
-          }).catch(err => {
-              console.error("Leaderboard calculation failed", err);
-              setProcessedUsers([]);
-          });
+          loadProcessedData(leaderboardCache.users, leaderboardCache.allPicks);
+          setHasMore(leaderboardCache.users.length === DEFAULT_PAGE_SIZE);
       }
   }, [leaderboardCache, raceResults, pointsSystem, allDrivers, currentUser]);
+
+  const handleFetchMore = async () => {
+    if (isPaging || !hasMore) return;
+    setIsPaging(true);
+    try {
+        const { users, allPicks, lastDoc } = await getAllUsersAndPicks(DEFAULT_PAGE_SIZE, lastVisible || (leaderboardCache as any)?.lastDoc);
+        await loadProcessedData(users, allPicks, true);
+        setLastVisible(lastDoc);
+        setHasMore(users.length === DEFAULT_PAGE_SIZE);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsPaging(false);
+    }
+  };
 
   const handleManualRefresh = async () => {
       if (cooldownTime > 0 || isRefreshing) return;
@@ -744,6 +728,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           await refreshLeaderboard();
           setRefreshStatus('success');
           setCooldownTime(30); 
+          setLastVisible(null);
           setTimeout(() => setRefreshStatus('idle'), 3000);
       } catch (e) {
           console.error(e);
@@ -756,26 +741,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   const isUserAdmin = currentUser && !!currentUser.isAdmin;
   const isLoading = !leaderboardCache && processedUsers.length === 0;
-  const dataSource = leaderboardCache?.source || 'public';
 
   if (isLoading) return <ListSkeleton rows={10} />;
-
-  const MigrationWarning = () => (
-      <div className="mb-6 bg-red-900/30 border border-primary-red/50 rounded-lg p-4 flex items-start gap-4 animate-pulse-red">
-          <div className="bg-primary-red/20 p-2 rounded-full hidden md:block"><AdminIcon className="w-6 h-6 text-primary-red" /></div>
-          <div>
-              <h3 className="font-bold text-pure-white text-lg">⚠️ Action Required: Leaderboard Hidden for Players</h3>
-              <p className="text-sm text-highlight-silver mt-1">You are viewing <strong>fallback data</strong>. Regular users see an <strong>empty leaderboard</strong>.</p>
-              <div className="mt-3"><span className="text-xs font-bold text-primary-red uppercase tracking-wider">Fix:</span><span className="text-sm text-pure-white ml-2">Go to <strong>Admin &gt; Maintenance</strong> and click <strong>"Run PII Security Migration"</strong>.</span></div>
-          </div>
-      </div>
-  );
 
   if (view === 'menu') {
       return (
           <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto animate-fade-in">
               <div className="flex-none pt-4">
-                  {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
                   <PageHeader title="League Standings" icon={LeaderboardIcon} subtitle="Analyze league performance and trends" rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus}/>}/>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8 min-h-0">
@@ -793,49 +765,31 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   return (
       <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
           <div className="flex-none">
-              {isUserAdmin && dataSource === 'private_fallback' && <MigrationWarning />}
               <div className="mb-2 md:mb-4 flex items-center justify-between relative px-2 md:px-0">
                   <div className="flex items-center gap-4">
-                      <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 z-10">
-                          <BackIcon className="w-5 h-5" /> Back to Hub
+                      <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 z-10 group">
+                          <BackIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Hub
                       </button>
                   </div>
                   
-                  {/* Common Header with Red Circle Icon for Desktop */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
-                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)]">
-                            {view === 'standings' && <LeaderboardIcon className="w-6 h-6 text-primary-red" />}
-                            {view === 'entities' && <TeamIcon className="w-6 h-6 text-primary-red" />}
-                            {view === 'popular' && <TrendingUpIcon className="w-6 h-6 text-primary-red" />}
-                            {view === 'insights' && <LightbulbIcon className="w-6 h-6 text-primary-red" />}
+                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] hidden sm:flex">
+                            {view === 'standings' && <LeaderboardIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'entities' && <TeamIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'popular' && <TrendingUpIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'insights' && <LightbulbIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
                         </div>
-                        <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                        <h1 className="text-lg md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
                             {view === 'standings' ? 'League Leaderboard' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : 'Performance Insights'}
                         </h1>
                   </div>
                   
                   <RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} />
               </div>
-
-              {/* Mobile Header */}
-              <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
-                <div className="flex items-center gap-2 mb-1">
-                    <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
-                        {view === 'standings' && <LeaderboardIcon className="w-6 h-6 text-primary-red" />}
-                        {view === 'entities' && <TeamIcon className="w-6 h-6 text-primary-red" />}
-                        {view === 'popular' && <TrendingUpIcon className="w-6 h-6 text-primary-red" />}
-                        {view === 'insights' && <LightbulbIcon className="w-6 h-6 text-primary-red" />}
-                    </div>
-                    <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
-                        {view === 'standings' ? 'Standings' : view === 'entities' ? 'Points' : view === 'popular' ? 'Trends' : 'Insights'}
-                    </h1>
-                </div>
-              </div>
           </div>
 
-          {/* Fixed Non-Scrollable Sub-view Content Wrapper */}
-          <div className="flex-1 overflow-hidden px-2 md:px-0 pb-8">
-            {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
+          <div className="flex-1 overflow-hidden px-2 md:px-0 pb-4">
+            {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} />}
             {view === 'popular' && leaderboardCache && <PopularityView allPicks={leaderboardCache.allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
             {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
