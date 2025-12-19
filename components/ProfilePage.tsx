@@ -546,21 +546,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       {/* Profile Info Section */}
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
         <div className="flex flex-col items-center justify-center mb-8 relative z-10">
-            {/* Edit Details Button */}
-            {!isEditingProfile && setActivePage && (
-                <button 
-                    onClick={() => setIsEditingProfile(true)}
-                    className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 mb-3 uppercase tracking-wide backdrop-blur-sm"
-                >
-                    Edit Details
-                </button>
-            )}
-            
-            {/* Dues Status - Moved Here */}
+            {/* Dues Status - Moved Above Edit Details */}
             <button 
                 onClick={handleDuesClick}
                 disabled={!setActivePage}
-                className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md ${
+                className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
                     ? 'bg-green-600 text-pure-white'
                     : 'bg-primary-red text-pure-white animate-pulse-red-limited'
@@ -568,6 +558,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             >
                 Dues: {user.duesPaidStatus || 'Unpaid'}
             </button>
+
+            {/* Edit Details Button - Moved Below Dues */}
+            {!isEditingProfile && setActivePage && (
+                <button 
+                    onClick={() => setIsEditingProfile(true)}
+                    className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
+                >
+                    Edit Details
+                </button>
+            )}
         </div>
         
         {isEditingProfile ? (

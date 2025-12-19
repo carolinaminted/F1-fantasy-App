@@ -8,8 +8,6 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser,
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
-// @ts-ignore
-import confetti from 'canvas-confetti';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -99,15 +97,23 @@ const AuthScreen: React.FC = () => {
   }
 
   const handleLogoClick = async () => {
-    // Checkered Flag Confetti Celebration
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'],
-      disableForReducedMotion: true,
-      zIndex: 2000
-    });
+    // [S3A-01] Lazy-load canvas-confetti
+    try {
+      const confettiModule = await import('canvas-confetti');
+      const confetti = confettiModule.default;
+      
+      // Checkered Flag Confetti Celebration
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'],
+        disableForReducedMotion: true,
+        zIndex: 2000
+      });
+    } catch (e) {
+      console.error("Failed to load confetti", e);
+    }
     
     setError(null);
     setResetMessage(null);
