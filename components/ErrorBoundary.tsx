@@ -1,9 +1,11 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
+// Fix: Added key to ErrorBoundaryProps to resolve "Type '{ key: string; }' is not assignable to type 'ErrorBoundaryProps'" error in App.tsx.
 interface ErrorBoundaryProps {
   children: ReactNode;
   onReset?: () => void;
+  key?: React.Key;
 }
 
 interface ErrorBoundaryState {
@@ -11,7 +13,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Changed inheritance to use Component directly and ensured state is initialized as a class property for better type inference.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Explicitly declare state as a property to resolve "Property 'state' does not exist on type 'ErrorBoundary'" error.
+  public state: ErrorBoundaryState;
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -30,6 +36,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   handleReload = () => {
+    // Fix: Correctly access this.props and this.state now that inheritance is properly recognized.
     if (this.props.onReset) {
         this.setState({ hasError: false, error: null });
         this.props.onReset();
@@ -39,6 +46,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   render() {
+    // Fix: Access state and props via this.
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center animate-fade-in">

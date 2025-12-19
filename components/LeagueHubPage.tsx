@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
@@ -20,7 +19,7 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
     const isPaid = user?.duesPaidStatus === 'Paid';
 
     return (
-        <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto px-2 md:px-0">
+        <div className="flex flex-col h-full overflow-hidden w-full max-w-5xl mx-auto px-2 md:px-0">
             <div className="flex-none">
                 <PageHeader 
                     title="LEAGUE HEADQUARTERS" 
@@ -29,9 +28,9 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
                 />
             </div>
             
-            {/* Grid Container */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar md:overflow-visible pb-20 md:pb-0 p-2">
-                <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-6 h-full">
+            {/* Grid Container - Centered vertically on desktop with constrained height to reduce tile size */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar md:overflow-visible pb-20 md:pb-0 p-2 md:flex md:flex-col md:justify-center">
+                <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-5 md:h-[75%] lg:h-[70%]">
                     {/* --- Race Information Section --- */}
                     <HubTile 
                         icon={CalendarIcon}
