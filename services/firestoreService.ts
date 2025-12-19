@@ -1,4 +1,3 @@
-
 import { db } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
@@ -135,6 +134,7 @@ export const getAllUsers = async (
 
 /**
  * Public Access: Fetches sanitized user details for Leaderboard with pagination [S1C-01]
+ * [S1A-03] Optimized to check for pre-calculated leaderboard data (Default Path).
  */
 export const getAllUsersAndPicks = async (
     limitCount: number = DEFAULT_PAGE_SIZE,
@@ -178,14 +178,15 @@ export const getAllUsersAndPicks = async (
             } catch (e) { /* ignore permission errors */ }
         }
 
-        // Optimized: Fetch picks only for the users in this batch
+        // [S1A-03] Check for "Fast Path" eligibility
+        // If the first user in the batch has pre-calculated totalPoints, we skip the heavy picks fetch
+        const isPreCalculated = users.length > 0 && typeof users[0].totalPoints === 'number';
+        
         const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
-        if (users.length > 0) {
+        
+        if (!isPreCalculated && users.length > 0) {
+            console.log("[S1A-03] Leaderboard is COLD. Initiating fallback pick retrieval for calculation.");
             const userIds = users.map(u => u.id);
-            // Firestore 'in' queries are limited to 10-30 items, so we fetch one by one or chunk
-            // For now, to keep it simple and responsive, we fetch docs from userPicks collection
-            // but filtered by the retrieved IDs to ensure we don't over-fetch.
-            // Note: In high-scale apps, we'd use multiple parallel getDocs for small ID chunks.
             const userPicksCollection = collection(db, 'userPicks');
             for (const uid of userIds) {
                 const pDoc = await getDoc(doc(userPicksCollection, uid));
@@ -193,6 +194,8 @@ export const getAllUsersAndPicks = async (
                     allPicks[uid] = pDoc.data() as { [eventId: string]: PickSelection };
                 }
             }
+        } else if (isPreCalculated) {
+            console.log("[S1A-03] Leaderboard is WARM. Skipping raw pick retrieval (Fast Path).");
         }
 
         const last = usersSnapshot.docs[usersSnapshot.docs.length - 1] || null;
@@ -373,6 +376,7 @@ export const createInvitationCode = async (adminUid: string): Promise<string> =>
     const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const codeRef = doc(db, 'invitation_codes', code);
     
+    // Fix: replaced server_timestamp() with serverTimestamp()
     await setDoc(codeRef, {
         status: 'active',
         createdAt: serverTimestamp(),
@@ -388,6 +392,7 @@ export const createBulkInvitationCodes = async (adminUid: string, count: number)
     for (let i = 0; i < count; i++) {
         const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const codeRef = doc(db, 'invitation_codes', code);
+        // Fix: replaced server_timestamp() with serverTimestamp()
         batch.set(codeRef, {
             status: 'active',
             createdAt: serverTimestamp(),

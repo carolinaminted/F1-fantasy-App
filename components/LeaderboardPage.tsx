@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -11,7 +11,6 @@ import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TeamIcon } from './icons/TeamIcon.tsx';
-/* Fix: Import DriverIcon to resolve name collision/missing name error */
 import { DriverIcon } from './icons/DriverIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
@@ -681,21 +680,24 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-      let timer: any;
-      if (cooldownTime > 0) timer = setTimeout(() => setCooldownTime(t => t - 1), 1000);
-      return () => clearTimeout(timer);
-  }, [cooldownTime]);
-
-  const loadProcessedData = async (usersBatch: User[], picksBatch: any, isMore = false) => {
+  // [S1A-03] Extract scoring transformations out of React Effects
+  const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
+      // Logic extracted to service module processLeaderboardStats
       const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser);
       if (isMore) {
           setProcessedUsers(prev => [...prev, ...processedBatch]);
       } else {
           setProcessedUsers(processedBatch);
       }
-  };
+  }, [raceResults, pointsSystem, allDrivers, currentUser]);
 
+  useEffect(() => {
+      let timer: any;
+      if (cooldownTime > 0) timer = setTimeout(() => setCooldownTime(t => t - 1), 1000);
+      return () => clearTimeout(timer);
+  }, [cooldownTime]);
+
+  // Initial Data Load
   useEffect(() => {
       if (!leaderboardCache) {
           refreshLeaderboard();
@@ -703,7 +705,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           loadProcessedData(leaderboardCache.users, leaderboardCache.allPicks);
           setHasMore(leaderboardCache.users.length === DEFAULT_PAGE_SIZE);
       }
-  }, [leaderboardCache, raceResults, pointsSystem, allDrivers, currentUser]);
+  }, [leaderboardCache]); // Only re-run when cache itself changes
+
+  // [S1A-03] Handle external system updates (scoring rules/results changes)
+  // We process with a slight delay to ensure UI stays responsive during rapid changes
+  useEffect(() => {
+    if (leaderboardCache) {
+        const timeout = setTimeout(() => {
+            loadProcessedData(leaderboardCache.users, leaderboardCache.allPicks);
+        }, 300);
+        return () => clearTimeout(timeout);
+    }
+  }, [raceResults, pointsSystem, allDrivers, currentUser, loadProcessedData]);
 
   const handleFetchMore = async () => {
     if (isPaging || !hasMore) return;
@@ -739,7 +752,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       }
   };
 
-  const isUserAdmin = currentUser && !!currentUser.isAdmin;
   const isLoading = !leaderboardCache && processedUsers.length === 0;
 
   if (isLoading) return <ListSkeleton rows={10} />;
