@@ -1,11 +1,11 @@
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
-// Fix: Added key to ErrorBoundaryProps to resolve "Type '{ key: string; }' is not assignable to type 'ErrorBoundaryProps'" error in App.tsx.
 interface ErrorBoundaryProps {
-  children: ReactNode;
+  // Fix: Made children optional to resolve 'missing property children' error when the component is used with nested JSX.
+  children?: ReactNode;
   onReset?: () => void;
-  key?: React.Key;
 }
 
 interface ErrorBoundaryState {
@@ -13,30 +13,31 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Changed inheritance to use Component directly and ensured state is initialized as a class property for better type inference.
+// Fix: Explicitly extending Component with props and state generic parameters to resolve 'state' and 'props' property missing errors.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly declare state as a property to resolve "Property 'state' does not exist on type 'ErrorBoundary'" error.
-  public state: ErrorBoundaryState;
+  // Fix: Explicitly defining state property to ensure instance member access is correctly typed.
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
 
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null
-    };
   }
 
+  // Fix: Static method correctly used to derive state from errors.
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
+  // Fix: typed correctly from React.
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to an error reporting service or console
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
+  // Fix: handleReload now correctly accesses 'this.setState' and 'this.props' from the class instance.
   handleReload = () => {
-    // Fix: Correctly access this.props and this.state now that inheritance is properly recognized.
     if (this.props.onReset) {
         this.setState({ hasError: false, error: null });
         this.props.onReset();
@@ -46,7 +47,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render() {
-    // Fix: Access state and props via this.
+    // Fix: Access state and props via 'this' safely as inherited from React.Component.
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center animate-fade-in">

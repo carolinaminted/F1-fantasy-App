@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -93,7 +92,6 @@ const RefreshControl: React.FC<{
     );
 };
 
-// ... (Rest of sub-components: NavTile, SimpleBarChart, ConstructorPodium, RaceChart, AccordionItem, StandingsView, PopularityView, InsightsView, EntityStatsView remain unchanged)
 const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: string; onClick: () => void; delay?: string }> = ({ icon: Icon, title, subtitle, desc, onClick, delay = '0ms' }) => (
     <button
         onClick={onClick}
@@ -355,7 +353,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
     onToggle
 }) => {
     return (
-        <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden shadow-lg ${isActive ? 'flex-1 min-h-0 ring-1 ring-pure-white/10' : 'flex-none bg-carbon-fiber'}`}>
+        <div className={`flex flex-col transition-all duration-300 ease-in-out border border-pure-white/10 rounded-xl overflow-hidden shadow-lg ${isActive ? 'min-h-0 ring-1 ring-pure-white/10' : 'flex-none bg-carbon-fiber'}`}>
             <button 
                 onClick={() => onToggle(id)}
                 className={`flex items-center justify-between p-4 transition-colors relative z-10 flex-shrink-0 ${
@@ -373,7 +371,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
                     <ChevronDownIcon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'rotate-180' : ''}`} />
                 </div>
             </button>
-            <div className={`flex-1 bg-carbon-fiber overflow-hidden flex flex-col relative z-0 ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`bg-carbon-fiber overflow-hidden flex flex-col relative z-0 ${isActive ? 'opacity-100' : 'max-h-0 opacity-0'}`}>
                 {isActive && children}
             </div>
         </div>
@@ -451,7 +449,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     const raceLeader = Math.max(...users.map(u => u.totalPoints || 0), 0);
 
     return (
-        <div className="flex flex-col gap-4 h-full animate-fade-in pb-safe">
+        <div className="flex flex-col gap-4 animate-fade-in pb-safe">
             
             {/* Visual Section */}
             <AccordionItem 
@@ -468,7 +466,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     )
                 }
             >
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-0">
+                <div className="p-4">
                      <div className="flex justify-end mb-2">
                         <div className="flex shadow-sm transform scale-90 origin-right">
                             <LimitToggle label="Top 10" limit={10} />
@@ -488,7 +486,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                 isActive={activeSection === 'list'}
                 onToggle={setActiveSection}
             >
-                <div className="flex flex-col h-full min-h-0">
+                <div className="flex flex-col">
                     {/* Controls */}
                     <div className="p-4 border-b border-pure-white/5 bg-carbon-black/20 flex flex-col md:flex-row gap-3 justify-between items-center flex-shrink-0">
                          <div className="flex shadow-sm">
@@ -506,7 +504,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
                     </div>
                     
                     {/* List Content */}
-                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-0">
+                    <div className="p-4">
                         {/* Mobile Cards */}
                         <div className="md:hidden space-y-3">
                             {filteredAndSorted.map(user => (
@@ -562,9 +560,7 @@ const StandingsView: React.FC<{ users: ProcessedUser[]; currentUser: User | null
     );
 };
 
-// ... (PopularityView, InsightsView, EntityStatsView remain unchanged)
 const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ allPicks, allDrivers, allConstructors, events }) => {
-    // ... (No Changes)
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all'); // mapped to event counts
 
     const stats = useMemo(() => {
@@ -682,7 +678,6 @@ const InsightsView: React.FC<{
     allDrivers: Driver[];
     events: Event[];
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
-    // ... (No Changes)
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
         
@@ -849,7 +844,6 @@ const InsightsView: React.FC<{
 };
 
 const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
-    // ... (No Changes)
     const stats = useMemo(() => {
         // Init scores
         const driverScores: Record<string, { total: number; sprint: number; fl: number; quali: number }> = {};
@@ -948,8 +942,6 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
     return (
         <div className="space-y-8 animate-fade-in pt-4 pb-8">
             
-            {/* Header Removed (Moved to Top Nav) */}
-
             {/* TOP ROW: Constructors Standings */}
             <div className="bg-carbon-fiber shadow-lg rounded-lg p-6 ring-1 ring-pure-white/10">
                 <div className="mb-6">
@@ -1170,13 +1162,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       </button>
                   </div>
                   
+                  {/* NEW: Headers with Red Icons */}
                   {(view === 'standings') && (
-                      <h1 className="absolute left-1/2 transform -translate-x-1/2 text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap hidden sm:block">
-                          League Leaderboard
-                      </h1>
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
+                            <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
+                                <LeaderboardIcon className="w-5 h-5 text-primary-red" />
+                            </div>
+                          <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                              League Leaderboard
+                          </h1>
+                      </div>
                   )}
 
-                  {/* NEW: Driver & Team Points Title in Header (Desktop) */}
                   {(view === 'entities') && (
                       <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
                             <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
@@ -1188,7 +1185,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       </div>
                   )}
 
-                  {/* NEW: Popular Picks Title (Desktop) */}
                   {(view === 'popular') && (
                       <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
                             <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
@@ -1200,14 +1196,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       </div>
                   )}
 
-                  {/* NEW: Performance Trends Title (Desktop) */}
                   {(view === 'insights') && (
                       <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 hidden sm:flex">
                             <div className="p-1.5 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_10px_rgba(218,41,28,0.2)]">
-                                <TrendingUpIcon className="w-5 h-5 text-primary-red" />
+                                <LightbulbIcon className="w-5 h-5 text-primary-red" />
                             </div>
                           <h1 className="text-xl md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
-                              Performance Trends
+                              Performance Insights
                           </h1>
                       </div>
                   )}
@@ -1220,11 +1215,18 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                   />
               </div>
 
+              {/* Mobile Centered Headers */}
               {view === 'standings' && (
-                  <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider sm:hidden mb-4 text-center">League Leaderboard</h1>
+                  <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
+                            <LeaderboardIcon className="w-6 h-6 text-primary-red" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">League Leaderboard</h1>
+                    </div>
+                </div>
               )}
 
-              {/* NEW: Driver & Team Points Title (Mobile) */}
               {view === 'entities' && (
                    <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
                         <div className="flex items-center gap-2 mb-1">
@@ -1238,7 +1240,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                     </div>
               )}
 
-              {/* NEW: Popular Picks Title (Mobile) */}
               {view === 'popular' && (
                    <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
                         <div className="flex items-center gap-2 mb-1">
@@ -1246,27 +1247,27 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                                 <TrendingUpIcon className="w-6 h-6 text-primary-red" />
                             </div>
                             <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
-                                Popular Picks Analysis
+                                Popular Picks
                             </h1>
                         </div>
                     </div>
               )}
 
-              {/* NEW: Performance Trends Title (Mobile) */}
               {view === 'insights' && (
                    <div className="sm:hidden mb-4 flex flex-col items-center justify-center">
                         <div className="flex items-center gap-2 mb-1">
                             <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20">
-                                <TrendingUpIcon className="w-6 h-6 text-primary-red" />
+                                <LightbulbIcon className="w-6 h-6 text-primary-red" />
                             </div>
                             <h1 className="text-2xl font-bold text-pure-white uppercase italic tracking-wider text-center">
-                                Performance Trends
+                                Insights
                             </h1>
                         </div>
                     </div>
               )}
           </div>
 
+          {/* Sub-view Content: h-auto to recapture dead space if parent allows */}
           <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-2 md:px-0 pb-8">
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} />}
             {view === 'popular' && leaderboardCache && <PopularityView allPicks={leaderboardCache.allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}

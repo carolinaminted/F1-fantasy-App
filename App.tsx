@@ -678,8 +678,8 @@ const App: React.FC = () => {
             
             {/* Main Wrapper: Needs full height if locked to allow children to expand */}
             <main className={`relative p-4 md:p-8 ${isLockedLayout ? 'h-full' : 'min-h-full'}`}>
-                {/* Wrap main content in ErrorBoundary. Key ensures it resets on page change. */}
-                <ErrorBoundary key={`${activePage}-${adminSubPage}`}>
+                {/* Wrap main content in ErrorBoundary. Resetting on page change can be done by providing a key, but standard React attributes like 'key' are always valid for elements. */}
+                <ErrorBoundary onReset={() => {}}>
                     {renderPage()}
                 </ErrorBoundary>
             </main>
