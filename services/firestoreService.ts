@@ -1,16 +1,22 @@
-import { db } from './firebase.ts';
+import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
+import { httpsCallable } from '@firebase/functions';
 import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
 
 /**
  * SCALABILITY CONFIGURATION [S1C-01]
- * DEFAULT_PAGE_SIZE: Standard batch size for user lists.
- * MAX_PAGE_SIZE: Maximum allowable limit for any single read operation.
  */
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
+
+// Cloud Function Wrappers
+export const triggerManualLeaderboardSync = async () => {
+    const syncFn = httpsCallable(functions, 'manualLeaderboardSync');
+    const result = await syncFn();
+    return result.data as { success: boolean, usersProcessed: number };
+};
 
 // User Profile Management
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string; invitationCode?: string }) => {
@@ -106,9 +112,6 @@ export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
     }
 };
 
-/**
- * Admin Only: Fetches user details with pagination [S1C-01]
- */
 export const getAllUsers = async (
     limitCount: number = DEFAULT_PAGE_SIZE, 
     lastVisible: QueryDocumentSnapshot<DocumentData> | null = null
@@ -132,10 +135,6 @@ export const getAllUsers = async (
     }
 };
 
-/**
- * Public Access: Fetches sanitized user details for Leaderboard with pagination [S1C-01]
- * [S1A-03] Optimized to check for pre-calculated leaderboard data (Default Path).
- */
 export const getAllUsersAndPicks = async (
     limitCount: number = DEFAULT_PAGE_SIZE,
     lastVisible: QueryDocumentSnapshot<DocumentData> | null = null
@@ -148,7 +147,6 @@ export const getAllUsersAndPicks = async (
     try {
         const publicUsersCollection = collection(db, 'public_users');
         
-        // Always order by rank for leaderboard stability
         let q = query(publicUsersCollection, orderBy('rank', 'asc'), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
         
         if (lastVisible) {
@@ -166,26 +164,11 @@ export const getAllUsersAndPicks = async (
             isAdmin: false
         } as User));
 
-        // Migration Fallback (Admin only)
-        if (users.length === 0 && !lastVisible) {
-            try {
-                const privateUsersCollection = collection(db, 'users');
-                const privateSnapshot = await getDocs(query(privateUsersCollection, orderBy('displayName'), limit(limitCount)));
-                if (!privateSnapshot.empty) {
-                    users = privateSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-                    source = 'private_fallback';
-                }
-            } catch (e) { /* ignore permission errors */ }
-        }
-
-        // [S1A-03] Check for "Fast Path" eligibility
-        // If the first user in the batch has pre-calculated totalPoints, we skip the heavy picks fetch
         const isPreCalculated = users.length > 0 && typeof users[0].totalPoints === 'number';
         
         const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
         
         if (!isPreCalculated && users.length > 0) {
-            console.log("[S1A-03] Leaderboard is COLD. Initiating fallback pick retrieval for calculation.");
             const userIds = users.map(u => u.id);
             const userPicksCollection = collection(db, 'userPicks');
             for (const uid of userIds) {
@@ -194,8 +177,6 @@ export const getAllUsersAndPicks = async (
                     allPicks[uid] = pDoc.data() as { [eventId: string]: PickSelection };
                 }
             }
-        } else if (isPreCalculated) {
-            console.log("[S1A-03] Leaderboard is WARM. Skipping raw pick retrieval (Fast Path).");
         }
 
         const last = usersSnapshot.docs[usersSnapshot.docs.length - 1] || null;
@@ -206,7 +187,19 @@ export const getAllUsersAndPicks = async (
     }
 };
 
-// User Picks Management
+// Added missing getUserDonations function
+export const getUserDonations = async (uid: string): Promise<Donation[]> => {
+    try {
+        const donationsCollection = collection(db, 'donations');
+        const q = query(donationsCollection, where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donation));
+    } catch (error) {
+        console.error("Error fetching user donations:", error);
+        return [];
+    }
+};
+
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {
     const picksRef = doc(db, 'userPicks', uid);
     const snapshot = await getDoc(picksRef);
@@ -246,7 +239,6 @@ export const updatePickPenalty = async (uid: string, eventId: string, penalty: n
     }
 };
 
-// Form Lock Management
 export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
     const locksRef = doc(db, 'app_state', 'form_locks');
     try {
@@ -257,7 +249,6 @@ export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
     }
 };
 
-// Race Results Management
 export const saveRaceResults = async (results: RaceResults) => {
     const resultsRef = doc(db, 'app_state', 'race_results');
     try {
@@ -268,7 +259,6 @@ export const saveRaceResults = async (results: RaceResults) => {
     }
 };
 
-// Points System Management
 export const saveScoringSettings = async (settings: ScoringSettingsDoc) => {
     const configRef = doc(db, 'app_state', 'scoring_config');
     try {
@@ -279,7 +269,6 @@ export const saveScoringSettings = async (settings: ScoringSettingsDoc) => {
     }
 };
 
-// League Entities (Drivers/Teams) Management
 export const getLeagueEntities = async (): Promise<{ drivers: Driver[]; constructors: Constructor[] } | null> => {
     const entitiesRef = doc(db, 'app_state', 'entities');
     const snapshot = await getDoc(entitiesRef);
@@ -299,7 +288,6 @@ export const saveLeagueEntities = async (drivers: Driver[], constructors: Constr
     }
 };
 
-// Event Schedule Management
 export const getEventSchedules = async (): Promise<{ [eventId: string]: EventSchedule }> => {
     const schedulesRef = doc(db, 'app_state', 'event_schedules');
     const snapshot = await getDoc(schedulesRef);
@@ -319,18 +307,6 @@ export const saveEventSchedule = async (eventId: string, schedule: EventSchedule
     }
 };
 
-export const getUserDonations = async (uid: string): Promise<Donation[]> => {
-    if (!uid) return [];
-    const donationsCollectionRef = collection(db, 'users', uid, 'donations');
-    const q = query(donationsCollectionRef, orderBy('createdAt', 'desc'));
-    const donationsSnapshot = await getDocs(q);
-    const donations = donationsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    } as Donation));
-    return donations;
-};
-
 export const logDuesPaymentInitiation = async (
     user: User, 
     amountInDollars: number, 
@@ -338,7 +314,6 @@ export const logDuesPaymentInitiation = async (
     memo: string
 ) => {
     if (!user) throw new Error("User must be logged in to initiate a payment.");
-    
     const duesPaymentData = {
         uid: user.id,
         email: user.email,
@@ -348,7 +323,6 @@ export const logDuesPaymentInitiation = async (
         status: 'initiated' as const,
         createdAt: Timestamp.now(),
     };
-
     try {
         const duesCollectionRef = collection(db, 'dues_payments');
         const docRef = await addDoc(duesCollectionRef, duesPaymentData);
@@ -359,13 +333,10 @@ export const logDuesPaymentInitiation = async (
     }
 };
 
-// --- Invitation Code Management (Admin) ---
-
 export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
     const codesRef = collection(db, 'invitation_codes');
     const q = query(codesRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    
     return snapshot.docs.map(doc => ({
         code: doc.id,
         ...doc.data()
@@ -375,30 +346,24 @@ export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
 export const createInvitationCode = async (adminUid: string): Promise<string> => {
     const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const codeRef = doc(db, 'invitation_codes', code);
-    
-    // Fix: replaced server_timestamp() with serverTimestamp()
     await setDoc(codeRef, {
         status: 'active',
         createdAt: serverTimestamp(),
         createdBy: adminUid
     });
-    
     return code;
 };
 
 export const createBulkInvitationCodes = async (adminUid: string, count: number): Promise<void> => {
     const batch = writeBatch(db);
-    
     for (let i = 0; i < count; i++) {
         const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const codeRef = doc(db, 'invitation_codes', code);
-        // Fix: replaced server_timestamp() with serverTimestamp()
         batch.set(codeRef, {
             status: 'active',
             createdAt: serverTimestamp(),
             createdBy: adminUid
         });
     }
-    
     await batch.commit();
 };
