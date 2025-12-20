@@ -9,8 +9,8 @@ const CIRCUIT_PATHS: { [key: string]: string } = {
     // Saudi Arabia (Jeddah)
     'sau': 'M38,45 C30,48 15,45 12,35 C10,30 10,15 12,10 C15,5 35,5 40,10 C45,15 45,40 38,45',
     
-    // Australia (Albert Park) - Updated with user reference
-    'aus': 'M20,40 L10,35 L12,25 L15,22 L12,15 L20,8 L35,8 L42,15 L40,25 L42,32 L35,40 Z',
+    // Australia (Albert Park) - Updated for higher fidelity to the actual lake-side route
+    'aus': 'M15,42 L12,38 L12,28 L15,24 L18,22 L15,18 L15,10 L20,8 L35,8 L40,12 L42,20 L40,28 L42,32 L38,38 L32,42 L25,40 L15,42 Z',
     
     // China (Shanghai) - Updated with user reference
     'chn': 'M25,40 L38,40 C42,40 42,32 38,30 C35,28 32,32 34,35 L25,32 L15,35 L12,28 L20,20 L12,15 L15,8 L40,10 L42,15 L38,18 Z',

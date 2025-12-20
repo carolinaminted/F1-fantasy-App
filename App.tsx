@@ -561,7 +561,7 @@ const App: React.FC = () => {
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'schedule':
-        return <SchedulePage schedules={eventSchedules} events={mergedEvents} />;
+        return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':

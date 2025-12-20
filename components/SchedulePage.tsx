@@ -9,11 +9,51 @@ import { PageHeader } from './ui/PageHeader.tsx';
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
     events: Event[];
+    onRefresh?: () => Promise<void>;
 }
 
-const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
+/**
+ * Robust formatting helper to avoid "wrong day" timezone bugs.
+ * By appending 'Z' and using timeZone: 'UTC', we display the exact numbers 
+ * the admin entered, fulfilling the "Displayed in EST" requirement globally.
+ */
+const formatSessionDate = (isoString?: string) => {
+    if (!isoString) return 'TBA';
+    // Append Z if missing to ensure string is treated as a fixed value
+    const date = new Date(isoString.includes('T') && !isoString.includes('Z') ? `${isoString}:00Z` : isoString);
+    
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        timeZone: 'UTC'
+    });
+};
+
+const formatSessionTime = (isoString?: string) => {
+    if (!isoString) return '-';
+    const date = new Date(isoString.includes('T') && !isoString.includes('Z') ? `${isoString}:00Z` : isoString);
+    return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'UTC'
+    });
+};
+
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRetry = async () => {
+        if (!onRefresh) return;
+        setIsRefreshing(true);
+        try {
+            await onRefresh();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     const nextRace = useMemo(() => {
         const now = new Date();
@@ -49,7 +89,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
             </div>
 
             {/* Legend - Only show in full view */}
-            {viewMode === 'full' && (
+            {viewMode === 'full' && events.length > 0 && (
                 <div className="flex items-center gap-3 bg-carbon-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-pure-white/10 shadow-xl animate-fade-in origin-top">
                     <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-highlight-silver shadow-[0_0_5px_#C0C0C0]"></div>
@@ -68,6 +108,42 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
         </div>
     );
 
+    // Empty State Check
+    if (!events || events.length === 0) {
+        return (
+            <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
+                <div className="flex-none">
+                    <PageHeader 
+                        title="SEASON CALENDAR" 
+                        icon={CalendarIcon} 
+                    />
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+                    <div className="relative mb-6">
+                        <CalendarIcon className="w-24 h-24 text-accent-gray opacity-20" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-1 bg-primary-red rotate-45 rounded-full"></div>
+                        </div>
+                    </div>
+                    <h2 className="text-3xl font-black text-pure-white italic uppercase tracking-wider mb-3">No Races Found</h2>
+                    <p className="text-highlight-silver max-w-md mb-8 leading-relaxed">
+                        The season schedule is currently unavailable or has not been synchronized. Please try refreshing to fetch the latest grid data.
+                    </p>
+                    <button
+                        onClick={handleRetry}
+                        disabled={isRefreshing}
+                        className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg shadow-lg shadow-primary-red/20 transition-all transform active:scale-95 flex items-center gap-3 disabled:opacity-50"
+                    >
+                        {isRefreshing ? (
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        ) : null}
+                        {isRefreshing ? 'Retrying...' : 'Sync Calendar'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
             <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
@@ -83,37 +159,43 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
                 {/* Upcoming View - Flex Container for Desktop */}
                 {viewMode === 'upcoming' && (
                     <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-                        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-0 pb-8">
+                        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-4 pb-8">
                             {/* Hero: Next Race */}
-                            {nextRace && (
+                            {nextRace ? (
                                 <div className="mb-6 animate-fade-in flex-none">
                                     <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
+                                </div>
+                            ) : (
+                                <div className="bg-carbon-fiber rounded-2xl p-8 border border-pure-white/5 text-center mb-6 opacity-60">
+                                    <p className="text-highlight-silver italic">The 2026 Season has concluded or not yet started.</p>
                                 </div>
                             )}
 
                             {/* Next 5 List */}
-                            <div className="animate-fade-in-up">
-                                <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                                    {upcomingRaces.map(event => (
-                                        <div key={event.id} className="md:h-full">
-                                            <CompactEventCard 
-                                                event={event} 
-                                                schedule={schedules[event.id]} 
-                                                isNext={nextRace?.id === event.id} 
-                                                onClick={() => setSelectedEvent(event)}
-                                            />
-                                        </div>
-                                    ))}
+                            {upcomingRaces.length > 0 && (
+                                <div className="animate-fade-in-up">
+                                    <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                        {upcomingRaces.map(event => (
+                                            <div key={event.id} className="md:h-full">
+                                                <CompactEventCard 
+                                                    event={event} 
+                                                    schedule={schedules[event.id]} 
+                                                    isNext={nextRace?.id === event.id} 
+                                                    onClick={() => setSelectedEvent(event)}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 )}
 
                 {/* Full Schedule List - Grid on Desktop */}
                 {viewMode === 'full' && (
-                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-0 pb-8 min-h-0">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8 min-h-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map(event => (
                                 <EventGridCard 
@@ -142,27 +224,6 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events }) => {
 };
 
 // --- Sub-components ---
-
-const formatDate = (isoString?: string) => {
-    if (!isoString) return 'TBA';
-    const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric',
-        timeZone: 'America/New_York'
-    });
-};
-
-const formatTime = (isoString?: string) => {
-    if (!isoString) return '-';
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'America/New_York'
-    });
-};
 
 // Helper for styling
 const hexToRgba = (hex: string, alpha: number) => {
@@ -205,7 +266,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                         <p className="text-2xl md:text-3xl font-bold text-pure-white">
                             {schedule?.race ? (
                                 <>
-                                    {formatDate(schedule.race)} <span className="text-primary-red mx-1">•</span> {formatTime(schedule.race)}
+                                    {formatSessionDate(schedule.race)} <span className="text-primary-red mx-1">•</span> {formatSessionTime(schedule.race)}
                                 </>
                             ) : 'Time TBA'}
                         </p>
@@ -277,20 +338,20 @@ const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onCl
                             </div>
                         </div>
                         
-                        {/* Main Race Time Hero */}
+                        {/* Main Race Time Hero - Updated to match screenshot layout */}
                         <div className="bg-carbon-black/60 p-5 rounded-xl border border-pure-white/10 backdrop-blur-md shadow-lg">
-                            <p className="text-xs text-primary-red uppercase tracking-widest font-bold mb-2">Grand Prix Start</p>
-                            <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-4">
+                            <p className="text-xs text-primary-red uppercase tracking-widest font-black mb-3">Grand Prix Start</p>
+                            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                                 <span className="text-2xl md:text-3xl font-bold text-pure-white">
-                                    {schedule?.race ? formatDate(schedule.race) : 'Date TBA'}
+                                    {schedule?.race ? formatSessionDate(schedule.race) : 'Date TBA'}
                                 </span>
                                 {schedule?.race && (
-                                    <span className="text-xl md:text-3xl font-mono text-highlight-silver">
-                                        {formatTime(schedule.race)}
+                                    <span className="text-2xl md:text-3xl font-black text-pure-white tracking-tight">
+                                        {formatSessionTime(schedule.race)}
                                     </span>
                                 )}
                             </div>
-                            <p className="text-highlight-silver/50 mt-1 text-[10px] uppercase tracking-wide">Eastern Standard Time</p>
+                            <p className="text-highlight-silver/40 mt-2 text-[10px] uppercase font-bold tracking-widest">Eastern Standard Time</p>
                         </div>
                     </div>
 
@@ -330,8 +391,8 @@ const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; 
             {label}
         </span>
         <div className="text-right">
-            <span className={`block text-sm font-bold ${isRace ? 'text-pure-white text-base' : 'text-pure-white'}`}>{formatDate(time)}</span>
-            <span className={`block text-xs font-mono ${isRace ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{formatTime(time)}</span>
+            <span className="block text-sm font-bold text-pure-white">{formatSessionDate(time)}</span>
+            <span className={`block text-xs font-mono ${isRace ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{formatSessionTime(time)}</span>
         </div>
     </div>
 );
@@ -356,8 +417,8 @@ const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNex
         
         <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
             <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
-            <p className="font-bold text-sm text-pure-white">{schedule?.race ? formatDate(schedule.race) : 'TBA'}</p>
-            <p className="text-xs text-primary-red font-mono">{schedule?.race ? formatTime(schedule.race) : '-'}</p>
+            <p className="font-bold text-sm text-pure-white">{schedule?.race ? formatSessionDate(schedule.race) : 'TBA'}</p>
+            <p className="text-xs text-primary-red font-mono">{schedule?.race ? formatSessionTime(schedule.race) : '-'}</p>
         </div>
     </button>
 );
@@ -415,7 +476,7 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                         <div>
                             <p className="text-[10px] text-highlight-silver uppercase font-bold tracking-wider mb-0.5">{qualiLabel}</p>
                             <p className="font-semibold text-base text-ghost-white">
-                                {qualiTime ? formatDate(qualiTime) : 'TBA'}
+                                {qualiTime ? formatSessionDate(qualiTime) : 'TBA'}
                             </p>
                         </div>
                         <div className="text-right flex flex-col items-end">
@@ -425,7 +486,7 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                                  </span>
                              </div>
                              <p className="font-mono text-base font-bold text-pure-white">
-                                {qualiTime ? formatTime(qualiTime) : '-'}
+                                {qualiTime ? formatSessionTime(qualiTime) : '-'}
                             </p>
                         </div>
                     </div>

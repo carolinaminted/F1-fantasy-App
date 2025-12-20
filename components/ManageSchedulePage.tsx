@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { EVENTS } from '../constants.ts';
 import { saveEventSchedule } from '../services/firestoreService.ts';
@@ -7,7 +7,6 @@ import { BackIcon } from './icons/BackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
-import { CircuitRoute } from './icons/CircuitRoutes.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
@@ -91,44 +90,54 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
     const isSprint = schedule?.hasSprint !== undefined ? schedule.hasSprint : event.hasSprint;
     const accentColor = isSprint ? '#EAB308' : '#DA291C'; // Yellow or Red
 
+    // Added missing useMemo import to component and fixed usage
+    // Format date for the bottom pill
+    const displayDate = useMemo(() => {
+        const dateStr = schedule?.race || event.lockAtUtc;
+        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }, [schedule, event]);
+
     return (
         <button 
             onClick={onClick}
-            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-fiber border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 group flex flex-row md:flex-col h-full min-h-[140px]"
+            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-fiber border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 group flex flex-col h-52 items-center justify-center p-6"
         >
-            {/* Visual Header (Left on mobile, Top on desktop) */}
-            <div className="w-32 md:w-full md:h-32 bg-carbon-black/50 relative flex items-center justify-center border-r md:border-r-0 md:border-b border-pure-white/10 flex-shrink-0">
-                <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 100%)` }}></div>
-                <CircuitRoute eventId={event.id} className="w-20 h-20 md:w-24 md:h-24 text-highlight-silver opacity-80 group-hover:scale-110 transition-transform duration-500" />
-                
-                {/* Status Badge */}
-                <div className="absolute top-2 right-2">
-                    {hasData ? (
-                        <span className="w-2 h-2 block rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]"></span>
-                    ) : (
-                        <span className="w-2 h-2 block rounded-full bg-highlight-silver/30"></span>
-                    )}
+            {/* Background Texture Overlay */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 80%)` }}></div>
+            <div className="absolute inset-0 bg-carbon-black/20 group-hover:bg-transparent transition-colors"></div>
+
+            {/* Sprint Badge in Top Left */}
+            {isSprint && (
+                <div className="absolute top-4 left-4 z-20">
+                    <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded border border-yellow-500/30 font-black uppercase tracking-widest shadow-lg shadow-yellow-500/10">
+                        <SprintIcon className="w-3 h-3" /> Sprint
+                    </div>
                 </div>
+            )}
+
+            {/* Status Badge in Top Right */}
+            <div className="absolute top-4 right-4">
+                {hasData ? (
+                    <span className="w-2.5 h-2.5 block rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]"></span>
+                ) : (
+                    <span className="w-2.5 h-2.5 block rounded-full bg-highlight-silver/20 border border-pure-white/10"></span>
+                )}
             </div>
 
-            <div className="flex-1 p-4 flex flex-col justify-center">
-                <div className="mb-1">
-                    <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider">Round {event.round}</span>
-                    <h3 className="text-lg font-bold text-pure-white leading-tight truncate">{schedule?.name || event.name}</h3>
-                </div>
-                <p className="text-xs text-highlight-silver truncate">{event.location}, {event.country}</p>
+            {/* Main Content: Centered Vertical Stack */}
+            <div className="relative z-10 flex flex-col items-center text-center">
+                <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-[0.2em] mb-1">Round {event.round}</span>
+                <h3 className="text-2xl font-black text-pure-white leading-none mb-2 tracking-tight">
+                    {schedule?.name || event.name}
+                </h3>
+                <p className="text-xs font-medium text-highlight-silver opacity-80 uppercase tracking-wider mb-4">
+                    {event.location}, {event.country}
+                </p>
                 
-                <div className="mt-3 flex items-center gap-2">
-                    {isSprint && (
-                        <div className="flex items-center gap-1 bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded border border-yellow-500/20 font-bold uppercase">
-                            <SprintIcon className="w-3 h-3" /> Sprint
-                        </div>
-                    )}
-                    {hasData && (
-                        <div className="text-[10px] font-mono text-highlight-silver border border-pure-white/10 px-2 py-0.5 rounded bg-carbon-black/50">
-                            {new Date(schedule!.race!).toLocaleDateString(undefined, {month:'short', day:'numeric'})}
-                        </div>
-                    )}
+                <div className="flex items-center">
+                    <div className="text-[11px] font-black text-pure-white px-3 py-1 rounded bg-carbon-black/80 border border-pure-white/10 shadow-lg tracking-widest uppercase">
+                        {displayDate}
+                    </div>
                 </div>
             </div>
         </button>
