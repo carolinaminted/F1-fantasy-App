@@ -24,7 +24,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 />
             </div>
             
-            {/* Added p-6 to provide buffer for hover effects (translate-y) so they aren't clipped */}
             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 p-6">
                 <div className="max-w-[1600px] mx-auto w-full">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -118,11 +117,7 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, subtitle, desc
             <p className="text-highlight-silver/70 text-sm leading-snug">{description}</p>
         </div>
         
-        {/* Footer Action */}
-        <div className="mt-3 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
-            <span>Access</span>
-            <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
-        </div>
+        {/* Footer Action removed as per user request to remove 'Access' text and the 'little red line' (arrow) */}
     </button>
   );
 };
