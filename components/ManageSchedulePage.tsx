@@ -10,6 +10,12 @@ import { SaveIcon } from './icons/SaveIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
+/**
+ * LEAGUE TIMEZONE CONFIGURATION
+ * All session dates and times are interpreted and displayed in America/New_York.
+ */
+const LEAGUE_TIMEZONE = 'America/New_York';
+
 interface ManageSchedulePageProps {
     setAdminSubPage: (page: 'dashboard') => void;
     existingSchedules: { [eventId: string]: EventSchedule };
@@ -90,11 +96,17 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
     const isSprint = schedule?.hasSprint !== undefined ? schedule.hasSprint : event.hasSprint;
     const accentColor = isSprint ? '#EAB308' : '#DA291C'; // Yellow or Red
 
-    // Added missing useMemo import to component and fixed usage
-    // Format date for the bottom pill
+    // Format date for the bottom pill using League Timezone
     const displayDate = useMemo(() => {
-        const dateStr = schedule?.race || event.lockAtUtc;
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const rawDate = schedule?.race || event.lockAtUtc;
+        const normalized = rawDate.includes('T') && !rawDate.includes('Z') ? `${rawDate}:00Z` : rawDate;
+        const date = new Date(normalized);
+        
+        return new Intl.DateTimeFormat('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            timeZone: LEAGUE_TIMEZONE
+        }).format(date);
     }, [schedule, event]);
 
     return (
@@ -110,7 +122,7 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
             {isSprint && (
                 <div className="absolute top-4 left-4 z-20">
                     <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded border border-yellow-500/30 font-black uppercase tracking-widest shadow-lg shadow-yellow-500/10">
-                        <SprintIcon className="w-3 h-3" /> Sprint
+                        <SprintIcon className="w-3 h-3 text-yellow-500" /> Sprint
                     </div>
                 </div>
             )}
@@ -224,7 +236,7 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
 
                     {/* Session Times */}
                     <div className="space-y-4 pt-4 border-t border-pure-white/10">
-                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-2">Session Times (Local/Input)</h3>
+                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-2">Session Times (Input as League Time / EST)</h3>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-carbon-black/30 p-4 rounded-xl border border-pure-white/5">
                             <TimeInput label="Practice 1" value={getValue(formState.fp1)} onChange={v => handleInputChange('fp1', v)} />

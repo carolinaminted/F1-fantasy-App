@@ -13,31 +13,52 @@ interface SchedulePageProps {
 }
 
 /**
- * Robust formatting helper to avoid "wrong day" timezone bugs.
- * By appending 'Z' and using timeZone: 'UTC', we display the exact numbers 
- * the admin entered, fulfilling the "Displayed in EST" requirement globally.
+ * LEAGUE TIMEZONE CONFIGURATION
+ * All session dates and times are interpreted and displayed in America/New_York.
+ */
+const LEAGUE_TIMEZONE = 'America/New_York';
+
+/**
+ * Robust parsing helper.
+ * If the string lacks a timezone suffix (typical for datetime-local strings),
+ * we append 'Z' to treat it as a fixed point in time, allowing the Intl formatters
+ * to perform a consistent shift to the League Timezone.
+ */
+const parseToDate = (isoString?: string) => {
+    if (!isoString) return null;
+    const normalized = isoString.includes('T') && !isoString.includes('Z') 
+        ? `${isoString}:00Z` 
+        : isoString;
+    const date = new Date(normalized);
+    // Safety check for invalid dates
+    return isNaN(date.getTime()) ? null : date;
+};
+
+/**
+ * Robust formatting helpers to ensure the day of the week is decided 
+ * AFTER conversion to the league timezone (EST/EDT).
  */
 const formatSessionDate = (isoString?: string) => {
-    if (!isoString) return 'TBA';
-    // Append Z if missing to ensure string is treated as a fixed value
-    const date = new Date(isoString.includes('T') && !isoString.includes('Z') ? `${isoString}:00Z` : isoString);
+    const date = parseToDate(isoString);
+    if (!date) return 'TBA';
     
-    return date.toLocaleDateString('en-US', { 
+    return new Intl.DateTimeFormat('en-US', { 
         weekday: 'short', 
         month: 'short', 
         day: 'numeric',
-        timeZone: 'UTC'
-    });
+        timeZone: LEAGUE_TIMEZONE
+    }).format(date);
 };
 
 const formatSessionTime = (isoString?: string) => {
-    if (!isoString) return '-';
-    const date = new Date(isoString.includes('T') && !isoString.includes('Z') ? `${isoString}:00Z` : isoString);
-    return date.toLocaleTimeString('en-US', { 
+    const date = parseToDate(isoString);
+    if (!date) return '-';
+    
+    return new Intl.DateTimeFormat('en-US', { 
         hour: '2-digit', 
         minute: '2-digit',
-        timeZone: 'UTC'
-    });
+        timeZone: LEAGUE_TIMEZONE
+    }).format(date);
 };
 
 const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh }) => {
