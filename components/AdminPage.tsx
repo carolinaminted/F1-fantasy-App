@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
@@ -21,48 +21,28 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const { showToast } = useToast();
 
-    useEffect(() => {
-        console.log("[AdminPage] Component mounted. Admin Dashboard is active.");
-        return () => console.log("[AdminPage] Component unmounted.");
-    }, []);
-
     const handleManualSyncClick = () => {
-        console.log("[AdminPage] Sync Leaderboard button clicked.");
-        console.log("[AdminPage] Current isSyncing state:", isSyncing);
-
-        if (isSyncing) {
-            console.warn("[AdminPage] Sync already in progress, ignoring click.");
-            return;
-        }
-        
+        if (isSyncing) return;
         setShowConfirmModal(true);
     };
 
     const executeSync = async () => {
         setShowConfirmModal(false);
-        console.log("[AdminPage] User confirmed. Initiating manualLeaderboardSync via Firestore Service...");
         setIsSyncing(true);
         
         try {
             const result = await triggerManualLeaderboardSync();
-            console.log("[AdminPage] Sync successful. Server Response:", result);
-            
             if (result.success) {
                 showToast(`League Sync Complete! ${result.usersProcessed} users recalculated.`, 'success');
             } else {
                 throw new Error("Sync operation returned success:false");
             }
         } catch (error: any) {
-            console.error("[AdminPage] MANUAL SYNC CRITICAL FAILURE:");
-            console.error("-> Error Code:", error.code);
-            console.error("-> Error Message:", error.message);
-            console.error("-> Full Error Object:", error);
-            
+            console.error("[AdminPage] Manual Sync Error:", error);
             const message = error.message || "Internal server error";
             showToast(`Sync failed: ${message}`, 'error');
         } finally {
             setIsSyncing(false);
-            console.log("[AdminPage] Sync process concluded. isSyncing set to false.");
         }
     };
 

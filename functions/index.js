@@ -198,33 +198,25 @@ exports.updateLeaderboardOnResults = onDocumentWritten(
 );
 
 exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
-    // CRITICAL: Immediate Backend Log
-    logger.info(">>> manualLeaderboardSync invoked via Callable SDK <<<");
-    
     if (!request.auth) {
-        logger.error("Rejecting unauthenticated request.");
         throw new HttpsError('unauthenticated', 'Login required.');
     }
 
-    logger.info(`User authenticated: ${request.auth.uid}. Verifying admin status...`);
-
     const userDoc = await db.collection('users').doc(request.auth.uid).get();
     if (!userDoc.exists || !userDoc.data().isAdmin) {
-        logger.error(`Rejecting unauthorized request from ${request.auth.uid}.`);
+        logger.error(`Unauthorized manual sync attempt from ${request.auth.uid}`);
         throw new HttpsError('permission-denied', 'Only admins can trigger a league sync.');
     }
 
-    logger.info("Admin verified. Checking rate limits...");
     const clientIp = getClientIp(request);
     await checkRateLimit(clientIp, 'manual_sync', 5, 300);
 
     try {
         const count = await recalculateEntireLeague();
-        logger.info("Manual recalculation finished successfully.");
         return { success: true, usersProcessed: count };
     } catch (err) {
-        logger.error("CRITICAL: manualLeaderboardSync internal failure:", err);
-        throw new HttpsError('internal', 'Recalculation failed on server. Check logs.');
+        logger.error("manualLeaderboardSync internal failure:", err);
+        throw new HttpsError('internal', 'Recalculation failed on server.');
     }
 });
 

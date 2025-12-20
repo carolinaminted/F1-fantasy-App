@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -19,7 +20,7 @@ import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks } from '../services/firestoreService.ts';
+import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks } from '../services/firestoreService.ts';
 
 // --- Shared Types & Helpers ---
 
@@ -341,7 +342,13 @@ const StandingsView: React.FC<{
     );
 };
 
-const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: PickSelection } }; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ allPicks, allDrivers, allConstructors, events }) => {
+const PopularityView: React.FC<{ 
+    allLeaguePicks: { [uid: string]: { [eid: string]: PickSelection } }; 
+    allDrivers: Driver[]; 
+    allConstructors: Constructor[]; 
+    events: Event[];
+    isLoading?: boolean;
+}> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading }) => {
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all');
 
     const stats = useMemo(() => {
@@ -350,18 +357,28 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
         const driverCounts: { [id: string]: number } = {};
         allDrivers.forEach(d => driverCounts[d.id] = 0);
 
-        let relevantEvents: Event[] = events;
-        if (timeRange === '30') relevantEvents = events.slice(0, 3); 
-        if (timeRange === '60') relevantEvents = events.slice(0, 5);
-        if (timeRange === '90') relevantEvents = events.slice(0, 8);
+        if (Object.keys(allLeaguePicks).length === 0) return { teams: [], leastTeams: [], drivers: [], leastDrivers: [] };
+
+        // Identify which events actually have picks in the data to determine "Recent"
+        const eventIdsWithPicks = new Set<string>();
+        Object.values(allLeaguePicks).forEach(userPicks => {
+            Object.keys(userPicks).forEach(eid => eventIdsWithPicks.add(eid));
+        });
+
+        const completedEvents = events.filter(e => eventIdsWithPicks.has(e.id)).sort((a, b) => new Date(a.lockAtUtc).getTime() - new Date(b.lockAtUtc).getTime());
+        
+        let relevantEvents: Event[] = completedEvents;
+        if (timeRange === '30' && completedEvents.length > 0) relevantEvents = completedEvents.slice(-3); 
+        if (timeRange === '60' && completedEvents.length > 0) relevantEvents = completedEvents.slice(-5);
+        if (timeRange === '90' && completedEvents.length > 0) relevantEvents = completedEvents.slice(-8);
         
         const relevantEventIds = new Set(relevantEvents.map(e => e.id));
 
-        Object.values(allPicks).forEach(userPicks => {
+        Object.values(allLeaguePicks).forEach(userPicks => {
             Object.entries(userPicks).forEach(([eventId, picks]) => {
                 if (!relevantEventIds.has(eventId)) return;
-                const teams = [...picks.aTeams, picks.bTeam].filter(Boolean) as string[];
-                const drivers = [...picks.aDrivers, picks.bDrivers].filter(Boolean) as string[];
+                const teams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
+                const drivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
                 teams.forEach(t => { if(teamCounts[t] !== undefined) teamCounts[t]++ });
                 drivers.forEach(d => { if(driverCounts[d] !== undefined) driverCounts[d]++ });
             });
@@ -386,6 +403,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
                     value: val, 
                     color: getColor(id, type)
                 }))
+                .filter(item => item.value > 0 || order === 'asc') // Only show zero values in "Least"
                 .sort((a, b) => order === 'desc' ? b.value - a.value : a.value - b.value)
                 .slice(0, 5);
 
@@ -395,7 +413,19 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
             drivers: sortAndMap(driverCounts, 'desc', 'driver'),
             leastDrivers: sortAndMap(driverCounts, 'asc', 'driver')
         };
-    }, [allPicks, timeRange, allDrivers, allConstructors, events]);
+    }, [allLeaguePicks, timeRange, allDrivers, allConstructors, events]);
+
+    if (isLoading) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+                <div className="bg-primary-red/10 p-6 rounded-full mb-4 animate-pulse">
+                    <TrendingUpIcon className="w-12 h-12 text-primary-red" />
+                </div>
+                <h3 className="text-xl font-bold text-pure-white mb-2">Analyzing League Trends...</h3>
+                <p className="text-highlight-silver max-w-sm">Fetching and calculating popularity data from the entire league roster.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full animate-fade-in gap-4 pt-2 pb-4 overflow-hidden">
@@ -409,7 +439,7 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
                                 timeRange === range ? 'bg-primary-red text-pure-white' : 'text-highlight-silver hover:text-pure-white hover:bg-white/5'
                             }`}
                         >
-                            {range === 'all' ? 'Season' : `${range} Days`}
+                            {range === 'all' ? 'Season' : `Last ${range} Days`}
                         </button>
                     ))}
                 </div>
@@ -417,29 +447,29 @@ const PopularityView: React.FC<{ allPicks: { [uid: string]: { [eid: string]: Pic
 
             <div className="flex-1 grid grid-rows-2 gap-4 min-h-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
                         <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Most Picked Teams</h3>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                              <SimpleBarChart data={stats.teams} />
                         </div>
                     </div>
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
                         <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Most Picked Drivers</h3>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                              <SimpleBarChart data={stats.drivers} />
                         </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
                         <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Least Picked Teams</h3>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                             <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
                         </div>
                     </div>
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col">
+                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
                         <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Least Picked Drivers</h3>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                             <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
                         </div>
                     </div>
@@ -679,6 +709,10 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
+  
+  // New: Global league picks for popularity calculation
+  const [allLeaguePicks, setAllLeaguePicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
+  const [isFetchingGlobalPicks, setIsFetchingGlobalPicks] = useState(false);
 
   // [S1A-03] Extract scoring transformations out of React Effects
   const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
@@ -706,6 +740,22 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           setHasMore(leaderboardCache.users.length === DEFAULT_PAGE_SIZE);
       }
   }, [leaderboardCache]); // Only re-run when cache itself changes
+
+  // Global Picks Fetch Effect for Popularity View
+  useEffect(() => {
+    if (view === 'popular' && Object.keys(allLeaguePicks).length === 0 && !isFetchingGlobalPicks) {
+        setIsFetchingGlobalPicks(true);
+        fetchAllUserPicks()
+            .then(picks => {
+                setAllLeaguePicks(picks);
+                setIsFetchingGlobalPicks(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch global league picks:", err);
+                setIsFetchingGlobalPicks(false);
+            });
+    }
+  }, [view, allLeaguePicks, isFetchingGlobalPicks]);
 
   // [S1A-03] Handle external system updates (scoring rules/results changes)
   // We process with a slight delay to ensure UI stays responsive during rapid changes
@@ -739,6 +789,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       setRefreshStatus('idle');
       try {
           await refreshLeaderboard();
+          // If on popular view, also refresh global picks
+          if (view === 'popular') {
+              setIsFetchingGlobalPicks(true);
+              const picks = await fetchAllUserPicks();
+              setAllLeaguePicks(picks);
+              setIsFetchingGlobalPicks(false);
+          }
           setRefreshStatus('success');
           setCooldownTime(30); 
           setLastVisible(null);
@@ -802,7 +859,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
           <div className="flex-1 overflow-hidden px-2 md:px-0 pb-4">
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} />}
-            {view === 'popular' && leaderboardCache && <PopularityView allPicks={leaderboardCache.allPicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
+            {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
             {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
           </div>

@@ -1,3 +1,4 @@
+
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
@@ -185,6 +186,20 @@ export const getAllUsersAndPicks = async (
         console.error("Error fetching leaderboard batch", error);
         return { users: [], allPicks: {}, lastDoc: null, source: 'public' };
     }
+};
+
+/**
+ * Fetch all picks from every user in the league.
+ * Used for frontend aggregation of popularity stats.
+ */
+export const fetchAllUserPicks = async (): Promise<{ [userId: string]: { [eventId: string]: PickSelection } }> => {
+    const picksCollection = collection(db, 'userPicks');
+    const snapshot = await getDocs(picksCollection);
+    const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
+    snapshot.forEach(doc => {
+        allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
+    });
+    return allPicks;
 };
 
 // Added missing getUserDonations function

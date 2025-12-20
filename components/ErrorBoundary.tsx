@@ -15,7 +15,7 @@ interface ErrorBoundaryState {
  * Standard Error Boundary component to catch rendering errors in child components.
  * Explicitly extends Component with props and state generics to ensure correct type checking of inherited members.
  */
-// Fix: Inherit from Component directly to resolve member access errors for props and setState.
+// Fix: Directly extend Component from react to resolve property access issues.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Initialize state using property initializer.
   public state: ErrorBoundaryState = {
@@ -41,7 +41,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Using this.props and this.setState from the inherited Component class.
+    // Fix: Inherited members props and setState are now correctly typed and accessible.
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -52,7 +52,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   public render(): ReactNode {
-    // Fix: Accessing this.state and this.props from the inherited Component instance.
+    // Fix: Access state and props from the inherited Component instance.
     const { hasError, error } = this.state;
     const { children } = this.props;
 
