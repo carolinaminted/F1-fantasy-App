@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -15,11 +15,11 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Explicitly use React.Component with proper generics to ensure 'props' and 'setState' are correctly inherited and recognized by the compiler.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly define the constructor to ensure props are correctly initialized in the base React.Component class.
+// Fix: Inherit from Component directly to ensure state, props, and setState are correctly inherited and recognized by the compiler.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    // Fix: state is inherited from React.Component; initializing it here ensures proper instance state management.
     this.state = {
       hasError: false,
       error: null
@@ -43,10 +43,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   /**
    * Handles recovery from an error state.
    */
-  // Fix: Arrow function correctly captures 'this' to access inherited properties like this.props and methods like this.setState.
   public handleReload = (): void => {
+    // Fix: Access props correctly from the class instance instance (this.props).
     const { onReset } = this.props;
     if (onReset) {
+        // Fix: Access setState method inherited from the base Component class.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -55,7 +56,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): ReactNode {
-    // Fix: Access state and props from the inherited React.Component instance.
+    // Fix: Access state and props correctly from the inherited React.Component instance properties.
     const { hasError, error } = this.state;
     const { children } = this.props;
 

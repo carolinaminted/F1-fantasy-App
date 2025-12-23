@@ -449,33 +449,31 @@ const PopularityView: React.FC<{
                 </div>
             </div>
 
-            <div className="flex-1 grid grid-rows-2 gap-4 min-h-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Most Picked Teams</h3>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                             <SimpleBarChart data={stats.teams} />
-                        </div>
+            {/* Redesigned Grid Container: One Unified Scrollable Grid for Mobile */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
+                    {/* Most Picked Teams */}
+                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
+                        <SimpleBarChart data={stats.teams} />
                     </div>
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Most Picked Drivers</h3>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                             <SimpleBarChart data={stats.drivers} />
-                        </div>
+
+                    {/* Most Picked Drivers */}
+                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Drivers</h3>
+                        <SimpleBarChart data={stats.drivers} />
                     </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Least Picked Teams</h3>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                            <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
-                        </div>
+
+                    {/* Least Picked Teams */}
+                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Teams</h3>
+                        <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
                     </div>
-                    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 shadow-lg flex flex-col overflow-hidden">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Least Picked Drivers</h3>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                            <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
-                        </div>
+
+                    {/* Least Picked Drivers */}
+                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
+                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Drivers</h3>
+                        <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
                     </div>
                 </div>
             </div>
