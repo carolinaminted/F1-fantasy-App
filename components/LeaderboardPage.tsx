@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -53,7 +52,7 @@ const RefreshControl: React.FC<{
 }> = ({ onClick, isRefreshing, cooldown, status }) => {
     
     return (
-        <div className="relative flex items-center">
+        <div className="relative hidden md:flex items-center">
             {status !== 'idle' && (
                 <div className={`
                     absolute right-full mr-3 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg animate-fade-in
@@ -266,10 +265,15 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
-                                <div className="w-24 md:w-60 text-right truncate font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
-                                    {user.displayName}
+                                <div className="w-24 md:w-60 text-right font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                    <span className="md:hidden">
+                                        {user.displayName.length > 12 ? `${user.displayName.substring(0, 12)}...` : user.displayName}
+                                    </span>
+                                    <span className="hidden md:inline truncate">
+                                        {user.displayName}
+                                    </span>
                                 </div>
-                                <div className="flex-1 relative h-full flex items-center ml-2 md:ml-8 mr-1 md:mr-2">
+                                <div className="flex-1 relative h-full flex items-center ml-6 md:ml-8 mr-1 md:mr-2">
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     <div 
                                         className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-6 md:pr-14"
@@ -833,22 +837,25 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   return (
       <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
-          <div className="flex-none">
-              <div className="mb-2 md:mb-4 flex items-center justify-between relative px-2 md:px-0">
-                  <div className="flex items-center gap-4">
-                      <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 z-10 group">
+          <div className="flex-none pb-4 md:pb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between px-2 md:px-0 gap-4">
+                  <div className="flex items-center justify-between w-full md:w-auto">
+                      <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 group">
                           <BackIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Hub
                       </button>
+                      <div className="md:hidden">
+                           {/* Empty placeholder for mobile centering if needed */}
+                      </div>
                   </div>
                   
-                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+                  <div className="flex items-center justify-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2 gap-3">
                         <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] hidden sm:flex">
                             {view === 'standings' && <LeaderboardIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
                             {view === 'entities' && <TeamIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
                             {view === 'popular' && <TrendingUpIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
                             {view === 'insights' && <LightbulbIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
                         </div>
-                        <h1 className="text-lg md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap">
+                        <h1 className="text-lg md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap text-center">
                             {view === 'standings' ? 'League Leaderboard' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : 'Performance Insights'}
                         </h1>
                   </div>
