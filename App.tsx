@@ -190,7 +190,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                  {/* Copyright Section - Moved Here for Desktop Persistence */}
                  <div className="text-center opacity-30 pb-4">
                     <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
-                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Formula Fantasy One © {new Date().getFullYear()}</p>
+                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Lights Out League © {new Date().getFullYear()}</p>
                  </div>
              </div>
         </aside>
@@ -633,7 +633,7 @@ const App: React.FC = () => {
          ) : (
            <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer col-span-3 justify-center">
              <F1CarIcon className="w-10 h-10 text-primary-red" />
-             <span className="font-bold text-xl">F1 Fantasy</span>
+             <span className="font-bold text-xl">Lights Out</span>
            </div>
          )}
         </header>

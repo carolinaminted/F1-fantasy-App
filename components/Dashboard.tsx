@@ -143,8 +143,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
                 </div>
                 
-                <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2 cursor-pointer active:scale-95 transition-transform">
-                    FORMULA<br/>FANTASY ONE
+                <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2 cursor-pointer active:scale-95 transition-transform uppercase">
+                    LIGHTS OUT<br/>LEAGUE
                 </h1>
             </div>
 

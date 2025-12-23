@@ -13,16 +13,16 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
         .formula-text { 
           font-family: 'Exo 2', sans-serif; 
           font-weight: 400;
-          font-size: 18px;
+          font-size: 16px;
           fill: #FFFFFF;
-          letter-spacing: 0.3em;
+          letter-spacing: 0.5em;
           text-anchor: middle;
         }
         .fantasy-one-text { 
           font-family: 'Exo 2', sans-serif; 
           font-weight: 900;
           font-style: italic;
-          font-size: 48px;
+          font-size: 44px;
           fill: url(#red-grad);
           letter-spacing: -2px;
           text-anchor: middle;
@@ -32,9 +32,9 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
         }
       `}
     </style>
-    <text x="150" y="25" className="formula-text">FORMULA</text>
-    <text x="150" y="70" className="fantasy-one-text">
-      FANTASY <tspan className="one-part">ONE</tspan>
+    <text x="150" y="45" className="fantasy-one-text">
+      LIGHTS <tspan className="one-part">OUT</tspan>
     </text>
+    <text x="150" y="70" className="formula-text">LEAGUE</text>
   </svg>
 );
