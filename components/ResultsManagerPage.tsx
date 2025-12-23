@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
@@ -106,7 +105,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     );
 
     return (
-        <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto text-pure-white">
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white min-h-full">
             <div className="flex-none">
                 <PageHeader 
                     title="RESULTS MANAGER" 
@@ -115,7 +114,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                 />
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 flex flex-col px-4 md:px-0 pb-8">
+            <div className="flex-1 flex flex-col px-4 md:px-0 pb-8">
                 {/* Control Bar */}
                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-3 mb-2 md:mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center justify-between flex-shrink-0">
                     <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
@@ -149,25 +148,23 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                 </div>
 
                 {/* Main Form Area */}
-                <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col min-h-0">
+                <div className="w-full max-w-6xl mx-auto flex-1">
                     {selectedEvent ? (
-                        <div className="bg-carbon-fiber rounded-lg p-2 md:p-4 border border-pure-white/10 shadow-lg flex-1 flex flex-col min-h-0">
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                <ResultsForm
-                                    event={selectedEvent}
-                                    currentResults={raceResults[selectedEvent.id]}
-                                    onSave={handleSave}
-                                    allDrivers={allDrivers}
-                                    isLocked={!!formLocks[selectedEvent.id]}
-                                    onToggleLock={() => onToggleLock(selectedEvent.id)}
-                                />
-                            </div>
+                        <div className="bg-carbon-fiber rounded-lg p-2 md:p-4 border border-pure-white/10 shadow-lg flex flex-col">
+                            <ResultsForm
+                                event={selectedEvent}
+                                currentResults={raceResults[selectedEvent.id]}
+                                onSave={handleSave}
+                                allDrivers={allDrivers}
+                                isLocked={!!formLocks[selectedEvent.id]}
+                                onToggleLock={() => onToggleLock(selectedEvent.id)}
+                            />
                             <p className="text-center text-[10px] text-highlight-silver mt-2 pt-2 border-t border-pure-white/5 flex-shrink-0">
                                 Saving results will lock in the <strong>Active Scoring Profile</strong> rules for this race.
                             </p>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-64 md:h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
+                        <div className="flex flex-col items-center justify-center h-64 md:h-full min-h-[400px] bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
                             <TrackIcon className="w-12 h-12 text-accent-gray mb-4" />
                             <h3 className="text-lg font-bold text-highlight-silver mb-2">No Event Selected</h3>
                             <p className="text-highlight-silver/70 text-sm">Select an event from the dropdown above.</p>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Event, EventResult, Driver } from '../types.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -81,13 +80,12 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     };
 
     // Responsive Grid: 1 column on mobile, 12 columns on large screens
-    // Mobile height: auto (grow). Desktop height: full (fit).
     const renderGpContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto md:h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Quali Section */}
             <div className="lg:col-span-3 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-2">Qualifying</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-3 flex-1">
+                <div className="bg-carbon-black/20 rounded-lg p-3">
                     <ResultGroup
                         positions={3}
                         selected={results.gpQualifying}
@@ -100,13 +98,13 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             {/* Race Section */}
             <div className="lg:col-span-9 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-2">Race Results</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-3 flex-1">
+                <div className="bg-carbon-black/20 rounded-lg p-3">
                     <ResultGroup
                         positions={10}
                         selected={results.grandPrixFinish}
                         onSelect={(val, idx) => handleSelect('grandPrixFinish', val, idx)}
                         options={driverOptions}
-                        cols={2} // Switch ResultGroup internal cols based on logic below
+                        cols={2}
                     />
                 </div>
             </div>
@@ -114,11 +112,11 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     );
 
     const renderSprintContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto md:h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
              {/* Sprint Quali */}
             <div className="lg:col-span-3 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-2">Sprint Quali</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-3 flex-1">
+                <div className="bg-carbon-black/20 rounded-lg p-3">
                     <ResultGroup
                         positions={3}
                         selected={results.sprintQualifying || []}
@@ -131,7 +129,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             {/* Sprint Race */}
             <div className="lg:col-span-9 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-2">Sprint Results</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-3 flex-1">
+                <div className="bg-carbon-black/20 rounded-lg p-3">
                     <ResultGroup
                         positions={8}
                         selected={results.sprintFinish || []}
@@ -168,8 +166,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     );
 
     return (
-        // Mobile: h-auto (flow), Desktop: h-full + overflow hidden
-        <form onSubmit={handleSubmit} className="text-pure-white flex flex-col md:h-full md:overflow-hidden">
+        <form onSubmit={handleSubmit} className="text-pure-white flex flex-col min-h-0">
             {/* Header: Sticky on Mobile to keep actions visible */}
             <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-2 md:mb-4 pb-2 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
                 <div className="flex items-center gap-4 w-full md:w-auto">
@@ -228,25 +225,19 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
 
             {/* Content Body */}
-            {/* Mobile: Standard vertical flow. Desktop: Flex-1, scrollable interior */}
-            <div className="md:flex-1 md:min-h-0 md:flex md:flex-col md:overflow-y-auto">
-                
+            <div className="flex-1">
                 {!event.hasSprint ? (
-                    /* Standard Layout for Non-Sprint Events */
-                    <section className="flex-none lg:flex-1 bg-carbon-black/40 rounded-xl p-4 border border-pure-white/5 flex flex-col">
+                    <section className="bg-carbon-black/40 rounded-xl p-4 border border-pure-white/5 flex flex-col mb-4">
                         <div className="flex items-center gap-2 mb-4 border-b border-accent-gray/30 pb-2 flex-shrink-0">
                              <CheckeredFlagIcon className="w-5 h-5 text-primary-red" />
                              <h3 className="font-bold text-sm uppercase tracking-wider text-pure-white">Grand Prix Session</h3>
                         </div>
-                        <div className="flex-1">
-                            {renderGpContent()}
-                        </div>
+                        {renderGpContent()}
                     </section>
                 ) : (
-                    /* Accordion Layout for Sprint Events */
                     <>
                         {/* GP Section */}
-                        <div className={`flex flex-col transition-all duration-300 ${activeSession === 'gp' ? 'flex-none lg:flex-1' : 'flex-none'}`}>
+                        <div className="flex flex-col">
                             <AccordionHeader 
                                 title="Grand Prix Session" 
                                 icon={CheckeredFlagIcon} 
@@ -254,14 +245,14 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 onClick={() => setActiveSession(activeSession === 'gp' ? null : 'gp')} 
                             />
                             {activeSession === 'gp' && (
-                                <div className="flex-1 bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 rounded-b-xl mb-2 min-h-0">
+                                <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 rounded-b-xl mb-4">
                                     {renderGpContent()}
                                 </div>
                             )}
                         </div>
 
                         {/* Sprint Section */}
-                        <div className={`flex flex-col transition-all duration-300 ${activeSession === 'sprint' ? 'flex-none lg:flex-1' : 'flex-none'}`}>
+                        <div className="flex flex-col">
                             <AccordionHeader 
                                 title="Sprint Session" 
                                 icon={SprintIcon} 
@@ -269,7 +260,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 onClick={() => setActiveSession(activeSession === 'sprint' ? null : 'sprint')} 
                             />
                             {activeSession === 'sprint' && (
-                                <div className="flex-1 bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 rounded-b-xl mb-2 min-h-0">
+                                <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 rounded-b-xl mb-4">
                                     {renderSprintContent()}
                                 </div>
                             )}
@@ -290,11 +281,10 @@ interface ResultGroupProps {
 }
 
 const ResultGroup: React.FC<ResultGroupProps> = ({ positions, selected, onSelect, options, cols = 1 }) => {
-    // Dynamic cols: If 2 cols requested, stack to 1 on mobile, 2 on md
     const gridClass = cols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1';
     
     return (
-        <div className={`grid gap-x-4 gap-y-2 h-auto md:h-full content-start ${gridClass}`}>
+        <div className={`grid gap-x-4 gap-y-2 content-start ${gridClass}`}>
             {Array.from({ length: positions }).map((_, i) => {
                 const otherSelectedIds = selected.filter((id, index) => index !== i && id !== null);
                 return (
