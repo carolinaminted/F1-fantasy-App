@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -15,9 +15,9 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Explicitly extend React.Component from 'react' to ensure instance properties like state and props are correctly inherited and recognized by the compiler.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Add constructor and call super(props) to correctly initialize base class instance and state.
+// Fix: Import Component directly from react and extend it to ensure state and props are correctly typed on 'this'.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Explicitly initialize state within the constructor and call super(props).
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -44,10 +44,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Access props correctly from the class instance (this.props) which is now recognized by extending React.Component directly.
+    // Fix: Access props from the inherited instance (this.props).
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Access setState method inherited from the base React.Component class via this.setState.
+        // Fix: Call setState from the base class to reset error boundaries.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -56,7 +56,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): ReactNode {
-    // Fix: Access state and props correctly from the inherited React.Component instance properties.
+    // Fix: Access state and props from the inherited instance properties in the render method.
     const { hasError, error } = this.state;
     const { children } = this.props;
 

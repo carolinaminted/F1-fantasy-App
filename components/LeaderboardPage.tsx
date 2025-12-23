@@ -265,7 +265,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
-                                <div className="w-24 md:w-60 text-right font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
                                     <span className="md:hidden">
                                         {user.displayName.length > 12 ? `${user.displayName.substring(0, 12)}...` : user.displayName}
                                     </span>
@@ -273,7 +273,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                         {user.displayName}
                                     </span>
                                 </div>
-                                <div className="flex-1 relative h-full flex items-center ml-6 md:ml-8 mr-1 md:mr-2">
+                                <div className="flex-1 relative h-full flex items-center ml-4 md:ml-6 mr-1 md:mr-2">
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     <div 
                                         className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-6 md:pr-14"
