@@ -36,6 +36,7 @@ interface LeaderboardPageProps {
   events: Event[];
   leaderboardCache: LeaderboardCache | null;
   refreshLeaderboard: () => Promise<void>;
+  resetToken?: number; // New prop to trigger menu reset
 }
 
 const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constructor[]) => {
@@ -702,7 +703,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
 // --- Main Page ---
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events, leaderboardCache, refreshLeaderboard }) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events, leaderboardCache, refreshLeaderboard, resetToken }) => {
   const [view, setView] = useState<ViewState>('menu');
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -732,6 +733,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       if (cooldownTime > 0) timer = setTimeout(() => setCooldownTime(t => t - 1), 1000);
       return () => clearTimeout(timer);
   }, [cooldownTime]);
+
+  // Reset view to menu when resetToken changes
+  useEffect(() => {
+    if (resetToken !== undefined) {
+      setView('menu');
+    }
+  }, [resetToken]);
 
   // Initial Data Load
   useEffect(() => {
@@ -837,7 +845,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
           <div className="flex-none pb-4 md:pb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between px-2 md:px-0 gap-4">
-                  <div className="flex items-center justify-between w-full md:w-auto">
+                  <div className="hidden md:flex items-center justify-between w-full md:w-auto">
                       <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 group">
                           <BackIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Hub
                       </button>
@@ -846,14 +854,14 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       </div>
                   </div>
                   
-                  <div className="flex items-center justify-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2 gap-3">
-                        <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] hidden sm:flex">
-                            {view === 'standings' && <LeaderboardIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'entities' && <TeamIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'popular' && <TrendingUpIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'insights' && <LightbulbIcon className="w-5 h-5 md:w-6 md:h-6 text-primary-red" />}
+                  <div className="flex items-center justify-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2 gap-2 md:gap-3">
+                        <div className="p-1.5 md:p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] flex">
+                            {view === 'standings' && <LeaderboardIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'entities' && <TeamIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'popular' && <TrendingUpIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'insights' && <LightbulbIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
                         </div>
-                        <h1 className="text-lg md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap text-center">
+                        <h1 className="text-base md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap text-center">
                             {view === 'standings' ? 'League Leaderboard' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : 'Performance Insights'}
                         </h1>
                   </div>

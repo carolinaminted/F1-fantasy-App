@@ -15,16 +15,13 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Import Component directly from react and extend it to ensure state and props are correctly typed on 'this'.
+// Fix: Use named import 'Component' and explicitly extend it to ensure 'props' and 'setState' are inherited correctly.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly initialize state within the constructor and call super(props).
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null
-    };
-  }
+  // Fix: Property initializer for state is standard in modern TypeScript/React and correctly inherited.
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
 
   /**
    * Required static method for ErrorBoundary to catch errors during render.
@@ -43,11 +40,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   /**
    * Handles recovery from an error state.
    */
+  // Fix: Arrow function correctly captures 'this' from the class instance.
   public handleReload = (): void => {
-    // Fix: Access props from the inherited instance (this.props).
+    // Fix: Access props from 'this' which is now correctly recognized as Component instance properties.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Call setState from the base class to reset error boundaries.
+        // Fix: Call setState inherited from the base Component class.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -56,7 +54,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   public render(): ReactNode {
-    // Fix: Access state and props from the inherited instance properties in the render method.
+    // Fix: Access state and props from 'this' instance variables.
     const { hasError, error } = this.state;
     const { children } = this.props;
 

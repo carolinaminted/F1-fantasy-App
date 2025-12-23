@@ -209,6 +209,7 @@ const App: React.FC = () => {
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
+  const [leaderboardResetToken, setLeaderboardResetToken] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const { showToast } = useToast();
@@ -511,6 +512,10 @@ const App: React.FC = () => {
   };
 
   const navigateToPage = (page: Page, params?: { eventId?: string }) => {
+    if (page === 'leaderboard' && activePage === 'leaderboard') {
+        setLeaderboardResetToken(prev => prev + 1);
+    }
+
     if (page === 'admin') {
       setAdminSubPage('dashboard');
     }
@@ -549,6 +554,7 @@ const App: React.FC = () => {
             events={mergedEvents}
             leaderboardCache={leaderboardCache}
             refreshLeaderboard={fetchLeaderboardData}
+            resetToken={leaderboardResetToken}
         />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
