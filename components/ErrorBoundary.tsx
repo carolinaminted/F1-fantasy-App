@@ -15,15 +15,16 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Inherit from Component directly to ensure state, props, and setState are correctly inherited and recognized by the compiler.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Use React.Component to ensure instance properties like state and props are correctly inherited and recognized by the compiler.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: state is inherited from React.Component; initializing it as a class property ensures proper instance state management and recognition.
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    // Fix: state is inherited from React.Component; initializing it here ensures proper instance state management.
-    this.state = {
-      hasError: false,
-      error: null
-    };
   }
 
   /**
@@ -44,10 +45,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Access props correctly from the class instance instance (this.props).
+    // Fix: Access props correctly from the class instance (this.props).
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Access setState method inherited from the base Component class.
+        // Fix: Access setState method inherited from the base Component class via this.setState.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {

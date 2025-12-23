@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface PageHeaderProps {
@@ -37,9 +36,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, icon: Icon, subti
                 )}
             </div>
 
-            {/* Right Action (Absolute on Desktop, Stacked on Mobile) */}
+            {/* Right Action (Absolute on Desktop, Stacked on Mobile) - Centered on Mobile */}
             {rightAction && (
-                <div className="mt-4 md:mt-0 w-full md:w-auto md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 z-20 pointer-events-auto">
+                <div className="mt-4 md:mt-0 w-full md:w-auto md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 z-20 pointer-events-auto flex justify-center md:justify-end">
                     {rightAction}
                 </div>
             )}

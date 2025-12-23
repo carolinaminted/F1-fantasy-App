@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Driver, Constructor, EntityClass } from '../types.ts';
 import { saveLeagueEntities } from '../services/firestoreService.ts';
@@ -11,7 +10,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ManageEntitiesPageProps {
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
     currentDrivers: Driver[];
     currentConstructors: Constructor[];
     onUpdateEntities: (drivers: Driver[], constructors: Constructor[]) => void;
@@ -180,8 +179,10 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                 rightAction={HeaderControls}
             />
             
-            <div className="flex-1 overflow-hidden px-4 md:px-0 pb-8 flex flex-col">
-                <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg overflow-hidden flex flex-col flex-1">
+            {/* Outer container: flex-1 allows desktop layout to fill screen, md:overflow-hidden keeps scroll localized to table on desktop */}
+            <div className="flex-1 md:overflow-hidden px-4 md:px-0 pb-8 flex flex-col">
+                {/* Content Card: md:flex-1 and md:overflow-hidden ensures desktop scrolling, while allowing natural expansion on mobile */}
+                <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1">
                     <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
                         <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
                         
@@ -205,7 +206,8 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             + Add New
                         </button>
                     </div>
-                    <div className="overflow-y-auto flex-1 custom-scrollbar">
+                    {/* Table Container: md:overflow-y-auto ensures the table is scrollable only on desktop/large screens */}
+                    <div className="md:overflow-y-auto md:flex-1 custom-scrollbar">
                         <table className="w-full text-left">
                             <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
                                 <tr>
