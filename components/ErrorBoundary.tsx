@@ -1,4 +1,5 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -14,8 +15,8 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Explicitly extend React.Component with generics to ensure 'props' and 'setState' are correctly inherited and typed.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Explicitly extend Component from 'react' with proper generics to ensure 'props' and 'setState' are correctly inherited and recognized by the compiler.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Initialize state using property initializer.
   public state: ErrorBoundaryState = {
     hasError: false,
@@ -39,11 +40,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   /**
    * Handles recovery from an error state.
    */
+  // Fix: The 'props' and 'setState' properties are inherited from Component; ensuring proper inheritance fixes access errors.
   public handleReload = (): void => {
-    // Fix: Correctly access props from the React.Component base class.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Correctly access setState from the React.Component base class.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -52,9 +52,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): ReactNode {
-    // Fix: Access state and props from the inherited React.Component instance.
+    // Fix: Correctly access state and props from the inherited Component instance.
     const { hasError, error } = this.state;
-    // Fix: Access props from the React.Component base class.
     const { children } = this.props;
 
     if (hasError) {
