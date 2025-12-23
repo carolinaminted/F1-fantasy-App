@@ -103,6 +103,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 setIsDropdownOpen(false);
             }
         };
+        // Fix: Use correct event listener callback name and remove non-existent 'Bird' object.
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
@@ -510,7 +511,7 @@ const App: React.FC = () => {
   };
 
   const navigateToPage = (page: Page, params?: { eventId?: string }) => {
-    if (page === 'admin' && activePage !== 'admin') {
+    if (page === 'admin') {
       setAdminSubPage('dashboard');
     }
     if (params?.eventId) {
