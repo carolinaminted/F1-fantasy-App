@@ -17,7 +17,7 @@ interface ErrorBoundaryState {
  */
 // Fix: Explicitly extend React.Component to ensure TypeScript correctly identifies inherited properties like props and setState.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly define state property to align with React.Component expectations.
+  // Fix: Explicitly define state property to align with Component expectations.
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -41,10 +41,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Now correctly recognized as a property of React.Component instance.
+    // Fix: Explicitly accessing props from the class instance which is now correctly recognized as an inherited property.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Now correctly recognized as a method of React.Component instance.
+        // Fix: Explicitly using setState from the React.Component base class.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -53,7 +53,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): ReactNode {
-    // Fix: Correctly access state and props from the class instance.
+    // Fix: Correctly access state and props from the class instance inheriting from React.Component.
     const { hasError, error } = this.state;
     const { children } = this.props;
 

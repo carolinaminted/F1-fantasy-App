@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -62,7 +61,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     );
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden w-full max-w-5xl mx-auto px-2 md:px-0">
             <div className="flex-none">
                 <PageHeader 
                     title="ADMIN DASHBOARD" 
@@ -72,58 +71,57 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 />
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 p-6">
-                <div className="max-w-[1600px] mx-auto w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                         <AdminTile
-                            icon={TeamIcon}
-                            title="Manage Drivers & Teams"
-                            subtitle="Entities"
-                            description="Update the active grid, transfers, and classes."
-                            onClick={() => setAdminSubPage('entities')}
-                            delay="0ms"
-                        />
-                        <AdminTile
-                            icon={CalendarIcon}
-                            title="Schedule Manager"
-                            subtitle="Calendar"
-                            description="Set race dates, start times, and session details."
-                            onClick={() => setAdminSubPage('schedule')}
-                            delay="100ms"
-                        />
-                        <AdminTile
-                            icon={TrackIcon}
-                            title="Results & Locks Manager"
-                            subtitle="Race Control"
-                            description="Enter race results and lock/unlock pick forms."
-                            onClick={() => setAdminSubPage('results')}
-                            delay="200ms"
-                        />
-                        <AdminTile
-                            icon={ProfileIcon}
-                            title="Manage Users"
-                            subtitle="Membership"
-                            description="Search users, manage dues, and view profiles."
-                            onClick={() => setAdminSubPage('manage-users')}
-                            delay="300ms"
-                        />
-                        <AdminTile
-                            icon={TrophyIcon}
-                            title="Scoring Settings"
-                            subtitle="Rules"
-                            description="Configure points awarded for race results."
-                            onClick={() => setAdminSubPage('scoring')}
-                            delay="400ms"
-                        />
-                        <AdminTile
-                            icon={TicketIcon}
-                            title="Invitation Codes"
-                            subtitle="Onboarding"
-                            description="Create and manage registration codes."
-                            onClick={() => setAdminSubPage('invitations')}
-                            delay="500ms"
-                        />
-                    </div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar md:overflow-visible pb-20 md:pb-0 p-2 md:flex md:flex-col md:justify-center">
+                {/* Fixed grid constraint removed to allow cards to height-adjust to content if needed */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                     <AdminTile
+                        icon={TeamIcon}
+                        title="Manage Drivers & Teams"
+                        subtitle="Entities"
+                        description="Update the active grid, transfers, and classes."
+                        onClick={() => setAdminSubPage('entities')}
+                        delay="0ms"
+                    />
+                    <AdminTile
+                        icon={CalendarIcon}
+                        title="Schedule Manager"
+                        subtitle="Calendar"
+                        description="Set race dates, start times, and session details."
+                        onClick={() => setAdminSubPage('schedule')}
+                        delay="100ms"
+                    />
+                    <AdminTile
+                        icon={TrackIcon}
+                        title="Results & Locks Manager"
+                        subtitle="Race Control"
+                        description="Enter race results and lock/unlock pick forms."
+                        onClick={() => setAdminSubPage('results')}
+                        delay="200ms"
+                    />
+                    <AdminTile
+                        icon={ProfileIcon}
+                        title="Manage Users"
+                        subtitle="Membership"
+                        description="Search users, manage dues, and view profiles."
+                        onClick={() => setAdminSubPage('manage-users')}
+                        delay="300ms"
+                    />
+                    <AdminTile
+                        icon={TrophyIcon}
+                        title="Scoring Settings"
+                        subtitle="Rules"
+                        description="Configure points awarded for race results."
+                        onClick={() => setAdminSubPage('scoring')}
+                        delay="400ms"
+                    />
+                    <AdminTile
+                        icon={TicketIcon}
+                        title="Invitation Codes"
+                        subtitle="Onboarding"
+                        description="Create and manage registration codes."
+                        onClick={() => setAdminSubPage('invitations')}
+                        delay="500ms"
+                    />
                 </div>
             </div>
 
@@ -175,7 +173,7 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, subtitle, desc
   return (
     <button
         onClick={onClick}
-        className="group relative overflow-hidden rounded-xl p-5 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full w-full bg-carbon-fiber animate-fade-in-up"
+        className="group relative overflow-hidden rounded-xl p-5 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full w-full min-h-[200px] bg-carbon-fiber animate-fade-in-up"
         style={{ animationDelay: delay }}
     >
         <div className="absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 text-pure-white">
@@ -190,8 +188,13 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, subtitle, desc
         </div>
         
         <div className="relative z-10 flex-grow flex flex-col justify-center">
-            <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
+            <h3 className="text-xl md:text-2xl font-bold mb-2 transition-colors leading-tight text-pure-white group-hover:text-primary-red">{title}</h3>
             <p className="text-highlight-silver/70 text-sm leading-snug">{description}</p>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
+            <span>Manage</span>
+            <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
         </div>
     </button>
   );
