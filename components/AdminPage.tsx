@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -61,18 +62,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     );
 
     return (
-        <div className="flex flex-col h-full overflow-hidden w-full max-w-5xl mx-auto px-2 md:px-0">
-            <div className="flex-none">
-                <PageHeader 
-                    title="ADMIN DASHBOARD" 
-                    icon={AdminIcon} 
-                    subtitle="League Controls & Configuration"
-                    rightAction={SyncHeaderAction}
-                />
-            </div>
+        <div className="w-full max-w-5xl mx-auto px-2 md:px-0">
+            <PageHeader 
+                title="ADMIN DASHBOARD" 
+                icon={AdminIcon} 
+                subtitle="League Controls & Configuration"
+                rightAction={SyncHeaderAction}
+            />
             
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar md:overflow-visible pb-20 md:pb-0 p-2 md:flex md:flex-col md:justify-center">
-                {/* Fixed grid constraint removed to allow cards to height-adjust to content if needed */}
+            <div className="pb-20 md:pb-12 px-2">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                      <AdminTile
                         icon={TeamIcon}
@@ -173,26 +171,30 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, subtitle, desc
   return (
     <button
         onClick={onClick}
-        className="group relative overflow-hidden rounded-xl p-5 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full w-full min-h-[200px] bg-carbon-fiber animate-fade-in-up"
+        className="group relative overflow-hidden rounded-xl p-6 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col w-full min-h-[220px] bg-carbon-fiber animate-fade-in-up"
         style={{ animationDelay: delay }}
     >
+        {/* Background Icon (Huge & Faded) */}
         <div className="absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 text-pure-white">
             <Icon className="w-48 h-48" />
         </div>
         
-        <div className="flex items-start justify-between mb-3 relative z-10">
-             <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
-                <Icon className="w-5 h-5" />
+        {/* Header Section */}
+        <div className="flex items-start justify-between mb-4 relative z-10">
+             <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
+                <Icon className="w-6 h-6" />
             </div>
             <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
         </div>
         
+        {/* Content Section */}
         <div className="relative z-10 flex-grow flex flex-col justify-center">
-            <h3 className="text-xl md:text-2xl font-bold mb-2 transition-colors leading-tight text-pure-white group-hover:text-primary-red">{title}</h3>
+            <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
             <p className="text-highlight-silver/70 text-sm leading-snug">{description}</p>
         </div>
 
-        <div className="mt-4 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
+        {/* Footer Action */}
+        <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
             <span>Manage</span>
             <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
         </div>

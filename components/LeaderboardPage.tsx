@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -95,26 +96,30 @@ const RefreshControl: React.FC<{
 const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: string; onClick: () => void; delay?: string }> = ({ icon: Icon, title, subtitle, desc, onClick, delay = '0ms' }) => (
     <button
         onClick={onClick}
-        className="group relative overflow-hidden rounded-xl p-5 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full w-full bg-carbon-fiber animate-fade-in-up"
+        className="group relative overflow-hidden rounded-xl p-6 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col w-full min-h-[220px] bg-carbon-fiber animate-fade-in-up"
         style={{ animationDelay: delay }}
     >
+        {/* Background Icon (Huge & Faded) */}
         <div className="absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 text-pure-white">
             <Icon className="w-48 h-48" />
         </div>
         
-        <div className="flex items-start justify-between mb-3 relative z-10">
-             <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
-                <Icon className="w-5 h-5" />
+        {/* Header Section */}
+        <div className="flex items-start justify-between mb-4 relative z-10">
+             <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
+                <Icon className="w-6 h-6" />
             </div>
             <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
         </div>
         
+        {/* Content Section */}
         <div className="relative z-10 flex-grow flex flex-col justify-center">
             <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
             <p className="text-highlight-silver/70 text-sm leading-snug">{desc}</p>
         </div>
         
-        <div className="mt-3 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
+        {/* Footer Action */}
+        <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
             <span>Access</span>
             <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
         </div>
@@ -825,12 +830,15 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   if (view === 'menu') {
       return (
-          <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto animate-fade-in">
-              <div className="flex-none pt-4">
-                  <PageHeader title="League Standings" icon={LeaderboardIcon} subtitle="Analyze league performance and trends" rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus}/>}/>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8 min-h-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="w-full max-w-7xl mx-auto animate-fade-in">
+              <PageHeader 
+                title="LEAGUE STANDINGS" 
+                icon={LeaderboardIcon} 
+                subtitle="Analyze league performance and trends" 
+                rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus}/>}
+              />
+              <div className="pb-20 md:pb-12 px-4 md:px-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                       <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} />
                       <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="100ms" />
                       <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="200ms" />
@@ -849,9 +857,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 group">
                           <BackIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Hub
                       </button>
-                      <div className="md:hidden">
-                           {/* Empty placeholder for mobile centering if needed */}
-                      </div>
                   </div>
                   
                   <div className="flex items-center justify-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2 gap-2 md:gap-3">

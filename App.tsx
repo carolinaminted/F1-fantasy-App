@@ -1,5 +1,4 @@
 
-
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -218,8 +217,6 @@ const App: React.FC = () => {
   const lockedDesktopPages: Page[] = [
       'donate', 
       'duesPayment', 
-      'admin', 
-      'leaderboard', 
       'points', 
       'gp-results', 
       'drivers-teams', 
