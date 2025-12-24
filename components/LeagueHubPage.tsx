@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
@@ -19,18 +20,15 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
     const isPaid = user?.duesPaidStatus === 'Paid';
 
     return (
-        <div className="flex flex-col h-full overflow-hidden w-full max-w-5xl mx-auto px-2 md:px-0">
-            <div className="flex-none">
-                <PageHeader 
-                    title="LEAGUE HEADQUARTERS" 
-                    icon={LeagueIcon} 
-                    subtitle="Central hub for season data, rules, and membership."
-                />
-            </div>
+        <div className="w-full max-w-5xl mx-auto px-2 md:px-0">
+            <PageHeader 
+                title="LEAGUE HEADQUARTERS" 
+                icon={LeagueIcon} 
+                subtitle="Central hub for season data, rules, and membership."
+            />
             
-            {/* Grid Container - Centered vertically on desktop with constrained height to reduce tile size */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar md:overflow-visible pb-20 md:pb-0 p-2 md:flex md:flex-col md:justify-center">
-                <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-5 md:h-[75%] lg:h-[70%]">
+            <div className="pb-20 md:pb-12 px-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     {/* --- Race Information Section --- */}
                     <HubTile 
                         icon={CalendarIcon}
@@ -107,7 +105,7 @@ const HubTile: React.FC<{
     <button
         onClick={onClick}
         disabled={completed}
-        className={`group relative overflow-hidden rounded-xl p-5 text-left border transition-all duration-300 transform flex flex-col h-full w-full animate-fade-in-up bg-carbon-fiber shadow-lg hover:shadow-2xl hover:-translate-y-1
+        className={`group relative overflow-hidden rounded-xl p-6 text-left border transition-all duration-300 transform flex flex-col w-full animate-fade-in-up bg-carbon-fiber shadow-lg hover:shadow-2xl hover:-translate-y-1 min-h-[220px]
         ${completed 
             ? 'border-green-500/50 cursor-default shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:translate-y-0 hover:shadow-none' 
             : (highlight 
@@ -123,8 +121,8 @@ const HubTile: React.FC<{
         </div>
         
         {/* Header Section */}
-        <div className="flex items-start justify-between mb-3 relative z-10">
-             <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-lg border 
+        <div className="flex items-start justify-between mb-4 relative z-10">
+             <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors shadow-lg border 
                 ${completed 
                     ? 'bg-green-600/20 text-green-500 border-green-500/30' 
                     : (highlight 
@@ -132,7 +130,7 @@ const HubTile: React.FC<{
                         : 'bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20'
                       )
                 }`}>
-                <Icon className="w-5 h-5" />
+                <Icon className="w-6 h-6" />
             </div>
             <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
         </div>
@@ -145,14 +143,14 @@ const HubTile: React.FC<{
         
         {/* Footer Action */}
         {!completed && (
-            <div className="mt-3 pt-3 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
-                <span>Access</span>
+            <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
+                <span>Access Details</span>
                 <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
         )}
         {completed && (
-             <div className="mt-3 pt-3 border-t border-green-500/20 flex items-center gap-2 text-xs font-bold text-green-500 relative z-10">
-                <span>&#10003; Complete</span>
+             <div className="mt-4 pt-4 border-t border-green-500/20 flex items-center gap-2 text-xs font-bold text-green-500 relative z-10">
+                <span>&#10003; Membership Confirmed</span>
             </div>
         )}
     </button>
