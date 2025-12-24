@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -15,9 +15,9 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Extend Component directly to resolve TypeScript errors where props and setState were not recognized.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Correctly initialize state as an instance property.
+// Fix: Explicitly extend React.Component to ensure TypeScript correctly identifies inherited properties like props and setState.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Explicitly define state property to align with React.Component expectations.
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -41,9 +41,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Access props and setState from the Component instance correctly.
+    // Fix: Now correctly recognized as a property of React.Component instance.
     const { onReset } = this.props;
     if (onReset) {
+        // Fix: Now correctly recognized as a method of React.Component instance.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -52,7 +53,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   public render(): ReactNode {
-    // Fix: Access state and props from the Component instance correctly.
+    // Fix: Correctly access state and props from the class instance.
     const { hasError, error } = this.state;
     const { children } = this.props;
 
