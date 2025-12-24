@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import { getAllUsers, DEFAULT_PAGE_SIZE } from '../services/firestoreService.ts';
@@ -96,8 +95,10 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     />
                 </div>
             ) : (
-                <div className="flex-1 overflow-hidden flex flex-col px-4 md:px-0">
-                    <div className="mb-6 flex-shrink-0">
+                /* Updated: Added md:px-1 and removed overflow-hidden to prevent focus ring clipping */
+                <div className="flex-1 flex flex-col px-4 md:px-1">
+                    {/* Updated: Added px-0.5 to provide gutter for the outer ring on desktop */}
+                    <div className="mb-6 flex-shrink-0 px-0.5">
                         <input
                             type="text"
                             placeholder="Search among loaded users..."

@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -15,16 +15,16 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Use React.Component inheritance explicitly to ensure state, props, and setState are correctly recognized by TypeScript.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Declare state as a class property with explicit type to ensure type safety and resolve property missing errors.
+// Fix: Use explicitly imported Component to ensure props, state, and setState are correctly inherited.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Initialize state as a class property with explicit type for the component.
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
 
   constructor(props: ErrorBoundaryProps) {
-    // Fix: Pass props to super(props) to correctly initialize the base React.Component.
+    // Fix: Correctly initialize base React Component with passed props.
     super(props);
   }
 
@@ -45,7 +45,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   /**
    * Handles recovery from an error state.
    */
-  // Fix: Use arrow function for consistent 'this' binding when accessing this.props and this.setState (addresses errors on line 51 and 53).
+  // Fix: Use arrow function for consistent 'this' binding to access this.props and this.setState (fixes errors on line 50 and 52).
   handleReload = (): void => {
     const { onReset } = this.props;
     if (onReset) {
@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    * Renders the error UI or children.
    */
   render(): ReactNode {
-    // Fix: Correctly access state and props from this context to address error on line 64.
+    // Fix: Correctly access state and props from instance context (fixes error on line 65).
     const { hasError, error } = this.state;
     const { children } = this.props;
 
