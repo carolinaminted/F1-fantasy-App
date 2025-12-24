@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver as DriverType, Constructor } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -163,7 +162,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
     );
 
     return (
-        <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto pb-safe">
+        <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto pb-10 md:pb-safe">
             <div className="flex-none">
                 <PageHeader 
                     title="RACE RESULTS" 
@@ -173,7 +172,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
             </div>
             
             {/* Main Content Card - Fills remaining space */}
-            <div className="flex-1 min-h-0 flex flex-col bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-xl overflow-hidden relative mb-8">
+            <div className="flex-1 md:min-h-0 flex flex-col bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-xl md:overflow-hidden relative mb-12 md:mb-8">
                 {selectedEvent ? (
                     <div className="flex flex-col h-full">
                         {/* Event Header Panel */}
@@ -200,7 +199,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                         </div>
 
                         {/* Details Component - Takes remaining space */}
-                        <div className="flex-1 min-h-0 overflow-hidden relative">
+                        <div className="flex-1 md:min-h-0 md:overflow-hidden relative">
                             <EventDetails 
                                 event={selectedEvent} 
                                 results={raceResults[selectedEvent.id]} 
@@ -247,7 +246,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
     ];
     
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col md:h-full">
             {/* Tabs Bar */}
             <div className="flex-none bg-carbon-black/20 border-b border-pure-white/5 px-2 flex gap-1 overflow-x-auto no-scrollbar">
                 {tabs.map(tab => (
@@ -273,7 +272,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
             </div>
             
             {/* Content Area - Scrollable Table */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-0 bg-black/10">
+            <div className="md:flex-1 md:overflow-y-auto custom-scrollbar p-0 bg-black/10 pb-20 md:pb-0">
                 {activeTab === 'race' && <ResultTable results={results.grandPrixFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'quali' && <ResultTable results={results.gpQualifying} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'sprint' && event.hasSprint && <ResultTable results={results.sprintFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
