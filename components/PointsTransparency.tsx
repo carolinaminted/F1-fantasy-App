@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PointsSystem, Driver, Constructor } from '../types.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -25,6 +26,8 @@ const PointTile: React.FC<{ rank: number; points: number; isTop?: boolean }> = (
 
 const QualiRow: React.FC<{ rank: number; points: number }> = ({ rank, points }) => (
     <div className="flex justify-between items-center py-2.5 border-b border-pure-white/5 last:border-0">
+        {/* Adjusted labels to Q2/Q3 if it's the last two ranks of a 3-part qualifying system, 
+            or keep Q1-3 based on actual system index. F1 usually awards for Q1/2/3 logic in fantasy. */}
         <span className="text-highlight-silver text-sm font-bold uppercase tracking-widest">Q{rank}</span>
         <span className="font-bold text-pure-white text-lg">{points} <span className="text-xs text-highlight-silver font-normal uppercase">pts</span></span>
     </div>
@@ -68,9 +71,9 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                 />
             </div>
 
-            {/* Dashboard Grid */}
+            {/* Dashboard Grid - Using h-full context to align columns */}
             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-1">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-auto md:min-h-full content-start">
                     
                     {/* LEFT COLUMN: RACE EVENTS */}
                     <div className="md:col-span-8 flex flex-col gap-4">
@@ -105,15 +108,16 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
 
                     </div>
 
-                    {/* RIGHT COLUMN: SIDEBAR */}
-                    <div className="md:col-span-4 flex flex-col gap-4">
+                    {/* RIGHT COLUMN: SIDEBAR - Height matched flex container */}
+                    <div className="md:col-span-4 flex flex-col gap-4 h-full">
                         
-                        {/* Qualifying - Themed blue like the screenshot */}
+                        {/* Qualifying */}
                         <PointsCard 
                             title="Qualifying" 
                             subtitle="GP & Sprint Sessions" 
                             icon={PolePositionIcon} 
                             headerColor="bg-blue-600 text-pure-white"
+                            className="flex-none"
                         >
                             <div className="space-y-1">
                                 {pointsSystem.gpQualifying.map((p, i) => (
@@ -127,6 +131,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                             title="Fastest Lap" 
                             icon={FastestLapIcon} 
                             headerColor="bg-purple-600 text-pure-white"
+                            className="flex-none"
                         >
                             <div className="flex items-center justify-between py-2">
                                 <span className="text-xs text-highlight-silver uppercase tracking-widest font-bold">Award Bonus</span>
@@ -137,26 +142,29 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                             </div>
                         </PointsCard>
 
-                        {/* Logic Breakdown / Rules Info */}
-                        <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 flex flex-col gap-4 shadow-lg">
-                            <h4 className="text-xs font-black text-highlight-silver uppercase tracking-[0.2em] mb-1">Scoring Mechanics</h4>
-                            <div className="space-y-4">
-                                <div className="flex gap-4">
-                                    <div className="w-1.5 h-auto rounded-full bg-primary-red"></div>
-                                    <div className="flex-1">
-                                        <span className="block text-primary-red font-black text-[10px] uppercase tracking-wider mb-1">Team Score</span>
-                                        <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Sum of <strong className="text-pure-white not-italic">both</strong> drivers' points for the session.</p>
+                        {/* Logic Breakdown / Rules Info - flex-1 to fill the vertical gap and align bottom */}
+                        <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 flex flex-col justify-between shadow-lg flex-1 min-h-[160px]">
+                            <div>
+                                <h4 className="text-xs font-black text-highlight-silver uppercase tracking-[0.2em] mb-4">Scoring Mechanics</h4>
+                                <div className="space-y-4">
+                                    <div className="flex gap-4">
+                                        <div className="w-1.5 h-auto rounded-full bg-primary-red flex-shrink-0"></div>
+                                        <div className="flex-1">
+                                            <span className="block text-primary-red font-black text-[10px] uppercase tracking-wider mb-1">Team Score</span>
+                                            <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Sum of <strong className="text-pure-white not-italic">both</strong> drivers' points for the session.</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="w-1.5 h-auto rounded-full bg-blue-400"></div>
-                                    <div className="flex-1">
-                                        <span className="block text-blue-400 font-black text-[10px] uppercase tracking-wider mb-1">Driver Score</span>
-                                        <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Points earned individually by your <strong className="text-pure-white not-italic">three</strong> primary drivers.</p>
+                                    <div className="flex gap-4">
+                                        <div className="w-1.5 h-auto rounded-full bg-blue-400 flex-shrink-0"></div>
+                                        <div className="flex-1">
+                                            <span className="block text-blue-400 font-black text-[10px] uppercase tracking-wider mb-1">Driver Score</span>
+                                            <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Points earned individually by your <strong className="text-pure-white not-italic">three</strong> primary drivers.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="pt-4 border-t border-pure-white/5 mt-2">
+                            
+                            <div className="pt-4 border-t border-pure-white/5 mt-4">
                                 <p className="text-[10px] text-center font-mono text-highlight-silver opacity-40 uppercase tracking-widest">
                                     Total = Teams + Drivers + FL - Pen.
                                 </p>

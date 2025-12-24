@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -15,39 +15,38 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Use React.Component inheritance via named import 'Component' to ensure state, props, and setState are correctly recognized.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly declare and initialize state as a class property to resolve property missing errors.
-  public state: ErrorBoundaryState = {
+// Fix: Use React.Component inheritance explicitly to ensure state, props, and setState are correctly recognized by TypeScript.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Declare state as a class property with explicit type to ensure type safety and resolve property missing errors.
+  state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
 
   constructor(props: ErrorBoundaryProps) {
-    // Fix: super(props) ensures correctly bound instance of the component.
+    // Fix: Pass props to super(props) to correctly initialize the base React.Component.
     super(props);
   }
 
   /**
    * Required static method for ErrorBoundary to catch errors during render.
    */
-  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
   /**
    * Standard lifecycle method for logging caught errors.
    */
-  // Fix: Use ErrorInfo type from named import.
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
   /**
    * Handles recovery from an error state.
    */
-  public handleReload = (): void => {
-    // Fix: Properly access inherited 'props' and 'setState' members.
+  // Fix: Use arrow function for consistent 'this' binding when accessing this.props and this.setState (addresses errors on line 51 and 53).
+  handleReload = (): void => {
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -57,9 +56,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     }
   };
 
-  // Fix: Use ReactNode type from named import.
-  public render(): ReactNode {
-    // Fix: Access inherited 'state' and 'props' properties correctly.
+  /**
+   * Renders the error UI or children.
+   */
+  render(): ReactNode {
+    // Fix: Correctly access state and props from this context to address error on line 64.
     const { hasError, error } = this.state;
     const { children } = this.props;
 
@@ -75,7 +76,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             Safety Car Deployed
           </h2>
           
-          <p className="text-highlight-silver max-w-md mb-8 text-lg leading-relaxed">
+          <p className="text-highlight-silver max-md mb-8 text-lg leading-relaxed">
             We hit an unexpected barrier on track. The session has been neutralized while we clear the debris.
           </p>
           
