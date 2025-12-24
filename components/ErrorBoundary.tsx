@@ -15,13 +15,22 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Explicitly extend React.Component to ensure TypeScript correctly identifies inherited properties like props and setState.
+// Fix: Explicitly extend React.Component using the fully qualified name and correct generic parameters for props and state.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly define state property to align with Component expectations.
+  // Fix: Explicitly declare the state property in the class body to resolve property existence errors.
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
+
+  // Fix: Standard constructor that correctly calls super(props) and initializes state.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null
+    };
+  }
 
   /**
    * Required static method for ErrorBoundary to catch errors during render.
@@ -41,10 +50,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Explicitly accessing props from the class instance which is now correctly recognized as an inherited property.
+    // Fix: Access props from the class instance which is now correctly recognized as inherited from React.Component.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Explicitly using setState from the React.Component base class.
+        // Fix: setState is now correctly recognized as a member inherited from React.Component.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -53,7 +62,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): ReactNode {
-    // Fix: Correctly access state and props from the class instance inheriting from React.Component.
+    // Fix: Access state and props from the class instance inheriting from React.Component.
     const { hasError, error } = this.state;
     const { children } = this.props;
 

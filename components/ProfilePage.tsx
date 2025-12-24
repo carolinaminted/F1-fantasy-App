@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -244,12 +243,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     const dnValidation = validateDisplayName(profileForm.displayName);
     if (!dnValidation.valid) return setProfileError(dnValidation.error!);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(profileForm.email)) {
-        setProfileError("Please enter a valid email address.");
-        return;
-    }
-
+    // Since email is now read-only, we don't need to re-validate it here for the payload, 
+    // but the backend update function still expects it in some flows.
     const cleanFirstName = sanitizeString(profileForm.firstName);
     const cleanLastName = sanitizeString(profileForm.lastName);
     const cleanDisplayName = sanitizeString(profileForm.displayName);
@@ -258,7 +253,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     try {
         await updateUserProfile(user.id, {
             displayName: cleanDisplayName,
-            email: profileForm.email,
+            email: profileForm.email, // Kept for safety, though read-only in UI
             firstName: cleanFirstName,
             lastName: cleanLastName
         });
@@ -614,10 +609,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     <input 
                         type="email" 
                         value={profileForm.email} 
-                        onChange={e => setProfileForm(prev => ({...prev, email: e.target.value}))}
-                        required
-                        className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
+                        readOnly
+                        className="w-full bg-carbon-black/50 border border-accent-gray rounded p-2 text-highlight-silver cursor-not-allowed outline-none"
                     />
+                    <p className="text-[10px] text-highlight-silver/50 mt-1 italic">Email cannot be changed after registration.</p>
                 </div>
                 {profileError && <p className="text-primary-red text-sm text-center">{profileError}</p>}
                 

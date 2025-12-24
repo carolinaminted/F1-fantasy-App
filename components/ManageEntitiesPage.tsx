@@ -212,7 +212,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
                                 <tr>
                                     <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Name</th>
-                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Class</th>
+                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center md:text-left">Class</th>
                                     {activeTab === 'drivers' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Team</th>}
                                     {activeTab === 'teams' && <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Color</th>}
                                     <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center hidden md:table-cell">Active</th>
@@ -226,9 +226,10 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                         className="border-t border-pure-white/5 hover:bg-pure-white/5 cursor-pointer"
                                     >
                                         <td className="p-4 font-semibold">{entity.name} <span className="text-xs text-highlight-silver block">{entity.id}</span></td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${entity.class === EntityClass.A ? 'bg-[#FCD12A] text-black' : 'bg-blue-900 text-blue-100'}`}>
-                                                Class {entity.class}
+                                        <td className="p-4 text-center md:text-left">
+                                            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] md:text-xs font-bold ${entity.class === EntityClass.A ? 'bg-[#FCD12A] text-black' : 'bg-blue-900 text-blue-100'}`}>
+                                                <span className="md:hidden">{entity.class}</span>
+                                                <span className="hidden md:inline">Class {entity.class}</span>
                                             </span>
                                         </td>
                                         {activeTab === 'drivers' && (
@@ -289,7 +290,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                         <h3 className="text-2xl font-bold mb-4">{editEntityId ? 'Edit Entity' : 'Add New Entity'}</h3>
                         <form onSubmit={handleFormSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">ID (Unique)</label>
+                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">ID (Unique)</label>
                                 <input 
                                     type="text" 
                                     value={formId} 
@@ -300,7 +301,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name</label>
+                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Display Name</label>
                                 <input 
                                     type="text" 
                                     value={formName} 
@@ -310,7 +311,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Class</label>
+                                <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Class</label>
                                 <select 
                                     value={formClass} 
                                     onChange={e => setFormClass(e.target.value as EntityClass)} 
@@ -322,7 +323,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             </div>
                             {activeTab === 'drivers' && (
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Team</label>
+                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Team</label>
                                     <select 
                                         value={formTeamId} 
                                         onChange={e => setFormTeamId(e.target.value)} 
@@ -334,7 +335,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             )}
                             {activeTab === 'teams' && (
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Team Color</label>
+                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Team Color</label>
                                     <div className="flex gap-2 items-center">
                                         <input 
                                             type="color" 
