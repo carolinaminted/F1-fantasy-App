@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
-  children?: React.ReactNode;
+  children?: ReactNode;
   onReset?: () => void;
 }
 
@@ -15,15 +15,17 @@ interface ErrorBoundaryState {
 /**
  * Standard Error Boundary component to catch rendering errors in child components.
  */
-// Fix: Use React.Component explicitly to ensure state, props, and setState are correctly inherited and recognized by TypeScript.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly call super(props) and initialize state within the constructor to resolve 'state' property missing errors.
+// Fix: Use React.Component inheritance via named import 'Component' to ensure state, props, and setState are correctly recognized.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Explicitly declare and initialize state as a class property to resolve property missing errors.
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
   constructor(props: ErrorBoundaryProps) {
+    // Fix: super(props) ensures correctly bound instance of the component.
     super(props);
-    this.state = {
-      hasError: false,
-      error: null
-    };
   }
 
   /**
@@ -36,7 +38,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   /**
    * Standard lifecycle method for logging caught errors.
    */
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+  // Fix: Use ErrorInfo type from named import.
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
@@ -44,7 +47,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    * Handles recovery from an error state.
    */
   public handleReload = (): void => {
-    // Fix: Property 'props' and method 'setState' are now correctly recognized as inherited from React.Component.
+    // Fix: Properly access inherited 'props' and 'setState' members.
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -54,8 +57,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   };
 
-  public render(): React.ReactNode {
-    // Fix: Properly access state and props from the React.Component instance.
+  // Fix: Use ReactNode type from named import.
+  public render(): ReactNode {
+    // Fix: Access inherited 'state' and 'props' properties correctly.
     const { hasError, error } = this.state;
     const { children } = this.props;
 
