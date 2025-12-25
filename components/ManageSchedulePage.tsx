@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { EVENTS } from '../constants.ts';
@@ -56,6 +55,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                 <PageHeader 
                     title="SCHEDULE MANAGER" 
                     icon={CalendarIcon} 
+                    subtitle="Admin: Manage session times in Eastern Time"
                     leftAction={DashboardAction}
                 />
             </div>
@@ -94,13 +94,13 @@ interface EventSummaryTileProps {
 const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, onClick }) => {
     const hasData = !!schedule?.race;
     const isSprint = schedule?.hasSprint !== undefined ? schedule.hasSprint : event.hasSprint;
-    const accentColor = isSprint ? '#EAB308' : '#DA291C'; // Yellow or Red
+    const accentColor = isSprint ? '#EAB308' : '#DA291C';
 
-    // Format date for the bottom pill using League Timezone
     const displayDate = useMemo(() => {
         const rawDate = schedule?.race || event.lockAtUtc;
-        const normalized = rawDate.includes('T') && !rawDate.includes('Z') ? `${rawDate}:00Z` : rawDate;
-        const date = new Date(normalized);
+        // Parse safely assuming League Time for display logic
+        const date = new Date(rawDate);
+        if (isNaN(date.getTime())) return 'TBA';
         
         return new Intl.DateTimeFormat('en-US', { 
             month: 'short', 
@@ -114,20 +114,14 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
             onClick={onClick}
             className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-fiber border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 group flex flex-col h-52 items-center justify-center p-6"
         >
-            {/* Background Texture Overlay */}
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 80%)` }}></div>
-            <div className="absolute inset-0 bg-carbon-black/20 group-hover:bg-transparent transition-colors"></div>
-
-            {/* Sprint Badge in Top Left */}
             {isSprint && (
                 <div className="absolute top-4 left-4 z-20">
-                    <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded border border-yellow-500/30 font-black uppercase tracking-widest shadow-lg shadow-yellow-500/10">
+                    <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded border border-yellow-500/30 font-black uppercase tracking-widest">
                         <SprintIcon className="w-3 h-3 text-yellow-500" /> Sprint
                     </div>
                 </div>
             )}
-
-            {/* Status Badge in Top Right */}
             <div className="absolute top-4 right-4">
                 {hasData ? (
                     <span className="w-2.5 h-2.5 block rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]"></span>
@@ -135,8 +129,6 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
                     <span className="w-2.5 h-2.5 block rounded-full bg-highlight-silver/20 border border-pure-white/10"></span>
                 )}
             </div>
-
-            {/* Main Content: Centered Vertical Stack */}
             <div className="relative z-10 flex flex-col items-center text-center">
                 <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-[0.2em] mb-1">Round {event.round}</span>
                 <h3 className="text-2xl font-black text-pure-white leading-none mb-2 tracking-tight">
@@ -145,11 +137,8 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
                 <p className="text-xs font-medium text-highlight-silver opacity-80 uppercase tracking-wider mb-4">
                     {event.location}, {event.country}
                 </p>
-                
-                <div className="flex items-center">
-                    <div className="text-[11px] font-black text-pure-white px-3 py-1 rounded bg-carbon-black/80 border border-pure-white/10 shadow-lg tracking-widest uppercase">
-                        {displayDate}
-                    </div>
+                <div className="text-[11px] font-black text-pure-white px-3 py-1 rounded bg-carbon-black/80 border border-pure-white/10 shadow-lg tracking-widest uppercase">
+                    {displayDate}
                 </div>
             </div>
         </button>
@@ -170,6 +159,7 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
+        // Ensure all strings are captured correctly
         await onSave(event.id, { ...formState, eventId: event.id } as EventSchedule);
         setIsSaving(false);
     };
@@ -184,8 +174,6 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
             <div className="bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-                
-                {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-pure-white/10 bg-carbon-black/50">
                     <div>
                         <h2 className="text-xl font-bold text-pure-white flex items-center gap-2">
@@ -199,53 +187,43 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                     </button>
                 </div>
 
-                {/* Form Content */}
                 <form onSubmit={handleSave} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                    
-                    {/* General Settings */}
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-highlight-silver uppercase mb-1.5">Display Name</label>
-                                <input 
-                                    type="text" 
-                                    value={formState.name !== undefined ? formState.name : event.name}
-                                    onChange={(e) => handleInputChange('name', e.target.value)}
-                                    className="w-full bg-carbon-black border border-accent-gray rounded-lg px-3 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
-                                />
-                            </div>
-                            
-                            {/* Yellow Themed Sprint Toggle */}
-                            <div>
-                                <label className="block text-xs font-bold text-highlight-silver uppercase mb-1.5 opacity-0">Format</label>
-                                <label className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border transition-all cursor-pointer h-[38px] ${isSprint ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-carbon-black border-accent-gray hover:border-highlight-silver'}`}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!isSprint}
-                                        onChange={(e) => handleInputChange('hasSprint', e.target.checked)}
-                                        className="w-4 h-4 accent-yellow-500 rounded focus:ring-yellow-500 cursor-pointer"
-                                    />
-                                    <div className="flex items-center gap-2 flex-1">
-                                        <span className={`text-sm font-bold uppercase tracking-wider ${isSprint ? 'text-yellow-500' : 'text-highlight-silver'}`}>Sprint Weekend</span>
-                                    </div>
-                                    <SprintIcon className={`w-5 h-5 ${isSprint ? 'text-yellow-500' : 'text-highlight-silver opacity-20'}`} />
-                                </label>
-                            </div>
+                    <div className="bg-blue-600/10 border border-blue-500/30 p-4 rounded-xl flex items-start gap-4 mb-4">
+                        <div className="bg-blue-500 p-2 rounded-lg text-white"><CalendarIcon className="w-5 h-5" /></div>
+                        <div>
+                            <h4 className="text-sm font-bold text-white uppercase">League Timezone Active: EST/EDT</h4>
+                            <p className="text-xs text-highlight-silver mt-0.5">Please enter all session times as they should appear for the New York audience. The app will ensure they stay locked to this point in time for all global members.</p>
                         </div>
                     </div>
 
-                    {/* Session Times */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-highlight-silver uppercase mb-1.5">Custom Name</label>
+                            <input 
+                                type="text" 
+                                value={formState.name !== undefined ? formState.name : event.name}
+                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                className="w-full bg-carbon-black border border-accent-gray rounded-lg px-3 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-highlight-silver uppercase mb-1.5 opacity-0">Format</label>
+                            <label className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border transition-all cursor-pointer h-[38px] ${isSprint ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-carbon-black border-accent-gray'}`}>
+                                <input type="checkbox" checked={!!isSprint} onChange={(e) => handleInputChange('hasSprint', e.target.checked)} className="w-4 h-4 accent-yellow-500" />
+                                <span className={`text-sm font-bold uppercase ${isSprint ? 'text-yellow-500' : 'text-highlight-silver'}`}>Sprint Weekend</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div className="space-y-4 pt-4 border-t border-pure-white/10">
-                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-2">Session Times (Input as League Time / EST)</h3>
-                        
+                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-2">Session Timetable <span className="text-primary-red">(EST)</span></h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-carbon-black/30 p-4 rounded-xl border border-pure-white/5">
                             <TimeInput label="Practice 1" value={getValue(formState.fp1)} onChange={v => handleInputChange('fp1', v)} />
-                            
                             {isSprint ? (
                                 <>
                                     <TimeInput label="Sprint Qualifying" value={getValue(formState.sprintQualifying)} onChange={v => handleInputChange('sprintQualifying', v)} />
                                     <TimeInput label="Sprint Race" value={getValue(formState.sprint)} onChange={v => handleInputChange('sprint', v)} highlightColor="border-yellow-500/50 text-yellow-500" />
-                                    <TimeInput label="Grand Prix Qualifying" value={getValue(formState.qualifying)} onChange={v => handleInputChange('qualifying', v)} />
+                                    <TimeInput label="Qualifying" value={getValue(formState.qualifying)} onChange={v => handleInputChange('qualifying', v)} />
                                 </>
                             ) : (
                                 <>
@@ -255,31 +233,18 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                                 </>
                             )}
                         </div>
-
                         <div className="bg-primary-red/5 p-4 rounded-xl border border-primary-red/20 mt-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TimeInput label="Grand Prix Race" value={getValue(formState.race)} onChange={v => handleInputChange('race', v)} highlightColor="text-primary-red font-black" />
-                                <TimeInput label="Custom Lock Time (Optional)" value={getValue(formState.customLockAt)} onChange={v => handleInputChange('customLockAt', v)} />
+                                <TimeInput label="Custom Lock Time" value={getValue(formState.customLockAt)} onChange={v => handleInputChange('customLockAt', v)} />
                             </div>
                         </div>
                     </div>
-
                 </form>
 
-                {/* Footer */}
                 <div className="p-5 border-t border-pure-white/10 bg-carbon-black/50 flex justify-end gap-3">
-                    <button 
-                        type="button" 
-                        onClick={onClose}
-                        className="px-6 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white transition-colors bg-transparent border border-accent-gray hover:border-pure-white/50 rounded-lg"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="px-8 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg shadow-primary-red/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait transition-all transform hover:scale-105"
-                    >
+                    <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white border border-accent-gray rounded-lg">Cancel</button>
+                    <button onClick={handleSave} disabled={isSaving} className="px-8 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg flex items-center gap-2 disabled:opacity-50">
                         {isSaving ? 'Saving...' : <><SaveIcon className="w-4 h-4" /> Save Schedule</>}
                     </button>
                 </div>

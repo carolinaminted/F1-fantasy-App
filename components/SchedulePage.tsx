@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
@@ -20,23 +19,36 @@ const LEAGUE_TIMEZONE = 'America/New_York';
 
 /**
  * Robust parsing helper.
- * If the string lacks a timezone suffix (typical for datetime-local strings),
- * we append 'Z' to treat it as a fixed point in time, allowing the Intl formatters
- * to perform a consistent shift to the League Timezone.
+ * If the string lacks a timezone suffix (typical for datetime-local strings from Admin),
+ * we parse it while forcing it into the League's context (America/New_York).
  */
 const parseToDate = (isoString?: string) => {
     if (!isoString) return null;
-    const normalized = isoString.includes('T') && !isoString.includes('Z') 
-        ? `${isoString}:00Z` 
-        : isoString;
-    const date = new Date(normalized);
-    // Safety check for invalid dates
-    return isNaN(date.getTime()) ? null : date;
+    
+    // 1. If it's already an absolute ISO string from constants (ends with Z)
+    if (isoString.endsWith('Z')) return new Date(isoString);
+
+    // 2. If it's a local string from Admin (e.g. 2026-03-29T14:00)
+    // We must parse this as being in the context of the LEAGUE_TIMEZONE (EST/EDT)
+    try {
+        const normalized = isoString.replace(' ', 'T');
+        // Simple but effective: treat the string as browser local, then adjust for the TZ difference
+        const tempDate = new Date(normalized);
+        const leagueString = tempDate.toLocaleString('en-US', { timeZone: LEAGUE_TIMEZONE });
+        const leagueDate = new Date(leagueString);
+        const diff = tempDate.getTime() - leagueDate.getTime();
+        const finalDate = new Date(tempDate.getTime() + diff);
+        
+        return isNaN(finalDate.getTime()) ? null : finalDate;
+    } catch (e) {
+        const fallback = new Date(isoString);
+        return isNaN(fallback.getTime()) ? null : fallback;
+    }
 };
 
 /**
- * Robust formatting helpers to ensure the day of the week is decided 
- * AFTER conversion to the league timezone (EST/EDT).
+ * Robust formatting helpers to ensure the day and time are calculated 
+ * strictly in the league timezone (EST/EDT).
  */
 const formatSessionDate = (isoString?: string) => {
     const date = parseToDate(isoString);
@@ -61,6 +73,14 @@ const formatSessionTime = (isoString?: string) => {
     }).format(date);
 };
 
+// Fix: Add hexToRgba helper function to resolve "Cannot find name 'hexToRgba'" errors.
+const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -80,7 +100,11 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
         const now = new Date();
         return events.find(e => {
             const sched = schedules[e.id];
-            const raceTime = sched?.race ? new Date(sched.race) : new Date(e.lockAtUtc);
+            // Priority: admin scheduled time, else static constant
+            const raceRaw = sched?.race || e.lockAtUtc;
+            const raceTime = parseToDate(raceRaw);
+            if (!raceTime) return false;
+            
             const raceEndTime = new Date(raceTime.getTime() + 2 * 60 * 60 * 1000); 
             return raceEndTime > now;
         });
@@ -109,7 +133,6 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                 </button>
             </div>
 
-            {/* Legend - Only show in full view */}
             {viewMode === 'full' && events.length > 0 && (
                 <div className="flex items-center gap-3 bg-carbon-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-pure-white/10 shadow-xl animate-fade-in origin-top">
                     <div className="flex items-center gap-1.5">
@@ -129,36 +152,18 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
         </div>
     );
 
-    // Empty State Check
     if (!events || events.length === 0) {
         return (
             <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
                 <div className="flex-none">
-                    <PageHeader 
-                        title="SEASON CALENDAR" 
-                        icon={CalendarIcon} 
-                    />
+                    <PageHeader title="SEASON CALENDAR" icon={CalendarIcon} />
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-                    <div className="relative mb-6">
-                        <CalendarIcon className="w-24 h-24 text-accent-gray opacity-20" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-12 h-1 bg-primary-red rotate-45 rounded-full"></div>
-                        </div>
-                    </div>
-                    <h2 className="text-3xl font-black text-pure-white italic uppercase tracking-wider mb-3">No Races Found</h2>
-                    <p className="text-highlight-silver max-w-md mb-8 leading-relaxed">
-                        The season schedule is currently unavailable or has not been synchronized. Please try refreshing to fetch the latest grid data.
-                    </p>
-                    <button
-                        onClick={handleRetry}
-                        disabled={isRefreshing}
-                        className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg shadow-lg shadow-primary-red/20 transition-all transform active:scale-95 flex items-center gap-3 disabled:opacity-50"
-                    >
-                        {isRefreshing ? (
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        ) : null}
-                        {isRefreshing ? 'Retrying...' : 'Sync Calendar'}
+                    <CalendarIcon className="w-24 h-24 text-accent-gray opacity-20 mb-6" />
+                    <h2 className="text-3xl font-black text-pure-white italic uppercase mb-3">No Races Found</h2>
+                    <p className="text-highlight-silver max-w-md mb-8">The season schedule has not been synchronized.</p>
+                    <button onClick={handleRetry} disabled={isRefreshing} className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg">
+                        {isRefreshing ? 'Syncing...' : 'Sync Calendar'}
                     </button>
                 </div>
             </div>
@@ -177,28 +182,25 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                     />
                 </div>
 
-                {/* Upcoming View - Flex Container for Desktop */}
                 {viewMode === 'upcoming' && (
                     <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
                         <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-4 pb-8">
-                            {/* Hero: Next Race */}
                             {nextRace ? (
                                 <div className="mb-6 animate-fade-in flex-none">
                                     <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
                                 </div>
                             ) : (
                                 <div className="bg-carbon-fiber rounded-2xl p-8 border border-pure-white/5 text-center mb-6 opacity-60">
-                                    <p className="text-highlight-silver italic">The 2026 Season has concluded or not yet started.</p>
+                                    <p className="text-highlight-silver italic">The 2026 Season has concluded.</p>
                                 </div>
                             )}
 
-                            {/* Next 5 List */}
                             {upcomingRaces.length > 0 && (
                                 <div className="animate-fade-in-up">
-                                    <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider flex-none">Next 5 Rounds</h3>
+                                    <h3 className="text-lg font-bold text-highlight-silver mb-3 uppercase tracking-wider">Next 5 Rounds</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                         {upcomingRaces.map(event => (
-                                            <div key={event.id} className="md:h-full">
+                                            <div key={event.id}>
                                                 <CompactEventCard 
                                                     event={event} 
                                                     schedule={schedules[event.id]} 
@@ -214,9 +216,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                     </div>
                 )}
 
-                {/* Full Schedule List - Grid on Desktop */}
                 {viewMode === 'full' && (
-                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8 min-h-0">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map(event => (
                                 <EventGridCard 
@@ -232,7 +233,6 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                 )}
             </div>
 
-            {/* Event Detail Modal */}
             {selectedEvent && (
                 <EventDetailsModal 
                     event={selectedEvent} 
@@ -244,57 +244,32 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
     );
 };
 
-// --- Sub-components ---
-
-// Helper for styling
-const hexToRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
 const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ event, schedule }) => {
+    const raceRaw = schedule?.race || event.lockAtUtc;
     return (
         <div className="relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-r from-primary-red/20 to-transparent pointer-events-none"></div>
-            
             <div className="relative z-10 p-6 flex flex-col md:flex-row gap-8">
                 <div className="flex-1">
-                    <div className="inline-block bg-primary-red text-pure-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4">
-                        Next Grand Prix
-                    </div>
+                    <div className="inline-block bg-primary-red text-pure-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4">Next Grand Prix</div>
                     <h2 className="text-4xl md:text-5xl font-black text-pure-white mb-2 leading-none">{event.name}</h2>
                     <div className="flex flex-col gap-1 mb-6">
                         <div className="flex items-center gap-2 text-xl text-highlight-silver">
                             <span className="font-bold">{event.country}</span>
                             <span className="text-highlight-silver/70">, {event.location}</span>
-                            {event.hasSprint && (
-                                <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-xs px-2 py-0.5 rounded border border-yellow-500/30 ml-2 font-bold uppercase">
-                                    <SprintIcon className="w-3 h-3 text-yellow-500" />
-                                    Sprint
-                                </div>
-                            )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm font-bold text-highlight-silver/70">
+                        <div className="flex items-center gap-2 text-sm font-bold text-highlight-silver/70 mt-1">
                             <CircuitRoute eventId={event.id} className="w-5 h-5 text-highlight-silver" />
                             {event.circuit}
                         </div>
                     </div>
-                    
-                    <div className="bg-carbon-black/50 p-4 rounded-xl border border-pure-white/10 inline-block backdrop-blur-sm">
+                    <div className="bg-carbon-black/50 p-4 rounded-xl border border-pure-white/10 inline-block">
                         <p className="text-xs text-highlight-silver uppercase tracking-widest mb-1">Lights Out</p>
                         <p className="text-2xl md:text-3xl font-bold text-pure-white">
-                            {schedule?.race ? (
-                                <>
-                                    {formatSessionDate(schedule.race)} <span className="text-primary-red mx-1">•</span> {formatSessionTime(schedule.race)}
-                                </>
-                            ) : 'Time TBA'}
+                            {formatSessionDate(raceRaw)} <span className="text-primary-red mx-1">•</span> {formatSessionTime(raceRaw)}
                         </p>
-                        <p className="text-highlight-silver mt-1 text-[10px]">Eastern Time</p>
                     </div>
                 </div>
-
                 <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-5 border border-pure-white/5">
                     <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-4 border-b border-pure-white/10 pb-2">Session Timetable</h3>
                     <div className="space-y-3">
@@ -313,7 +288,7 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
                                 <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
                             </>
                         )}
-                        <SessionRow label="Grand Prix" time={schedule?.race} isRace />
+                        <SessionRow label="Grand Prix" time={raceRaw} isRace />
                     </div>
                 </div>
             </div>
@@ -322,62 +297,37 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
 };
 
 const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onClose: () => void }> = ({ event, schedule, onClose }) => {
+    const raceRaw = schedule?.race || event.lockAtUtc;
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
             <div className="w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
-                {/* Close Button */}
-                <button onClick={onClose} className="absolute top-4 right-4 z-20 bg-carbon-black/50 hover:bg-carbon-black text-pure-white rounded-full p-2 transition-colors border border-pure-white/10">
+                <button onClick={onClose} className="absolute top-4 right-4 z-20 bg-carbon-black/50 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/10">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
-
-                {/* Red Gradient Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary-red/20 via-transparent to-transparent pointer-events-none"></div>
-                
                 <div className="relative z-10 p-6 md:p-10 flex flex-col md:flex-row gap-8 md:gap-12">
-                    {/* Left Column: Event Info */}
                     <div className="flex-1 flex flex-col justify-center">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="text-xs font-bold text-highlight-silver bg-carbon-black/50 border border-pure-white/10 px-3 py-1 rounded-full uppercase tracking-wider">
-                                Round {event.round}
-                            </span>
-                            {event.hasSprint && (
-                                <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-xs px-2 py-1 rounded-full border border-yellow-500/30 font-bold uppercase">
-                                    <SprintIcon className="w-3 h-3 text-yellow-500" />
-                                    Sprint Weekend
-                                </div>
-                            )}
+                            <span className="text-xs font-bold text-highlight-silver bg-carbon-black/50 border border-pure-white/10 px-3 py-1 rounded-full uppercase">Round {event.round}</span>
                         </div>
-                        
                         <h2 className="text-4xl md:text-5xl font-black text-pure-white mb-2 leading-none">{event.name}</h2>
                         <div className="flex flex-col gap-1 mb-8">
-                            <p className="text-xl text-highlight-silver">
-                                <span className="font-bold text-pure-white">{event.country}</span>, {event.location}
-                            </p>
+                            <p className="text-xl text-highlight-silver"><span className="font-bold text-pure-white">{event.country}</span>, {event.location}</p>
                             <div className="flex items-center gap-2 text-sm font-bold text-highlight-silver/70 mt-1">
                                 <CircuitRoute eventId={event.id} className="w-5 h-5 text-highlight-silver" />
                                 {event.circuit}
                             </div>
                         </div>
-                        
-                        {/* Main Race Time Hero - Updated to match screenshot layout */}
-                        <div className="bg-carbon-black/60 p-5 rounded-xl border border-pure-white/10 backdrop-blur-md shadow-lg">
+                        <div className="bg-carbon-black/60 p-5 rounded-xl border border-pure-white/10 shadow-lg">
                             <p className="text-xs text-primary-red uppercase tracking-widest font-black mb-3">Grand Prix Start</p>
-                            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                                <span className="text-2xl md:text-3xl font-bold text-pure-white">
-                                    {schedule?.race ? formatSessionDate(schedule.race) : 'Date TBA'}
-                                </span>
-                                {schedule?.race && (
-                                    <span className="text-2xl md:text-3xl font-black text-pure-white tracking-tight">
-                                        {formatSessionTime(schedule.race)}
-                                    </span>
-                                )}
+                            <div className="flex flex-wrap items-baseline gap-x-4">
+                                <span className="text-2xl md:text-3xl font-bold text-pure-white">{formatSessionDate(raceRaw)}</span>
+                                <span className="text-2xl md:text-3xl font-black text-pure-white tracking-tight">{formatSessionTime(raceRaw)}</span>
                             </div>
                             <p className="text-highlight-silver/40 mt-2 text-[10px] uppercase font-bold tracking-widest">Eastern Standard Time</p>
                         </div>
                     </div>
-
-                    {/* Right Column: Full Timetable */}
-                    <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-6 border border-pure-white/5 shadow-lg">
+                    <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-6 border border-pure-white/5">
                         <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-5 border-b border-pure-white/10 pb-3 flex items-center gap-2">
                             <CalendarIcon className="w-4 h-4 text-highlight-silver" /> Session Timetable
                         </h3>
@@ -397,7 +347,7 @@ const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onCl
                                     <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
                                 </>
                             )}
-                            <SessionRow label="Grand Prix" time={schedule?.race} isRace />
+                            <SessionRow label="Grand Prix" time={raceRaw} isRace />
                         </div>
                     </div>
                 </div>
@@ -406,109 +356,87 @@ const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onCl
     );
 };
 
-const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; isRace?: boolean }> = ({ label, time, highlight, isRace }) => (
-    <div className={`flex justify-between items-center ${isRace ? 'pt-3 mt-3 border-t border-pure-white/10' : ''}`}>
-        <span className={`text-sm ${isRace ? 'font-bold text-primary-red uppercase tracking-wide' : (highlight ? 'font-bold text-pure-white' : 'font-medium text-highlight-silver')}`}>
-            {label}
-        </span>
-        <div className="text-right">
-            <span className="block text-sm font-bold text-pure-white">{formatSessionDate(time)}</span>
-            <span className={`block text-xs font-mono ${isRace ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{formatSessionTime(time)}</span>
+const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; isRace?: boolean }> = ({ label, time, highlight, isRace }) => {
+    if (!time) return (
+        <div className={`flex justify-between items-center ${isRace ? 'pt-3 mt-3 border-t border-pure-white/10' : ''}`}>
+            <span className={`text-sm ${isRace ? 'font-bold text-primary-red' : 'text-highlight-silver opacity-50'}`}>{label}</span>
+            <span className="text-xs font-bold text-highlight-silver opacity-30">TBA</span>
         </div>
-    </div>
-);
+    );
 
-const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => (
-    <button 
-        onClick={onClick}
-        className={`w-full text-left flex flex-col p-4 rounded-xl border transition-all duration-300 h-full justify-between group hover:scale-[1.02] ${isNext ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/10 hover:shadow-primary-red/20' : 'bg-carbon-fiber border-pure-white/10 shadow-lg hover:border-pure-white/30'}`}
-    >
-        <div className="w-full">
-            <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
-                {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
-            </div>
-            <h4 className="font-bold text-pure-white text-lg leading-tight mb-1 truncate">{event.country}</h4>
-            <p className="text-xs text-highlight-silver truncate">{event.location}</p>
-            <div className="flex items-center gap-1.5 mt-1 mb-3 opacity-70">
-                <CircuitRoute eventId={event.id} className="w-4 h-4 text-highlight-silver" />
-                <p className="text-[10px] text-highlight-silver truncate">{event.circuit}</p>
+    return (
+        <div className={`flex justify-between items-center ${isRace ? 'pt-3 mt-3 border-t border-pure-white/10' : ''}`}>
+            <span className={`text-sm ${isRace ? 'font-bold text-primary-red uppercase' : (highlight ? 'font-bold text-pure-white' : 'font-medium text-highlight-silver')}`}>
+                {label}
+            </span>
+            <div className="text-right">
+                <span className="block text-sm font-bold text-pure-white">{formatSessionDate(time)}</span>
+                <span className={`block text-xs font-mono ${isRace ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{formatSessionTime(time)}</span>
             </div>
         </div>
-        
-        <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
-            <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
-            <p className="font-bold text-sm text-pure-white">{schedule?.race ? formatSessionDate(schedule.race) : 'TBA'}</p>
-            <p className="text-xs text-primary-red font-mono">{schedule?.race ? formatSessionTime(schedule.race) : '-'}</p>
-        </div>
-    </button>
-);
+    );
+};
+
+const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => {
+    const raceRaw = schedule?.race || event.lockAtUtc;
+    return (
+        <button onClick={onClick} className={`w-full text-left flex flex-col p-4 rounded-xl border transition-all h-full justify-between group hover:scale-[1.02] ${isNext ? 'bg-carbon-black border-primary-red shadow-lg' : 'bg-carbon-fiber border-pure-white/10 shadow-lg'}`}>
+            <div className="w-full">
+                <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
+                    {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
+                </div>
+                <h4 className="font-bold text-pure-white text-lg leading-tight mb-1 truncate">{event.country}</h4>
+                <p className="text-xs text-highlight-silver truncate">{event.location}</p>
+            </div>
+            <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
+                <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
+                <p className="font-bold text-sm text-pure-white">{formatSessionDate(raceRaw)}</p>
+                <p className="text-xs text-primary-red font-mono">{formatSessionTime(raceRaw)}</p>
+            </div>
+        </button>
+    );
+};
 
 const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => {
-    // Determine card accent color
-    // Red for Next, Yellow for Sprint, Silver for default
-    let accentColor = '#C0C0C0'; 
-    if (event.hasSprint) accentColor = '#EAB308'; 
-    if (isNext) accentColor = '#DA291C'; 
-
-    const qualiTime = event.hasSprint ? schedule?.sprintQualifying : schedule?.qualifying;
+    const accentColor = event.hasSprint ? '#EAB308' : (isNext ? '#DA291C' : '#C0C0C0');
+    const qualiTime = event.hasSprint ? (schedule?.sprintQualifying || schedule?.qualifying) : schedule?.qualifying;
     const qualiLabel = event.hasSprint ? "Sprint Quali" : "Qualifying";
 
     return (
         <button 
             onClick={onClick}
-            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl group flex flex-col h-full min-h-[180px] focus:outline-none focus:ring-2 focus:ring-pure-white/20"
+            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-black border transition-all hover:scale-[1.02] flex flex-col h-full min-h-[180px]"
             style={{ 
                 borderColor: `${accentColor}60`, 
                 boxShadow: isNext ? `0 0 20px ${hexToRgba(accentColor, 0.2)}` : `0 0 10px ${hexToRgba(accentColor, 0.05)}`
             }} 
         >
-            {/* Color Flare Background */}
-            <div 
-                className="absolute inset-0 z-0 pointer-events-none opacity-10 transition-opacity duration-300 group-hover:opacity-25"
-                style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 75%)` }}
-            />
-
+            <div className="absolute inset-0 z-0 opacity-10" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 75%)` }} />
             <div className="relative z-10 p-5 flex flex-col h-full w-full">
                 <div className="flex justify-between items-start mb-4 w-full">
                     <div className="flex flex-col overflow-hidden">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-xs font-bold text-highlight-silver uppercase tracking-wider">Round</span>
+                            <span className="text-xs font-bold text-highlight-silver uppercase">Round</span>
                             <span className="text-2xl font-black text-pure-white leading-none">{event.round}</span>
                         </div>
-                        <h3 className="text-xl font-bold text-pure-white leading-tight truncate">{event.name}</h3>
+                        <h3 className="text-xl font-bold text-pure-white truncate">{event.name}</h3>
                         <p className="text-sm text-highlight-silver truncate mt-0.5">{event.location}, {event.country}</p>
                     </div>
-                    
-                    {/* Vertical Pill Indicator & Icon */}
-                    <div className="flex items-center gap-3 flex-shrink-0 ml-2">
-                        {event.hasSprint && (
-                            <SprintIcon className="w-7 h-7 text-yellow-500 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]" />
-                        )}
-                        <div 
-                            className="w-2 h-10 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]" 
-                            style={{ backgroundColor: accentColor, boxShadow: `0 0 8px ${accentColor}` }} 
-                        />
+                    <div className="flex items-center gap-3 ml-2">
+                        {event.hasSprint && <SprintIcon className="w-7 h-7 text-yellow-500" />}
+                        <div className="w-2 h-10 rounded-full" style={{ backgroundColor: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
                     </div>
                 </div>
-
                 <div className="mt-auto w-full pt-4 border-t border-pure-white/10">
                     <div className="flex items-end justify-between w-full">
                         <div>
                             <p className="text-[10px] text-highlight-silver uppercase font-bold tracking-wider mb-0.5">{qualiLabel}</p>
-                            <p className="font-semibold text-base text-ghost-white">
-                                {qualiTime ? formatSessionDate(qualiTime) : 'TBA'}
-                            </p>
+                            <p className="font-semibold text-base text-ghost-white">{formatSessionDate(qualiTime)}</p>
                         </div>
                         <div className="text-right flex flex-col items-end">
-                             <div className="mb-1">
-                                 <span className="bg-primary-red text-pure-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                    Picks Due
-                                 </span>
-                             </div>
-                             <p className="font-mono text-base font-bold text-pure-white">
-                                {qualiTime ? formatSessionTime(qualiTime) : '-'}
-                            </p>
+                             <span className="bg-primary-red text-pure-white text-[8px] font-black px-1.5 py-0.5 rounded mb-1 uppercase tracking-wider">Picks Due</span>
+                             <p className="font-mono text-base font-bold text-pure-white">{formatSessionTime(qualiTime)}</p>
                         </div>
                     </div>
                 </div>
