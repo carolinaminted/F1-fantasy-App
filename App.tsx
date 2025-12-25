@@ -663,7 +663,12 @@ const App: React.FC = () => {
             <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             
             <main className={`relative p-4 md:p-8 ${isLockedLayout ? 'h-full' : 'min-h-full'}`}>
-                <ErrorBoundary onReset={() => {}}>
+                <ErrorBoundary 
+                  onReset={() => {
+                    navigateToPage('home');
+                    window.location.reload();
+                  }}
+                >
                     {renderPage()}
                 </ErrorBoundary>
             </main>

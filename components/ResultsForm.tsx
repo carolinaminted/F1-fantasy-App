@@ -38,7 +38,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         setActiveSession(null); 
     }, [currentResults, event]);
 
-    // Sort drivers by team rank (matching Picks form logic)
     const sortedDrivers = useMemo(() => {
         return [...allDrivers].sort((a, b) => {
             const getRank = (id: string) => {
@@ -99,7 +98,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     <h4 className="text-2xl font-bold text-pure-white">{title}</h4>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {/* Option to clear selection */}
                     <div
                         onClick={() => handleSelection(null)}
                         className="p-1.5 rounded-lg border-2 border-accent-gray bg-carbon-black/50 hover:border-highlight-silver cursor-pointer flex items-center justify-center min-h-[3.5rem] text-highlight-silver font-bold italic"
@@ -237,7 +235,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     return (
         <div className="text-pure-white flex flex-col min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-                {/* Header */}
                 <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-end mb-4 pb-4 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="flex-1">
@@ -269,7 +266,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                        <div className="flex items-end gap-3 flex-shrink-0 ml-2">
                             <button
                                 type="button"
                                 onClick={onToggleLock}
@@ -293,7 +290,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     </div>
                 </div>
 
-                {/* Content Body */}
                 <div className="flex-1">
                     {!event.hasSprint ? (
                         <section className="bg-carbon-black/40 rounded-xl p-6 border border-pure-white/5 flex flex-col mb-6">
@@ -337,7 +333,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                 </div>
             </form>
 
-            {/* Selection Modal */}
             {modalContent && (
                 <div 
                     className="fixed inset-0 bg-carbon-black/80 flex items-end md:items-center justify-center z-[999] md:p-4 pb-safe md:pb-4" 
