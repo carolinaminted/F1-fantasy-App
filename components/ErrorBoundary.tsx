@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -13,15 +13,16 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Use React.Component for robust inheritance to ensure state, props, and setState visibility to TypeScript.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly call super(props) and initialize state to resolve "Property does not exist on type 'ErrorBoundary'" errors.
+// Fix: Inherit from Component directly to ensure proper type resolution for inherited properties and methods.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Explicitly declare and initialize state as a class property to ensure it's correctly typed and accessible to the compiler.
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null
-    };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -32,7 +33,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  // Fix: Access inherited 'props' and 'setState' from the React.Component base class via 'this'.
+  // Fix: Access inherited 'props' and 'setState' from the base class via 'this' within the arrow function.
   handleReload = (): void => {
     const { onReset } = this.props;
     if (onReset) {
@@ -44,7 +45,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   render(): ReactNode {
-    // Fix: Correctly access state and props from 'this' within the render method.
+    // Fix: Correctly access inherited 'state' and 'props' from 'this'.
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 
@@ -61,7 +62,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             Safety Car Deployed
           </h2>
           
-          <p className="text-highlight-silver max-md mb-8 text-lg leading-relaxed">
+          <p className="text-highlight-silver max-w-md mb-8 text-lg leading-relaxed">
             We hit an unexpected barrier on track. The session has been neutralized while we clear the debris.
           </p>
           

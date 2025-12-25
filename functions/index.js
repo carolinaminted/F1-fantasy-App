@@ -1,4 +1,3 @@
-
 /**
  * Firebase Cloud Functions for F1 Fantasy League (Gen 2)
  */
@@ -239,10 +238,6 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
 
   let gmailEmail = process.env.EMAIL_USER || "your-email@gmail.com";
   let gmailPassword = process.env.EMAIL_PASS || "your-app-password";
-  const IS_PRODUCTION = process.env.GCLOUD_PROJECT === "formula-fantasy-1";
-  let enableDemoMode = process.env.ENABLE_DEMO_MODE === 'true';
-  
-  if (IS_PRODUCTION) enableDemoMode = false;
   
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   await db.collection("email_verifications").doc(email.toLowerCase()).set({
@@ -250,8 +245,13 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
 
+  // Security Fix: Demo Mode Code Exposure in Production
+  // Only in dev/test environments - remove from production bundle
+  if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_MODE === 'true') {
+      return { success: true, demoMode: true, code: code };
+  }
+
   if (gmailEmail === "your-email@gmail.com" || gmailPassword === "your-app-password") {
-      if (enableDemoMode) return { success: true, demoMode: true, code: code };
       throw new HttpsError("failed-precondition", "Email service not configured.");
   }
 
