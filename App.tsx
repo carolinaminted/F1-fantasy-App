@@ -1,5 +1,4 @@
 
-
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -104,7 +103,6 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 setIsDropdownOpen(false);
             }
         };
-        // Fix: Use correct event listener callback name and remove non-existent 'Bird' object.
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
@@ -256,10 +254,21 @@ const App: React.FC = () => {
   const mergedEvents = useMemo(() => {
       return EVENTS.map(e => {
           const sched = eventSchedules[e.id];
+          const hasSprint = sched?.hasSprint !== undefined ? sched.hasSprint : e.hasSprint;
+          
+          // CRITICAL: Determine lock time based on the imported schedule data
+          // Preference: customLockAt > sprintQualifying (if sprint) > qualifying
+          let lockAt = e.lockAtUtc;
+          if (sched) {
+              lockAt = sched.customLockAt || (hasSprint ? (sched.sprintQualifying || sched.qualifying) : sched.qualifying) || e.lockAtUtc;
+          }
+
           return {
               ...e,
               name: sched?.name || e.name,
-              hasSprint: sched?.hasSprint !== undefined ? sched.hasSprint : e.hasSprint
+              hasSprint,
+              lockAtUtc: lockAt,
+              softDeadlineUtc: lockAt // Sync for now
           };
       });
   }, [eventSchedules]);

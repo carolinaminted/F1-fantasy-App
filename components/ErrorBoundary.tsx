@@ -46,8 +46,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    */
   // Fix: Use arrow function for consistent 'this' binding to access this.props and this.setState.
   handleReload = (): void => {
+    // Fix: Access props from instance context using 'this'.
     const { onReset } = this.props;
     if (onReset) {
+        // Fix: Access setState from inherited Component class.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {

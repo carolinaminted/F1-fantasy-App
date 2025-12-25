@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { EVENTS } from '../constants.ts';
@@ -6,23 +7,26 @@ import { BackIcon } from './icons/BackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
+import { DownloadIcon } from './icons/DownloadIcon.tsx';
+import { SyncIcon } from './icons/SyncIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { db } from '../services/firebase.ts';
+import { doc, setDoc } from '@firebase/firestore';
 
-/**
- * LEAGUE TIMEZONE CONFIGURATION
- * All session dates and times are interpreted and displayed in America/New_York.
- */
 const LEAGUE_TIMEZONE = 'America/New_York';
 
 interface ManageSchedulePageProps {
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
     existingSchedules: { [eventId: string]: EventSchedule };
     onScheduleUpdate: () => void;
 }
 
 const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage, existingSchedules, onScheduleUpdate }) => {
     const [editingEventId, setEditingEventId] = useState<string | null>(null);
+    const [showImporter, setShowImporter] = useState(false);
+    const [importData, setImportData] = useState('');
+    const [isSyncing, setIsSyncing] = useState(false);
     const { showToast } = useToast();
 
     const handleSave = async (eventId: string, data: EventSchedule) => {
@@ -37,15 +41,70 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
         }
     };
 
+    const handleBulkImport = async () => {
+        let raw = importData.trim();
+        if (!raw) return;
+
+        // Auto-wrap with braces if missing
+        if (!raw.startsWith('{')) {
+            raw = `{${raw}}`;
+        }
+
+        setIsSyncing(true);
+        try {
+            const parsed = JSON.parse(raw);
+            const schedulesRef = doc(db, 'app_state', 'event_schedules');
+            
+            const newScheduleData: Record<string, EventSchedule> = { ...existingSchedules };
+            Object.entries(parsed).forEach(([id, data]: [string, any]) => {
+                newScheduleData[id] = {
+                    ...newScheduleData[id],
+                    ...data,
+                    eventId: id
+                } as EventSchedule;
+            });
+            
+            await setDoc(schedulesRef, newScheduleData);
+            onScheduleUpdate();
+            showToast("Firebase records updated successfully!", 'success');
+            setShowImporter(false);
+            setImportData('');
+        } catch (error) {
+            console.error("Import error:", error);
+            showToast("Invalid format. Ensure you have valid key:value pairs.", 'error');
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    const copyTemplate = () => {
+        const template = {
+            "aus_26": { "fp1": "2026-03-05T20:30", "fp2": "2026-03-06T00:00", "fp3": "2026-03-06T20:30", "qualifying": "2026-03-07T00:00", "race": "2026-03-07T23:00" },
+            "chn_26": { "fp1": "2026-03-12T22:30", "sprintQualifying": "2026-03-13T02:30", "sprint": "2026-03-13T22:00", "qualifying": "2026-03-14T02:00", "race": "2026-03-15T02:00", "hasSprint": true }
+        };
+        navigator.clipboard.writeText(JSON.stringify(template, null, 2));
+        showToast("Template copied to clipboard", 'info');
+    };
+
     const selectedEvent = EVENTS.find(e => e.id === editingEventId);
 
     const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10"
         >
             <BackIcon className="w-4 h-4" /> 
             <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
+    const SyncHeaderAction = (
+        <button
+            onClick={() => setShowImporter(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest bg-primary-red text-pure-white hover:opacity-90 shadow-lg"
+        >
+            <SyncIcon className="w-4 h-4" />
+            <span>Bulk Import JSON</span>
         </button>
     );
 
@@ -57,6 +116,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                     icon={CalendarIcon} 
                     subtitle="Admin: Manage session times in Eastern Time"
                     leftAction={DashboardAction}
+                    rightAction={SyncHeaderAction}
                 />
             </div>
 
@@ -72,6 +132,39 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                     ))}
                 </div>
             </div>
+
+            {/* Bulk Importer Modal */}
+            {showImporter && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => setShowImporter(false)}>
+                    <div className="bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl w-full max-w-2xl p-6 flex flex-col gap-4 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <DownloadIcon className="w-5 h-5 text-primary-red" />
+                                Database Importer
+                            </h2>
+                            <button onClick={copyTemplate} className="text-xs font-bold text-highlight-silver hover:text-pure-white bg-pure-white/5 px-2 py-1 rounded">Copy Example Template</button>
+                        </div>
+                        <p className="text-sm text-highlight-silver">Paste your JSON schedule data below. If you omit the outer braces {`{ }`}, the app will try to add them for you.</p>
+                        <textarea 
+                            value={importData}
+                            onChange={(e) => setImportData(e.target.value)}
+                            placeholder='"aus_26": { "race": "2026-03-07T23:00", ... }, ...'
+                            className="w-full h-80 bg-carbon-black border border-accent-gray rounded-lg p-4 font-mono text-xs text-pure-white focus:outline-none focus:border-primary-red"
+                        />
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button onClick={() => setShowImporter(false)} className="px-6 py-2 text-sm font-bold text-highlight-silver">Cancel</button>
+                            <button 
+                                onClick={handleBulkImport} 
+                                disabled={isSyncing || !importData.trim()}
+                                className="px-8 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isSyncing ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
+                                Push to Firebase
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {selectedEvent && (
                 <ScheduleEditorModal 
@@ -97,8 +190,9 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
     const accentColor = isSprint ? '#EAB308' : '#DA291C';
 
     const displayDate = useMemo(() => {
-        const rawDate = schedule?.race || event.lockAtUtc;
-        // Parse safely assuming League Time for display logic
+        const rawDate = schedule?.race;
+        if (!rawDate) return 'TBA';
+        
         const date = new Date(rawDate);
         if (isNaN(date.getTime())) return 'TBA';
         
@@ -107,7 +201,7 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
             day: 'numeric',
             timeZone: LEAGUE_TIMEZONE
         }).format(date);
-    }, [schedule, event]);
+    }, [schedule]);
 
     return (
         <button 
@@ -137,7 +231,7 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
                 <p className="text-xs font-medium text-highlight-silver opacity-80 uppercase tracking-wider mb-4">
                     {event.location}, {event.country}
                 </p>
-                <div className="text-[11px] font-black text-pure-white px-3 py-1 rounded bg-carbon-black/80 border border-pure-white/10 shadow-lg tracking-widest uppercase">
+                <div className={`text-[11px] font-black text-pure-white px-3 py-1 rounded bg-carbon-black/80 border border-pure-white/10 shadow-lg tracking-widest uppercase ${!hasData ? 'opacity-30' : ''}`}>
                     {displayDate}
                 </div>
             </div>
@@ -159,7 +253,6 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-        // Ensure all strings are captured correctly
         await onSave(event.id, { ...formState, eventId: event.id } as EventSchedule);
         setIsSaving(false);
     };
@@ -192,7 +285,7 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                         <div className="bg-blue-500 p-2 rounded-lg text-white"><CalendarIcon className="w-5 h-5" /></div>
                         <div>
                             <h4 className="text-sm font-bold text-white uppercase">League Timezone Active: EST/EDT</h4>
-                            <p className="text-xs text-highlight-silver mt-0.5">Please enter all session times as they should appear for the New York audience. The app will ensure they stay locked to this point in time for all global members.</p>
+                            <p className="text-xs text-highlight-silver mt-0.5">Please enter all session times as they should appear for the New York audience.</p>
                         </div>
                     </div>
 

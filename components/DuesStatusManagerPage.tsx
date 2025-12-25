@@ -23,7 +23,8 @@ const DuesStatusManagerPage: React.FC<DuesStatusManagerPageProps> = ({ setAdminS
     useEffect(() => {
         const fetchUsers = async () => {
             setIsLoading(true);
-            const users = await getAllUsers();
+            // Fix: Destructure the response from getAllUsers to get the users array.
+            const { users } = await getAllUsers();
             setAllUsers(users); // Include all users
             setIsLoading(false);
         };
