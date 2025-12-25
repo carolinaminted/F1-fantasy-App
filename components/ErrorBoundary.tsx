@@ -12,16 +12,13 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Use Component explicitly from the 'react' import for inheritance to ensure TypeScript correctly resolves properties like 'state', 'props', and 'setState'.
+// Fix: Use Component from named imports and avoid constructor to resolve "Property does not exist on type 'ErrorBoundary'" errors by using property initializers for state.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    // Fix: Correctly initialize component state on the instance within the constructor.
-    this.state = {
-      hasError: false,
-      error: null
-    };
-  }
+  // Fix: Property initializer for state ensures the 'state' property exists on the ErrorBoundary instance.
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -32,10 +29,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   handleReload = (): void => {
-    // Fix: Access props from the class instance using 'this.props'.
+    // Fix: Access inherited 'props' from the Component base class.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Use setState correctly from the class instance using 'this.setState'.
+        // Fix: Access inherited 'setState' from the Component base class using 'this.setState'.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -44,9 +41,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render(): ReactNode {
-    // Fix: Access state from the class instance using 'this.state'.
+    // Fix: Access state and props from the Component base class using 'this.state' and 'this.props'.
     const { hasError, error } = this.state;
-    // Fix: Access props from the class instance using 'this.props'.
     const { children, fallback } = this.props;
 
     if (hasError) {

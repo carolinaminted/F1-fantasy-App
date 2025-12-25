@@ -106,7 +106,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     );
 
     return (
-        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white h-full md:overflow-hidden">
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white min-h-full">
             <div className="flex-none">
                 <PageHeader 
                     title="RESULTS MANAGER" 
@@ -115,7 +115,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                 />
             </div>
             
-            <div className="flex-1 flex flex-col px-4 md:px-0 md:min-h-0">
+            <div className="flex flex-col px-4 md:px-0">
                 {/* Control Bar */}
                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between flex-shrink-0 shadow-lg">
                     <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
@@ -148,8 +148,8 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     </div>
                 </div>
 
-                {/* Main Form Area - Scrollable Container */}
-                <div className="w-full max-w-6xl mx-auto flex-1 md:overflow-y-auto custom-scrollbar md:pr-2 pb-32 md:pb-12 min-h-0">
+                {/* Main Form Area - Expanded natural height, no internal desktop scroll */}
+                <div className="w-full max-w-6xl mx-auto pb-32 md:pb-12">
                     {selectedEvent ? (
                         <div className="bg-carbon-fiber rounded-xl p-4 md:p-6 border border-pure-white/10 shadow-2xl flex flex-col mb-4">
                             <ResultsForm
@@ -166,7 +166,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                             </p>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-64 md:h-full min-h-[400px] bg-accent-gray/20 rounded-xl border-2 border-dashed border-accent-gray/50 m-2">
+                        <div className="flex flex-col items-center justify-center h-64 md:h-96 bg-accent-gray/20 rounded-xl border-2 border-dashed border-accent-gray/50 m-2">
                             <TrackIcon className="w-16 h-16 text-accent-gray mb-6 opacity-20" />
                             <h3 className="text-xl font-bold text-highlight-silver mb-2">Awaiting Race Telemetry</h3>
                             <p className="text-highlight-silver/50 text-sm max-w-xs text-center">Select an event from the roster above to manage session results and lock statuses.</p>

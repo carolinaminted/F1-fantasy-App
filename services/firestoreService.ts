@@ -382,3 +382,13 @@ export const createBulkInvitationCodes = async (adminUid: string, count: number)
     }
     await batch.commit();
 };
+
+export const deleteInvitationCode = async (code: string): Promise<void> => {
+    const codeRef = doc(db, 'invitation_codes', code);
+    try {
+        await deleteDoc(codeRef);
+    } catch (error) {
+        console.error("Error deleting invitation code", error);
+        throw error;
+    }
+};
