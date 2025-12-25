@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
@@ -114,7 +115,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                 />
             </div>
             
-            <div className="flex-1 flex flex-col px-4 md:px-0 pb-8">
+            <div className="flex-1 flex flex-col px-4 md:px-0 pb-32 md:pb-8">
                 {/* Control Bar */}
                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-3 mb-2 md:mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center justify-between flex-shrink-0">
                     <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
