@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, InvitationCode } from '../types.ts';
 import { getInvitationCodes, createInvitationCode, createBulkInvitationCodes } from '../services/firestoreService.ts';
@@ -9,7 +8,7 @@ import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminInvitationPageProps {
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
     user: User | null;
 }
 

@@ -1,4 +1,3 @@
-
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -12,7 +11,6 @@ import ResultsManagerPage from './components/ResultsManagerPage.tsx';
 import ManageUsersPage from './components/ManageUsersPage.tsx';
 import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
 import ManageSchedulePage from './components/ManageSchedulePage.tsx';
-import AdminSimulationPage from './components/AdminSimulationPage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
 import AdminInvitationPage from './components/AdminInvitationPage.tsx';
 import PointsTransparency from './components/PointsTransparency.tsx';
@@ -204,7 +202,7 @@ const App: React.FC = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [activePage, setActivePage] = useState<Page>('home');
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -217,7 +215,6 @@ const App: React.FC = () => {
   const lockedDesktopPages: Page[] = [
       'donate', 
       'duesPayment', 
-      'admin',
       'leaderboard',
       'league-hub',
       'points', 
@@ -226,7 +223,8 @@ const App: React.FC = () => {
       'schedule'
   ];
   
-  const isLockedLayout = lockedDesktopPages.includes(activePage);
+  // Updated: Include Admin Dashboard specifically in the locked layout logic for desktop view
+  const isLockedLayout = lockedDesktopPages.includes(activePage) || (activePage === 'admin' && adminSubPage === 'dashboard');
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
   const [leaderboardCache, setLeaderboardCache] = useState<LeaderboardCache | null>(null);
@@ -614,8 +612,6 @@ const App: React.FC = () => {
                 return <ManageEntitiesPage setAdminSubPage={setAdminSubPage} currentDrivers={allDrivers} currentConstructors={allConstructors} onUpdateEntities={handleEntitiesUpdate} />;
             case 'schedule':
                 return <ManageSchedulePage setAdminSubPage={setAdminSubPage} existingSchedules={eventSchedules} onScheduleUpdate={handleScheduleUpdate} />;
-            case 'simulation':
-                return <AdminSimulationPage setAdminSubPage={setAdminSubPage} pointsSystem={activePointsSystem} />;
             case 'invitations':
                 return <AdminInvitationPage setAdminSubPage={setAdminSubPage} user={user} />;
             default:

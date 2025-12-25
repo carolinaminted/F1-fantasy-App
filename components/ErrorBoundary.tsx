@@ -12,15 +12,15 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Use explicit 'Component' import and extension to ensure 'props' and 'setState' are properly inherited and typed from React.Component.
+// Fix: Use Component explicitly from the 'react' import for inheritance to ensure TypeScript correctly resolves properties like 'state', 'props', and 'setState'.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = {
-    hasError: false,
-    error: null
-  };
-
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    // Fix: Correctly initialize component state on the instance within the constructor.
+    this.state = {
+      hasError: false,
+      error: null
+    };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -32,10 +32,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   handleReload = (): void => {
-    // Fix: Access 'props' which is inherited from the Component base class.
+    // Fix: Access props from the class instance using 'this.props'.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Access 'setState' which is inherited from the Component base class.
+        // Fix: Use setState correctly from the class instance using 'this.setState'.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -44,8 +44,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render(): ReactNode {
+    // Fix: Access state from the class instance using 'this.state'.
     const { hasError, error } = this.state;
-    // Fix: Access 'props' from the Component instance during render.
+    // Fix: Access props from the class instance using 'this.props'.
     const { children, fallback } = this.props;
 
     if (hasError) {

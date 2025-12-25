@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -13,7 +12,7 @@ import { triggerManualLeaderboardSync } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {

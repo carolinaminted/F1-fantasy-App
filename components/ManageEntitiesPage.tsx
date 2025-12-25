@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Driver, Constructor, EntityClass } from '../types.ts';
 import { saveLeagueEntities } from '../services/firestoreService.ts';
@@ -12,7 +11,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 
 interface ManageEntitiesPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
     currentDrivers: Driver[];
     currentConstructors: Constructor[];
     onUpdateEntities: (drivers: Driver[], constructors: Constructor[]) => void;
@@ -40,6 +39,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
     const { showToast } = useToast();
 
     const openModal = (entity?: Driver | Constructor) => {
+        if (isSaving) return;
         if (entity) {
             setEditEntityId(entity.id);
             setFormName(entity.name);
@@ -64,6 +64,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
     };
 
     const handleSave = async () => {
+        if (isSaving) return;
         setIsSaving(true);
         try {
             await saveLeagueEntities(drivers, constructors);
@@ -110,6 +111,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
     };
 
     const toggleActive = (id: string, type: 'drivers' | 'teams') => {
+        if (isSaving) return;
         if (type === 'drivers') {
             setDrivers(prev => prev.map(d => d.id === id ? { ...d, isActive: !d.isActive } : d));
         } else {
@@ -140,14 +142,16 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
         <div className="flex gap-3 items-center justify-center md:justify-end w-full md:w-auto mt-4 md:mt-0">
              <div className="flex bg-accent-gray rounded-lg p-1 shadow-lg">
                 <button
-                    onClick={() => setActiveTab('drivers')}
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                    onClick={() => !isSaving && setActiveTab('drivers')}
+                    disabled={isSaving}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${activeTab === 'drivers' ? 'bg-pure-white text-carbon-black shadow-sm' : 'text-highlight-silver hover:text-pure-white'} disabled:opacity-50`}
                 >
                     <DriverIcon className="w-4 h-4" /> Drivers
                 </button>
                 <button
-                    onClick={() => setActiveTab('teams')}
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${activeTab === 'teams' ? 'bg-pure-white text-carbon-black shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                    onClick={() => !isSaving && setActiveTab('teams')}
+                    disabled={isSaving}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${activeTab === 'teams' ? 'bg-pure-white text-carbon-black shadow-sm' : 'text-highlight-silver hover:text-pure-white'} disabled:opacity-50`}
                 >
                     <TeamIcon className="w-4 h-4" /> Teams
                 </button>
@@ -181,10 +185,8 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                 rightAction={HeaderControls}
             />
             
-            {/* Outer container: flex-1 allows desktop layout to fill screen, md:overflow-hidden keeps scroll localized to table on desktop */}
-            <div className="flex-1 md:overflow-hidden px-4 md:px-0 pb-8 flex flex-col">
-                {/* Content Card: md:flex-1 and md:overflow-hidden ensures desktop scrolling, while allowing natural expansion on mobile */}
-                <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1">
+            <div className="flex-1 md:overflow-hidden px-4 md:px-1 pb-8 flex flex-col">
+                <div className={`bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1 transition-opacity ${isSaving ? 'opacity-60 cursor-wait' : ''}`}>
                     <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
                         <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
                         
@@ -192,24 +194,29 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                             {(['all', 'active', 'inactive'] as const).map((status) => (
                                 <button
                                     key={status}
-                                    onClick={() => setFilterStatus(status)}
+                                    onClick={() => !isSaving && setFilterStatus(status)}
+                                    disabled={isSaving}
                                     className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors ${
                                         filterStatus === status 
                                         ? 'bg-primary-red text-pure-white' 
                                         : 'text-highlight-silver hover:text-pure-white'
-                                    }`}
+                                    } disabled:opacity-30`}
                                 >
                                     {status}
                                 </button>
                             ))}
                         </div>
 
-                        <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-500 text-pure-white px-4 py-1.5 rounded text-sm font-bold w-full md:w-auto">
+                        <button 
+                            onClick={() => !isSaving && openModal()} 
+                            disabled={isSaving}
+                            className="bg-blue-600 hover:bg-blue-500 text-pure-white px-4 py-1.5 rounded text-sm font-bold w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             + Add New
                         </button>
                     </div>
-                    {/* Table Container: md:overflow-y-auto ensures the table is scrollable only on desktop/large screens. Added pb-32 to mobile to avoid nav overlap. */}
-                    <div className="overflow-y-auto md:flex-1 custom-scrollbar pb-32 md:pb-0">
+                    
+                    <div className={`overflow-y-auto md:flex-1 custom-scrollbar pb-32 md:pb-0 ${isSaving ? 'pointer-events-none' : ''}`}>
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
                                 <tr>
@@ -375,7 +382,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
 
                             <div className="flex justify-end gap-2 mt-6">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-highlight-silver hover:text-pure-white">Cancel</button>
-                                <button type="submit" className="bg-primary-red px-6 py-2 rounded text-pure-white font-bold hover:opacity-90">Save</button>
+                                <button type="submit" className="bg-primary-red px-6 py-2 rounded text-pure-white font-bold hover:opacity-90">Add to List</button>
                             </div>
                         </form>
                     </div>

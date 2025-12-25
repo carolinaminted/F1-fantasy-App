@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ScoringSettingsDoc, ScoringProfile, PointsSystem } from '../types.ts';
 import { saveScoringSettings } from '../services/firestoreService.ts';
@@ -11,7 +10,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
 }
 
 const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, setAdminSubPage }) => {
@@ -32,6 +31,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     }, [settings]);
 
     const handleProfileSelect = (profileId: string) => {
+        if (isSaving) return;
         const profile = localSettings.profiles.find(p => p.id === profileId);
         if (profile) {
             setEditForm(JSON.parse(JSON.stringify(profile)));
@@ -39,6 +39,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     };
 
     const handleCreateNew = () => {
+        if (isSaving) return;
         const newId = `profile_${Date.now()}`;
         const newProfile: ScoringProfile = {
             id: newId,
@@ -53,7 +54,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     };
 
     const handleDelete = async () => {
-        if (!editForm) return;
+        if (!editForm || isSaving) return;
         if (editForm.id === localSettings.activeProfileId) {
             showToast("Cannot delete the active profile.", 'error');
             return;
@@ -79,12 +80,24 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     };
 
     const handleMakeActive = async () => {
-        if (!editForm) return;
-        await handleSaveProfile(false); 
-
-        const newSettings = { ...localSettings, activeProfileId: editForm.id };
+        if (!editForm || isSaving) return;
         setIsSaving(true);
         try {
+            // Internal call to save the current state of the form before activating
+            let updatedProfiles = [...localSettings.profiles];
+            const existingIndex = updatedProfiles.findIndex(p => p.id === editForm.id);
+            if (existingIndex >= 0) {
+                updatedProfiles[existingIndex] = editForm;
+            } else {
+                updatedProfiles.push(editForm);
+            }
+
+            const newSettings = { 
+                ...localSettings, 
+                profiles: updatedProfiles,
+                activeProfileId: editForm.id 
+            };
+            
             await saveScoringSettings(newSettings);
             setLocalSettings(newSettings);
             showToast(`"${editForm.name}" is now the active scoring system.`, 'success');
@@ -97,7 +110,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     };
 
     const handleSaveProfile = async (showAlert = true) => {
-        if (!editForm) return;
+        if (!editForm || isSaving) return;
 
         let updatedProfiles: ScoringProfile[];
         const existingIndex = localSettings.profiles.findIndex(p => p.id === editForm.id);
@@ -164,7 +177,6 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
             <div className="px-4 md:px-0 space-y-6">
                 {/* Main Profile Control Card */}
                 <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-2xl relative overflow-hidden">
-                    <div className="absolute inset-0 bg-checkered-flag opacity-[0.03] pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
                         <div className="flex-1 w-full space-y-2">
                              <ProfileDropdown 
@@ -172,20 +184,23 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 activeProfileId={localSettings.activeProfileId}
                                 selectedProfileId={editForm?.id || ''}
                                 onSelect={handleProfileSelect}
+                                disabled={isSaving}
                             />
                             <div className="flex gap-4 px-1">
                                 <button
                                     onClick={handleCreateNew}
-                                    className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-pure-white transition-colors"
+                                    disabled={isSaving}
+                                    className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-pure-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     + New
                                 </button>
                                 {!isActiveProfile && editForm && (
                                     <button
                                         onClick={handleDelete}
-                                        className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-primary-red transition-colors"
+                                        disabled={isSaving}
+                                        className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-primary-red transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                     >
-                                        Delete
+                                        {isSaving ? 'Deleting...' : 'Delete'}
                                     </button>
                                 )}
                             </div>
@@ -195,7 +210,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             <button
                                 onClick={() => handleSaveProfile(true)}
                                 disabled={isSaving}
-                                className="w-full md:w-48 bg-primary-red hover:bg-red-600 text-pure-white font-black py-3 rounded-xl shadow-[0_0_20px_rgba(218,41,28,0.3)] transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 uppercase tracking-widest text-sm"
+                                className="w-full md:w-48 bg-primary-red hover:bg-red-600 text-pure-white font-black py-3 rounded-xl shadow-[0_0_20px_rgba(218,41,28,0.3)] transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
                             >
                                 {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
@@ -203,9 +218,10 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             {!isActiveProfile && editForm && (
                                 <button
                                     onClick={handleMakeActive}
-                                    className="text-[10px] text-center font-black uppercase tracking-widest text-green-500 hover:underline"
+                                    disabled={isSaving}
+                                    className="text-[10px] text-center font-black uppercase tracking-widest text-green-500 hover:underline disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
-                                    Make Active System
+                                    {isSaving ? 'Recalculating...' : 'Make Active System'}
                                 </button>
                             )}
                         </div>
@@ -213,7 +229,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                 </div>
 
                 {editForm ? (
-                    <div className="space-y-6 animate-fade-in">
+                    <div className={`space-y-6 animate-fade-in ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
                         
                         {/* Profile Name Field */}
                         <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
@@ -224,10 +240,11 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                                 className="w-full bg-transparent border-b border-pure-white/10 focus:border-primary-red text-4xl font-black text-pure-white placeholder-pure-white/10 focus:outline-none transition-colors py-2 italic uppercase tracking-tighter"
                                 placeholder="Season 2026"
+                                disabled={isSaving}
                             />
                         </div>
 
-                        {/* Fastest Lap Field (Matches Screenshot with Carbon Fiber Background) */}
+                        {/* Fastest Lap Field */}
                         <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
                             <label className="block text-[10px] font-black uppercase text-highlight-silver mb-4 tracking-[0.2em]">Fastest Lap Bonus</label>
                             <div className="flex items-center gap-4 max-w-sm">
@@ -239,6 +256,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                         value={editForm.config.fastestLap}
                                         onChange={handleScalarChange}
                                         className="w-full bg-transparent text-2xl font-black text-pure-white focus:outline-none text-right pr-2"
+                                        disabled={isSaving}
                                     />
                                     <span className="text-[10px] font-black text-highlight-silver uppercase tracking-widest ml-1">pts</span>
                                 </div>
@@ -253,6 +271,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 values={editForm.config.grandPrixFinish}
                                 onChange={(idx, val) => handleArrayChange('grandPrixFinish', idx, val)}
                                 colorClass="text-primary-red"
+                                disabled={isSaving}
                             />
                             <PointArraySection 
                                 title="Sprint Finish" 
@@ -260,6 +279,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 values={editForm.config.sprintFinish}
                                 onChange={(idx, val) => handleArrayChange('sprintFinish', idx, val)}
                                 colorClass="text-yellow-500"
+                                disabled={isSaving}
                             />
                             <PointArraySection 
                                 title="GP Qualifying" 
@@ -267,6 +287,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 values={editForm.config.gpQualifying}
                                 onChange={(idx, val) => handleArrayChange('gpQualifying', idx, val)}
                                 colorClass="text-blue-500"
+                                disabled={isSaving}
                             />
                             <PointArraySection 
                                 title="Sprint Qualifying" 
@@ -274,6 +295,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 values={editForm.config.sprintQualifying}
                                 onChange={(idx, val) => handleArrayChange('sprintQualifying', idx, val)}
                                 colorClass="text-blue-400"
+                                disabled={isSaving}
                             />
                         </div>
                     </div>
@@ -293,7 +315,8 @@ const ProfileDropdown: React.FC<{
     activeProfileId: string;
     selectedProfileId: string;
     onSelect: (id: string) => void;
-}> = ({ profiles, activeProfileId, selectedProfileId, onSelect }) => {
+    disabled?: boolean;
+}> = ({ profiles, activeProfileId, selectedProfileId, onSelect, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -312,8 +335,9 @@ const ProfileDropdown: React.FC<{
     return (
         <div className="relative" ref={dropdownRef}>
             <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-carbon-black border border-pure-white/10 rounded-xl py-3 px-4 flex items-center justify-between hover:border-primary-red transition-all shadow-inner focus:outline-none"
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                disabled={disabled}
+                className="w-full bg-carbon-black border border-pure-white/10 rounded-xl py-3 px-4 flex items-center justify-between hover:border-primary-red transition-all shadow-inner focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <div className="flex items-center gap-3 truncate">
                     <span className="font-black text-xl md:text-2xl text-pure-white truncate uppercase italic tracking-tighter">{selectedProfile?.name || 'Select Profile'}</span>
@@ -352,8 +376,9 @@ const PointArraySection: React.FC<{
     values: number[];
     onChange: (index: number, value: number) => void;
     colorClass?: string;
-}> = ({ title, subtitle, values, onChange, colorClass = "text-pure-white" }) => (
-    <div className="bg-carbon-fiber rounded-2xl p-5 border border-pure-white/10 shadow-lg relative overflow-hidden group">
+    disabled?: boolean;
+}> = ({ title, subtitle, values, onChange, colorClass = "text-pure-white", disabled }) => (
+    <div className={`bg-carbon-fiber rounded-2xl p-5 border border-pure-white/10 shadow-lg relative overflow-hidden group ${disabled ? 'opacity-50' : ''}`}>
         <div className="absolute inset-0 bg-gradient-to-br from-pure-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
         <div className="flex justify-between items-baseline mb-4 relative z-10">
             <h3 className={`font-black text-xs uppercase tracking-widest ${colorClass}`}>{title}</h3>
@@ -367,6 +392,7 @@ const PointArraySection: React.FC<{
                         value={val}
                         onChange={(newVal) => onChange(idx, newVal)}
                         className="w-full bg-transparent text-center font-black text-lg text-pure-white focus:outline-none"
+                        disabled={disabled}
                     />
                 </div>
             ))}
@@ -378,7 +404,8 @@ const ScoringInput: React.FC<{
     value: number;
     onChange: (val: number) => void;
     className?: string;
-}> = ({ value, onChange, className }) => {
+    disabled?: boolean;
+}> = ({ value, onChange, className, disabled }) => {
     const [localStr, setLocalStr] = useState(value.toString());
 
     useEffect(() => {
@@ -406,7 +433,8 @@ const ScoringInput: React.FC<{
             value={localStr}
             onChange={handleChange}
             onFocus={(e) => e.target.select()}
-            className={`${className} appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+            disabled={disabled}
+            className={`${className} appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:cursor-not-allowed`}
         />
     );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { EVENTS } from '../constants.ts';
@@ -17,7 +16,7 @@ import { doc, setDoc } from '@firebase/firestore';
 const LEAGUE_TIMEZONE = 'America/New_York';
 
 interface ManageSchedulePageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
     existingSchedules: { [eventId: string]: EventSchedule };
     onScheduleUpdate: () => void;
 }
