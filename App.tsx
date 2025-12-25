@@ -201,6 +201,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [activePage, setActivePage] = useState<Page>('home');
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
   const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations'>('dashboard');
@@ -351,8 +352,11 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
 
-      setIsLoading(true);
       if (firebaseUser) {
+        // If we have a user but aren't authenticated yet, we are transitioning (logging in)
+        if (!isAuthenticated) setIsTransitioning(true);
+        setIsLoading(true);
+
         const entities = await getLeagueEntities();
         if (entities) {
             setAllDrivers(entities.drivers);
@@ -431,6 +435,9 @@ const App: React.FC = () => {
             
             setSeasonPicks(userPicks);
             setIsAuthenticated(true);
+            setIsLoading(false);
+            // End transition slightly after data is set to allow React to flush render and ensure the overlay is seen (1.5s delay)
+            setTimeout(() => setIsTransitioning(false), 1500);
           }
         });
       } else {
@@ -444,8 +451,9 @@ const App: React.FC = () => {
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
         setIsAuthenticated(false);
+        setIsLoading(false);
+        setIsTransitioning(false);
       }
-      setIsLoading(false);
     });
     
     return () => {
@@ -457,7 +465,7 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -618,7 +626,7 @@ const App: React.FC = () => {
     }
   };
   
-   if (isLoading) {
+   if (isLoading && !isTransitioning) {
     return <AppSkeleton />;
   }
 
@@ -679,6 +687,27 @@ const App: React.FC = () => {
             onLogout={handleLogout} 
         />
       </div>
+
+      {/* Full Page Transition Overlay (Logging In) */}
+      {isTransitioning && (
+          <div className="fixed inset-0 z-[1000] bg-carbon-black flex items-center justify-center p-8 animate-fade-in">
+              <div className="absolute inset-0 bg-carbon-fiber opacity-20"></div>
+              <div className="relative flex flex-col items-center text-center">
+                  <div className="bg-primary-red/10 p-12 rounded-full border border-primary-red/30 shadow-[0_0_100px_rgba(218,41,28,0.2)] mb-12">
+                      <F1CarIcon className="w-32 h-32 text-primary-red animate-pulse" />
+                  </div>
+                  <h2 className="text-4xl font-black text-pure-white italic uppercase tracking-tighter mb-4 animate-peek-up">
+                      Initiating Race Comms...
+                  </h2>
+                  <div className="w-64 h-1 bg-pure-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary-red animate-flare-sweep rounded-full" style={{ width: '100%' }}></div>
+                  </div>
+                  <p className="text-highlight-silver text-xs font-mono uppercase tracking-[0.3em] mt-6 opacity-60">
+                      Syncing telemetry data with league server
+                  </p>
+              </div>
+          </div>
+      )}
     </div>
   );
 
