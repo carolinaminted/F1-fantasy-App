@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+
+import React, { ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -12,13 +13,16 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Use Component from named imports and avoid constructor to resolve "Property does not exist on type 'ErrorBoundary'" errors by using property initializers for state.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Property initializer for state ensures the 'state' property exists on the ErrorBoundary instance.
-  public state: ErrorBoundaryState = {
-    hasError: false,
-    error: null
-  };
+// Fix: Use React.Component for robust inheritance to ensure state, props, and setState visibility to TypeScript.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Explicitly call super(props) and initialize state to resolve "Property does not exist on type 'ErrorBoundary'" errors.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null
+    };
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -28,11 +32,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
+  // Fix: Access inherited 'props' and 'setState' from the React.Component base class via 'this'.
   handleReload = (): void => {
-    // Fix: Access inherited 'props' from the Component base class.
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Access inherited 'setState' from the Component base class using 'this.setState'.
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -41,7 +44,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render(): ReactNode {
-    // Fix: Access state and props from the Component base class using 'this.state' and 'this.props'.
+    // Fix: Correctly access state and props from 'this' within the render method.
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 

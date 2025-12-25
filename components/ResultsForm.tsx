@@ -29,13 +29,15 @@ const emptyResults = (event: Event): EventResult => ({
 const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers, allConstructors, isLocked, onToggleLock }) => {
     const [results, setResults] = useState<EventResult>(currentResults || emptyResults(event));
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success'>('idle');
-    const [activeSession, setActiveSession] = useState<'gp' | 'sprint' | null>(null);
+    // Set 'gp' as default so the Grand Prix section is expanded on load for sprint weekends
+    const [activeSession, setActiveSession] = useState<'gp' | 'sprint' | null>('gp');
     const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
 
     useEffect(() => {
         setResults(currentResults || emptyResults(event));
         setSaveState('idle'); 
-        setActiveSession(null); 
+        // Ensure reset to 'gp' when the event or current results change
+        setActiveSession('gp'); 
     }, [currentResults, event]);
 
     const sortedDrivers = useMemo(() => {
