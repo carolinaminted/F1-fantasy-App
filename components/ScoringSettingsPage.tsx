@@ -11,7 +11,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'simulation' | 'schedule' | 'invitations') => void;
 }
 
 const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, setAdminSubPage }) => {
@@ -20,7 +20,6 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const [isSaving, setIsSaving] = useState(false);
     const { showToast } = useToast();
     
-    // Initialize with active profile or first available
     useEffect(() => {
         setLocalSettings(settings);
         if (!editForm) {
@@ -46,7 +45,6 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
             name: 'New Custom Profile',
             config: DEFAULT_POINTS_SYSTEM
         };
-        // Add to local settings immediately so it appears in dropdown
         setLocalSettings(prev => ({
             ...prev,
             profiles: [...prev.profiles, newProfile]
@@ -69,7 +67,6 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
         try {
             await saveScoringSettings(newSettings);
             setLocalSettings(newSettings);
-            // Switch to active profile
             const active = newSettings.profiles.find(p => p.id === newSettings.activeProfileId) || newSettings.profiles[0];
             setEditForm(active ? JSON.parse(JSON.stringify(active)) : null);
             showToast("Profile deleted.", 'success');
@@ -83,7 +80,6 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
 
     const handleMakeActive = async () => {
         if (!editForm) return;
-        // First save any pending changes to the profile itself
         await handleSaveProfile(false); 
 
         const newSettings = { ...localSettings, activeProfileId: editForm.id };
@@ -150,7 +146,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10"
         >
             <BackIcon className="w-4 h-4" /> 
             <span className="text-sm font-bold">Dashboard</span>
@@ -158,157 +154,140 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     );
 
     return (
-        <div className="flex flex-col h-full overflow-hidden text-pure-white max-w-7xl mx-auto w-full">
-            <div className="flex-none">
-                <PageHeader 
-                    title="SCORING SETTINGS" 
-                    icon={TrophyIcon} 
-                    leftAction={DashboardAction}
-                />
-            </div>
+        <div className="w-full max-w-4xl mx-auto text-pure-white pb-24">
+            <PageHeader 
+                title="SCORING SETTINGS" 
+                icon={TrophyIcon} 
+                leftAction={DashboardAction}
+            />
             
-            <div className="flex-1 min-h-0 flex flex-col px-4 md:px-0 pb-8">
-                {/* Toolbar */}
-                <div className="bg-carbon-fiber backdrop-blur-md border border-pure-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl z-20 flex-shrink-0">
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        {/* Profile Selector */}
-                        <div className="relative w-full md:w-80 z-30">
-                            <ProfileDropdown 
+            <div className="px-4 md:px-0 space-y-6">
+                {/* Main Profile Control Card */}
+                <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-2xl relative overflow-hidden">
+                    <div className="absolute inset-0 bg-checkered-flag opacity-[0.03] pointer-events-none"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
+                        <div className="flex-1 w-full space-y-2">
+                             <ProfileDropdown 
                                 profiles={localSettings.profiles} 
                                 activeProfileId={localSettings.activeProfileId}
                                 selectedProfileId={editForm?.id || ''}
                                 onSelect={handleProfileSelect}
                             />
+                            <div className="flex gap-4 px-1">
+                                <button
+                                    onClick={handleCreateNew}
+                                    className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-pure-white transition-colors"
+                                >
+                                    + New
+                                </button>
+                                {!isActiveProfile && editForm && (
+                                    <button
+                                        onClick={handleDelete}
+                                        className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-primary-red transition-colors"
+                                    >
+                                        Delete
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                         {!isActiveProfile && (
+                        <div className="flex flex-col gap-3 w-full md:w-auto">
                             <button
-                                onClick={handleDelete}
+                                onClick={() => handleSaveProfile(true)}
                                 disabled={isSaving}
-                                className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                className="w-full md:w-48 bg-primary-red hover:bg-red-600 text-pure-white font-black py-3 rounded-xl shadow-[0_0_20px_rgba(218,41,28,0.3)] transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 uppercase tracking-widest text-sm"
                             >
-                                Delete
+                                {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
-                        )}
-                        
-                        <button
-                            onClick={handleCreateNew}
-                            disabled={isSaving}
-                            className="px-4 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white hover:bg-pure-white/10 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                            + New
-                        </button>
-
-                        {!isActiveProfile && (
-                            <button
-                                onClick={handleMakeActive}
-                                disabled={isSaving}
-                                className="px-4 py-2 text-sm font-bold text-green-400 border border-green-400/30 hover:bg-green-400/10 rounded-lg transition-colors whitespace-nowrap"
-                            >
-                                Make Active
-                            </button>
-                        )}
-
-                        <button
-                            onClick={() => handleSaveProfile(true)}
-                            disabled={isSaving}
-                            className="px-6 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg shadow-primary-red/20 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                            {isSaving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Main Content Area - Scrollable */}
-                <div className="flex-1 overflow-y-auto bg-carbon-black/30 rounded-xl border border-pure-white/5 p-6 md:p-8 custom-scrollbar">
-                    {editForm ? (
-                        <div className="max-w-5xl mx-auto space-y-8">
                             
-                            {/* Title & Meta */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end border-b border-pure-white/10 pb-6">
-                                <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Profile Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={editForm.name}
-                                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                        className="w-full bg-transparent border-b-2 border-accent-gray focus:border-primary-red text-3xl font-bold text-pure-white placeholder-pure-white/20 focus:outline-none transition-colors py-2"
-                                        placeholder="Enter profile name..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-2 tracking-wider">Fastest Lap Bonus</label>
-                                    <div className="flex items-center gap-3 bg-carbon-fiber p-2 rounded-lg border border-pure-white/5 shadow-lg">
-                                        <FastestLapIcon className="w-8 h-8 text-purple-500" />
-                                        <div className="flex-1">
-                                             <ScoringInput 
-                                                value={editForm.config.fastestLap}
-                                                onChange={handleScalarChange}
-                                                className="w-full bg-transparent text-xl font-bold text-pure-white focus:outline-none text-right"
-                                            />
-                                        </div>
-                                        <span className="text-sm font-bold text-highlight-silver pr-2">pts</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Points Grid */}
-                            <div className="space-y-8">
-                                
-                                {/* Row 1: Race Finishes */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <PointArraySection 
-                                        title="Grand Prix Finish" 
-                                        subtitle="Positions 1-10"
-                                        values={editForm.config.grandPrixFinish}
-                                        onChange={(idx, val) => handleArrayChange('grandPrixFinish', idx, val)}
-                                        colorClass="text-primary-red"
-                                    />
-                                    <PointArraySection 
-                                        title="Sprint Finish" 
-                                        subtitle="Positions 1-8"
-                                        values={editForm.config.sprintFinish}
-                                        onChange={(idx, val) => handleArrayChange('sprintFinish', idx, val)}
-                                        colorClass="text-yellow-500"
-                                    />
-                                </div>
-
-                                {/* Row 2: Quali */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <PointArraySection 
-                                        title="GP Qualifying" 
-                                        subtitle="Positions 1-3"
-                                        values={editForm.config.gpQualifying}
-                                        onChange={(idx, val) => handleArrayChange('gpQualifying', idx, val)}
-                                        colorClass="text-blue-500"
-                                    />
-                                    <PointArraySection 
-                                        title="Sprint Qualifying" 
-                                        subtitle="Positions 1-3"
-                                        values={editForm.config.sprintQualifying}
-                                        onChange={(idx, val) => handleArrayChange('sprintQualifying', idx, val)}
-                                        colorClass="text-blue-400"
-                                    />
-                                </div>
-
-                            </div>
+                            {!isActiveProfile && editForm && (
+                                <button
+                                    onClick={handleMakeActive}
+                                    className="text-[10px] text-center font-black uppercase tracking-widest text-green-500 hover:underline"
+                                >
+                                    Make Active System
+                                </button>
+                            )}
                         </div>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-highlight-silver opacity-50">
-                            <TrophyIcon className="w-24 h-24 mb-4" />
-                            <p className="text-xl">Select or create a profile to edit settings.</p>
-                        </div>
-                    )}
+                    </div>
                 </div>
+
+                {editForm ? (
+                    <div className="space-y-6 animate-fade-in">
+                        
+                        {/* Profile Name Field */}
+                        <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
+                            <label className="block text-[10px] font-black uppercase text-highlight-silver mb-3 tracking-[0.2em]">Profile Name</label>
+                            <input 
+                                type="text" 
+                                value={editForm.name}
+                                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                className="w-full bg-transparent border-b border-pure-white/10 focus:border-primary-red text-4xl font-black text-pure-white placeholder-pure-white/10 focus:outline-none transition-colors py-2 italic uppercase tracking-tighter"
+                                placeholder="Season 2026"
+                            />
+                        </div>
+
+                        {/* Fastest Lap Field (Matches Screenshot with Carbon Fiber Background) */}
+                        <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
+                            <label className="block text-[10px] font-black uppercase text-highlight-silver mb-4 tracking-[0.2em]">Fastest Lap Bonus</label>
+                            <div className="flex items-center gap-4 max-w-sm">
+                                <div className="bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner">
+                                    <FastestLapIcon className="w-7 h-7 text-purple-500" />
+                                </div>
+                                <div className="flex-1 flex items-center justify-between bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner group focus-within:border-primary-red/50 transition-colors">
+                                     <ScoringInput 
+                                        value={editForm.config.fastestLap}
+                                        onChange={handleScalarChange}
+                                        className="w-full bg-transparent text-2xl font-black text-pure-white focus:outline-none text-right pr-2"
+                                    />
+                                    <span className="text-[10px] font-black text-highlight-silver uppercase tracking-widest ml-1">pts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Points Grid Sections */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <PointArraySection 
+                                title="Grand Prix Finish" 
+                                subtitle="Positions 1-10"
+                                values={editForm.config.grandPrixFinish}
+                                onChange={(idx, val) => handleArrayChange('grandPrixFinish', idx, val)}
+                                colorClass="text-primary-red"
+                            />
+                            <PointArraySection 
+                                title="Sprint Finish" 
+                                subtitle="Positions 1-8"
+                                values={editForm.config.sprintFinish}
+                                onChange={(idx, val) => handleArrayChange('sprintFinish', idx, val)}
+                                colorClass="text-yellow-500"
+                            />
+                            <PointArraySection 
+                                title="GP Qualifying" 
+                                subtitle="Positions 1-3"
+                                values={editForm.config.gpQualifying}
+                                onChange={(idx, val) => handleArrayChange('gpQualifying', idx, val)}
+                                colorClass="text-blue-500"
+                            />
+                            <PointArraySection 
+                                title="Sprint Qualifying" 
+                                subtitle="Positions 1-3"
+                                values={editForm.config.sprintQualifying}
+                                onChange={(idx, val) => handleArrayChange('sprintQualifying', idx, val)}
+                                colorClass="text-blue-400"
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="py-20 flex flex-col items-center justify-center text-highlight-silver opacity-20">
+                        <TrophyIcon className="w-20 h-20 mb-4" />
+                        <p className="text-sm font-black uppercase tracking-[0.2em]">Select Profile to Load Telemetry</p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-// ... (Sub-Components: ProfileDropdown, PointArraySection, ScoringInput, FastestLapIcon preserved)
 const ProfileDropdown: React.FC<{
     profiles: ScoringProfile[];
     activeProfileId: string;
@@ -316,10 +295,8 @@ const ProfileDropdown: React.FC<{
     onSelect: (id: string) => void;
 }> = ({ profiles, activeProfileId, selectedProfileId, onSelect }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
     const selectedProfile = profiles.find(p => p.id === selectedProfileId);
 
     useEffect(() => {
@@ -336,45 +313,32 @@ const ProfileDropdown: React.FC<{
         <div className="relative" ref={dropdownRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-carbon-black border border-accent-gray rounded-lg py-2 px-4 flex items-center justify-between hover:border-highlight-silver transition-colors focus:ring-2 focus:ring-primary-red focus:outline-none"
+                className="w-full bg-carbon-black border border-pure-white/10 rounded-xl py-3 px-4 flex items-center justify-between hover:border-primary-red transition-all shadow-inner focus:outline-none"
             >
-                <div className="flex items-center gap-2 truncate">
-                    <span className="font-bold text-pure-white truncate">{selectedProfile?.name || 'Select Profile'}</span>
+                <div className="flex items-center gap-3 truncate">
+                    <span className="font-black text-xl md:text-2xl text-pure-white truncate uppercase italic tracking-tighter">{selectedProfile?.name || 'Select Profile'}</span>
                     {selectedProfileId === activeProfileId && (
-                        <span className="bg-green-600 text-pure-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Active</span>
+                        <span className="bg-green-600/20 text-green-500 text-[10px] font-black px-2 py-1 rounded border border-green-500/30 uppercase tracking-widest">Active</span>
                     )}
                 </div>
-                <ChevronDownIcon className="w-4 h-4 text-highlight-silver" />
+                <ChevronDownIcon className={`w-6 h-6 text-highlight-silver transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-accent-gray border border-pure-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
-                    <div className="p-2 border-b border-pure-white/5">
-                        <input 
-                            type="text" 
-                            placeholder="Find profile..." 
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            className="w-full bg-carbon-black/50 border-none rounded px-2 py-1 text-sm text-pure-white focus:ring-0 placeholder-pure-white/30"
-                            autoFocus
-                        />
-                    </div>
-                    <div className="max-h-60 overflow-y-auto">
-                        {filteredProfiles.map(p => (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in-down origin-top">
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                        {profiles.map(p => (
                             <button
                                 key={p.id}
-                                onClick={() => { onSelect(p.id); setIsOpen(false); setSearch(''); }}
-                                className={`w-full text-left px-4 py-3 hover:bg-pure-white/5 flex items-center justify-between transition-colors ${selectedProfileId === p.id ? 'bg-pure-white/5' : ''}`}
+                                onClick={() => { onSelect(p.id); setIsOpen(false); }}
+                                className={`w-full text-left px-4 py-4 hover:bg-pure-white/5 flex items-center justify-between transition-colors border-b border-pure-white/5 last:border-none ${selectedProfileId === p.id ? 'bg-pure-white/5' : ''}`}
                             >
-                                <span className="font-medium text-sm text-pure-white truncate">{p.name}</span>
+                                <span className="font-bold text-sm text-pure-white uppercase">{p.name}</span>
                                 {p.id === activeProfileId && (
-                                    <span className="bg-green-600/20 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase border border-green-600/30">Active</span>
+                                    <span className="bg-green-600/20 text-green-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase border border-green-600/30">Active System</span>
                                 )}
                             </button>
                         ))}
-                        {filteredProfiles.length === 0 && (
-                            <div className="px-4 py-3 text-sm text-highlight-silver italic text-center">No profiles found</div>
-                        )}
                     </div>
                 </div>
             )}
@@ -389,19 +353,20 @@ const PointArraySection: React.FC<{
     onChange: (index: number, value: number) => void;
     colorClass?: string;
 }> = ({ title, subtitle, values, onChange, colorClass = "text-pure-white" }) => (
-    <div className="bg-carbon-fiber rounded-lg p-5 border border-pure-white/10 hover:border-pure-white/20 transition-colors shadow-lg">
-        <div className="flex justify-between items-baseline mb-4">
-            <h3 className={`font-bold text-lg ${colorClass}`}>{title}</h3>
-            <span className="text-xs text-highlight-silver font-mono">{subtitle}</span>
+    <div className="bg-carbon-fiber rounded-2xl p-5 border border-pure-white/10 shadow-lg relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-pure-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+        <div className="flex justify-between items-baseline mb-4 relative z-10">
+            <h3 className={`font-black text-xs uppercase tracking-widest ${colorClass}`}>{title}</h3>
+            <span className="text-[10px] text-highlight-silver/50 font-bold uppercase">{subtitle}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-5 gap-2 relative z-10">
             {values.map((val, idx) => (
-                <div key={idx} className="flex-1 min-w-[3.5rem] flex flex-col items-center bg-carbon-black/40 rounded-md p-1 border border-pure-white/5">
-                    <span className="text-[10px] font-bold text-highlight-silver/70 mb-1">P{idx + 1}</span>
+                <div key={idx} className="flex flex-col items-center bg-carbon-black/60 rounded-lg p-2 border border-pure-white/5 shadow-inner">
+                    <span className="text-[8px] font-black text-highlight-silver/40 mb-1 uppercase">P{idx + 1}</span>
                     <ScoringInput 
                         value={val}
                         onChange={(newVal) => onChange(idx, newVal)}
-                        className="w-full bg-transparent text-center font-bold text-lg text-pure-white focus:outline-none"
+                        className="w-full bg-transparent text-center font-black text-lg text-pure-white focus:outline-none"
                     />
                 </div>
             ))}
@@ -409,7 +374,6 @@ const PointArraySection: React.FC<{
     </div>
 );
 
-// Custom Input to remove spinners and handle raw strings
 const ScoringInput: React.FC<{
     value: number;
     onChange: (val: number) => void;
