@@ -241,7 +241,11 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                                             </td>
                                             <td className="p-4 text-center align-middle">
                                                 <div className="flex justify-center">
-                                                    <span className="bg-blue-600/20 text-blue-400 w-6 h-6 flex items-center justify-center rounded font-black text-xs border border-blue-500/30">
+                                                    <span className={`w-6 h-6 flex items-center justify-center rounded font-black text-xs border ${
+                                                        entity.class === EntityClass.A 
+                                                        ? 'bg-yellow-600/20 text-yellow-400 border-yellow-500/30' 
+                                                        : 'bg-blue-600/20 text-blue-400 border-blue-500/30'
+                                                    }`}>
                                                         {entity.class}
                                                     </span>
                                                 </div>
