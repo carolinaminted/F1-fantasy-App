@@ -134,7 +134,7 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: s
                 const isHex = item.color?.startsWith('#');
                 return (
                     <div key={idx} className="flex items-center gap-3 text-sm">
-                        <span className="w-24 md:w-32 text-right truncate font-semibold text-highlight-silver text-xs md:text-sm">{item.label}</span>
+                        <span className="w-24 md:w-32 text-left truncate font-semibold text-highlight-silver text-xs md:text-sm">{item.label}</span>
                         <div className="flex-1 h-3 md:h-4 bg-carbon-black rounded-full overflow-hidden border border-pure-white/5">
                             <div 
                                 className={`h-full rounded-full ${!item.color ? 'bg-primary-red' : (isHex ? '' : item.color)}`} 
