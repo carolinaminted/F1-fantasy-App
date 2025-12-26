@@ -6,6 +6,9 @@ import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { SelectorCard } from './PicksForm.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { LockIcon } from './icons/LockIcon.tsx';
+import { UnlockIcon } from './icons/UnlockIcon.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
 
 interface ResultsFormProps {
     event: Event;
@@ -164,18 +167,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         setModalContent(modalBody);
     };
 
-    const buttonContent = {
-        idle: 'Save Results',
-        saving: 'Saving...',
-        success: '✓ Saved',
-    };
-
-    const buttonClasses = {
-        idle: 'bg-primary-red hover:opacity-90',
-        saving: 'bg-accent-gray cursor-wait',
-        success: 'bg-green-600',
-    };
-
     const renderGpContent = () => (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-3 flex flex-col">
@@ -271,7 +262,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     return (
         <div className="text-pure-white flex flex-col min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-                <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-end mb-4 pb-4 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
+                <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-4 pb-4 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -286,41 +277,50 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         </div>
                     </div>
 
-                    <div className="flex items-end gap-4 w-full md:w-auto justify-between md:justify-end">
-                        <div className="flex-1 md:flex-none md:pl-4 md:border-l border-accent-gray/50">
-                            <label className="text-[10px] font-bold text-primary-red uppercase block mb-1">Fastest Lap</label>
-                            <div className="w-full md:w-48 h-14">
-                                <SelectorCard
-                                    option={selectedFLDriver}
-                                    isSelected={!!selectedFLDriver}
-                                    onClick={() => openDriverModal('fastestLap', 0, 'Select Fastest Lap')}
-                                    placeholder="Select FL..."
-                                    disabled={false}
-                                    color={flColor}
-                                    forceColor={!!selectedFLDriver}
-                                />
-                            </div>
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                        <div className="flex-1 md:flex-none md:w-48 h-12">
+                            <SelectorCard
+                                option={selectedFLDriver}
+                                isSelected={!!selectedFLDriver}
+                                onClick={() => openDriverModal('fastestLap', 0, 'Select Fastest Lap')}
+                                placeholder="Select FL..."
+                                disabled={false}
+                                color={flColor}
+                                forceColor={!!selectedFLDriver}
+                            />
                         </div>
 
-                        <div className="flex items-end gap-3 flex-shrink-0 ml-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                             <button
                                 type="button"
                                 onClick={onToggleLock}
-                                className={`font-bold px-4 rounded text-xs border transition-colors h-14 ${
+                                className={`h-12 w-12 flex items-center justify-center rounded-xl border transition-all ${
                                     isLocked 
-                                    ? 'bg-transparent border-green-600 text-green-500 hover:bg-green-600/10' 
-                                    : 'bg-transparent border-primary-red text-primary-red hover:bg-primary-red/10'
+                                    ? 'bg-red-900/20 border-primary-red text-primary-red hover:bg-primary-red hover:text-white' 
+                                    : 'bg-green-900/20 border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
                                 }`}
+                                title={isLocked ? 'Unlock Picks' : 'Lock Picks'}
                             >
-                                {isLocked ? 'Unlock Picks' : 'Lock Picks'}
+                                {isLocked ? <LockIcon className="w-5 h-5" /> : <UnlockIcon className="w-5 h-5" />}
                             </button>
 
                             <button
                                 type="submit"
                                 disabled={saveState !== 'idle'}
-                                className={`font-bold px-6 rounded text-xs text-pure-white transition-colors min-w-[120px] h-14 ${buttonClasses[saveState]}`}
+                                className={`h-12 w-12 flex items-center justify-center rounded-xl border transition-all ${
+                                    saveState === 'success'
+                                    ? 'bg-green-600 border-green-500 text-white'
+                                    : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-white hover:border-pure-white'
+                                }`}
+                                title="Save Results"
                             >
-                                {buttonContent[saveState]}
+                                {saveState === 'saving' ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : saveState === 'success' ? (
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                ) : (
+                                    <SaveIcon className="w-5 h-5" />
+                                )}
                             </button>
                         </div>
                     </div>
