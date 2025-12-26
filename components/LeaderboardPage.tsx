@@ -22,11 +22,23 @@ import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks } from '../services/firestoreService.ts';
 
+// --- Configuration ---
+const REFRESH_COOLDOWN_SECONDS = 60;
+const MAX_DAILY_REFRESHES = 5;
+const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 // --- Shared Types & Helpers ---
 
 type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
 
 type ProcessedUser = User;
+
+interface RefreshPolicy {
+    count: number;
+    lastRefresh: number;
+    dayStart: number;
+    lockedUntil: number;
+}
 
 interface LeaderboardPageProps {
   currentUser: User | null;
@@ -51,10 +63,23 @@ const RefreshControl: React.FC<{
     isRefreshing: boolean; 
     cooldown: number;
     status: 'idle' | 'success' | 'error';
-}> = ({ onClick, isRefreshing, cooldown, status }) => {
+    dailyCount: number;
+}> = ({ onClick, isRefreshing, cooldown, status, dailyCount }) => {
     
+    const formatCooldown = (secs: number) => {
+        if (secs < 60) return `${secs}s`;
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m ${s}s`;
+    };
+
+    const isLocked = cooldown > 3600; // Consider it a "Lock" if wait is > 1 hour
+    const remainingDaily = Math.max(0, MAX_DAILY_REFRESHES - dailyCount);
+
     return (
-        <div className="relative flex items-center">
+        <div className="relative flex items-center justify-center">
             {status !== 'idle' && (
                 <div className={`
                     absolute right-full mr-3 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg animate-fade-in
@@ -68,24 +93,30 @@ const RefreshControl: React.FC<{
                 onClick={onClick}
                 disabled={isRefreshing || cooldown > 0}
                 className={`
-                    flex items-center justify-center gap-2 p-2 rounded-lg transition-all duration-200 border
+                    flex items-center justify-center gap-2 p-2 rounded-lg transition-all duration-200 border min-w-[100px]
                     ${(isRefreshing || cooldown > 0)
                         ? 'bg-carbon-black border-accent-gray text-highlight-silver/50 cursor-not-allowed'
                         : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-pure-white hover:border-primary-red hover:shadow-[0_0_10px_rgba(218,41,28,0.2)]'
                     }
                 `}
-                title={cooldown > 0 ? `Wait ${cooldown}s` : "Refresh Data"}
+                title={cooldown > 0 ? (isLocked ? "Daily Limit Reached" : "Cooling Down") : `${remainingDaily} refreshes remaining today`}
             >
                 {cooldown > 0 ? (
-                    <span className="text-xs font-mono font-bold w-12 text-center">
-                        {cooldown}s
-                    </span>
+                    <div className="flex flex-col items-center justify-center leading-none px-2 py-0.5">
+                        {isLocked && <span className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-0.5">LOCKED</span>}
+                        <span className={`font-mono font-bold text-center ${isLocked ? 'text-xs text-pure-white' : 'text-xs'}`}>
+                            {formatCooldown(cooldown)}
+                        </span>
+                    </div>
                 ) : (
                     <div className="flex items-center gap-2 px-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin text-primary-red' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span className="text-sm font-bold uppercase">Refresh</span>
+                        <span className="text-[9px] bg-pure-white/10 px-1.5 py-0.5 rounded-full text-highlight-silver ml-1 font-mono">
+                            {remainingDaily}
+                        </span>
                     </div>
                 )}
             </button>
@@ -710,7 +741,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPaging, setIsPaging] = useState(false);
-  const [cooldownTime, setCooldownTime] = useState(0);
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -718,6 +748,27 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   // New: Global league picks for popularity calculation
   const [allLeaguePicks, setAllLeaguePicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
   const [isFetchingGlobalPicks, setIsFetchingGlobalPicks] = useState(false);
+
+  // Initialize from storage or default
+  const [refreshPolicy, setRefreshPolicy] = useState<RefreshPolicy>(() => {
+        const saved = localStorage.getItem('lb_refresh_policy');
+        return saved ? JSON.parse(saved) : { count: 0, lastRefresh: 0, dayStart: Date.now(), lockedUntil: 0 };
+  });
+
+  // Calculate initial cooldown/lockout time
+  const calculateRemainingTime = useCallback(() => {
+        const now = Date.now();
+        if (refreshPolicy.lockedUntil > now) {
+            return Math.ceil((refreshPolicy.lockedUntil - now) / 1000);
+        }
+        const elapsed = (now - refreshPolicy.lastRefresh) / 1000;
+        if (elapsed < REFRESH_COOLDOWN_SECONDS) {
+            return Math.ceil(REFRESH_COOLDOWN_SECONDS - elapsed);
+        }
+        return 0;
+  }, [refreshPolicy]);
+
+  const [cooldownTime, setCooldownTime] = useState(calculateRemainingTime());
 
   // [S1A-03] Extract scoring transformations out of React Effects
   const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
@@ -730,10 +781,30 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       }
   }, [raceResults, pointsSystem, allDrivers, currentUser]);
 
+  // Timer Effect
   useEffect(() => {
-      let timer: any;
-      if (cooldownTime > 0) timer = setTimeout(() => setCooldownTime(t => t - 1), 1000);
-      return () => clearTimeout(timer);
+      if (cooldownTime <= 0) return;
+      const timer = setInterval(() => {
+          setCooldownTime(prev => {
+              if (prev <= 1) {
+                  // Timer finished. 
+                  // If this was a lockout timer, reset logic is handled by calculateRemainingTime or manual interactions
+                  // but we should check if we need to clear the lockedUntil flag in local state for consistency
+                  const stored = localStorage.getItem('lb_refresh_policy');
+                  if (stored) {
+                      const p = JSON.parse(stored);
+                      if (p.lockedUntil > 0 && Date.now() > p.lockedUntil) {
+                          const resetP = { ...p, lockedUntil: 0, count: 0, dayStart: Date.now() };
+                          localStorage.setItem('lb_refresh_policy', JSON.stringify(resetP));
+                          setRefreshPolicy(resetP);
+                      }
+                  }
+                  return 0;
+              }
+              return prev - 1;
+          });
+      }, 1000);
+      return () => clearInterval(timer);
   }, [cooldownTime]);
 
   // Reset view to menu when resetToken changes
@@ -796,7 +867,29 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   };
 
   const handleManualRefresh = async () => {
+      // 1. Check Cooldown & Lock Status
       if (cooldownTime > 0 || isRefreshing) return;
+
+      const now = Date.now();
+      
+      // 2. Check Daily Reset Logic
+      let currentPolicy = { ...refreshPolicy };
+      // If last reset was more than 24h ago, reset count
+      if (now - currentPolicy.dayStart > 24 * 60 * 60 * 1000) {
+          currentPolicy = { count: 0, lastRefresh: 0, dayStart: now, lockedUntil: 0 };
+      }
+
+      // 3. Check Daily Limit
+      if (currentPolicy.count >= MAX_DAILY_REFRESHES) {
+          // Lock User Out
+          const lockedUntil = now + LOCKOUT_DURATION_MS;
+          const newPolicy = { ...currentPolicy, lockedUntil };
+          setRefreshPolicy(newPolicy);
+          localStorage.setItem('lb_refresh_policy', JSON.stringify(newPolicy));
+          setCooldownTime(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+          return;
+      }
+
       setIsRefreshing(true);
       setRefreshStatus('idle');
       try {
@@ -809,7 +902,29 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
               setIsFetchingGlobalPicks(false);
           }
           setRefreshStatus('success');
-          setCooldownTime(30); 
+          
+          // 4. Update Policy on Success
+          const newCount = currentPolicy.count + 1;
+          let newLockedUntil = 0;
+          let newCooldown = REFRESH_COOLDOWN_SECONDS;
+
+          // If this hit the limit, lock them out immediately for next time
+          if (newCount >= MAX_DAILY_REFRESHES) {
+              newLockedUntil = now + LOCKOUT_DURATION_MS;
+              newCooldown = Math.ceil(LOCKOUT_DURATION_MS / 1000);
+          }
+
+          const newPolicy = {
+              ...currentPolicy,
+              count: newCount,
+              lastRefresh: now,
+              lockedUntil: newLockedUntil
+          };
+          
+          setRefreshPolicy(newPolicy);
+          localStorage.setItem('lb_refresh_policy', JSON.stringify(newPolicy));
+          setCooldownTime(newCooldown);
+
           setLastVisible(null);
           setTimeout(() => setRefreshStatus('idle'), 3000);
       } catch (e) {
@@ -831,7 +946,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
               <PageHeader 
                 title="LEADERBOARDS" 
                 icon={LeaderboardIcon} 
-                rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus}/>}
+                rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
               />
               <div className="pb-20 md:pb-12 px-4 md:px-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -848,7 +963,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   return (
       <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
           <div className="flex-none pb-4 md:pb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between px-2 md:px-0 gap-4">
+              <div className="flex flex-col items-center md:flex-row justify-between px-2 md:px-0 gap-4">
                   <div className="hidden md:flex items-center justify-between w-full md:w-auto">
                       <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 group">
                           <BackIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Hub
@@ -867,7 +982,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                         </h1>
                   </div>
                   
-                  <RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} />
+                  <RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count} />
               </div>
           </div>
 
