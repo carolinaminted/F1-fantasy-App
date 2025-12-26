@@ -67,7 +67,6 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                 <PageHeader 
                     title="SCORING RULES" 
                     icon={TrophyIcon} 
-                    subtitle="Official point distributions for the 2026 Season."
                 />
             </div>
 
