@@ -273,11 +273,16 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
     if (users.length === 0) return null;
     
     return (
-        <div className="w-full py-2 px-1 md:px-2 md:py-4">
+        <div className="w-full py-2 px-1 md:px-2 md:py-4 pt-12 md:pt-16">
             <div className="relative">
+                {/* Finish Line Icon */}
+                <div className="absolute -top-10 right-10 md:right-14 transform translate-x-1/2 z-0">
+                     <CheckeredFlagIcon className="w-8 h-8 text-pure-white opacity-50" />
+                </div>
+
                 <div className="absolute top-0 bottom-0 right-10 md:right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
 
-                <div className="space-y-1 relative z-10 pb-8">
+                <div className="space-y-1 relative z-10 pb-8 pt-4">
                     {users.map((user, idx) => {
                         const points = user.totalPoints || 0;
                         const rank = user.rank || idx + 1;
@@ -360,18 +365,10 @@ const StandingsView: React.FC<{
     onFetchMore: () => void;
     isPaging: boolean;
 }> = ({ users, currentUser, hasMore, onFetchMore, isPaging }) => {
-    const raceLeader = Math.max(...users.map(u => u.totalPoints || 0), 0);
-
+    
     return (
         <div className="flex flex-col h-full animate-fade-in pb-safe overflow-hidden">
             <div className="flex flex-col h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
-                {/* Header only visible on desktop to show Race Leader, title removed to avoid duplication with page header */}
-                <div className="flex-none bg-carbon-black/60 text-pure-white border-b border-pure-white/10 p-4 hidden md:flex items-center justify-end z-10 h-14">
-                    <div className="text-xs font-bold text-highlight-silver flex items-center gap-2">
-                        Race Leader: {raceLeader} PTS <CheckeredFlagIcon className="w-4 h-4 text-pure-white"/>
-                    </div>
-                </div>
-
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0">
                     <RaceChart users={users} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} />
                 </div>
