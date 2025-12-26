@@ -176,12 +176,12 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     };
 
     const renderGpContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-3 flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+            <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
                 {/* Fastest Lap - Moved here above Qualifying */}
                 <div className="flex flex-col">
                     <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Fastest Lap</h4>
-                    <div className="bg-carbon-black/20 rounded-lg p-4">
+                    <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                         <div className="flex items-center gap-3">
                             <label className="w-6 text-xs font-black text-highlight-silver text-right">FL</label>
                             <div className="flex-1 h-14">
@@ -201,7 +201,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
                 <div className="flex flex-col">
                     <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Qualifying</h4>
-                    <div className="bg-carbon-black/20 rounded-lg p-4">
+                    <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                         <ResultGroup
                             positions={3}
                             selected={results.gpQualifying}
@@ -215,7 +215,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
             <div className="lg:col-span-9 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Race Results</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
+                <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                     <ResultGroup
                         positions={10}
                         selected={results.grandPrixFinish}
@@ -230,10 +230,10 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     );
 
     const renderSprintContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             <div className="lg:col-span-3 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Sprint Quali</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
+                <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                     <ResultGroup
                         positions={3}
                         selected={results.sprintQualifying || []}
@@ -246,7 +246,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
             <div className="lg:col-span-9 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Sprint Results</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
+                <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                     <ResultGroup
                         positions={8}
                         selected={results.sprintFinish || []}
@@ -286,7 +286,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     return (
         <div className="text-pure-white flex flex-col min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-                <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-4 pb-4 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
+                <div className="sticky top-0 z-20 bg-carbon-black/50 backdrop-blur-md md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-4 pb-4 border-b border-white/10 md:border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none -mx-4 px-4 md:mx-0 md:px-0">
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -340,8 +340,8 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
                 <div className="flex-1">
                     {!event.hasSprint ? (
-                        <section className="bg-carbon-black/40 rounded-xl p-6 border border-pure-white/5 flex flex-col mb-6">
-                            <div className="flex items-center gap-2 mb-6 border-b border-accent-gray/30 pb-3 flex-shrink-0">
+                        <section className="bg-carbon-black/40 rounded-xl p-4 md:p-6 border border-pure-white/5 flex flex-col mb-6">
+                            <div className="flex items-center gap-2 mb-4 md:mb-6 border-b border-accent-gray/30 pb-3 flex-shrink-0">
                                 <CheckeredFlagIcon className="w-5 h-5 text-primary-red" />
                                 <h3 className="font-bold text-sm uppercase tracking-wider text-pure-white">Grand Prix Session</h3>
                             </div>
@@ -357,7 +357,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                     onClick={() => setActiveSession(activeSession === 'gp' ? null : 'gp')} 
                                 />
                                 {activeSession === 'gp' && (
-                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-6 rounded-b-xl mb-6">
+                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 md:p-6 rounded-b-xl mb-6">
                                         {renderGpContent()}
                                     </div>
                                 )}
@@ -371,7 +371,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                     onClick={() => setActiveSession(activeSession === 'sprint' ? null : 'sprint')} 
                                 />
                                 {activeSession === 'sprint' && (
-                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-6 rounded-b-xl mb-6">
+                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 md:p-6 rounded-b-xl mb-6">
                                         {renderSprintContent()}
                                     </div>
                                 )}
