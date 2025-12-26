@@ -184,7 +184,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
 
                 {viewMode === 'upcoming' && (
                     <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-                        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-4 pb-8">
+                        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-4 pb-8 pt-2">
                             {nextRace ? (
                                 <div className="mb-6 animate-fade-in flex-none">
                                     <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
@@ -217,7 +217,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                 )}
 
                 {viewMode === 'full' && (
-                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8 pt-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map(event => (
                                 <EventGridCard 
@@ -370,8 +370,8 @@ const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; 
                 {label}
             </span>
             <div className="text-right">
-                <span className="block text-sm font-bold text-pure-white">{formatSessionDate(time)}</span>
-                <span className={`block text-xs font-mono ${isRace ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{formatSessionTime(time)}</span>
+                <span className="block text-base font-bold text-pure-white">{formatSessionDate(time)}</span>
+                <span className={`block text-sm font-mono ${isRace ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{formatSessionTime(time)}</span>
             </div>
         </div>
     );
@@ -391,8 +391,8 @@ const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNex
             </div>
             <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
                 <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
-                <p className="font-bold text-sm text-pure-white">{formatSessionDate(raceRaw)}</p>
-                <p className="text-xs text-primary-red font-mono">{formatSessionTime(raceRaw)}</p>
+                <p className="font-bold text-base text-pure-white">{formatSessionDate(raceRaw)}</p>
+                <p className="text-sm text-primary-red font-mono">{formatSessionTime(raceRaw)}</p>
             </div>
         </button>
     );
