@@ -24,7 +24,6 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
             <PageHeader 
                 title="LEAGUE HEADQUARTERS" 
                 icon={LeagueIcon} 
-                subtitle="Central hub for season data, rules, and membership."
             />
             
             <div className="pb-20 md:pb-12 px-2">

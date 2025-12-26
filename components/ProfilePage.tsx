@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -19,6 +18,7 @@ import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import type { Page } from '../App.tsx';
 
 interface ProfilePageProps {
@@ -523,16 +523,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
       {/* Page Header */}
-      <div className="flex flex-col items-center justify-center pt-4">
-        <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)]">
-                <ProfileIcon className="w-8 h-8 text-primary-red" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-pure-white text-shadow-sm">
-                Profile Information
-            </h1>
-        </div>
-      </div>
+      <PageHeader 
+          title="PROFILE" 
+          icon={ProfileIcon} 
+      />
 
       {/* Profile Info Section */}
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
