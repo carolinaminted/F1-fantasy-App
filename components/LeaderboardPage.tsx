@@ -334,12 +334,9 @@ const StandingsView: React.FC<{
     return (
         <div className="flex flex-col h-full animate-fade-in pb-safe overflow-hidden">
             <div className="flex flex-col h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
-                <div className="flex-none bg-carbon-black/60 text-pure-white border-b border-pure-white/10 p-4 flex items-center justify-between z-10">
-                    <div className="flex items-center gap-3">
-                        <LeaderboardIcon className="w-6 h-6 text-primary-red" />
-                        <span className="font-bold text-lg uppercase tracking-wider italic">League Standings</span>
-                    </div>
-                    <div className="text-xs font-bold text-highlight-silver hidden sm:flex items-center gap-2">
+                {/* Header only visible on desktop to show Race Leader, title removed to avoid duplication with page header */}
+                <div className="flex-none bg-carbon-black/60 text-pure-white border-b border-pure-white/10 p-4 hidden md:flex items-center justify-end z-10 h-14">
+                    <div className="text-xs font-bold text-highlight-silver flex items-center gap-2">
                         Race Leader: {raceLeader} PTS <CheckeredFlagIcon className="w-4 h-4 text-pure-white"/>
                     </div>
                 </div>
@@ -866,7 +863,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                             {view === 'insights' && <LightbulbIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
                         </div>
                         <h1 className="text-base md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap text-center">
-                            {view === 'standings' ? 'League Leaderboard' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : 'Performance Insights'}
+                            {view === 'standings' ? 'League Standings' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : 'Performance Insights'}
                         </h1>
                   </div>
                   
