@@ -86,48 +86,12 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         </button>
     );
 
-    const FilterControls = (
-        <div className="flex bg-accent-gray/50 rounded-lg p-1 border border-pure-white/10 backdrop-blur-md shadow-lg">
-            <button
-                onClick={() => setFilterType('all')}
-                className={`px-4 py-1.5 rounded-md text-[10px] md:text-xs font-bold uppercase transition-all ${
-                    filterType === 'all' 
-                    ? 'bg-pure-white text-carbon-black shadow-sm' 
-                    : 'text-highlight-silver hover:text-pure-white'
-                }`}
-            >
-                All
-            </button>
-            <button
-                onClick={() => setFilterType('unpaid')}
-                className={`px-4 py-1.5 rounded-md text-[10px] md:text-xs font-bold uppercase transition-all ${
-                    filterType === 'unpaid' 
-                    ? 'bg-primary-red text-pure-white shadow-sm' 
-                    : 'text-highlight-silver hover:text-pure-white'
-                }`}
-            >
-                Unpaid
-            </button>
-            <button
-                onClick={() => setFilterType('admin')}
-                className={`px-4 py-1.5 rounded-md text-[10px] md:text-xs font-bold uppercase transition-all ${
-                    filterType === 'admin' 
-                    ? 'bg-primary-red text-pure-white shadow-sm' 
-                    : 'text-highlight-silver hover:text-pure-white'
-                }`}
-            >
-                Admins
-            </button>
-        </div>
-    );
-
     return (
         <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
             <PageHeader 
                 title={selectedUser ? "EDIT USER" : "MANAGE USERS"} 
                 icon={ProfileIcon} 
                 leftAction={DashboardAction}
-                rightAction={!selectedUser ? FilterControls : undefined}
             />
 
             {selectedUser ? (
@@ -143,52 +107,88 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     />
                 </div>
             ) : (
-                /* Updated: Added md:px-1 and removed overflow-hidden to prevent focus ring clipping */
-                <div className="flex-1 flex flex-col px-4 md:px-1">
-                    {/* Updated: Added px-0.5 to provide gutter for the outer ring on desktop */}
-                    <div className="mb-6 flex-shrink-0 px-0.5">
-                        <input
-                            type="text"
-                            placeholder="Search among loaded users..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none transition-all"
-                        />
-                    </div>
-
-                    {isLoading ? (
-                        <ListSkeleton />
-                    ) : (
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pb-8">
-                            {/* Mobile View */}
-                            <div className="md:hidden">
-                                {filteredUsers.map(user => <UserCard key={user.id} user={user} onClick={() => setSelectedUser(user)} />)}
+                <div className="flex-1 md:overflow-hidden px-4 md:px-1 pb-8 flex flex-col">
+                    <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1">
+                        
+                        {/* Card Header with Search and Toggles */}
+                        <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
+                            {/* Search Input */}
+                            <div className="w-full md:w-auto flex-1 max-w-md relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search users..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-carbon-black border border-accent-gray rounded-lg px-4 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
+                                />
                             </div>
 
-                            {/* Desktop View */}
-                            <div className="hidden md:block bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl overflow-hidden mb-6">
-                                <table className="w-full text-left">
-                                    <thead className="bg-carbon-black/80 border-b border-pure-white/10 backdrop-blur-md sticky top-0 z-10">
+                            {/* Filter Toggles */}
+                            <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1 w-full md:w-auto justify-center">
+                                <button
+                                    onClick={() => setFilterType('all')}
+                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors flex-1 md:flex-none text-center ${
+                                        filterType === 'all' 
+                                        ? 'bg-pure-white text-carbon-black shadow-sm' 
+                                        : 'text-highlight-silver hover:text-pure-white'
+                                    }`}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    onClick={() => setFilterType('unpaid')}
+                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors flex-1 md:flex-none text-center ${
+                                        filterType === 'unpaid' 
+                                        ? 'bg-primary-red text-pure-white shadow-sm' 
+                                        : 'text-highlight-silver hover:text-pure-white'
+                                    }`}
+                                >
+                                    Unpaid
+                                </button>
+                                <button
+                                    onClick={() => setFilterType('admin')}
+                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors flex-1 md:flex-none text-center ${
+                                        filterType === 'admin' 
+                                        ? 'bg-primary-red text-pure-white shadow-sm' 
+                                        : 'text-highlight-silver hover:text-pure-white'
+                                    }`}
+                                >
+                                    Admins
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* List Content */}
+                        {isLoading ? (
+                            <div className="p-4"><ListSkeleton /></div>
+                        ) : (
+                            <div className="overflow-y-auto md:flex-1 custom-scrollbar pb-32 md:pb-0">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
                                         <tr>
-                                            <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider">Name</th>
-                                            <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider hidden md:table-cell">Email</th>
-                                            <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider text-center">Dues Status</th>
-                                            <th className="p-4 text-sm font-bold uppercase text-highlight-silver tracking-wider text-center">Role</th>
+                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Name</th>
+                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] hidden md:table-cell">Email</th>
+                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Status</th>
+                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Role</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-pure-white/5">
+                                    <tbody>
                                         {filteredUsers.map(user => (
                                             <tr 
                                                 key={user.id} 
-                                                className="hover:bg-pure-white/5 transition-colors cursor-pointer group"
+                                                className="border-t border-pure-white/5 hover:bg-pure-white/5 transition-colors cursor-pointer group"
                                                 onClick={() => setSelectedUser(user)}
                                             >
-                                                <td className="p-4">
-                                                    <span className="font-bold text-pure-white group-hover:text-primary-red transition-colors">{user.displayName}</span>
+                                                <td className="p-4 align-middle">
+                                                    <span className="font-bold text-base md:text-lg text-pure-white group-hover:text-primary-red transition-colors block">{user.displayName}</span>
+                                                    {/* Mobile email fallback */}
+                                                    <span className="md:hidden text-xs text-highlight-silver font-mono opacity-70">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
                                                 </td>
-                                                <td className="p-4 text-highlight-silver hidden md:table-cell font-mono text-sm">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</td>
-                                                <td className="p-4 text-center">
-                                                     <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${
+                                                <td className="p-4 align-middle hidden md:table-cell">
+                                                    <span className="text-sm text-highlight-silver font-mono">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
+                                                </td>
+                                                <td className="p-4 text-center align-middle">
+                                                     <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full border ${
                                                         (user.duesPaidStatus || 'Unpaid') === 'Paid'
                                                         ? 'bg-green-600/20 text-green-400 border-green-500/30'
                                                         : 'bg-red-900/20 text-red-400 border-red-500/30'
@@ -196,76 +196,42 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                                         {user.duesPaidStatus || 'Unpaid'}
                                                     </span>
                                                 </td>
-                                                <td className="p-4 text-center">
+                                                <td className="p-4 text-center align-middle">
                                                     {user.isAdmin ? (
-                                                        <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-primary-red text-pure-white shadow-sm shadow-primary-red/50">Admin</span>
+                                                        <span className="px-2 py-1 text-[10px] font-bold uppercase rounded-full bg-primary-red text-pure-white shadow-sm shadow-primary-red/50">Admin</span>
                                                     ) : (
-                                                        <span className="text-highlight-silver text-xs font-medium">User</span>
+                                                        <span className="text-highlight-silver text-[10px] font-medium uppercase tracking-wider">User</span>
                                                     )}
                                                 </td>
                                             </tr>
                                         ))}
+                                        {filteredUsers.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="p-8 text-center text-highlight-silver italic opacity-50">No users found matching criteria.</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
+                                
+                                {/* Pagination Button */}
+                                {hasMore && (
+                                    <div className="p-4 flex justify-center border-t border-pure-white/5">
+                                        <button 
+                                            onClick={() => fetchUsers(true)}
+                                            disabled={isPaging}
+                                            className="bg-accent-gray hover:bg-pure-white/10 text-pure-white font-bold py-2 px-6 rounded-lg border border-pure-white/10 transition-all flex items-center gap-2 text-xs uppercase tracking-wider disabled:opacity-50"
+                                        >
+                                            {isPaging ? 'Loading...' : 'Load More'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-
-                            {filteredUsers.length === 0 && (
-                                <p className="text-center text-highlight-silver py-8 italic">No matching users found.</p>
-                            )}
-
-                            {/* Pagination Button [S1C-01] */}
-                            {hasMore && (
-                                <div className="flex justify-center mt-6">
-                                    <button 
-                                        onClick={() => fetchUsers(true)}
-                                        disabled={isPaging}
-                                        className="bg-accent-gray hover:bg-pure-white/10 text-pure-white font-bold py-3 px-8 rounded-lg border border-pure-white/10 transition-all flex items-center gap-3 disabled:opacity-50"
-                                    >
-                                        {isPaging ? (
-                                            <><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 
-                                            Loading More...</>
-                                        ) : 'Load More Users'}
-                                    </button>
-                                </div>
-                            )}
-
-                            {!hasMore && allUsers.length > 0 && (
-                                <div className="text-center py-8 opacity-30 select-none">
-                                    <div className="h-px bg-pure-white/10 w-32 mx-auto mb-4"></div>
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-highlight-silver">End of Roster</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             )}
         </div>
     );
 };
-
-const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick }) => (
-    <div 
-        onClick={onClick}
-        className="bg-carbon-fiber rounded-xl p-4 mb-3 border border-pure-white/10 shadow-lg active:scale-[0.99] transition-all"
-    >
-        <div className="flex justify-between items-start mb-2">
-            <div>
-                <h3 className="font-bold text-pure-white text-lg">{user.displayName}</h3>
-                <p className="text-highlight-silver text-sm">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</p>
-            </div>
-            {user.isAdmin && <span className="bg-primary-red text-pure-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shadow-sm shadow-primary-red/50">Admin</span>}
-        </div>
-        <div className="flex justify-between items-center mt-3 border-t border-pure-white/5 pt-3">
-             <span className="text-xs text-highlight-silver uppercase tracking-wider">Status</span>
-             <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${
-                (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                ? 'bg-green-600/20 text-green-400 border-green-500/30'
-                : 'bg-red-900/20 text-red-400 border-red-500/30'
-            }`}>
-                {user.duesPaidStatus || 'Unpaid'}
-            </span>
-        </div>
-    </div>
-);
 
 export default ManageUsersPage;
