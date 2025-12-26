@@ -232,6 +232,17 @@ const App: React.FC = () => {
   // Implement Session Security
   const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
   
+  // Handling Session Expiration Notification after reload
+  useEffect(() => {
+      if (localStorage.getItem('ff1_session_expired')) {
+          localStorage.removeItem('ff1_session_expired');
+          // Give it a tiny delay to ensure Toast system is ready
+          setTimeout(() => {
+              showToast("Your session has expired. Please log in again.", 'info');
+          }, 500);
+      }
+  }, [showToast]);
+
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
       activeProfileId: 'default',
@@ -355,6 +366,11 @@ const App: React.FC = () => {
         if (!isAuthenticated) setIsTransitioning(true);
         setIsLoading(true);
 
+        // Safety timeout for transition overlay to prevent eternal stalls
+        const safetyTimeout = setTimeout(() => {
+            setIsTransitioning(false);
+        }, 10000); // 10 seconds max overlay
+
         const entities = await getLeagueEntities();
         if (entities) {
             setAllDrivers(entities.drivers);
@@ -434,8 +450,10 @@ const App: React.FC = () => {
             setSeasonPicks(userPicks);
             setIsAuthenticated(true);
             setIsLoading(false);
-            // End transition slightly after data is set to allow React to flush render and ensure the overlay is seen (1.5s delay)
-            setTimeout(() => setIsTransitioning(false), 1500);
+            
+            clearTimeout(safetyTimeout);
+            // End transition slightly after data is set to allow React to flush render and ensure the overlay is seen
+            setTimeout(() => setIsTransitioning(false), 2200);
           }
         });
       } else {

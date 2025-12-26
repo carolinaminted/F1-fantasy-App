@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
@@ -13,17 +12,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Inherit from Component directly to ensure proper type resolution for inherited properties and methods.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly declare and initialize state as a class property to ensure it's correctly typed and accessible to the compiler.
-  public state: ErrorBoundaryState = {
+  state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
-
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -33,8 +26,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  // Fix: Access inherited 'props' and 'setState' from the base class via 'this' within the arrow function.
-  handleReload = (): void => {
+  handleReload = () => {
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -45,7 +37,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render(): ReactNode {
-    // Fix: Correctly access inherited 'state' and 'props' from 'this'.
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 

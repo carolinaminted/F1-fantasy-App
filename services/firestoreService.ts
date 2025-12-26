@@ -1,8 +1,7 @@
-
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
 
@@ -200,19 +199,6 @@ export const fetchAllUserPicks = async (): Promise<{ [userId: string]: { [eventI
         allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
     });
     return allPicks;
-};
-
-// Added missing getUserDonations function
-export const getUserDonations = async (uid: string): Promise<Donation[]> => {
-    try {
-        const donationsCollection = collection(db, 'donations');
-        const q = query(donationsCollection, where('userId', '==', uid), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donation));
-    } catch (error) {
-        console.error("Error fetching user donations:", error);
-        return [];
-    }
 };
 
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {

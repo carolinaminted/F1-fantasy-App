@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { User } from '../types.ts';
 import { auth } from '../services/firebase.ts';
@@ -17,15 +16,21 @@ export const useSessionGuard = (user: User | null) => {
     const forceLogout = useCallback(async (reason: string) => {
         try {
             console.log(`Session Guard Logout Triggered: ${reason}`);
-            setShowWarning(false); // Clean up modal
+            setShowWarning(false); 
+            
+            // Set a flag in localStorage so App.tsx can show a friendly toast after reload
+            localStorage.setItem('ff1_session_expired', 'true');
+            
+            // Sign out from Firebase
             await signOut(auth);
-            // Use a small timeout to let the UI react/cleanup before blocking with alert
-            setTimeout(() => {
-                alert(reason);
-                window.location.href = '/'; // Hard redirect ensures a clean state
-            }, 100);
+            
+            // CRITICAL: We use location.replace to force a clean browser state.
+            // We avoid alert() because it is synchronous and can cause browser hangs on mobile resume.
+            window.location.replace(window.location.origin);
         } catch (error) {
             console.error("Session guard logout error:", error);
+            // Absolute fallback if everything fails: force reload
+            window.location.reload();
         }
     }, []);
 
@@ -61,7 +66,31 @@ export const useSessionGuard = (user: User | null) => {
         };
     }, [user, showWarning]);
 
-    // 2. Timer Interval Effect
+    // 2. Resume Detect (Visibility Change)
+    // Mobile browsers suspend JS intervals when in background. 
+    // This effect ensures we check session validity immediately when the user returns.
+    useEffect(() => {
+        if (!user) return;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                const now = Date.now();
+                const timeSinceLastActivity = now - lastActivity.current;
+                
+                if (timeSinceLastActivity > IDLE_TIMEOUT) {
+                    forceLogout("Session expired during sleep.");
+                } else if (timeSinceLastActivity > WARNING_THRESHOLD) {
+                    setIdleExpiryTime(lastActivity.current + IDLE_TIMEOUT);
+                    setShowWarning(true);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [user, forceLogout]);
+
+    // 3. Active Timer Interval Effect
     useEffect(() => {
         if (!user) return;
 
@@ -72,12 +101,11 @@ export const useSessionGuard = (user: User | null) => {
             // Check Idle Time
             if (timeSinceLastActivity > IDLE_TIMEOUT) {
                 clearInterval(checkInterval);
-                forceLogout("You have been logged out due to 15 minutes of inactivity.");
+                forceLogout("Inactivity limit reached.");
                 return;
             }
 
             // Check Warning Threshold
-            // If we cross the warning threshold and aren't already showing the warning
             if (timeSinceLastActivity > WARNING_THRESHOLD && !showWarning) {
                 setIdleExpiryTime(lastActivity.current + IDLE_TIMEOUT);
                 setShowWarning(true);
@@ -93,7 +121,6 @@ export const useSessionGuard = (user: User | null) => {
         showWarning, 
         idleExpiryTime, 
         continueSession,
-        // Expose a standard logout that just signs out without the "Force" alert, for the modal button
         logout: () => signOut(auth) 
     };
 };
