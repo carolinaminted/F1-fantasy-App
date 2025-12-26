@@ -176,12 +176,12 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     };
 
     const renderGpContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-3 flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+            <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
                 {/* Fastest Lap - Moved here above Qualifying */}
                 <div className="flex flex-col">
                     <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Fastest Lap</h4>
-                    <div className="bg-carbon-black/20 rounded-lg p-4">
+                    <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                         <div className="flex items-center gap-3">
                             <label className="w-6 text-xs font-black text-highlight-silver text-right">FL</label>
                             <div className="flex-1 h-14">
@@ -201,7 +201,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
                 <div className="flex flex-col">
                     <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Qualifying</h4>
-                    <div className="bg-carbon-black/20 rounded-lg p-4">
+                    <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                         <ResultGroup
                             positions={3}
                             selected={results.gpQualifying}
@@ -215,7 +215,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
             <div className="lg:col-span-9 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Race Results</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
+                <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                     <ResultGroup
                         positions={10}
                         selected={results.grandPrixFinish}
@@ -230,10 +230,10 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     );
 
     const renderSprintContent = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             <div className="lg:col-span-3 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Sprint Quali</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
+                <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                     <ResultGroup
                         positions={3}
                         selected={results.sprintQualifying || []}
@@ -246,7 +246,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
             </div>
             <div className="lg:col-span-9 flex flex-col">
                 <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Sprint Results</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
+                <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
                     <ResultGroup
                         positions={8}
                         selected={results.sprintFinish || []}
@@ -286,62 +286,59 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     return (
         <div className="text-pure-white flex flex-col min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-                <div className="sticky top-0 z-20 bg-carbon-black md:relative md:top-auto md:z-auto md:bg-transparent flex flex-wrap md:flex-nowrap justify-between items-center mb-4 pb-4 border-b border-accent-gray/50 flex-shrink-0 gap-y-3 pt-2 md:pt-0 shadow-md md:shadow-none">
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-lg md:text-xl font-bold truncate">{event.name}</h2>
-                                {isLocked && (
-                                    <span className="bg-primary-red/20 text-primary-red px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-primary-red/20">
-                                        Locked
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-highlight-silver">{event.country} • Round {event.round}</p>
+                {/* Updated Header Layout: Buttons to the right, transparent background to show carbon fiber */}
+                <div className="flex flex-row justify-between items-center mb-4 pb-4 border-b border-white/10 flex-shrink-0 pt-0">
+                    <div className="flex flex-col min-w-0 mr-4">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-lg md:text-xl font-bold truncate">{event.name}</h2>
+                            {isLocked && (
+                                <span className="bg-primary-red/20 text-primary-red px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-primary-red/20">
+                                    Locked
+                                </span>
+                            )}
                         </div>
+                        <p className="text-xs text-highlight-silver truncate">{event.country} • Round {event.round}</p>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                                type="button"
-                                onClick={onToggleLock}
-                                className={`h-12 w-12 flex items-center justify-center rounded-xl border transition-all ${
-                                    isLocked 
-                                    ? 'bg-red-900/20 border-primary-red text-primary-red hover:bg-primary-red hover:text-white' 
-                                    : 'bg-green-900/20 border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
-                                }`}
-                                title={isLocked ? 'Unlock Picks' : 'Lock Picks'}
-                            >
-                                {isLocked ? <LockIcon className="w-5 h-5" /> : <UnlockIcon className="w-5 h-5" />}
-                            </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={onToggleLock}
+                            className={`h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-xl border transition-all ${
+                                isLocked 
+                                ? 'bg-red-900/20 border-primary-red text-primary-red hover:bg-primary-red hover:text-white' 
+                                : 'bg-green-900/20 border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
+                            }`}
+                            title={isLocked ? 'Unlock Picks' : 'Lock Picks'}
+                        >
+                            {isLocked ? <LockIcon className="w-5 h-5" /> : <UnlockIcon className="w-5 h-5" />}
+                        </button>
 
-                            <button
-                                type="submit"
-                                disabled={saveState !== 'idle'}
-                                className={`h-12 w-12 flex items-center justify-center rounded-xl border transition-all ${
-                                    saveState === 'success'
-                                    ? 'bg-green-600 border-green-500 text-white'
-                                    : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-white hover:border-pure-white'
-                                }`}
-                                title="Save Results"
-                            >
-                                {saveState === 'saving' ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : saveState === 'success' ? (
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                                ) : (
-                                    <SaveIcon className="w-5 h-5" />
-                                )}
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            disabled={saveState !== 'idle'}
+                            className={`h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-xl border transition-all ${
+                                saveState === 'success'
+                                ? 'bg-green-600 border-green-500 text-white'
+                                : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-white hover:border-pure-white'
+                            }`}
+                            title="Save Results"
+                        >
+                            {saveState === 'saving' ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : saveState === 'success' ? (
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                            ) : (
+                                <SaveIcon className="w-5 h-5" />
+                            )}
+                        </button>
                     </div>
                 </div>
 
                 <div className="flex-1">
                     {!event.hasSprint ? (
-                        <section className="bg-carbon-black/40 rounded-xl p-6 border border-pure-white/5 flex flex-col mb-6">
-                            <div className="flex items-center gap-2 mb-6 border-b border-accent-gray/30 pb-3 flex-shrink-0">
+                        <section className="bg-carbon-black/40 rounded-xl p-4 md:p-6 border border-pure-white/5 flex flex-col mb-6">
+                            <div className="flex items-center gap-2 mb-4 md:mb-6 border-b border-accent-gray/30 pb-3 flex-shrink-0">
                                 <CheckeredFlagIcon className="w-5 h-5 text-primary-red" />
                                 <h3 className="font-bold text-sm uppercase tracking-wider text-pure-white">Grand Prix Session</h3>
                             </div>
@@ -357,7 +354,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                     onClick={() => setActiveSession(activeSession === 'gp' ? null : 'gp')} 
                                 />
                                 {activeSession === 'gp' && (
-                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-6 rounded-b-xl mb-6">
+                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 md:p-6 rounded-b-xl mb-6">
                                         {renderGpContent()}
                                     </div>
                                 )}
@@ -371,7 +368,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                     onClick={() => setActiveSession(activeSession === 'sprint' ? null : 'sprint')} 
                                 />
                                 {activeSession === 'sprint' && (
-                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-6 rounded-b-xl mb-6">
+                                    <div className="bg-carbon-black/40 border-x border-b border-pure-white/5 p-4 md:p-6 rounded-b-xl mb-6">
                                         {renderSprintContent()}
                                     </div>
                                 )}
