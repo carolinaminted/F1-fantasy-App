@@ -54,7 +54,7 @@ const RefreshControl: React.FC<{
 }> = ({ onClick, isRefreshing, cooldown, status }) => {
     
     return (
-        <div className="relative hidden md:flex items-center">
+        <div className="relative flex items-center">
             {status !== 'idle' && (
                 <div className={`
                     absolute right-full mr-3 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg animate-fade-in
@@ -85,7 +85,7 @@ const RefreshControl: React.FC<{
                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin text-primary-red' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <span className="text-sm font-bold uppercase hidden md:inline">Refresh</span>
+                        <span className="text-sm font-bold uppercase">Refresh</span>
                     </div>
                 )}
             </button>
