@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Event, EventSchedule } from '../types.ts';
+import { Event, EventSchedule, RaceResults } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { CircuitRoute } from './icons/CircuitRoutes.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
     events: Event[];
     onRefresh?: () => Promise<void>;
+    raceResults?: RaceResults;
 }
 
 /**
@@ -81,7 +83,7 @@ const hexToRgba = (hex: string, alpha: number) => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh }) => {
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh, raceResults }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -219,15 +221,19 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                 {viewMode === 'full' && (
                     <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8 pt-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {events.map(event => (
-                                <EventGridCard 
-                                    key={event.id} 
-                                    event={event} 
-                                    schedule={schedules[event.id]} 
-                                    isNext={nextRace?.id === event.id} 
-                                    onClick={() => setSelectedEvent(event)}
-                                />
-                            ))}
+                            {events.map(event => {
+                                const isCompleted = !!raceResults?.[event.id]?.grandPrixFinish?.[0];
+                                return (
+                                    <EventGridCard 
+                                        key={event.id} 
+                                        event={event} 
+                                        schedule={schedules[event.id]} 
+                                        isNext={nextRace?.id === event.id} 
+                                        onClick={() => setSelectedEvent(event)}
+                                        isCompleted={isCompleted}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -398,7 +404,7 @@ const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNex
     );
 };
 
-const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => {
+const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void; isCompleted?: boolean }> = ({ event, schedule, isNext, onClick, isCompleted }) => {
     const accentColor = event.hasSprint ? '#EAB308' : (isNext ? '#DA291C' : '#C0C0C0');
     const qualiTime = event.hasSprint ? (schedule?.sprintQualifying || schedule?.qualifying) : schedule?.qualifying;
     const qualiLabel = event.hasSprint ? "Sprint Quali" : "Qualifying";
@@ -424,6 +430,11 @@ const EventGridCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?:
                         <p className="text-sm text-highlight-silver truncate mt-0.5">{event.location}, {event.country}</p>
                     </div>
                     <div className="flex items-center gap-3 ml-2">
+                        {isCompleted && (
+                            <div className="bg-green-500/20 p-1.5 rounded-lg border border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                                <CheckeredFlagIcon className="w-4 h-4 text-green-500" />
+                            </div>
+                        )}
                         {event.hasSprint && <SprintIcon className="w-7 h-7 text-yellow-500" />}
                         <div className="w-2 h-10 rounded-full" style={{ backgroundColor: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
                     </div>
