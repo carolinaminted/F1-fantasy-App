@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import { getAllUsers, DEFAULT_PAGE_SIZE } from '../services/firestoreService.ts';
@@ -24,6 +25,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [lastVisible, setLastVisible] = useState<any>(null);
     const [hasMore, setHasMore] = useState(true);
+    const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'admin'>('all');
 
     const fetchUsers = async (isMore = false) => {
         if (isMore) setIsPaging(true);
@@ -49,15 +51,25 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
     }, []);
 
     const filteredUsers = useMemo(() => {
+        let result = allUsers;
+
+        // 1. Filter by Type
+        if (filterType === 'unpaid') {
+            result = result.filter(u => (u.duesPaidStatus || 'Unpaid') === 'Unpaid');
+        } else if (filterType === 'admin') {
+            result = result.filter(u => !!u.isAdmin);
+        }
+
+        // 2. Filter by Search
         if (!searchTerm.trim()) {
-            return allUsers; // Already sorted by fetch (displayName)
+            return result; 
         }
         const lowercasedTerm = searchTerm.toLowerCase();
-        return allUsers.filter(user =>
+        return result.filter(user =>
             user.displayName.toLowerCase().includes(lowercasedTerm) ||
             user.email.toLowerCase().includes(lowercasedTerm)
         );
-    }, [searchTerm, allUsers]);
+    }, [searchTerm, allUsers, filterType]);
 
     const handleUserUpdate = (updatedUser: User) => {
         setAllUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -74,12 +86,48 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         </button>
     );
 
+    const FilterControls = (
+        <div className="flex bg-accent-gray/50 rounded-lg p-1 border border-pure-white/10 backdrop-blur-md shadow-lg">
+            <button
+                onClick={() => setFilterType('all')}
+                className={`px-4 py-1.5 rounded-md text-[10px] md:text-xs font-bold uppercase transition-all ${
+                    filterType === 'all' 
+                    ? 'bg-pure-white text-carbon-black shadow-sm' 
+                    : 'text-highlight-silver hover:text-pure-white'
+                }`}
+            >
+                All
+            </button>
+            <button
+                onClick={() => setFilterType('unpaid')}
+                className={`px-4 py-1.5 rounded-md text-[10px] md:text-xs font-bold uppercase transition-all ${
+                    filterType === 'unpaid' 
+                    ? 'bg-primary-red text-pure-white shadow-sm' 
+                    : 'text-highlight-silver hover:text-pure-white'
+                }`}
+            >
+                Unpaid
+            </button>
+            <button
+                onClick={() => setFilterType('admin')}
+                className={`px-4 py-1.5 rounded-md text-[10px] md:text-xs font-bold uppercase transition-all ${
+                    filterType === 'admin' 
+                    ? 'bg-primary-red text-pure-white shadow-sm' 
+                    : 'text-highlight-silver hover:text-pure-white'
+                }`}
+            >
+                Admins
+            </button>
+        </div>
+    );
+
     return (
         <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
             <PageHeader 
                 title={selectedUser ? "EDIT USER" : "MANAGE USERS"} 
                 icon={ProfileIcon} 
                 leftAction={DashboardAction}
+                rightAction={!selectedUser ? FilterControls : undefined}
             />
 
             {selectedUser ? (
