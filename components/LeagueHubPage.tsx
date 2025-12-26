@@ -3,6 +3,11 @@ import React from 'react';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
+import { CalendarIcon } from './icons/CalendarIcon.tsx';
+import { TrackIcon } from './icons/TrackIcon.tsx';
+import { GarageIcon } from './icons/GarageIcon.tsx';
+import { LeagueIcon } from './icons/LeagueIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import { Page } from '../App.tsx';
 import { User } from '../types.ts';
 
@@ -15,45 +20,72 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
     const isPaid = user?.duesPaidStatus === 'Paid';
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 animate-fade-in">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl md:text-5xl font-bold text-pure-white mb-4">League Hub</h1>
-                <p className="text-lg text-highlight-silver max-w-2xl mx-auto">
-                    Manage your league membership, view scoring rules, and support the community.
-                </p>
-            </div>
+        <div className="w-full max-w-5xl mx-auto px-2 md:px-0">
+            <PageHeader 
+                title="LEAGUE HEADQUARTERS" 
+                icon={LeagueIcon} 
+            />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <HubTile 
-                    icon={TrophyIcon}
-                    title="Scoring System"
-                    subtitle="Rules & Points"
-                    description="Understand how points are awarded for race results and driver performance."
-                    onClick={() => setActivePage('points')}
-                    delay="0ms"
-                />
-                
-                <HubTile 
-                    icon={DuesIcon}
-                    title={isPaid ? "Membership Active" : "Pay Dues"}
-                    subtitle="Membership"
-                    description={isPaid ? "Your league dues are paid. You are all set for the season!" : "Settle your entry fees to unlock the full season."}
-                    onClick={() => {
-                        if (!isPaid) setActivePage('duesPayment');
-                    }}
-                    delay="100ms"
-                    highlight={!isPaid && !!user}
-                    completed={isPaid}
-                />
+            <div className="pb-20 md:pb-12 px-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {/* --- Race Information Section --- */}
+                    <HubTile 
+                        icon={CalendarIcon}
+                        title="Schedule"
+                        subtitle="Calendar"
+                        description="Upcoming race dates and start times."
+                        onClick={() => setActivePage('schedule')}
+                        delay="0ms"
+                    />
+                    <HubTile 
+                        icon={TrackIcon}
+                        title="GP Results"
+                        subtitle="Classifications"
+                        description="Official finishing orders & points."
+                        onClick={() => setActivePage('gp-results')}
+                        delay="100ms"
+                    />
+                    <HubTile 
+                        icon={GarageIcon}
+                        title="Drivers & Teams"
+                        subtitle="The Grid"
+                        description="Constructor rosters & driver line-ups."
+                        onClick={() => setActivePage('drivers-teams')}
+                        delay="200ms"
+                    />
 
-                <HubTile 
-                    icon={DonationIcon}
-                    title="Donate"
-                    subtitle="Support"
-                    description="Contribute to Victory Junction or help cover league operational costs."
-                    onClick={() => setActivePage('donate')}
-                    delay="200ms"
-                />
+                    {/* --- League Administration Section --- */}
+                    <HubTile 
+                        icon={TrophyIcon}
+                        title="Scoring System"
+                        subtitle="Rules"
+                        description="Points breakdown for race results."
+                        onClick={() => setActivePage('points')}
+                        delay="300ms"
+                    />
+                    
+                    <HubTile 
+                        icon={DuesIcon}
+                        title={isPaid ? "Membership Active" : "Pay Dues"}
+                        subtitle="Status"
+                        description={isPaid ? "You are all set for the season!" : "Settle your entry fees to unlock."}
+                        onClick={() => {
+                            if (!isPaid) setActivePage('duesPayment');
+                        }}
+                        delay="400ms"
+                        highlight={!isPaid && !!user}
+                        completed={isPaid}
+                    />
+
+                    <HubTile 
+                        icon={DonationIcon}
+                        title="Donate"
+                        subtitle="Support"
+                        description="Victory Junction & League Ops."
+                        onClick={() => setActivePage('donate')}
+                        delay="500ms"
+                    />
+                </div>
             </div>
         </div>
     );
@@ -72,45 +104,52 @@ const HubTile: React.FC<{
     <button
         onClick={onClick}
         disabled={completed}
-        className={`group relative overflow-hidden rounded-2xl p-8 text-left border transition-all duration-300 transform flex flex-col h-full animate-fade-in-up bg-carbon-fiber 
+        className={`group relative overflow-hidden rounded-xl p-6 text-left border transition-all duration-300 transform flex flex-col w-full animate-fade-in-up bg-carbon-fiber shadow-lg hover:shadow-2xl hover:-translate-y-1 min-h-[220px]
         ${completed 
-            ? 'border-green-500/50 cursor-default shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
+            ? 'border-green-500/50 cursor-default shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:translate-y-0 hover:shadow-none' 
             : (highlight 
-                ? 'border-primary-red shadow-[0_0_20px_rgba(218,41,28,0.2)] hover:-translate-y-2 hover:shadow-primary-red/40' 
-                : 'border-pure-white/10 hover:border-primary-red/50 hover:-translate-y-2 hover:shadow-2xl'
+                ? 'border-primary-red shadow-[0_0_20px_rgba(218,41,28,0.2)] hover:shadow-primary-red/40' 
+                : 'border-pure-white/10 hover:border-primary-red/50'
               )
         }`}
         style={{ animationDelay: delay }}
     >
-        <div className={`absolute top-0 right-0 p-6 opacity-5 transition-opacity transform pointer-events-none ${completed ? 'text-green-500' : (highlight ? 'text-primary-red group-hover:scale-110 group-hover:opacity-10' : 'text-pure-white group-hover:scale-110 group-hover:opacity-10')}`}>
-            <Icon className="w-32 h-32" />
+        {/* Background Icon (Huge & Faded) */}
+        <div className={`absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 ${completed ? 'text-green-500' : (highlight ? 'text-primary-red' : 'text-pure-white')}`}>
+            <Icon className="w-48 h-48" />
         </div>
         
-        <div className={`mb-6 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors shadow-lg border 
-            ${completed 
-                ? 'bg-green-600/20 text-green-500 border-green-500/30' 
-                : (highlight 
-                    ? 'bg-primary-red/20 text-pure-white border-primary-red/50' 
-                    : 'bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20'
-                  )
-            }`}>
-            <Icon className="w-8 h-8" />
+        {/* Header Section */}
+        <div className="flex items-start justify-between mb-4 relative z-10">
+             <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors shadow-lg border 
+                ${completed 
+                    ? 'bg-green-600/20 text-green-500 border-green-500/30' 
+                    : (highlight 
+                        ? 'bg-primary-red/20 text-pure-white border-primary-red/50' 
+                        : 'bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20'
+                      )
+                }`}>
+                <Icon className="w-6 h-6" />
+            </div>
+            <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
         </div>
         
-        <div className="relative z-10 flex-grow">
-            <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2">{subtitle}</p>
-            <h3 className={`text-3xl font-bold mb-3 transition-colors ${completed ? 'text-green-400' : 'text-pure-white group-hover:text-primary-red'}`}>{title}</h3>
-            <p className="text-highlight-silver/80 leading-relaxed">{description}</p>
+        {/* Content Section */}
+        <div className="relative z-10 flex-grow flex flex-col justify-center">
+            <h3 className={`text-2xl font-bold mb-2 transition-colors leading-none ${completed ? 'text-green-400' : 'text-pure-white group-hover:text-primary-red'}`}>{title}</h3>
+            <p className="text-highlight-silver/70 text-sm leading-snug">{description}</p>
         </div>
         
+        {/* Footer Action */}
         {!completed && (
-            <div className="mt-8 flex items-center gap-2 text-sm font-bold text-pure-white opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                Open <span className="text-primary-red">&rarr;</span>
+            <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
+                <span>Access Details</span>
+                <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
         )}
         {completed && (
-             <div className="mt-8 flex items-center gap-2 text-sm font-bold text-green-500">
-                <span>&#10003; Paid</span>
+             <div className="mt-4 pt-4 border-t border-green-500/20 flex items-center gap-2 text-xs font-bold text-green-500 relative z-10">
+                <span>&#10003; Membership Confirmed</span>
             </div>
         )}
     </button>

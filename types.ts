@@ -1,4 +1,3 @@
-
 // Fix: Create types definitions for the application.
 export enum EntityClass {
   A = 'A',
@@ -18,6 +17,14 @@ export interface User {
   totalPoints?: number;
   rank?: number;
   prevRank?: number; // For trending indicators
+  // Breakdown of points for insights
+  breakdown?: {
+      gp: number;
+      quali: number;
+      sprint: number;
+      fl: number;
+  };
+  displayRank?: number; // Client-side calculated rank for display
 }
 
 export interface InvitationCode {
@@ -100,19 +107,6 @@ export interface RaceResults {
   [eventId: string]: EventResult;
 }
 
-// Fix: Add and export the Donation interface. This type was missing, causing import errors in donation-related components.
-export interface Donation {
-  id: string;
-  userId: string;
-  amount: number; // in cents
-  currency: string;
-  createdAt: { seconds: number; nanoseconds: number };
-  methodType: string;
-  cardLast4?: string;
-  providerTxnId: string;
-  status: string;
-}
-
 export interface DuesPaymentInitiation {
   id: string; // Firestore document ID
   uid: string;
@@ -156,4 +150,11 @@ export interface EventPointsBreakdown {
     gpQualifyingPoints: number;
     sprintQualifyingPoints: number;
     penaltyPoints: number; // New field
+}
+
+export interface LeaderboardCache {
+    users: User[];
+    allPicks: { [userId: string]: { [eventId: string]: PickSelection } };
+    source: 'public' | 'private_fallback';
+    lastUpdated: number;
 }

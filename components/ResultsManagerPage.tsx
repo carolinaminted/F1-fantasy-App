@@ -1,16 +1,18 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
-import { RaceResults, Event, EventResult, Driver, PointsSystem } from '../types.ts';
+import { RaceResults, Event, EventResult, Driver, PointsSystem, Constructor } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
-import { AdminIcon } from './icons/AdminIcon.tsx';
+import { TrackIcon } from './icons/TrackIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
     onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
     setAdminSubPage: (page: 'dashboard') => void;
     allDrivers: Driver[];
+    allConstructors: Constructor[]; // New prop
     formLocks: { [eventId: string]: boolean };
     onToggleLock: (eventId: string) => void;
     activePointsSystem: PointsSystem; // New prop
@@ -19,9 +21,10 @@ interface ResultsManagerPageProps {
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, formLocks, onToggleLock, activePointsSystem, events }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, allConstructors, formLocks, onToggleLock, activePointsSystem, events }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [filter, setFilter] = useState<FilterType>('all');
+    const { showToast } = useToast();
 
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
@@ -59,9 +62,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             });
 
             // Snapshot 2: Scoring Rules (New)
-            // We inject the CURRENT active rules into this result record.
-            // This ensures if we change rules later, this race's points are locked in history.
-            
             const resultsWithSnapshot = {
                 ...results,
                 driverTeams: driverTeamsSnapshot,
@@ -69,9 +69,10 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             };
 
             await onResultsUpdate(eventId, resultsWithSnapshot);
+            showToast(`Results for ${eventId} saved successfully!`, 'success');
             return true;
         } catch (error) {
-            alert(`Error: Could not update results for ${eventId}. Please check your connection and try again.`);
+            showToast(`Error: Could not update results for ${eventId}. Please check your connection and try again.`, 'error');
             return false;
         }
     };
@@ -83,7 +84,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         return (
             <button
                 onClick={() => onClick(value)}
-                className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors flex-1 ${
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex-1 ${
                     isActive
                         ? 'bg-primary-red text-pure-white'
                         : 'bg-carbon-black text-highlight-silver hover:bg-carbon-black/80'
@@ -94,81 +95,84 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         );
     };
 
+    const DashboardAction = (
+        <button 
+            onClick={() => setAdminSubPage('dashboard')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">Dashboard</span>
+        </button>
+    );
+
     return (
-        // Desktop: Calculated height (100vh - 6rem padding) to fit exactly in App shell without scrolling the page.
-        // Mobile: Natural height to allow standard page scrolling.
-        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white p-2 md:p-0 md:h-[calc(100vh-6rem)] md:overflow-hidden">
-            <div className="flex items-center justify-between mb-2 md:mb-4 flex-shrink-0">
-                 <button 
-                    onClick={() => setAdminSubPage('dashboard')}
-                    className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors text-sm py-2"
-                >
-                    <BackIcon className="w-4 h-4" />
-                    Back
-                </button>
-                <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-right">
-                    <span className="hidden md:inline">Results Manager</span>
-                    <span className="md:hidden">Results</span>
-                    <AdminIcon className="w-6 h-6"/>
-                </h1>
+        <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white min-h-full">
+            <div className="flex-none">
+                <PageHeader 
+                    title="RESULTS MANAGER" 
+                    icon={TrackIcon} 
+                    leftAction={DashboardAction}
+                />
             </div>
             
-            {/* Control Bar */}
-            <div className="bg-accent-gray/50 backdrop-blur-sm rounded-lg p-2 md:p-3 mb-2 md:mb-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-2 md:gap-4 items-stretch md:items-center justify-between flex-shrink-0">
-                <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
-                    <FilterButton label="All" value="all" current={filter} onClick={setFilter} />
-                    <FilterButton label="Done" value="added" current={filter} onClick={setFilter} />
-                    <FilterButton label="Todo" value="pending" current={filter} onClick={setFilter} />
+            <div className="flex flex-col px-4 md:px-0">
+                {/* Control Bar */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between flex-shrink-0 shadow-lg">
+                    <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
+                        <FilterButton label="All Rounds" value="all" current={filter} onClick={setFilter} />
+                        <FilterButton label="Done" value="added" current={filter} onClick={setFilter} />
+                        <FilterButton label="Pending" value="pending" current={filter} onClick={setFilter} />
+                    </div>
+
+                    <div className="relative w-full md:w-80">
+                        <select
+                            value={selectedEventId}
+                            onChange={(e) => setSelectedEventId(e.target.value)}
+                            className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-3 pl-4 pr-10 text-pure-white text-sm font-black uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer shadow-inner transition-all hover:border-highlight-silver"
+                        >
+                            <option value="" disabled>Select GP Weekend...</option>
+                            {filteredEvents.map(event => {
+                                const isLocked = formLocks[event.id];
+                                const hasResults = checkHasResults(event);
+                                const statusMarker = hasResults ? '✓' : '○';
+                                return (
+                                    <option key={event.id} value={event.id}>
+                                        {statusMarker} R{event.round}: {event.name} {isLocked ? '(LOCKED)' : ''}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver">
+                            <ChevronDownIcon className="w-5 h-5" />
+                        </div>
+                    </div>
                 </div>
 
-                <div className="relative w-full md:w-80">
-                    <select
-                        value={selectedEventId}
-                        onChange={(e) => setSelectedEventId(e.target.value)}
-                        className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-2.5 pl-4 pr-10 text-pure-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer"
-                    >
-                        <option value="" disabled>Select an event...</option>
-                        {filteredEvents.map(event => {
-                            const isLocked = formLocks[event.id];
-                            const hasResults = checkHasResults(event);
-                            const statusMarker = hasResults ? '✓' : '○';
-                            return (
-                                <option key={event.id} value={event.id}>
-                                    {statusMarker} R{event.round}: {event.name} {isLocked ? '(Locked)' : ''}
-                                </option>
-                            );
-                        })}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver">
-                        <ChevronDownIcon className="w-4 h-4" />
-                    </div>
+                {/* Main Form Area - Expanded natural height, no internal desktop scroll */}
+                <div className="w-full max-w-6xl mx-auto pb-32 md:pb-12">
+                    {selectedEvent ? (
+                        <div className="bg-carbon-fiber rounded-xl p-4 md:p-6 border border-pure-white/10 shadow-2xl flex flex-col mb-4">
+                            <ResultsForm
+                                event={selectedEvent}
+                                currentResults={raceResults[selectedEvent.id]}
+                                onSave={handleSave}
+                                allDrivers={allDrivers}
+                                allConstructors={allConstructors}
+                                isLocked={!!formLocks[selectedEvent.id]}
+                                onToggleLock={() => onToggleLock(selectedEvent.id)}
+                            />
+                            <p className="text-center text-[10px] font-bold uppercase tracking-widest text-highlight-silver mt-6 pt-4 border-t border-pure-white/5 opacity-50">
+                                Recalculation engine triggers automatically upon saving.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-64 md:h-96 bg-accent-gray/20 rounded-xl border-2 border-dashed border-accent-gray/50 m-2">
+                            <TrackIcon className="w-16 h-16 text-accent-gray mb-6 opacity-20" />
+                            <h3 className="text-xl font-bold text-highlight-silver mb-2">Awaiting Race Telemetry</h3>
+                            <p className="text-highlight-silver/50 text-sm max-w-xs text-center">Select an event from the roster above to manage session results and lock statuses.</p>
+                        </div>
+                    )}
                 </div>
-            </div>
-
-            {/* Main Form Area */}
-            {/* Mobile: Standard block, auto height. Desktop: Flex-1, hidden overflow (internal scroll in form) */}
-            <div className="w-full max-w-6xl mx-auto md:flex-1 md:min-h-0 md:flex md:flex-col pb-8 md:pb-0">
-                {selectedEvent ? (
-                    <div className="bg-carbon-fiber rounded-lg p-2 md:p-4 border border-pure-white/10 shadow-lg md:h-full md:flex md:flex-col">
-                        <ResultsForm
-                            event={selectedEvent}
-                            currentResults={raceResults[selectedEvent.id]}
-                            onSave={handleSave}
-                            allDrivers={allDrivers}
-                            isLocked={!!formLocks[selectedEvent.id]}
-                            onToggleLock={() => onToggleLock(selectedEvent.id)}
-                        />
-                        <p className="text-center text-[10px] text-highlight-silver mt-2">
-                            Saving results will lock in the <strong>Active Scoring Profile</strong> rules for this race.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-64 md:h-full bg-accent-gray/20 rounded-lg border-2 border-dashed border-accent-gray m-2">
-                        <AdminIcon className="w-12 h-12 text-accent-gray mb-4" />
-                        <h3 className="text-lg font-bold text-highlight-silver mb-2">No Event Selected</h3>
-                        <p className="text-highlight-silver/70 text-sm">Select an event from the dropdown above.</p>
-                    </div>
-                )}
             </div>
         </div>
     );

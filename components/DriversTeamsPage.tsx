@@ -1,9 +1,12 @@
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Driver, Constructor, EntityClass } from '../types.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { GarageIcon } from './icons/GarageIcon.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
+import { DriverIcon } from './icons/DriverIcon.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { PageHeader } from './ui/PageHeader.tsx';
 
 interface DriversTeamsPageProps {
     allDrivers: Driver[];
@@ -11,11 +14,23 @@ interface DriversTeamsPageProps {
     setActivePage: (page: any) => void;
 }
 
+const TEAM_URLS: Record<string, string> = {
+    'mclaren': 'https://www.formula1.com/en/teams/mclaren',
+    'mercedes': 'https://www.formula1.com/en/teams/mercedes',
+    'red_bull': 'https://www.formula1.com/en/teams/red-bull-racing',
+    'ferrari': 'https://www.formula1.com/en/teams/ferrari',
+    'williams': 'https://www.formula1.com/en/teams/williams',
+    'racing_bulls': 'https://www.formula1.com/en/teams/racing-bulls',
+    'aston_martin': 'https://www.formula1.com/en/teams/aston-martin',
+    'haas': 'https://www.formula1.com/en/teams/haas',
+    'audi': 'https://www.formula1.com/en/teams/kick-sauber',
+    'alpine': 'https://www.formula1.com/en/teams/alpine',
+};
+
 const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allConstructors, setActivePage }) => {
     
     // Sort and Group Entities
     const { classATeams, classBTeams } = useMemo(() => {
-        // Helper to get rank from constants (2025 Standings Order)
         const getTeamRank = (id: string) => {
             const index = CONSTRUCTORS.findIndex(c => c.id === id);
             return index === -1 ? 999 : index;
@@ -31,15 +46,19 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
         };
     }, [allConstructors]);
 
-    // Helper to get drivers for a team
     const getTeamDrivers = (teamId: string) => {
         return allDrivers.filter(d => d.constructorId === teamId).sort((a, b) => a.name.localeCompare(b.name));
     };
 
+    const HeaderControls = (
+        <div className="text-xs font-bold text-highlight-silver bg-accent-gray/30 px-3 py-1.5 rounded-full border border-pure-white/10 hidden sm:block">
+            2026 Season Grid
+        </div>
+    );
+
     const TeamCard: React.FC<{ team: Constructor }> = ({ team }) => {
         const drivers = getTeamDrivers(team.id);
         
-        // Robust color resolution: Prop > Constant > Default
         let teamColor = team.color;
         if (!teamColor) {
              const constantTeam = CONSTRUCTORS.find(c => c.id === team.id);
@@ -47,7 +66,6 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
         }
         teamColor = teamColor || '#888888';
         
-        // Calculate RGBA for background tint
         const hexToRgba = (hex: string, alpha: number) => {
             const r = parseInt(hex.slice(1, 3), 16);
             const g = parseInt(hex.slice(3, 5), 16);
@@ -55,123 +73,111 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
             return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         };
 
+        const teamUrl = TEAM_URLS[team.id];
+        const CardComponent = teamUrl ? 'a' : 'div';
+        const cardProps = teamUrl ? {
+            href: teamUrl,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+        } : {};
+
         return (
-            <div 
-                className="relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.01] hover:shadow-lg group md:h-full md:flex md:flex-col"
+            <CardComponent 
+                {...cardProps}
+                className={`relative overflow-hidden rounded-xl bg-carbon-black border transition-all duration-300 hover:scale-[1.01] hover:shadow-lg group md:flex md:flex-col ${teamUrl ? 'cursor-pointer' : ''} min-h-[100px] md:min-h-0`}
                 style={{ 
-                    borderColor: `${teamColor}60`, 
-                    boxShadow: `0 0 20px ${hexToRgba(teamColor, 0.1)}`
+                    borderColor: `${teamColor}40`, 
+                    boxShadow: `0 0 10px ${hexToRgba(teamColor, 0.03)}`
                 }} 
             >
-                {/* Color Flare Background - Stronger gradient */}
                 <div 
-                    className="absolute inset-0 z-0 pointer-events-none opacity-20 transition-opacity duration-300 group-hover:opacity-30"
+                    className="absolute inset-0 z-0 pointer-events-none opacity-10 transition-opacity duration-300 group-hover:opacity-20"
                     style={{ background: `linear-gradient(135deg, ${teamColor} 0%, transparent 75%)` }}
                 />
 
-                {/* Content */}
-                <div className="relative z-10 p-4 md:p-3 md:flex-1 md:flex md:flex-col">
-                    <div className="flex justify-between items-start mb-4 md:mb-1 border-b border-pure-white/10 pb-3 md:pb-2 md:flex-shrink-0">
-                        <div className="flex flex-col justify-center">
-                            <h3 className="text-xl md:text-lg font-bold text-pure-white leading-none tracking-tight drop-shadow-md">{team.name}</h3>
-                             {!team.isActive && (
-                                <span className="inline-block mt-2 md:mt-1 self-start text-[10px] font-bold uppercase bg-red-900/50 text-red-200 px-2 py-0.5 rounded border border-red-500/30">
-                                    Inactive
-                                </span>
-                            )}
+                <div className="relative z-10 p-4 md:flex-1 md:flex md:flex-col overflow-hidden">
+                    <div className="flex justify-between items-center mb-2 border-b border-pure-white/10 pb-2 md:flex-shrink-0">
+                        <div className="flex flex-col justify-center min-w-0 flex-1">
+                            <h3 className="text-lg md:text-base font-black text-pure-white leading-none tracking-tight flex items-center gap-1.5 truncate uppercase">
+                                {team.name}
+                                {teamUrl && (
+                                    <svg className="w-3 h-3 text-highlight-silver opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                )}
+                            </h3>
                         </div>
-                        {/* Vertical Pill Indicator */}
                         <div 
-                            className="w-1.5 h-10 md:h-full md:max-h-8 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]" 
-                            style={{ backgroundColor: teamColor, boxShadow: `0 0 12px ${teamColor}` }} 
+                            className="w-1.5 h-6 md:h-7 rounded-full ml-2 flex-shrink-0" 
+                            style={{ backgroundColor: teamColor, boxShadow: `0 0 8px ${teamColor}60` }} 
                         />
                     </div>
 
-                    <div className="space-y-3 md:space-y-0 md:flex-1 md:flex md:flex-col md:justify-around">
+                    <div className="space-y-1.5 md:flex-1 md:flex md:flex-col md:justify-center overflow-hidden">
                         {drivers.length > 0 ? (
                             drivers.map(driver => (
-                                <div key={driver.id} className="flex items-center gap-3 md:gap-2">
-                                    {/* Driver bullet */}
+                                <div key={driver.id} className="flex items-center gap-2 min-w-0">
                                     <div 
-                                        className={`w-2 h-2 rounded-full ${driver.isActive ? '' : 'bg-red-500'}`}
-                                        style={{ backgroundColor: driver.isActive ? teamColor : undefined, boxShadow: driver.isActive ? `0 0 8px ${teamColor}` : 'none' }}
+                                        className={`w-2 h-2 rounded-full flex-shrink-0 ${driver.isActive ? '' : 'bg-red-500'}`}
+                                        style={{ backgroundColor: driver.isActive ? teamColor : undefined }}
                                     ></div>
-                                    <span className={`text-base md:text-sm font-semibold tracking-wide ${driver.isActive ? 'text-ghost-white' : 'text-highlight-silver line-through opacity-60'}`}>
+                                    <span className={`text-sm md:text-xs font-bold tracking-tight truncate ${driver.isActive ? 'text-ghost-white' : 'text-highlight-silver line-through opacity-60'}`}>
                                         {driver.name}
                                     </span>
                                 </div>
                             ))
                         ) : (
-                            <div className="text-xs text-highlight-silver italic py-2 opacity-50">No drivers confirmed</div>
+                            <div className="text-[10px] text-highlight-silver italic opacity-50">TBA</div>
                         )}
                     </div>
                 </div>
-            </div>
+            </CardComponent>
         );
     };
 
     return (
-        <div className="flex flex-col text-pure-white max-w-7xl mx-auto w-full md:h-[calc(100vh-6rem)] md:overflow-hidden">
-             {/* Header */}
-             <div className="flex-shrink-0 flex items-center justify-between mb-6 px-2 md:px-0 pt-4 md:pt-0">
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={() => setActivePage('home')}
-                        className="md:hidden p-2 -ml-2 text-highlight-silver hover:text-pure-white"
-                    >
-                        <BackIcon className="w-5 h-5" />
-                    </button>
-                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-                        <GarageIcon className="w-8 h-8 text-primary-red"/> 
-                        <span>Drivers & Teams</span>
-                    </h1>
-                </div>
-                <div className="text-xs font-bold text-highlight-silver bg-accent-gray/30 px-3 py-1.5 rounded-full border border-pure-white/10 hidden sm:block">
-                    2026 Season Grid
-                </div>
+        <div className="flex flex-col h-full overflow-hidden text-pure-white max-w-7xl mx-auto w-full">
+            <div className="flex-none">
+                 <PageHeader 
+                    title="DRIVERS & TEAMS" 
+                    icon={GarageIcon} 
+                    subtitle="Constructor Rosters & Driver Line-ups"
+                    rightAction={HeaderControls}
+                />
             </div>
 
-            {/* Grid Area */}
-            <div className="flex-1 min-h-0 px-1 md:px-0 pb-12 md:pb-0">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start md:h-full">
+            {/* Scrollable area - removed md:overflow-hidden to allow natural flow if containers are shorter than viewport */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-2 md:px-0 pb-12 md:pb-8">
+                {/* Changed h-full to auto on grid and columns to recapture vertical dead space */}
+                <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 items-start">
                     
-                    {/* Class A Column - 1/3 Width */}
-                    <div className="lg:col-span-1 flex flex-col md:h-full md:bg-accent-gray/10 md:rounded-xl md:border md:border-pure-white/5 md:overflow-hidden shadow-2xl">
-                        {/* Header */}
-                        <div className="sticky top-0 md:static z-20 bg-carbon-black/95 backdrop-blur-md py-4 px-4 border-b border-primary-red/30 mb-2 md:mb-0 shadow-lg shadow-black/50 md:shadow-none flex-shrink-0">
-                            <h2 className="text-xl font-bold text-pure-white flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-primary-red shadow-[0_0_8px_rgba(218,41,28,0.6)]"></span>
+                    {/* Class A Column - Wider (6/11) and 2 columns inner */}
+                    <div className="lg:col-span-6 flex flex-col bg-carbon-fiber/30 rounded-xl border border-pure-white/5 overflow-hidden shadow-2xl">
+                        <div className="bg-carbon-black/95 backdrop-blur-md py-3 px-4 border-b border-primary-red/30 flex-shrink-0">
+                            <h2 className="text-lg font-black text-pure-white flex items-center gap-2 uppercase tracking-wider">
+                                <span className="w-2.5 h-2.5 rounded-full bg-primary-red shadow-[0_0_8px_rgba(218,41,28,0.6)]"></span>
                                 Class A Constructors
                             </h2>
                         </div>
-                        {/* List */}
-                        <div className="md:flex-1 md:overflow-hidden md:p-3 scrollbar-thin scrollbar-thumb-accent-gray scrollbar-track-transparent">
-                             <div className="grid grid-cols-1 gap-4 md:flex md:flex-col md:h-full md:gap-3">
+                        <div className="p-4">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {classATeams.map(team => (
-                                    <div key={team.id} className="md:flex-1 md:min-h-0">
-                                        <TeamCard team={team} />
-                                    </div>
+                                    <TeamCard key={team.id} team={team} />
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Class B Column - 2/3 Width */}
-                    <div className="lg:col-span-2 flex flex-col md:h-full md:bg-accent-gray/10 md:rounded-xl md:border md:border-pure-white/5 md:overflow-hidden shadow-2xl">
-                        {/* Header */}
-                        <div className="sticky top-0 md:static z-20 bg-carbon-black/95 backdrop-blur-md py-4 px-4 border-b border-blue-500/30 mb-2 md:mb-0 shadow-lg shadow-black/50 md:shadow-none flex-shrink-0">
-                            <h2 className="text-xl font-bold text-pure-white flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+                    {/* Class B Column - Narrower (5/11) and 2 columns inner */}
+                    <div className="lg:col-span-5 flex flex-col bg-carbon-fiber/30 rounded-xl border border-pure-white/5 overflow-hidden shadow-2xl">
+                        <div className="bg-carbon-black/95 backdrop-blur-md py-3 px-4 border-b border-blue-500/30 flex-shrink-0">
+                            <h2 className="text-lg font-black text-pure-white flex items-center gap-2 uppercase tracking-wider">
+                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
                                 Class B Constructors
                             </h2>
                         </div>
-                        {/* List - Grid 2 Cols on Desktop */}
-                        <div className="md:flex-1 md:overflow-hidden md:p-3 scrollbar-thin scrollbar-thumb-accent-gray scrollbar-track-transparent">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:grid-cols-2 md:grid-rows-3 md:h-full md:gap-3">
+                        <div className="p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {classBTeams.map(team => (
-                                    <div key={team.id} className="md:min-h-0">
-                                        <TeamCard team={team} />
-                                    </div>
+                                    <TeamCard key={team.id} team={team} />
                                 ))}
                             </div>
                         </div>

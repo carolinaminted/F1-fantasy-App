@@ -7,6 +7,7 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -52,6 +53,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+  const { showToast } = useToast();
 
   const isSubmitted = !!initialPicksForEvent;
   // Admin can edit even if locked.
@@ -116,7 +118,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     const lockTime = new Date(event.lockAtUtc).getTime();
     if (Date.now() >= lockTime) {
         if (!user.isAdmin) {
-            alert("Submissions for this event are closed.");
+            showToast("Submissions for this event are closed.", 'error');
             return;
         } else {
              // Optional: Warn admin
@@ -130,7 +132,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         onPicksSubmit(event.id, picks);
         setIsEditing(false);
     } else {
-        alert("Please complete all selections before submitting.");
+        showToast("Please complete all selections before submitting.", 'error');
     }
   };
   
@@ -179,6 +181,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }
 
   const openFastestLapModal = () => {
+      // Logic: Show colors for all if nothing is selected. If something is selected, only color that one.
+      const isAnyFastestLapSelected = !!picks.fastestLap;
+
       const modalBody = (
           <div className="p-6">
               <div className="text-center mb-6">
@@ -201,7 +206,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                                placeholder="Driver"
                                disabled={isLockedByAdmin}
                                color={color}
-                               forceColor={false}
+                               forceColor={!isAnyFastestLapSelected}
                            />
                        );
                    })}
@@ -345,12 +350,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </div>
         </div>
       </form>
-
-      {/* Footer - Positioned below the form */}
-      <div className="mt-12 text-center opacity-30 pb-safe pb-8">
-          <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
-          <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Formula Fantasy One © {new Date().getFullYear()}</p>
-      </div>
       
       {/* Bottom Sheet / Modal */}
       {modalContent && (

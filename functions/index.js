@@ -1,230 +1,18 @@
-
 /**
  * Firebase Cloud Functions for F1 Fantasy League (Gen 2)
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const functions = require("firebase-functions"); // Keep v1 for legacy access if needed elsewhere
-const logger = functions.logger; // Use standard Firebase logger
+const functions = require("firebase-functions");
+const logger = functions.logger;
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- DIAGNOSTICS ---
-
-exports.ping = onCall((request) => {
-    return { message: "pong (v2)", timestamp: Date.now() };
-});
-
-// --- EMAIL VERIFICATION ---
-
-exports.sendAuthCode = onCall({ cors: true }, async (request) => {
-  logger.info("EXECUTION START: sendAuthCode", { triggerData: request.data });
-
-  const email = request.data.email;
-  if (!email) {
-    logger.error("Missing email in request");
-    throw new HttpsError("invalid-argument", "Email is required");
-  }
-
-  // Rate Limiting
-  const rateLimitRef = db.collection("rate_limits").doc(email.toLowerCase());
-  const rateLimitDoc = await rateLimitRef.get();
-  if (rateLimitDoc.exists) {
-      const lastAttempt = rateLimitDoc.data().lastAttempt;
-      // Check if lastAttempt exists and is within 60 seconds
-      if (lastAttempt && Date.now() - lastAttempt.toMillis() < 60000) {
-          logger.warn(`Rate limit exceeded for ${email}`);
-          throw new HttpsError("resource-exhausted", "Too many attempts. Please wait 1 minute before trying again.");
-      }
-  }
-  // Update rate limit timestamp
-  await rateLimitRef.set({ lastAttempt: admin.firestore.FieldValue.serverTimestamp() });
-
-  // 1. Config Loading (V2 Compatible)
-  let gmailEmail = process.env.EMAIL_USER || process.env.GMAIL_USER || "your-email@gmail.com";
-  let gmailPassword = process.env.EMAIL_PASS || process.env.GMAIL_PASS || "your-app-password";
-  
-  // Production Flag: Set ENABLE_DEMO_MODE="true" in Cloud Run env vars to enable the fallback
-  const enableDemoMode = process.env.ENABLE_DEMO_MODE === 'true';
-  
-  const isDefaultUser = gmailEmail === "your-email@gmail.com";
-  const isDefaultPass = gmailPassword === "your-app-password";
-  
-  logger.info("SMTP Configuration Check", {
-      configuredUser: isDefaultUser ? "DEFAULT (Not Set)" : "Configured", // Obfuscated for logs
-      isConfigValid: !isDefaultUser && !isDefaultPass,
-      demoModeAllowed: enableDemoMode
-  });
-
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 600000; // 10 minutes
-
-  // 2. Write to Firestore
-  try {
-    // Sanitize email for doc ID
-    const docId = email.toLowerCase(); 
-    
-    await db.collection("email_verifications").doc(docId).set({
-      code: code,
-      email: email, 
-      expiresAt: expiresAt,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    
-    // SECURITY: Only log the code if explicitly in Demo Mode, otherwise keep logs clean.
-    if (enableDemoMode) {
-        logger.info(`>>> DEMO MODE: GENERATED CODE FOR ${email}: ${code} <<<`);
-    }
-
-  } catch (dbError) {
-      logger.error("❌ FIRESTORE WRITE FAILED", dbError);
-      throw new HttpsError("internal", "Database error: Unable to save verification code.");
-  }
-
-  // 3. Demo Mode / Missing Config Check
-  if (isDefaultUser || isDefaultPass) {
-      if (enableDemoMode) {
-          logger.warn(">>> DEMO MODE ACTIVE: Email verification skipped due to missing config. Returning code to client. <<<");
-          return { success: true, demoMode: true, code: code };
-      } else {
-          logger.error("SMTP Config missing and Demo Mode is disabled.");
-          throw new HttpsError("failed-precondition", "Email service is not configured. Please contact support.");
-      }
-  }
-
-  // 4. Send Email
-  try {
-    logger.info("Initializing Nodemailer...");
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: gmailEmail, pass: gmailPassword },
-    });
-
-    const mailOptions = {
-      from: `"F1 Fantasy League" <${gmailEmail}>`,
-      to: email,
-      subject: "Your Verification Code",
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-          <h2 style="color: #DA291C;">F1 Fantasy One</h2>
-          <p>Your verification code is:</p>
-          <h1 style="background: #eee; padding: 10px; letter-spacing: 5px; display: inline-block;">${code}</h1>
-          <p>This code expires in 10 minutes.</p>
-        </div>
-      `
-    };
-
-    logger.info(`Attempting email transmission...`);
-    const info = await transporter.sendMail(mailOptions);
-    
-    logger.info("✅ SMTP SUCCESS: Email sent successfully.", { 
-        messageId: info.messageId,
-        response: info.response
-    });
-    return { success: true };
-
-  } catch (mailError) {
-    logger.error("❌ EMAIL FAILED", {
-        errorMessage: mailError.message,
-        stack: mailError.stack
-    });
-    throw new HttpsError("internal", "Failed to send email. Please try again or contact support.");
-  }
-});
-
-exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
-    logger.info("EXECUTION START: verifyAuthCode", { email: request.data.email });
-
-    const { email, code } = request.data;
-    if (!email || !code) {
-        logger.warn("Missing data in verify request");
-        return { valid: false, message: "Missing data" };
-    }
-
-    const docId = email.toLowerCase();
-    const docRef = db.collection("email_verifications").doc(docId);
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
-        logger.warn(`Verification failed: No code found for ${email}`);
-        return { valid: false, message: "Code not found or expired" };
-    }
-
-    const record = doc.data();
-    
-    // Check Expiry
-    if (Date.now() > record.expiresAt) {
-        logger.warn(`Verification failed: Code expired for ${email}`);
-        return { valid: false, message: "Code expired" };
-    }
-    
-    // Check Match
-    if (record.code !== code) {
-        logger.warn(`Verification failed: Invalid code entered for ${email}`);
-        return { valid: false, message: "Invalid code" };
-    }
-
-    // Success - Clean up used code
-    await docRef.delete();
-    logger.info(`✅ VERIFICATION SUCCESSFUL for ${email}`);
-    return { valid: true };
-});
-
-// --- INVITATION CODE SYSTEM ---
-
-exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
-    logger.info("EXECUTION START: validateInvitationCode", { data: request.data });
-    
-    const { code } = request.data;
-    
-    if (!code) {
-        throw new HttpsError("invalid-argument", "Code is required.");
-    }
-
-    const codeRef = db.collection("invitation_codes").doc(code);
-    
-    try {
-        const result = await db.runTransaction(async (t) => {
-            const doc = await t.get(codeRef);
-            
-            if (!doc.exists) {
-                throw new HttpsError("not-found", "Invalid invitation code.");
-            }
-            
-            const data = doc.data();
-            
-            if (data.status !== 'active') {
-                // If it's reserved, check if it expired (e.g. 15 mins ago). 
-                // For simplicity in this iteration, we treat reserved as used/taken to be safe.
-                throw new HttpsError("failed-precondition", "This code has already been used or is currently being registered.");
-            }
-            
-            // Reserve the code so no one else can grab it while this user completes signup
-            t.update(codeRef, {
-                status: 'reserved',
-                reservedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            
-            return { valid: true };
-        });
-        
-        logger.info(`✅ Code ${code} validated and reserved.`);
-        return result;
-
-    } catch (e) {
-        logger.warn(`Validation failed for code ${code}: ${e.message}`);
-        // Re-throw instance of HttpsError so client gets correct code
-        if (e instanceof HttpsError) throw e;
-        throw new HttpsError("internal", "Validation process failed.");
-    }
-});
-
-// --- SCORING ENGINE ---
-
+// --- CONSTANTS ---
 const DEFAULT_POINTS = {
   grandPrixFinish: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
   sprintFinish: [8, 7, 6, 5, 4, 3, 2, 1],
@@ -232,6 +20,8 @@ const DEFAULT_POINTS = {
   gpQualifying: [3, 2, 1],
   sprintQualifying: [3, 2, 1],
 };
+
+// --- SHARED SCORING ENGINE ---
 
 const getDriverPoints = (driverId, resultList, pointsList) => {
     if (!driverId || !resultList || !pointsList) return 0;
@@ -250,7 +40,6 @@ const calculateEventScore = (picks, results, system, drivers) => {
 
     let gpPoints = 0, sprintPoints = 0, qualiPoints = 0, flPoints = 0;
 
-    // 1. Team Scores
     const teamIds = [...(picks.aTeams || []), picks.bTeam].filter(Boolean);
     results.grandPrixFinish?.forEach((dId, idx) => {
         if (dId && teamIds.includes(getTeamId(dId))) gpPoints += (system.grandPrixFinish[idx] || 0);
@@ -265,7 +54,6 @@ const calculateEventScore = (picks, results, system, drivers) => {
         if (dId && teamIds.includes(getTeamId(dId))) qualiPoints += (system.sprintQualifying[idx] || 0);
     });
 
-    // 2. Driver Scores
     const driverIds = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean);
     driverIds.forEach(dId => {
         gpPoints += getDriverPoints(dId, results.grandPrixFinish, system.grandPrixFinish);
@@ -274,14 +62,12 @@ const calculateEventScore = (picks, results, system, drivers) => {
         qualiPoints += getDriverPoints(dId, results.sprintQualifying, system.sprintQualifying);
     });
 
-    // 3. Fastest Lap
     if (picks.fastestLap && picks.fastestLap === results.fastestLap) {
         flPoints += system.fastestLap;
     }
 
     let total = gpPoints + sprintPoints + qualiPoints + flPoints;
 
-    // 4. Penalties
     if (picks.penalty && picks.penalty > 0) {
         const deduction = Math.ceil(total * picks.penalty);
         total -= deduction;
@@ -291,97 +77,222 @@ const calculateEventScore = (picks, results, system, drivers) => {
 };
 
 /**
- * Trigger: Recalculate Leaderboard
- * V2 Config: Increased memory and timeout for heavy calculations
+ * Clean Sweep Recalculation
+ * Processes every user against every completed result to ensure 100% integrity.
  */
-exports.updateLeaderboard = onDocumentWritten(
-    { 
-        document: 'app_state/race_results',
-        memory: "512MiB",
-        timeoutSeconds: 300 // 5 minutes
-    }, 
-    async (event) => {
-        // In v2, we check event.data.after
-        if (!event.data || !event.data.after.exists) return;
-        
-        const raceResults = event.data.after.data();
-        
-        const [usersSnap, scoringSnap, entitiesSnap] = await Promise.all([
-            db.collection('userPicks').get(),
-            db.collection('app_state').doc('scoring_config').get(),
-            db.collection('app_state').doc('entities').get()
-        ]);
+const recalculateEntireLeague = async () => {
+    logger.info("Starting recalculateEntireLeague...");
+    
+    const [resultsSnap, usersSnap, scoringSnap, entitiesSnap] = await Promise.all([
+        db.collection('app_state').doc('race_results').get(),
+        db.collection('userPicks').get(),
+        db.collection('app_state').doc('scoring_config').get(),
+        db.collection('app_state').doc('entities').get()
+    ]);
 
-        let pointsSystem = DEFAULT_POINTS;
-        if (scoringSnap.exists) {
-            const data = scoringSnap.data();
-            if (data.profiles && data.activeProfileId) {
-                const active = data.profiles.find(p => p.id === data.activeProfileId);
-                if (active) pointsSystem = active.config;
-            } else if (!data.profiles) {
-                pointsSystem = data; 
+    if (!resultsSnap.exists) {
+        logger.warn("Recalculation aborted: No race results found.");
+        return 0;
+    }
+
+    const raceResults = resultsSnap.data();
+    const driversList = entitiesSnap.exists ? (entitiesSnap.data().drivers || []) : [];
+    
+    let pointsSystem = DEFAULT_POINTS;
+    if (scoringSnap.exists) {
+        const data = scoringSnap.data();
+        if (data.profiles && data.activeProfileId) {
+            const active = data.profiles.find(p => p.id === data.activeProfileId);
+            if (active) pointsSystem = active.config;
+        } else if (!data.profiles) {
+            pointsSystem = data; 
+        }
+    }
+
+    const leaderboardScores = [];
+
+    usersSnap.forEach(userDoc => {
+        const userId = userDoc.id;
+        const allUserPicks = userDoc.data();
+        
+        let totalPoints = 0;
+        let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0 };
+
+        Object.keys(allUserPicks).forEach(eventId => {
+            const result = raceResults[eventId];
+            if (result) {
+                const systemToUse = result.scoringSnapshot || pointsSystem;
+                const score = calculateEventScore(allUserPicks[eventId], result, systemToUse, driversList);
+                totalPoints += score.total;
+                breakdown.gp += score.breakdown.gp;
+                breakdown.sprint += score.breakdown.sprint;
+                breakdown.quali += score.breakdown.quali;
+                breakdown.fl += score.breakdown.fl;
             }
-        }
-
-        let driversList = [];
-        if (entitiesSnap.exists && entitiesSnap.data().drivers) {
-            driversList = entitiesSnap.data().drivers;
-        }
-
-        logger.info(`(v2) Starting leaderboard calculation for ${usersSnap.size} users...`);
-        
-        const leaderboardData = [];
-
-        usersSnap.forEach(doc => {
-            const userId = doc.id;
-            const allPicks = doc.data();
-            let totalPoints = 0;
-            let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0 };
-
-            Object.keys(allPicks).forEach(eventId => {
-                const result = raceResults[eventId];
-                if (result) {
-                    const systemToUse = result.scoringSnapshot || pointsSystem;
-                    const score = calculateEventScore(allPicks[eventId], result, systemToUse, driversList);
-                    totalPoints += score.total;
-                    breakdown.gp += score.breakdown.gp;
-                    breakdown.sprint += score.breakdown.sprint;
-                    breakdown.quali += score.breakdown.quali;
-                    breakdown.fl += score.breakdown.fl;
-                }
-            });
-            leaderboardData.push({ userId, totalPoints, breakdown });
         });
 
-        leaderboardData.sort((a, b) => b.totalPoints - a.totalPoints);
+        leaderboardScores.push({ userId, totalPoints, breakdown });
+    });
 
-        const chunkArray = (array, size) => {
-            const chunked = [];
-            for (let i = 0; i < array.length; i += size) {
-                chunked.push(array.slice(i, i + size));
-            }
-            return chunked;
-        };
+    leaderboardScores.sort((a, b) => b.totalPoints - a.totalPoints);
 
-        const batches = chunkArray(leaderboardData, 450);
-        let writeCount = 0;
+    const batch = db.batch();
+    leaderboardScores.forEach((score, index) => {
+        const publicRef = db.collection('public_users').doc(score.userId);
+        batch.set(publicRef, {
+            totalPoints: score.totalPoints,
+            breakdown: score.breakdown,
+            rank: index + 1,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    });
 
-        for (const batchItems of batches) {
-            const batch = db.batch();
-            batchItems.forEach((user, index) => {
-                const rank = writeCount + index + 1;
-                const ref = db.collection('public_users').doc(user.userId);
-                batch.set(ref, { 
-                    totalPoints: user.totalPoints,
-                    rank: rank,
-                    breakdown: user.breakdown,
-                    lastUpdated: admin.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+    await batch.commit();
+    logger.info(`recalculateEntireLeague complete. Processed ${leaderboardScores.length} users.`);
+    return leaderboardScores.length;
+};
+
+// --- AUTH & RATE LIMIT UTILS ---
+
+const getClientIp = (request) => {
+    if (!request.rawRequest) return "unknown";
+    const xForwarded = request.rawRequest.headers['x-forwarded-for'];
+    if (xForwarded) return xForwarded.split(',')[0].trim();
+    return request.rawRequest.ip || request.rawRequest.socket?.remoteAddress || "unknown";
+};
+
+const checkRateLimit = async (ip, operation, limit, windowSeconds) => {
+    const safeIp = ip.replace(/[^a-zA-Z0-9]/g, '_');
+    const docRef = db.collection('rate_limits_ip').doc(`${operation}_${safeIp}`);
+
+    await db.runTransaction(async (t) => {
+        const doc = await t.get(docRef);
+        const now = admin.firestore.Timestamp.now();
+        let data = doc.exists ? doc.data() : null;
+
+        if (!data || now.seconds > data.resetTime.seconds) {
+            t.set(docRef, {
+                count: 1,
+                resetTime: new admin.firestore.Timestamp(now.seconds + windowSeconds, 0)
             });
-            await batch.commit();
-            writeCount += batchItems.length;
+        } else {
+            if (data.count >= limit) {
+                logger.warn(`IP ${ip} rate limited for operation ${operation}.`);
+                throw new HttpsError('resource-exhausted', `Too many attempts. Please try again in ${Math.ceil((data.resetTime.seconds - now.seconds) / 60)} minutes.`);
+            }
+            t.update(docRef, { count: data.count + 1 });
         }
+    });
+};
 
-        logger.info(`(v2) Leaderboard updated. Processed ${writeCount} users.`);
+// --- EXPORTED FUNCTIONS ---
+
+exports.updateLeaderboardOnResults = onDocumentWritten(
+    { document: 'app_state/race_results', memory: "512MiB", timeoutSeconds: 300 }, 
+    async (event) => {
+        if (!event.data || !event.data.after.exists) return;
+        logger.info("Auto-sync triggered by results update.");
+        await recalculateEntireLeague();
     }
 );
+
+exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Login required.');
+    }
+
+    const userDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!userDoc.exists || !userDoc.data().isAdmin) {
+        logger.error(`Unauthorized manual sync attempt from ${request.auth.uid}`);
+        throw new HttpsError('permission-denied', 'Only admins can trigger a league sync.');
+    }
+
+    const clientIp = getClientIp(request);
+    await checkRateLimit(clientIp, 'manual_sync', 5, 300);
+
+    try {
+        const count = await recalculateEntireLeague();
+        return { success: true, usersProcessed: count };
+    } catch (err) {
+        logger.error("manualLeaderboardSync internal failure:", err);
+        throw new HttpsError('internal', 'Recalculation failed on server.');
+    }
+});
+
+exports.sendAuthCode = onCall({ cors: true }, async (request) => {
+  const email = request.data.email;
+  if (!email) throw new HttpsError("invalid-argument", "Email is required");
+
+  const clientIp = getClientIp(request);
+  await checkRateLimit(clientIp, 'send_auth_code', 3, 600);
+
+  const rateLimitRef = db.collection("rate_limits").doc(email.toLowerCase());
+  const rateLimitDoc = await rateLimitRef.get();
+  if (rateLimitDoc.exists) {
+      const lastAttempt = rateLimitDoc.data().lastAttempt;
+      if (lastAttempt && Date.now() - lastAttempt.toMillis() < 60000) {
+          throw new HttpsError("resource-exhausted", "Too many attempts. Please wait 1 minute.");
+      }
+  }
+  await rateLimitRef.set({ lastAttempt: admin.firestore.FieldValue.serverTimestamp() });
+
+  let gmailEmail = process.env.EMAIL_USER || "your-email@gmail.com";
+  let gmailPassword = process.env.EMAIL_PASS || "your-app-password";
+  
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  await db.collection("email_verifications").doc(email.toLowerCase()).set({
+    code: code, email: email, expiresAt: Date.now() + 600000,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Security Fix: Demo Mode Code Exposure in Production
+  // Only in dev/test environments - remove from production bundle
+  if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_MODE === 'true') {
+      return { success: true, demoMode: true, code: code };
+  }
+
+  if (gmailEmail === "your-email@gmail.com" || gmailPassword === "your-app-password") {
+      throw new HttpsError("failed-precondition", "Email service not configured.");
+  }
+
+  const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailEmail, pass: gmailPassword } });
+  await transporter.sendMail({
+    from: `"F1 Fantasy League" <${gmailEmail}>`,
+    to: email,
+    subject: "Your Verification Code",
+    html: `<div style="font-family: sans-serif; padding: 20px;"><h2 style="color: #DA291C;">F1 Fantasy One</h2><p>Code: <strong style="font-size: 24px;">${code}</strong></p></div>`
+  });
+  return { success: true };
+});
+
+exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
+    const { email, code } = request.data;
+    if (!email || !code) return { valid: false, message: "Missing data" };
+
+    const docRef = db.collection("email_verifications").doc(email.toLowerCase());
+    const doc = await docRef.get();
+
+    if (!doc.exists) return { valid: false, message: "Code not found" };
+    const record = doc.data();
+    if (Date.now() > record.expiresAt) return { valid: false, message: "Code expired" };
+    if (record.code !== code) return { valid: false, message: "Invalid code" };
+
+    await docRef.delete();
+    return { valid: true };
+});
+
+exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
+    const { code } = request.data;
+    if (!code) throw new HttpsError("invalid-argument", "Code required");
+    const clientIp = getClientIp(request);
+    await checkRateLimit(clientIp, 'validate_invitation', 5, 600);
+
+    const codeRef = db.collection("invitation_codes").doc(code);
+    return await db.runTransaction(async (t) => {
+        const doc = await t.get(codeRef);
+        if (!doc.exists) throw new HttpsError("not-found", "Invalid code");
+        if (doc.data().status !== 'active') throw new HttpsError("failed-precondition", "Code used");
+        t.update(codeRef, { status: 'reserved', reservedAt: admin.firestore.FieldValue.serverTimestamp() });
+        return { valid: true };
+    });
+});

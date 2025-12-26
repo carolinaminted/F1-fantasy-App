@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -19,6 +18,7 @@ import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { PageHeader } from './ui/PageHeader.tsx';
 import type { Page } from '../App.tsx';
 
 interface ProfilePageProps {
@@ -72,10 +72,10 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?:
 };
 
 const InfoCard: React.FC<{ icon: any, label: string, value: string }> = ({ icon: Icon, label, value }) => (
-    <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-carbon-black/50 w-full h-full min-h-[120px] ring-1 ring-pure-white/5 hover:bg-pure-white/5 transition-all duration-200">
-        <Icon className="w-8 h-8 text-primary-red mb-3" />
-        <span className="text-xs font-bold uppercase text-highlight-silver mb-1">{label}</span>
-        <span className="font-bold text-lg text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
+    <div className="flex flex-col items-center justify-center p-6 rounded-lg bg-black/20 w-full h-full min-h-[120px] border border-pure-white/5 shadow-inner">
+        <Icon className="w-8 h-8 text-primary-red mb-3 opacity-80" />
+        <span className="text-xs font-bold uppercase text-highlight-silver mb-2 tracking-widest">{label}</span>
+        <span className="text-xl md:text-2xl font-black text-pure-white text-center break-words w-full px-2 leading-tight">{value}</span>
     </div>
 );
 
@@ -244,12 +244,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     const dnValidation = validateDisplayName(profileForm.displayName);
     if (!dnValidation.valid) return setProfileError(dnValidation.error!);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(profileForm.email)) {
-        setProfileError("Please enter a valid email address.");
-        return;
-    }
-
+    // Since email is now read-only, we don't need to re-validate it here for the payload, 
+    // but the backend update function still expects it in some flows.
     const cleanFirstName = sanitizeString(profileForm.firstName);
     const cleanLastName = sanitizeString(profileForm.lastName);
     const cleanDisplayName = sanitizeString(profileForm.displayName);
@@ -258,7 +254,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     try {
         await updateUserProfile(user.id, {
             displayName: cleanDisplayName,
-            email: profileForm.email,
+            email: profileForm.email, // Kept for safety, though read-only in UI
             firstName: cleanFirstName,
             lastName: cleanLastName
         });
@@ -334,7 +330,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     const relevantEvents = events.filter(e => seasonPicks[e.id] && raceResults[e.id]);
 
     if (relevantEvents.length === 0) {
-        detailsContent.push(<p key="no-picks" className="text-highlight-silver">No picks submitted for completed events yet.</p>);
+        detailsContent.push(<p key="no-picks" className="text-highlight-silver text-center">No picks submitted for completed events yet.</p>);
     } else {
         relevantEvents.forEach(event => {
             const picks = seasonPicks[event.id];
@@ -378,11 +374,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
                 allPickedTeams.forEach(teamId => {
                     let teamPoints = 0;
-                    // Resolve points using ALL drivers, not just active ones (historical)
                     allDrivers.forEach(driver => {
-                        // Check against current config OR snapshot (snapshot logic is inside scoringService, here we mimic simple sum)
-                        // Note: For pure UI breakdown, simplistic check might slightly differ from engine if driver swapped teams mid season without snapshot logic here.
-                        // But Profile View is just an estimate breakdown.
                         if (driver.constructorId === teamId) {
                             teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr);
                         }
@@ -398,9 +390,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
             if (eventEntries.length > 0) {
                  detailsContent.push(
-                    <div key={event.id}>
-                        <h4 className="font-bold text-primary-red">{event.name}</h4>
-                        <ul className="list-disc list-inside ml-2 text-ghost-white text-sm">
+                    <div key={event.id} className="text-center">
+                        <h4 className="font-bold text-primary-red mb-2">{event.name}</h4>
+                        <ul className="list-none space-y-1 text-ghost-white text-sm">
                             {eventEntries}
                         </ul>
                     </div>
@@ -410,10 +402,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     }
 
     if (detailsContent.length === 0 || (detailsContent.length === 1 && (detailsContent[0] as any)?.key === 'no-picks')) {
-        detailsContent.push(<p key="no-points" className="text-highlight-silver mt-4">No points scored in this category for any completed events.</p>);
+        detailsContent.push(<p key="no-points" className="text-highlight-silver mt-4 text-center">No points scored in this category for any completed events.</p>);
     }
 
-    setModalData({ title, content: <div className="space-y-4">{detailsContent}</div> });
+    setModalData({ title, content: <div className="space-y-6">{detailsContent}</div> });
   };
 
   const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali') => {
@@ -483,7 +475,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
        eventEntries.push(<li key="no-points" className="text-highlight-silver">No points scored in this category.</li>);
     }
     
-    const finalContent = <ul className="list-disc list-inside ml-2 text-ghost-white text-sm space-y-1">{eventEntries}</ul>
+    const finalContent = <ul className="list-none space-y-1 text-ghost-white text-sm text-center">{eventEntries}</ul>
 
     setModalData({ title, content: finalContent });
   };
@@ -493,13 +485,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         const picks = seasonPicks[event.id];
         if (!picks) return false;
         
-        // Check if entityId is in any of the pick arrays
         const allPicked = [
             ...picks.aTeams, 
             picks.bTeam, 
             ...picks.aDrivers, 
             ...picks.bDrivers
-        ].filter(Boolean); // Filter nulls
+        ].filter(Boolean);
         
         return allPicked.includes(entityId);
     });
@@ -531,31 +522,33 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   return (
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold text-center mb-2">{user.displayName}</h1>
-        <div className="flex justify-center items-center gap-2 mb-8">
+      {/* Page Header */}
+      <PageHeader 
+          title="PROFILE" 
+          icon={ProfileIcon} 
+      />
+
+      {/* Profile Info Section */}
+      <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
+        <div className="flex flex-col items-center justify-center mb-8 relative z-10">
+            {/* Dues Status */}
             <button 
                 onClick={handleDuesClick}
                 disabled={!setActivePage}
-                className={`px-3 py-1 text-xs font-bold uppercase rounded-full transition-transform hover:scale-105 ${
+                className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                    ? 'bg-green-600/80 text-pure-white'
-                    : 'bg-primary-red/80 text-pure-white'
-                } ${setActivePage ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+                    ? 'bg-green-600 text-pure-white'
+                    : 'bg-primary-red text-pure-white animate-pulse-red-limited'
+                } ${setActivePage ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
             >
                 Dues: {user.duesPaidStatus || 'Unpaid'}
             </button>
-        </div>
-      </div>
 
-      {/* Profile Info Section */}
-      <div className="rounded-lg p-6 ring-1 ring-pure-white/10 relative">
-        <div className="flex flex-col items-center justify-center mb-6">
-            <h2 className="text-2xl font-bold text-center mb-2">Profile Information</h2>
+            {/* Edit Details Button */}
             {!isEditingProfile && setActivePage && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-lg text-primary-red hover:text-pure-white font-bold transition-colors"
+                    className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
                 >
                     Edit Details
                 </button>
@@ -563,10 +556,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         </div>
         
         {isEditingProfile ? (
-            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-fiber border border-pure-white/10 shadow-2xl p-6 rounded-lg">
+            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-black/50 border border-pure-white/10 shadow-2xl p-6 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">First Name</label>
+                        <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">First Name</label>
                         <input 
                             type="text" 
                             value={profileForm.firstName} 
@@ -578,7 +571,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Last Name</label>
+                        <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Last Name</label>
                         <input 
                             type="text" 
                             value={profileForm.lastName} 
@@ -591,7 +584,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Display Name (Max 20)</label>
+                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Display Name (Max 20)</label>
                     <input 
                         type="text" 
                         value={profileForm.displayName} 
@@ -602,14 +595,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1">Email Address</label>
+                    <label className="block text-xs font-bold uppercase text-highlight-silver mb-1.5">Email Address</label>
                     <input 
                         type="email" 
                         value={profileForm.email} 
-                        onChange={e => setProfileForm(prev => ({...prev, email: e.target.value}))}
-                        required
-                        className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white focus:border-primary-red focus:outline-none"
+                        readOnly
+                        className="w-full bg-carbon-black/50 border border-accent-gray rounded p-2 text-highlight-silver cursor-not-allowed outline-none"
                     />
+                    <p className="text-[10px] text-highlight-silver/50 mt-1 italic">Email cannot be changed after registration.</p>
                 </div>
                 {profileError && <p className="text-primary-red text-sm text-center">{profileError}</p>}
                 
@@ -649,15 +642,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Scoring Breakdown & Selection Counts */}
+        {/* Left Column */}
         <div className="space-y-8">
-            
-            {/* Scoring Breakdown Section */}
+            {/* Scoring Breakdown */}
             <div>
                 <h2 className="text-2xl font-bold mb-4 text-center">Scoring Breakdown</h2>
-                <div className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                    {/* Hero Stats */}
-                    <div className="grid grid-cols-2 divide-x divide-pure-white/10 bg-carbon-black/50 border-b border-pure-white/10">
+                <div className="rounded-lg ring-1 ring-pure-white/10 overflow-hidden bg-carbon-fiber shadow-lg">
+                    <div className="grid grid-cols-2 divide-x divide-pure-white/10 bg-black/20 border-b border-pure-white/10">
                         <div className="p-6 text-center">
                             <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2">Total Points</p>
                             <p className="text-3xl md:text-4xl font-black text-pure-white">{scoreRollup.totalPoints}</p>
@@ -669,8 +660,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                             <p className="text-3xl md:text-4xl font-black text-pure-white">{globalRank ? `#${globalRank}` : '-'}</p>
                         </div>
                     </div>
-
-                    {/* Breakdown Grid */}
                     <div className="p-6">
                         <div className="grid grid-cols-2 gap-4">
                             <button onClick={() => handleScoringDetailClick('gp')} className="text-center p-2 rounded-lg hover:bg-pure-white/10 transition-colors duration-200">
@@ -698,49 +687,45 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </div>
 
-            {/* Selection Counts Section */}
+            {/* Selection Counts */}
             <div>
-            <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
-            <div className="rounded-lg p-6 ring-1 ring-pure-white/10">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                <CollapsibleUsageList
-                    title="Class A Teams"
-                    entities={aTeams.map(t => ({ id: t.id, name: t.name, color: getTeamColor(t.id) }))}
-                    usageData={usageRollup.teams}
-                    limit={getLimit(EntityClass.A, 'teams')}
-                    onItemClick={handleUsageDetailClick}
-                />
-                <CollapsibleUsageList
-                    title="Class B Teams"
-                    entities={bTeams.map(t => ({ id: t.id, name: t.name, color: getTeamColor(t.id) }))}
-                    usageData={usageRollup.teams}
-                    limit={getLimit(EntityClass.B, 'teams')}
-                    onItemClick={handleUsageDetailClick}
-                />
-                <CollapsibleUsageList
-                    title="Class A Drivers"
-                    entities={aDrivers.map(d => {
-                        return { id: d.id, name: d.name, color: getTeamColor(d.constructorId) };
-                    })}
-                    usageData={usageRollup.drivers}
-                    limit={getLimit(EntityClass.A, 'drivers')}
-                    onItemClick={handleUsageDetailClick}
-                />
-                <CollapsibleUsageList
-                    title="Class B Drivers"
-                    entities={bDrivers.map(d => {
-                        return { id: d.id, name: d.name, color: getTeamColor(d.constructorId) };
-                    })}
-                    usageData={usageRollup.drivers}
-                    limit={getLimit(EntityClass.B, 'drivers')}
-                    onItemClick={handleUsageDetailClick}
-                />
+                <h2 className="text-2xl font-bold mb-4 text-center">Selection Counts</h2>
+                <div className="rounded-lg p-6 ring-1 ring-pure-white/10 bg-carbon-fiber shadow-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                        <CollapsibleUsageList
+                            title="Class A Teams"
+                            entities={aTeams.map(t => ({ id: t.id, name: t.name, color: getTeamColor(t.id) }))}
+                            usageData={usageRollup.teams}
+                            limit={getLimit(EntityClass.A, 'teams')}
+                            onItemClick={handleUsageDetailClick}
+                        />
+                        <CollapsibleUsageList
+                            title="Class B Teams"
+                            entities={bTeams.map(t => ({ id: t.id, name: t.name, color: getTeamColor(t.id) }))}
+                            usageData={usageRollup.teams}
+                            limit={getLimit(EntityClass.B, 'teams')}
+                            onItemClick={handleUsageDetailClick}
+                        />
+                        <CollapsibleUsageList
+                            title="Class A Drivers"
+                            entities={aDrivers.map(d => ({ id: d.id, name: d.name, color: getTeamColor(d.constructorId) }))}
+                            usageData={usageRollup.drivers}
+                            limit={getLimit(EntityClass.A, 'drivers')}
+                            onItemClick={handleUsageDetailClick}
+                        />
+                        <CollapsibleUsageList
+                            title="Class B Drivers"
+                            entities={bDrivers.map(d => ({ id: d.id, name: d.name, color: getTeamColor(d.constructorId) }))}
+                            usageData={usageRollup.drivers}
+                            limit={getLimit(EntityClass.B, 'drivers')}
+                            onItemClick={handleUsageDetailClick}
+                        />
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
 
-        {/* Right Column: Picks History Section */}
+        {/* Right Column: Picks History */}
         <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
             <div className="space-y-2">
@@ -752,20 +737,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                     const eventPoints = results ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers) : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0, penaltyPoints: 0 };
                     const isExpanded = expandedEvent === event.id;
                     const hasPenalty = (picks.penalty || 0) > 0;
-                    
-                    // Net points calculation for display
                     const rawPoints = eventPoints.totalPoints + (eventPoints.penaltyPoints || 0);
 
                     return (
-                        <div key={event.id} className="relative rounded-lg ring-1 ring-pure-white/10 overflow-hidden">
-                             {/* Penalty Badge Overlay */}
+                        <div key={event.id} className="relative rounded-lg ring-1 ring-pure-white/10 overflow-hidden bg-carbon-fiber shadow-lg">
                              {hasPenalty && (
                                 <div className="absolute top-2 left-1/2 transform -translate-x-1/2 -rotate-6 border-4 border-red-500 text-red-500 font-black text-xl px-4 py-1 opacity-80 pointer-events-none z-10 whitespace-nowrap">
                                     PENALTY APPLIED (-{(picks.penalty! * 100).toFixed(0)}%)
                                 </div>
                             )}
-
-                            <button className={`w-full p-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors ${hasPenalty ? 'bg-red-900/10' : ''}`} onClick={() => toggleEvent(event.id)}>
+                            <button className={`w-full py-5 px-4 flex justify-between items-center cursor-pointer text-left hover:bg-pure-white/5 transition-colors ${hasPenalty ? 'bg-red-900/10' : ''}`} onClick={() => toggleEvent(event.id)}>
                                 <div>
                                     <h3 className="font-bold text-lg">R{event.round}: {event.name}</h3>
                                     <p className="text-sm text-highlight-silver">{event.country}</p>
@@ -779,27 +760,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                 </div>
                             </button>
                             {isExpanded && (
-                                <div className="p-4 border-t border-accent-gray/50 text-sm">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 className="font-bold text-primary-red mb-2">Teams</h4>
-                                        <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
-                                        <p>B: {getEntityName(picks.bTeam)}</p>
-                                    </div>
+                                <div className="p-4 border-t border-accent-gray/50 text-sm bg-black/20">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                        <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
-                                        <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
-                                        <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
-                                    </div>
+                                            <h4 className="font-bold text-primary-red mb-2">Teams</h4>
+                                            <p>A: {getEntityName(picks.aTeams[0])}, {getEntityName(picks.aTeams[1])}</p>
+                                            <p>B: {getEntityName(picks.bTeam)}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-primary-red mb-2">Drivers</h4>
+                                            <p>A: {getEntityName(picks.aDrivers[0])}, {getEntityName(picks.aDrivers[1])}, {getEntityName(picks.aDrivers[2])}</p>
+                                            <p>B: {getEntityName(picks.bDrivers[0])}, {getEntityName(picks.bDrivers[1])}</p>
+                                        </div>
                                         <div className="md:col-span-2">
-                                        <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
-                                        <p>{getEntityName(picks.fastestLap)}</p>
+                                            <h4 className="font-bold text-primary-red mb-2">Fastest Lap</h4>
+                                            <p>{getEntityName(picks.fastestLap)}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                {results && (
-                                    <div className="mt-4 pt-4 border-t border-accent-gray/50">
-                                        <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
-                                        <div className="flex justify-around flex-wrap gap-4 mb-4">
+                                    {results && (
+                                        <div className="mt-4 pt-4 border-t border-accent-gray/50">
+                                            <h4 className="font-bold text-lg mb-2 text-center">Points Breakdown</h4>
+                                            <div className="flex justify-around flex-wrap gap-4 mb-4">
                                                 <button onClick={() => handleEventScoringDetailClick(event.id, 'gp')} className="transition-transform transform hover:scale-105">
                                                     <PointChip icon={CheckeredFlagIcon} label="GP Finish" points={eventPoints.grandPrixPoints} />
                                                 </button>
@@ -819,39 +800,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                                 <button onClick={() => handleEventScoringDetailClick(event.id, 'fl')} className="transition-transform transform hover:scale-105">
                                                     <PointChip icon={FastestLapIcon} label="Fastest Lap" points={eventPoints.fastestLapPoints} />
                                                 </button>
-                                        </div>
-                                        
-                                        {/* Penalty Breakdown Display */}
-                                        {hasPenalty && (
-                                            <div className="bg-red-900/20 border border-red-500/30 p-3 rounded-lg text-center mb-4">
-                                                <p className="text-highlight-silver text-xs uppercase font-bold mb-1">Score Adjustment</p>
-                                                <div className="flex justify-center items-center gap-2 text-sm">
-                                                    <span>{rawPoints} (Raw)</span>
-                                                    <span>-</span>
-                                                    <span className="text-red-400 font-bold">{eventPoints.penaltyPoints} (Penalty)</span>
-                                                    <span>=</span>
-                                                    <span className="text-pure-white font-bold">{eventPoints.totalPoints} Pts</span>
-                                                </div>
-                                                {picks.penaltyReason && <p className="text-xs text-red-300 mt-1 italic">"{picks.penaltyReason}"</p>}
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                {/* Admin Controls (Only visible if prop provided) */}
-                                {onUpdatePenalty && (
-                                    <PenaltyManager 
-                                        eventId={event.id} 
-                                        currentPenalty={picks.penalty || 0}
-                                        currentReason={picks.penaltyReason}
-                                        onSave={onUpdatePenalty}
-                                    />
-                                )}
+                                            {hasPenalty && (
+                                                <div className="bg-red-900/20 border border-red-500/30 p-3 rounded-lg text-center mb-4">
+                                                    <p className="text-highlight-silver text-xs uppercase font-bold mb-1">Score Adjustment</p>
+                                                    <div className="flex justify-center items-center gap-2 text-sm">
+                                                        <span>{rawPoints} (Raw)</span>
+                                                        <span>-</span>
+                                                        <span className="text-red-400 font-bold">{eventPoints.penaltyPoints} (Penalty)</span>
+                                                        <span>=</span>
+                                                        <span className="text-pure-white font-bold">{eventPoints.totalPoints} Pts</span>
+                                                    </div>
+                                                    {picks.penaltyReason && <p className="text-xs text-red-300 mt-1 italic">"{picks.penaltyReason}"</p>}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {onUpdatePenalty && (
+                                        <PenaltyManager 
+                                            eventId={event.id} 
+                                            currentPenalty={picks.penalty || 0}
+                                            currentReason={picks.penaltyReason}
+                                            onSave={onUpdatePenalty}
+                                        />
+                                    )}
                                 </div>
                             )}
                         </div>
                     );
-                }).filter(Boolean)}
+                })}
             </div>
         </div>
       </div>
@@ -861,8 +838,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             <div className="bg-carbon-fiber rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto border border-pure-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-bold text-pure-white">{modalData.title}</h3>
-                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white text-3xl leading-none">&times;</button>
+                        <h3 className="text-2xl font-bold text-pure-white text-center flex-1">{modalData.title}</h3>
+                         <button onClick={() => setModalData(null)} className="text-highlight-silver hover:text-pure-white text-3xl leading-none ml-4">&times;</button>
                     </div>
                     {modalData.content}
                 </div>
@@ -894,14 +871,10 @@ const CollapsibleUsageList: React.FC<{
   onItemClick: (id: string, name: string) => void;
 }> = ({ title, entities, usageData, limit, onItemClick }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  // Sort by Usage Descending
   const sortedEntities = [...entities].sort((a, b) => {
       const usageA = usageData[a.id] || 0;
       const usageB = usageData[b.id] || 0;
-      if (usageA !== usageB) {
-          return usageB - usageA;
-      }
+      if (usageA !== usageB) return usageB - usageA;
       return a.name.localeCompare(b.name);
   });
 

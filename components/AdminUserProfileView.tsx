@@ -6,6 +6,7 @@ import ProfilePage from './ProfilePage.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { ProfileSkeleton } from './LoadingSkeleton.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -29,6 +30,8 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     const [isSavingAdmin, setIsSavingAdmin] = useState(false);
     const [isSavingDues, setIsSavingDues] = useState(false);
 
+    const { showToast } = useToast();
+
     useEffect(() => {
         const fetchPicks = async () => {
             setIsLoading(true);
@@ -49,10 +52,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
         try {
             await updateUserAdminStatus(targetUser.id, isAdminState);
             onUpdateUser({ ...targetUser, isAdmin: isAdminState });
-            alert(`Successfully ${isAdminState ? 'granted' : 'revoked'} admin privileges for ${targetUser.displayName}.`);
+            showToast(`Successfully ${isAdminState ? 'granted' : 'revoked'} admin privileges for ${targetUser.displayName}.`, 'success');
         } catch (error) {
             console.error("Failed to update admin status", error);
-            alert("Failed to update admin status. Please try again.");
+            showToast("Failed to update admin status. Please try again.", 'error');
             setIsAdminState(!!targetUser.isAdmin); // Revert
         } finally {
             setIsSavingAdmin(false);
@@ -65,10 +68,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
         try {
             await updateUserDuesStatus(targetUser.id, newStatus);
             onUpdateUser({ ...targetUser, duesPaidStatus: newStatus });
-            alert(`Successfully updated dues status to ${newStatus} for ${targetUser.displayName}.`);
+            showToast(`Successfully updated dues status to ${newStatus} for ${targetUser.displayName}.`, 'success');
         } catch (error) {
             console.error("Failed to update dues status", error);
-            alert("Failed to update dues status. Please try again.");
+            showToast("Failed to update dues status. Please try again.", 'error');
             setIsDuesPaidState(targetUser.duesPaidStatus === 'Paid'); // Revert
         } finally {
             setIsSavingDues(false);
@@ -87,10 +90,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                     penaltyReason: reason
                 }
             }));
-            alert("Penalty applied successfully.");
+            showToast("Penalty applied successfully.", 'success');
         } catch (error) {
             console.error("Failed to update penalty", error);
-            alert("Failed to apply penalty. Please try again.");
+            showToast("Failed to apply penalty. Please try again.", 'error');
         }
     };
 
@@ -101,12 +104,15 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     return (
         <div>
             {/* Admin Management Panel */}
-            <div className="bg-accent-gray/50 border border-highlight-silver/20 rounded-lg p-4 mb-6 space-y-4">
-                <h3 className="font-bold text-pure-white text-lg border-b border-highlight-silver/10 pb-2">Account Management</h3>
+            <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl p-6 mb-6 space-y-6 shadow-xl">
+                <h3 className="font-bold text-pure-white text-xl border-b border-pure-white/10 pb-4 flex items-center gap-2">
+                    <AdminIcon className="w-6 h-6 text-primary-red" />
+                    Account Management
+                </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Admin Toggle */}
-                    <div className="flex flex-col gap-3 p-3 bg-carbon-black/30 rounded-lg">
+                    <div className="flex flex-col gap-3 p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 hover:border-pure-white/10 transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="bg-primary-red/10 p-2 rounded-lg">
                                 <AdminIcon className="w-6 h-6 text-primary-red" />
@@ -117,8 +123,8 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                             </div>
                         </div>
                         
-                        <div className="flex items-center justify-between mt-2">
-                            <label className="flex items-center cursor-pointer select-none">
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-pure-white/5">
+                            <label className="flex items-center cursor-pointer select-none group">
                                 <div className="relative">
                                     <input 
                                         type="checkbox" 
@@ -126,7 +132,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                                         checked={isAdminState} 
                                         onChange={(e) => setIsAdminState(e.target.checked)}
                                     />
-                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isAdminState ? 'bg-primary-red' : 'bg-carbon-black border border-highlight-silver'}`}></div>
+                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isAdminState ? 'bg-primary-red' : 'bg-carbon-black border border-highlight-silver group-hover:border-pure-white'}`}></div>
                                     <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isAdminState ? 'transform translate-x-5' : ''}`}></div>
                                 </div>
                                 <div className="ml-3 font-medium text-sm text-pure-white">
@@ -138,16 +144,16 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                                 <button 
                                     onClick={handleSaveAdminStatus}
                                     disabled={isSavingAdmin}
-                                    className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-1 px-3 rounded text-xs disabled:opacity-50"
+                                    className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-1.5 px-4 rounded-lg text-xs disabled:opacity-50 transition-colors shadow-lg shadow-primary-red/20"
                                 >
-                                    {isSavingAdmin ? '...' : 'Save'}
+                                    {isSavingAdmin ? 'Saving...' : 'Save Changes'}
                                 </button>
                             )}
                         </div>
                     </div>
 
                     {/* Dues Toggle */}
-                    <div className="flex flex-col gap-3 p-3 bg-carbon-black/30 rounded-lg">
+                    <div className="flex flex-col gap-3 p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 hover:border-pure-white/10 transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="bg-green-600/10 p-2 rounded-lg">
                                 <DuesIcon className="w-6 h-6 text-green-500" />
@@ -158,8 +164,8 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                             </div>
                         </div>
                         
-                        <div className="flex items-center justify-between mt-2">
-                            <label className="flex items-center cursor-pointer select-none">
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-pure-white/5">
+                            <label className="flex items-center cursor-pointer select-none group">
                                 <div className="relative">
                                     <input 
                                         type="checkbox" 
@@ -167,7 +173,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                                         checked={isDuesPaidState} 
                                         onChange={(e) => setIsDuesPaidState(e.target.checked)}
                                     />
-                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isDuesPaidState ? 'bg-green-600' : 'bg-carbon-black border border-highlight-silver'}`}></div>
+                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isDuesPaidState ? 'bg-green-600' : 'bg-carbon-black border border-highlight-silver group-hover:border-pure-white'}`}></div>
                                     <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isDuesPaidState ? 'transform translate-x-5' : ''}`}></div>
                                 </div>
                                 <div className="ml-3 font-medium text-sm text-pure-white">
@@ -179,9 +185,9 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                                 <button 
                                     onClick={handleSaveDuesStatus}
                                     disabled={isSavingDues}
-                                    className="bg-green-600 hover:opacity-90 text-pure-white font-bold py-1 px-3 rounded text-xs disabled:opacity-50"
+                                    className="bg-green-600 hover:bg-green-500 text-pure-white font-bold py-1.5 px-4 rounded-lg text-xs disabled:opacity-50 transition-colors shadow-lg shadow-green-600/20"
                                 >
-                                    {isSavingDues ? '...' : 'Save'}
+                                    {isSavingDues ? 'Saving...' : 'Save Changes'}
                                 </button>
                             )}
                         </div>
@@ -189,8 +195,8 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 </div>
             </div>
 
-            <div className="bg-accent-gray p-3 rounded-lg text-center ring-1 ring-primary-red mb-6">
-                <p className="font-bold text-ghost-white">Impersonation View · <span className="text-highlight-silver">Read-Only</span></p>
+            <div className="bg-accent-gray/30 p-3 rounded-lg text-center ring-1 ring-pure-white/10 mb-6 border border-pure-white/5">
+                <p className="font-bold text-ghost-white text-sm">Impersonation View · <span className="text-highlight-silver font-normal">You are viewing this profile as an administrator.</span></p>
             </div>
             
             {/* Pass the penalty update callback to enable admin controls inside ProfilePage */}

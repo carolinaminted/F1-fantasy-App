@@ -1,14 +1,13 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
+import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
-// @ts-ignore
-import confetti from 'canvas-confetti';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,6 +19,7 @@ const AuthScreen: React.FC = () => {
   
   // Invitation Code State
   const [invitationCode, setInvitationCode] = useState('');
+  // We use this local state only for immediate UX feedback, not security enforcement
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [blockUntil, setBlockUntil] = useState<number>(0);
   const [timeLeftBlocked, setTimeLeftBlocked] = useState(0);
@@ -39,41 +39,27 @@ const AuthScreen: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
 
-  // Check Local Storage for Blocked State on Mount
-  useEffect(() => {
-      const storedAttempts = localStorage.getItem('invitation_attempts');
-      const storedBlock = localStorage.getItem('invitation_block_until');
-      
-      if (storedAttempts) setFailedAttempts(parseInt(storedAttempts));
-      if (storedBlock) {
-          const blockTime = parseInt(storedBlock);
-          if (Date.now() < blockTime) {
-              setBlockUntil(blockTime);
-          } else {
-              // Block expired, reset
-              localStorage.removeItem('invitation_attempts');
-              localStorage.removeItem('invitation_block_until');
-              setFailedAttempts(0);
-          }
-      }
-  }, []);
+  // Easter Egg State
+  const [easterEggStage, setEasterEggStage] = useState<'idle' | 'enter' | 'donuts' | 'celebrate' | 'exit'>('idle');
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Timer for Countdown
+  // Timer for Countdown (UX Only - Server enforces actual block)
   useEffect(() => {
       let interval: any;
-      if (blockUntil > 0) {
+      if (blockUntil > Date.now()) {
           interval = setInterval(() => {
               const remaining = Math.ceil((blockUntil - Date.now()) / 1000);
               if (remaining <= 0) {
                   setBlockUntil(0);
                   setFailedAttempts(0);
-                  localStorage.removeItem('invitation_attempts');
-                  localStorage.removeItem('invitation_block_until');
                   clearInterval(interval);
               } else {
                   setTimeLeftBlocked(remaining);
               }
           }, 1000);
+      } else if (blockUntil > 0 && blockUntil <= Date.now()) {
+          setBlockUntil(0);
       }
       return () => clearInterval(interval);
   }, [blockUntil]);
@@ -90,33 +76,66 @@ const AuthScreen: React.FC = () => {
       setConfirmPassword('');
   };
 
-  const handleLogoClick = async () => {
-    // Checkered Flag Confetti Celebration
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'],
-      disableForReducedMotion: true,
-      zIndex: 2000
-    });
+  const triggerEasterEgg = () => {
+      setEasterEggStage('enter');
+      // Drive in (1s)
+      setTimeout(() => {
+          setEasterEggStage('donuts');
+          // Spin 2 laps (2s)
+          setTimeout(() => {
+              setEasterEggStage('celebrate'); // Stop & Show Trophy
+              // Pause (1.5s)
+              setTimeout(() => {
+                  setEasterEggStage('exit');
+                  // Drive away (1s)
+                  setTimeout(() => {
+                      setEasterEggStage('idle');
+                  }, 1000);
+              }, 1500);
+          }, 2000);
+      }, 1000);
+  }
 
-    // Secret Auto-fill for Demo/Testing (Only works on Details step)
-    if (!isResetting && signupStep === 'details') {
-      const randomId = Math.floor(Math.random() * 1000);
-      setFirstName('Test');
-      setLastName('Principal');
-      setDisplayName('Test Principal');
-      if(!email) setEmail(`test.user.${randomId}@fantasy.f1`);
-      setPassword('password123');
-      setConfirmPassword('password123');
+  const handleLogoClick = async () => {
+    // [S3A-01] Lazy-load canvas-confetti
+    try {
+      const confettiModule = await import('canvas-confetti');
+      const confetti = confettiModule.default;
+      
+      // Checkered Flag Confetti Celebration
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'],
+        disableForReducedMotion: true,
+        zIndex: 2000
+      });
+    } catch (e) {
+      console.error("Failed to load confetti", e);
     }
     
     setError(null);
     setResetMessage(null);
+
+    // Easter Egg Logic: 5 clicks in 11 seconds
+    clickCountRef.current += 1;
+    
+    // Start timer on first click
+    if (clickCountRef.current === 1) {
+        clickTimerRef.current = setTimeout(() => {
+            clickCountRef.current = 0; // Reset after 11s
+        }, 11000);
+    }
+
+    if (clickCountRef.current === 5) {
+        if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+        clickCountRef.current = 0;
+        triggerEasterEgg();
+    }
   };
 
-  // --- Step 0: Validate Invitation Code ---
+  // ... (Keep existing handler functions: handleValidateInvitation, handleSendCode, handleVerifyCode, handleSignup, handleLogin, handleResetPassword) ...
   const handleValidateInvitation = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -134,26 +153,22 @@ const AuthScreen: React.FC = () => {
           if (data.valid) {
               setInvitationCode(codeToSubmit); // Normalize
               setSignupStep('email');
-              // Clear attempts on success
-              localStorage.removeItem('invitation_attempts');
               setFailedAttempts(0);
           } else {
-              // Should catch block below, but just in case
               throw new Error("Invalid Code");
           }
 
       } catch (err: any) {
           console.error("Invitation validation failed:", err);
-          const newAttempts = failedAttempts + 1;
-          setFailedAttempts(newAttempts);
-          localStorage.setItem('invitation_attempts', newAttempts.toString());
-
-          if (newAttempts >= 3) {
-              const blockTime = Date.now() + 10 * 60 * 1000; // 10 minutes
+          
+          // Check for server-side rate limit error
+          if (err.code === 'resource-exhausted' || (err.message && err.message.includes('Too many attempts'))) {
+              const blockTime = Date.now() + 10 * 60 * 1000; // 10 minutes (UX Sync)
               setBlockUntil(blockTime);
-              localStorage.setItem('invitation_block_until', blockTime.toString());
               setError("Maximum attempts reached. Please try again in 10 minutes.");
           } else {
+              // UX Counter (Non-blocking security, just feedback)
+              setFailedAttempts(prev => prev + 1);
               setError(err.message || "Invalid or used invitation code.");
           }
       } finally {
@@ -177,8 +192,6 @@ const AuthScreen: React.FC = () => {
             return setError("An account with this email already exists. Please log in.");
         }
 
-        console.log("Calling Cloud Function: sendAuthCode");
-        
         const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
         await sendAuthCode({ email });
         
@@ -186,7 +199,9 @@ const AuthScreen: React.FC = () => {
 
     } catch (err: any) {
         console.error("Verification error:", err);
-        if (err.message) {
+        if (err.code === 'resource-exhausted') {
+             setError("Too many requests. Please wait a moment before trying again.");
+        } else if (err.message) {
              setError(err.message);
         } else {
              setError("Failed to process request. Please check your connection.");
@@ -343,9 +358,9 @@ const AuthScreen: React.FC = () => {
                               required
                               className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-primary-red focus:border-primary-red uppercase"
                             />
-                            {failedAttempts > 0 && failedAttempts < 3 && (
+                            {failedAttempts > 0 && failedAttempts < 5 && (
                                 <p className="text-xs text-yellow-500 mt-2 text-center">
-                                    {3 - failedAttempts} attempts remaining.
+                                    Incorrect code. Please try again.
                                 </p>
                             )}
                           </div>
@@ -498,10 +513,63 @@ const AuthScreen: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto w-full">
-      <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl">
+    <div className="max-w-md mx-auto w-full relative">
+      {/* Easter Egg Overlay */}
+      {easterEggStage !== 'idle' && (
+          <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+              {/* Spinner Container (Rotates the car around the center) */}
+              {/* Size corresponds to the orbit diameter + margin */}
+              <div className={`relative w-[700px] h-[700px] flex items-center justify-center ${easterEggStage === 'donuts' ? 'animate-spin-1s' : ''}`}>
+                  
+                  {/* Car Container (Translates car to the "track" edge and handles orientation) */}
+                  <div 
+                      className="absolute transition-all duration-[1000ms] ease-in-out"
+                      style={{
+                          transform: `
+                              translateX(${
+                                  // Orientation logic:
+                                  // F1CarIcon naturally points UP.
+                                  // When at Left (-350px): 
+                                  //   - Tangent (Up) is 0deg.
+                                  //   - Drive Right is 90deg.
+                                  // Exit right
+                                  easterEggStage === 'exit' ? '120vw' : 
+                                  // Start far left
+                                  easterEggStage === 'enter' ? '-120vw' : 
+                                  // Orbit radius (Left side)
+                                  '-350px' 
+                              })
+                              rotate(${
+                                  easterEggStage === 'enter' ? '90deg' : // Driving in (Right)
+                                  easterEggStage === 'donuts' ? '0deg' : // Orbiting (Tangent/Up at 9 o'clock)
+                                  easterEggStage === 'celebrate' || easterEggStage === 'exit' ? '90deg' : // Turning to exit (Right)
+                                  '90deg' 
+                              })
+                          `,
+                          // Override position for enter state to start from left
+                          left: '50%', 
+                          top: '50%',
+                          marginLeft: '-6rem', // Half of car width (w-48 = 12rem) roughly
+                          marginTop: '-6rem'
+                      }}
+                  >
+                      {/* Car Graphic */}
+                      <div className="relative">
+                          <F1CarIcon className="w-48 h-48 text-primary-red drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" />
+                          
+                          {/* Trophy Reveal */}
+                          <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-opacity duration-500 ${easterEggStage === 'celebrate' || easterEggStage === 'exit' ? 'opacity-100' : 'opacity-0'}`}>
+                              <TrophyIcon className="w-24 h-24 text-yellow-400 drop-shadow-lg animate-bounce" />
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl relative z-10">
         <div 
-          className="flex flex-col items-center mb-6 cursor-pointer"
+          className="flex flex-col items-center mb-6 cursor-pointer select-none"
           onClick={handleLogoClick}
         >
           <F1FantasyLogo className="w-64 h-auto mb-4"/>

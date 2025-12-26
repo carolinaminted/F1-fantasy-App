@@ -1,13 +1,22 @@
-
-import { db } from './firebase.ts';
-// Fix: Add query and orderBy to support sorted data fetching for donations.
-// Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where } from '@firebase/firestore';
-// Fix: Import the newly created Donation type.
-import { PickSelection, User, RaceResults, Donation, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
-// Fix: Use scoped @firebase packages for imports to resolve module errors.
+import { db, functions } from './firebase.ts';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
+import { httpsCallable } from '@firebase/functions';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
+
+/**
+ * SCALABILITY CONFIGURATION [S1C-01]
+ */
+export const DEFAULT_PAGE_SIZE = 50;
+export const MAX_PAGE_SIZE = 100;
+
+// Cloud Function Wrappers
+export const triggerManualLeaderboardSync = async () => {
+    const syncFn = httpsCallable(functions, 'manualLeaderboardSync');
+    const result = await syncFn();
+    return result.data as { success: boolean, usersProcessed: number };
+};
 
 // User Profile Management
 export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string; invitationCode?: string }) => {
@@ -23,7 +32,6 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
                 const { email } = userAuth;
                 const { displayName, firstName, lastName, invitationCode } = additionalData;
 
-                // Atomic write 1: Private User Profile (contains PII)
                 transaction.set(userRef, {
                     displayName,
                     email,
@@ -33,17 +41,12 @@ export const createUserProfileDocument = async (userAuth: FirebaseUser, addition
                     duesPaidStatus: 'Unpaid',
                 });
 
-                // Atomic write 2: Public User Profile (Safe for Leaderboard)
                 transaction.set(publicUserRef, {
                     displayName,
-                    // We can add photoURL or other non-sensitive data here later
                 });
 
-                // Atomic write 3: Empty Picks Document
-                // We check availability via the transaction to ensure we don't overwrite if it was created milliseconds ago
                 transaction.set(userPicksRef, {});
 
-                // Atomic write 4: Mark Invitation Code as Used (if present)
                 if (invitationCode) {
                     const invRef = doc(db, 'invitation_codes', invitationCode);
                     transaction.update(invRef, {
@@ -76,15 +79,9 @@ export const updateUserProfile = async (uid: string, data: { displayName: string
     const publicUserRef = doc(db, 'public_users', uid);
     
     try {
-        // Use a batch to ensure both private and public records update atomically
         const batch = writeBatch(db);
-        
-        // Update private record
         batch.update(userRef, data);
-        
-        // Update/Sync public fields (merge ensures we don't wipe points/rank)
         batch.set(publicUserRef, { displayName: data.displayName }, { merge: true });
-        
         await batch.commit();
         console.log(`Profile updated for user ${uid}`);
     } catch (error) {
@@ -115,73 +112,95 @@ export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
     }
 };
 
-// Admin Only: Fetches full user details from the secure 'users' collection
-export const getAllUsers = async (): Promise<User[]> => {
+export const getAllUsers = async (
+    limitCount: number = DEFAULT_PAGE_SIZE, 
+    lastVisible: QueryDocumentSnapshot<DocumentData> | null = null
+): Promise<{ users: User[], lastDoc: QueryDocumentSnapshot<DocumentData> | null }> => {
     try {
         const usersCollection = collection(db, 'users');
-        const usersSnapshot = await getDocs(usersCollection);
+        let q = query(usersCollection, orderBy('displayName'), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
+        
+        if (lastVisible) {
+            q = query(usersCollection, orderBy('displayName'), startAfter(lastVisible), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
+        }
+
+        const usersSnapshot = await getDocs(q);
         const users: User[] = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        return users;
+        const last = usersSnapshot.docs[usersSnapshot.docs.length - 1] || null;
+        
+        return { users, lastDoc: last };
     } catch (error) {
-        console.error("Error fetching all users (Admin). Ensure you have admin privileges.", error);
-        return [];
+        console.error("Error fetching users batch:", error);
+        return { users: [], lastDoc: null };
     }
 };
 
-// Public Access: Fetches sanitized user details for Leaderboard from 'public_users'
-export const getAllUsersAndPicks = async (): Promise<{ users: User[], allPicks: { [userId: string]: { [eventId: string]: PickSelection } }, source: 'public' | 'private_fallback' }> => {
+export const getAllUsersAndPicks = async (
+    limitCount: number = DEFAULT_PAGE_SIZE,
+    lastVisible: QueryDocumentSnapshot<DocumentData> | null = null
+): Promise<{ 
+    users: User[], 
+    allPicks: { [userId: string]: { [eventId: string]: PickSelection } }, 
+    lastDoc: QueryDocumentSnapshot<DocumentData> | null,
+    source: 'public' | 'private_fallback' 
+}> => {
     try {
         const publicUsersCollection = collection(db, 'public_users');
-        const userPicksCollection = collection(db, 'userPicks');
+        
+        let q = query(publicUsersCollection, orderBy('rank', 'asc'), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
+        
+        if (lastVisible) {
+            q = query(publicUsersCollection, orderBy('rank', 'asc'), startAfter(lastVisible), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
+        }
 
-        const [usersSnapshot, userPicksSnapshot] = await Promise.all([
-            getDocs(publicUsersCollection),
-            getDocs(userPicksCollection)
-        ]);
-
+        const usersSnapshot = await getDocs(q);
         let source: 'public' | 'private_fallback' = 'public';
 
-        // Map public users to User type (missing email/private fields is expected here)
         let users: User[] = usersSnapshot.docs.map(doc => ({ 
             id: doc.id, 
             ...doc.data(),
-            email: '', // Safe default
+            email: '', 
             duesPaidStatus: undefined,
             isAdmin: false
         } as User));
 
-        // Fallback: If public_users is empty, try fetching 'users' (Admin only will succeed/have data)
-        // This handles the case where migration hasn't run yet, allowing Admin to see data immediately.
-        if (users.length === 0) {
-            try {
-                const privateUsersCollection = collection(db, 'users');
-                const privateSnapshot = await getDocs(privateUsersCollection);
-                if (!privateSnapshot.empty) {
-                    console.warn("Leaderboard fetching from 'users' collection (Fallback). Migration recommended.");
-                    users = privateSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    } as User));
-                    source = 'private_fallback';
+        const isPreCalculated = users.length > 0 && typeof users[0].totalPoints === 'number';
+        
+        const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
+        
+        if (!isPreCalculated && users.length > 0) {
+            const userIds = users.map(u => u.id);
+            const userPicksCollection = collection(db, 'userPicks');
+            for (const uid of userIds) {
+                const pDoc = await getDoc(doc(userPicksCollection, uid));
+                if (pDoc.exists()) {
+                    allPicks[uid] = pDoc.data() as { [eventId: string]: PickSelection };
                 }
-            } catch (e) {
-                // Ignore permission errors (regular users cannot read 'users' collection list)
             }
         }
 
-        const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
-        userPicksSnapshot.forEach(doc => {
-            allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
-        });
-
-        return { users, allPicks, source };
+        const last = usersSnapshot.docs[usersSnapshot.docs.length - 1] || null;
+        return { users, allPicks, lastDoc: last, source };
     } catch (error) {
-        console.error("Error fetching leaderboard data", error);
-        return { users: [], allPicks: {}, source: 'public' };
+        console.error("Error fetching leaderboard batch", error);
+        return { users: [], allPicks: {}, lastDoc: null, source: 'public' };
     }
 };
 
-// User Picks Management
+/**
+ * Fetch all picks from every user in the league.
+ * Used for frontend aggregation of popularity stats.
+ */
+export const fetchAllUserPicks = async (): Promise<{ [userId: string]: { [eventId: string]: PickSelection } }> => {
+    const picksCollection = collection(db, 'userPicks');
+    const snapshot = await getDocs(picksCollection);
+    const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
+    snapshot.forEach(doc => {
+        allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
+    });
+    return allPicks;
+};
+
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {
     const picksRef = doc(db, 'userPicks', uid);
     const snapshot = await getDoc(picksRef);
@@ -189,14 +208,11 @@ export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: Pi
 };
 
 export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdmin: boolean = false) => {
-    // Security Validation: Check submission time
-    // Admins can bypass this check if needed
     if (!isAdmin) {
         const event = EVENTS.find(e => e.id === eventId);
         if (event) {
             const lockTime = new Date(event.lockAtUtc).getTime();
             if (Date.now() >= lockTime) {
-                 console.warn(`Blocked late submission for ${eventId} by ${uid}`);
                  throw new Error("Picks submission is locked for this event.");
             }
         }
@@ -205,68 +221,55 @@ export const saveUserPicks = async (uid: string, eventId: string, picks: PickSel
     const picksRef = doc(db, 'userPicks', uid);
     try {
         await setDoc(picksRef, { [eventId]: picks }, { merge: true });
-        console.log(`Picks for ${eventId} saved successfully for user ${uid}`);
     } catch (error) {
         console.error("Error saving user picks", error);
         throw error;
     }
 };
 
-// New: Update a penalty for a specific pick without overwriting selections
 export const updatePickPenalty = async (uid: string, eventId: string, penalty: number, reason: string) => {
     const picksRef = doc(db, 'userPicks', uid);
     try {
-        // Use dot notation to update nested fields in Firestore map
         await updateDoc(picksRef, {
             [`${eventId}.penalty`]: penalty,
             [`${eventId}.penaltyReason`]: reason
         });
-        console.log(`Penalty updated for ${eventId} user ${uid}`);
     } catch (error) {
         console.error("Error updating penalty", error);
         throw error;
     }
 };
 
-// Form Lock Management
 export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
     const locksRef = doc(db, 'app_state', 'form_locks');
     try {
         await setDoc(locksRef, locks);
-        console.log("Form locks saved successfully.");
     } catch (error) {
         console.error("Error saving form locks", error);
         throw error;
     }
 };
 
-// Race Results Management
 export const saveRaceResults = async (results: RaceResults) => {
     const resultsRef = doc(db, 'app_state', 'race_results');
     try {
-        // This will overwrite the entire document with the new results object
         await setDoc(resultsRef, results);
-        console.log("Race results saved successfully to Firestore.");
-    // Fix: Added missing opening brace for the catch block to correct the syntax.
     } catch (error) {
         console.error("Error saving race results", error);
         throw error;
     }
 };
 
-// Points System Management
 export const saveScoringSettings = async (settings: ScoringSettingsDoc) => {
     const configRef = doc(db, 'app_state', 'scoring_config');
     try {
         await setDoc(configRef, settings);
-        console.log("Scoring settings saved successfully.");
     } catch (error) {
         console.error("Error saving scoring settings", error);
         throw error;
     }
 };
 
-// League Entities (Drivers/Teams) Management
 export const getLeagueEntities = async (): Promise<{ drivers: Driver[]; constructors: Constructor[] } | null> => {
     const entitiesRef = doc(db, 'app_state', 'entities');
     const snapshot = await getDoc(entitiesRef);
@@ -280,14 +283,12 @@ export const saveLeagueEntities = async (drivers: Driver[], constructors: Constr
     const entitiesRef = doc(db, 'app_state', 'entities');
     try {
         await setDoc(entitiesRef, { drivers, constructors });
-        console.log("League entities saved successfully.");
     } catch (error) {
         console.error("Error saving league entities", error);
         throw error;
     }
 };
 
-// Event Schedule Management
 export const getEventSchedules = async (): Promise<{ [eventId: string]: EventSchedule }> => {
     const schedulesRef = doc(db, 'app_state', 'event_schedules');
     const snapshot = await getDoc(schedulesRef);
@@ -300,27 +301,11 @@ export const getEventSchedules = async (): Promise<{ [eventId: string]: EventSch
 export const saveEventSchedule = async (eventId: string, schedule: EventSchedule) => {
     const schedulesRef = doc(db, 'app_state', 'event_schedules');
     try {
-        // Merge the new schedule for this specific eventId
         await setDoc(schedulesRef, { [eventId]: schedule }, { merge: true });
-        console.log(`Schedule saved for ${eventId}.`);
     } catch (error) {
         console.error("Error saving event schedule", error);
         throw error;
     }
-};
-
-// Fix: Add and export getUserDonations function. This was missing, causing an import error.
-export const getUserDonations = async (uid: string): Promise<Donation[]> => {
-    if (!uid) return [];
-    // Assumes donations are stored in a subcollection 'donations' under each user document.
-    const donationsCollectionRef = collection(db, 'users', uid, 'donations');
-    const q = query(donationsCollectionRef, orderBy('createdAt', 'desc'));
-    const donationsSnapshot = await getDocs(q);
-    const donations = donationsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    } as Donation));
-    return donations;
 };
 
 export const logDuesPaymentInitiation = async (
@@ -330,21 +315,18 @@ export const logDuesPaymentInitiation = async (
     memo: string
 ) => {
     if (!user) throw new Error("User must be logged in to initiate a payment.");
-    
     const duesPaymentData = {
         uid: user.id,
         email: user.email,
-        amount: amountInDollars * 100, // store in cents
+        amount: amountInDollars * 100, 
         season,
         memo,
         status: 'initiated' as const,
         createdAt: Timestamp.now(),
     };
-
     try {
         const duesCollectionRef = collection(db, 'dues_payments');
         const docRef = await addDoc(duesCollectionRef, duesPaymentData);
-        console.log("Dues payment initiation logged with ID: ", docRef.id);
         return docRef.id;
     } catch (error) {
         console.error("Error logging dues payment initiation:", error);
@@ -352,14 +334,10 @@ export const logDuesPaymentInitiation = async (
     }
 };
 
-// --- Invitation Code Management (Admin) ---
-
 export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
     const codesRef = collection(db, 'invitation_codes');
-    // Order by created descending
     const q = query(codesRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    
     return snapshot.docs.map(doc => ({
         code: doc.id,
         ...doc.data()
@@ -369,19 +347,16 @@ export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
 export const createInvitationCode = async (adminUid: string): Promise<string> => {
     const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const codeRef = doc(db, 'invitation_codes', code);
-    
     await setDoc(codeRef, {
         status: 'active',
         createdAt: serverTimestamp(),
         createdBy: adminUid
     });
-    
     return code;
 };
 
 export const createBulkInvitationCodes = async (adminUid: string, count: number): Promise<void> => {
     const batch = writeBatch(db);
-    
     for (let i = 0; i < count; i++) {
         const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const codeRef = doc(db, 'invitation_codes', code);
@@ -391,6 +366,15 @@ export const createBulkInvitationCodes = async (adminUid: string, count: number)
             createdBy: adminUid
         });
     }
-    
     await batch.commit();
+};
+
+export const deleteInvitationCode = async (code: string): Promise<void> => {
+    const codeRef = doc(db, 'invitation_codes', code);
+    try {
+        await deleteDoc(codeRef);
+    } catch (error) {
+        console.error("Error deleting invitation code", error);
+        throw error;
+    }
 };

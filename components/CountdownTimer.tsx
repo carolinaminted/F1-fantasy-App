@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface CountdownTimerProps {
   targetDate: string;
@@ -7,7 +6,7 @@ interface CountdownTimerProps {
 }
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate, className = '' }) => {
-  const calculateTimeLeft = () => {
+  const calculateTimeLeft = useCallback(() => {
     const difference = +new Date(targetDate) - +new Date();
     let timeLeft = {};
 
@@ -20,17 +19,20 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate, className =
       };
     }
     return timeLeft;
-  };
+  }, [targetDate]);
 
   const [timeLeft, setTimeLeft] = useState<{ d?: number; h?: number; m?: number; s?: number }>(calculateTimeLeft());
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Initialize immediately
+    setTimeLeft(calculateTimeLeft());
+
+    const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft());
     }, 1000);
 
-    return () => clearTimeout(timer);
-  });
+    return () => clearInterval(timer);
+  }, [calculateTimeLeft]);
 
   const formatUnit = (unit: number | undefined) => {
       return (unit || 0).toString().padStart(2, '0');
