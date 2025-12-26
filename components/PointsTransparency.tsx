@@ -158,7 +158,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem })
                                         <div className="w-1.5 h-auto rounded-full bg-blue-400 flex-shrink-0"></div>
                                         <div className="flex-1">
                                             <span className="block text-blue-400 font-black text-[10px] uppercase tracking-wider mb-1">Driver Score</span>
-                                            <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Points earned individually by your <strong className="text-pure-white not-italic">three</strong> primary drivers.</p>
+                                            <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Points earned individually by your <strong className="text-pure-white not-italic">selected</strong> drivers.</p>
                                         </div>
                                     </div>
                                 </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventResult, Driver, Constructor } from '../types.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -5,6 +6,7 @@ import { SprintIcon } from './icons/SprintIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { SelectorCard } from './PicksForm.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 interface ResultsFormProps {
     event: Event;
@@ -32,6 +34,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     // Set 'gp' as default so the Grand Prix section is expanded on load for sprint weekends
     const [activeSession, setActiveSession] = useState<'gp' | 'sprint' | null>('gp');
     const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+    const { showToast } = useToast();
 
     useEffect(() => {
         setResults(currentResults || emptyResults(event));
@@ -72,6 +75,35 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation: Grand Prix
+        if (results.grandPrixFinish.some(d => !d)) {
+            showToast("Please fill in all Grand Prix race positions (P1-P10).", 'error');
+            return;
+        }
+        if (results.gpQualifying.some(d => !d)) {
+            showToast("Please fill in all GP Qualifying positions (P1-P3).", 'error');
+            return;
+        }
+
+        // Validation: Fastest Lap
+        if (!results.fastestLap) {
+            showToast("Please select a driver for Fastest Lap.", 'error');
+            return;
+        }
+
+        // Validation: Sprint (if applicable)
+        if (event.hasSprint) {
+            if (results.sprintFinish?.some(d => !d)) {
+                showToast("Please fill in all Sprint race positions (P1-P8).", 'error');
+                return;
+            }
+            if (results.sprintQualifying?.some(d => !d)) {
+                showToast("Please fill in all Sprint Qualifying positions (P1-P3).", 'error');
+                return;
+            }
+        }
+
         setSaveState('saving');
         const success = await onSave(event.id, results);
         if (success) {
