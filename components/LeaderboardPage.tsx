@@ -832,7 +832,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       return (
           <div className="w-full max-w-7xl mx-auto animate-fade-in">
               <PageHeader 
-                title="LEAGUE STANDINGS" 
+                title="LEADERBOARDS" 
                 icon={LeaderboardIcon} 
                 rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus}/>}
               />
