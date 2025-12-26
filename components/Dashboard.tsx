@@ -233,14 +233,14 @@ const Dashboard: React.FC<DashboardProps> = ({
             <FadeInSection delay="0.2s" className="h-full">
                 <div 
                     onClick={() => setActivePage('leaderboard')}
-                    className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-primary-red/30 shadow-xl cursor-pointer hover:border-primary-red hover:shadow-[0_0_20px_rgba(218,41,28,0.2)] transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
+                    className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-pure-white/10 shadow-xl cursor-pointer hover:border-primary-red/50 hover:shadow-[0_0_20px_rgba(218,41,28,0.2)] transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
                 >
                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-25 group-hover:brightness-150 transition-all transform group-hover:-rotate-12 duration-500">
                         <LeaderboardIcon className="w-64 h-64 text-primary-red" />
                     </div>
                     <div className="relative z-10">
                         <div className="w-14 h-14 bg-primary-red/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm shadow-[0_0_15px_rgba(218,41,28,0.3)]">
-                            <LeaderboardIcon className="w-7 h-7 text-pure-white" />
+                            <LeaderboardIcon className="w-7 h-7 text-primary-red" />
                         </div>
                         <h2 className="text-4xl font-bold text-pure-white mb-3 group-hover:text-primary-red transition-colors">Leaderboard</h2>
                         <p className="text-highlight-silver max-w-sm text-xl leading-relaxed">
@@ -340,3 +340,4 @@ const QuickAction: React.FC<{
 );
 
 export default Dashboard;
+    
