@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventResult, Driver, Constructor } from '../types.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -131,13 +130,16 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                 <div className="text-center mb-6">
                     <h4 className="text-2xl font-bold text-pure-white">{title}</h4>
                 </div>
+                
+                {/* Clear Selection - Moved outside grid to preserve alignment of teammates */}
+                <button
+                    onClick={() => handleSelection(null)}
+                    className="w-full mb-4 p-3 rounded-lg border border-dashed border-accent-gray bg-carbon-black/30 hover:bg-carbon-black/60 hover:border-highlight-silver cursor-pointer flex items-center justify-center text-highlight-silver font-bold uppercase tracking-wider text-xs transition-all group"
+                >
+                    <span className="group-hover:text-pure-white transition-colors">Clear Selection</span>
+                </button>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div
-                        onClick={() => handleSelection(null)}
-                        className="p-1.5 rounded-lg border-2 border-accent-gray bg-carbon-black/50 hover:border-highlight-silver cursor-pointer flex items-center justify-center min-h-[3.5rem] text-highlight-silver font-bold italic"
-                    >
-                        Clear Selection
-                    </div>
                     {sortedDrivers.map(driver => {
                         const isAlreadyUsed = disabledIds.includes(driver.id) && driver.id !== currentSelection;
                         let constructor = allConstructors.find(c => c.id === driver.constructorId) || CONSTRUCTORS.find(c => c.id === driver.constructorId);
