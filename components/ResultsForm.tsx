@@ -58,6 +58,14 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         });
     }, [allDrivers]);
 
+    // Derive Fastest Lap selection state for rendering
+    const selectedFLDriver = allDrivers.find(d => d.id === results.fastestLap) || null;
+    let flColor = undefined;
+    if (selectedFLDriver) {
+        const cId = selectedFLDriver.constructorId;
+        flColor = allConstructors.find(c => c.id === cId)?.color || CONSTRUCTORS.find(c => c.id === cId)?.color;
+    }
+
     const handleSelect = (category: keyof EventResult, value: string | null, index: number) => {
         setResults(prev => {
             const newResults = { ...prev };
@@ -169,17 +177,40 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     const renderGpContent = () => (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-3 flex flex-col">
-                <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Qualifying</h4>
-                <div className="bg-carbon-black/20 rounded-lg p-4">
-                    <ResultGroup
-                        positions={3}
-                        selected={results.gpQualifying}
-                        onTrigger={(idx) => openDriverModal('gpQualifying', idx, `Qualifying P${idx + 1}`, results.gpQualifying)}
-                        allDrivers={allDrivers}
-                        allConstructors={allConstructors}
-                        cols={1}
-                    />
+            <div className="lg:col-span-3 flex flex-col gap-6">
+                {/* Fastest Lap - Moved here above Qualifying */}
+                <div className="flex flex-col">
+                    <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Fastest Lap</h4>
+                    <div className="bg-carbon-black/20 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                            <label className="w-6 text-xs font-black text-highlight-silver text-right">FL</label>
+                            <div className="flex-1 h-14">
+                                <SelectorCard
+                                    option={selectedFLDriver}
+                                    isSelected={!!selectedFLDriver}
+                                    onClick={() => openDriverModal('fastestLap', 0, 'Select Fastest Lap')}
+                                    placeholder="Select FL..."
+                                    disabled={false}
+                                    color={flColor}
+                                    forceColor={!!selectedFLDriver}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col">
+                    <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Qualifying</h4>
+                    <div className="bg-carbon-black/20 rounded-lg p-4">
+                        <ResultGroup
+                            positions={3}
+                            selected={results.gpQualifying}
+                            onTrigger={(idx) => openDriverModal('gpQualifying', idx, `Qualifying P${idx + 1}`, results.gpQualifying)}
+                            allDrivers={allDrivers}
+                            allConstructors={allConstructors}
+                            cols={1}
+                        />
+                    </div>
                 </div>
             </div>
             <div className="lg:col-span-9 flex flex-col">
@@ -252,13 +283,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         </button>
     );
 
-    const selectedFLDriver = allDrivers.find(d => d.id === results.fastestLap) || null;
-    let flColor = undefined;
-    if (selectedFLDriver) {
-        const cId = selectedFLDriver.constructorId;
-        flColor = allConstructors.find(c => c.id === cId)?.color || CONSTRUCTORS.find(c => c.id === cId)?.color;
-    }
-
     return (
         <div className="text-pure-white flex flex-col min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
@@ -278,18 +302,6 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                        <div className="flex-1 md:flex-none md:w-48 h-12">
-                            <SelectorCard
-                                option={selectedFLDriver}
-                                isSelected={!!selectedFLDriver}
-                                onClick={() => openDriverModal('fastestLap', 0, 'Select Fastest Lap')}
-                                placeholder="Select FL..."
-                                disabled={false}
-                                color={flColor}
-                                forceColor={!!selectedFLDriver}
-                            />
-                        </div>
-
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <button
                                 type="button"
