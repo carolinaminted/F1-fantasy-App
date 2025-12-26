@@ -29,6 +29,7 @@
               'flare-sweep': 'flareSweep 3s ease-in-out infinite',
               'victory-lap': 'victoryLap 4s ease-in-out forwards',
               'wiggle': 'wiggle 0.5s ease-in-out infinite',
+              'progress-fill': 'progressFill 2.2s linear forwards',
             },
             keyframes: {
               fadeInUp: {
@@ -77,6 +78,10 @@
               wiggle: {
                 '0%, 100%': { transform: 'rotate(-10deg) scale(1.8)' },
                 '50%': { transform: 'rotate(10deg) scale(2.2)' },
+              },
+              progressFill: {
+                '0%': { width: '0%' },
+                '100%': { width: '100%' },
               }
             }
           }

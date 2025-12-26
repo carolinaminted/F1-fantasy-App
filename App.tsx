@@ -200,6 +200,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionVariant, setTransitionVariant] = useState(1);
   const [activePage, setActivePage] = useState<Page>('home');
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
   const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations'>('dashboard');
@@ -363,7 +364,10 @@ const App: React.FC = () => {
 
       if (firebaseUser) {
         // If we have a user but aren't authenticated yet, we are transitioning (logging in)
-        if (!isAuthenticated) setIsTransitioning(true);
+        if (!isAuthenticated) {
+            setTransitionVariant(Math.floor(Math.random() * 3) + 1); // Randomize Variant 1-3
+            setIsTransitioning(true);
+        }
         setIsLoading(true);
 
         // Safety timeout for transition overlay to prevent eternal stalls
@@ -711,20 +715,60 @@ const App: React.FC = () => {
       {isTransitioning && (
           <div className="fixed inset-0 z-[1000] bg-carbon-black flex items-center justify-center p-8 animate-fade-in">
               <div className="absolute inset-0 bg-carbon-fiber opacity-20"></div>
-              <div className="relative flex flex-col items-center text-center">
-                  <div className="bg-primary-red/10 p-12 rounded-full border border-primary-red/30 shadow-[0_0_100px_rgba(218,41,28,0.2)] mb-12">
-                      <F1CarIcon className="w-32 h-32 text-primary-red animate-pulse" />
+              
+              {/* Version 1: Race Comms (Red) */}
+              {transitionVariant === 1 && (
+                  <div className="relative flex flex-col items-center text-center">
+                      <div className="bg-primary-red/10 p-12 rounded-full border border-primary-red/30 shadow-[0_0_100px_rgba(218,41,28,0.2)] mb-12">
+                          <F1CarIcon className="w-32 h-32 text-primary-red animate-pulse" />
+                      </div>
+                      <h2 className="text-4xl font-black text-pure-white italic uppercase tracking-tighter mb-4 animate-peek-up">
+                          Initiating Race Comms...
+                      </h2>
+                      <div className="w-64 h-1 bg-pure-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary-red animate-progress-fill rounded-full"></div>
+                      </div>
+                      <p className="text-highlight-silver text-xs font-mono uppercase tracking-[0.3em] mt-6 opacity-60">
+                          Syncing telemetry data with league server
+                      </p>
                   </div>
-                  <h2 className="text-4xl font-black text-pure-white italic uppercase tracking-tighter mb-4 animate-peek-up">
-                      Initiating Race Comms...
-                  </h2>
-                  <div className="w-64 h-1 bg-pure-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary-red animate-flare-sweep rounded-full" style={{ width: '100%' }}></div>
+              )}
+
+              {/* Version 2: Pit Stop (Yellow) */}
+              {transitionVariant === 2 && (
+                  <div className="relative flex flex-col items-center text-center">
+                      <div className="bg-yellow-500/10 p-12 rounded-full border border-yellow-500/30 shadow-[0_0_100px_rgba(234,179,8,0.2)] mb-12">
+                          <GarageIcon className="w-32 h-32 text-yellow-500 animate-pulse" />
+                      </div>
+                      <h2 className="text-4xl font-black text-pure-white italic uppercase tracking-tighter mb-4 animate-peek-up">
+                          Box. Box. Box.
+                      </h2>
+                      <div className="w-64 h-1 bg-pure-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-yellow-500 animate-progress-fill rounded-full"></div>
+                      </div>
+                      <p className="text-highlight-silver text-xs font-mono uppercase tracking-[0.3em] mt-6 opacity-60">
+                          Fitting Soft Tyres for the final stint
+                      </p>
                   </div>
-                  <p className="text-highlight-silver text-xs font-mono uppercase tracking-[0.3em] mt-6 opacity-60">
-                      Syncing telemetry data with league server
-                  </p>
-              </div>
+              )}
+
+              {/* Version 3: Fast Lap / Strategy (Purple) */}
+              {transitionVariant === 3 && (
+                  <div className="relative flex flex-col items-center text-center">
+                      <div className="bg-purple-500/10 p-12 rounded-full border border-purple-500/30 shadow-[0_0_100px_rgba(168,85,247,0.2)] mb-12">
+                          <TrackIcon className="w-32 h-32 text-purple-500 animate-pulse" />
+                      </div>
+                      <h2 className="text-4xl font-black text-pure-white italic uppercase tracking-tighter mb-4 animate-peek-up">
+                          Push. Push. P1 in sight...
+                      </h2>
+                      <div className="w-64 h-1 bg-pure-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500 animate-progress-fill rounded-full"></div>
+                      </div>
+                      <p className="text-highlight-silver text-xs font-mono uppercase tracking-[0.3em] mt-6 opacity-60">
+                          Overtake mode engaged. Time to hunt them down!
+                      </p>
+                  </div>
+              )}
           </div>
       )}
     </div>
