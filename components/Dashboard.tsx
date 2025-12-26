@@ -205,11 +205,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         
         {/* Main Cards Grid: Side-by-side on Desktop for better density */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-            {/* Picks Section - CARBON FIBER + FLARE */}
+            {/* Picks Section - CARBON FIBER */}
             <div className="animate-peek-up opacity-0 [animation-delay:400ms]">
                 <div 
                     onClick={() => setActivePage('picks')}
-                    className="sheen-sweep group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-pure-white/10 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 min-h-[350px] flex flex-col justify-center"
+                    className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-pure-white/10 shadow-2xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 min-h-[350px] flex flex-col justify-center"
                 >
                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-25 group-hover:brightness-150 transition-all transform group-hover:scale-110 duration-500">
                         <PicksIcon className="w-64 h-64 text-primary-red" />
@@ -229,11 +229,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             </div>
 
-            {/* Standings Section - CARBON FIBER + FLARE with RED ACCENTS */}
+            {/* Standings Section - CARBON FIBER */}
             <FadeInSection delay="0.2s" className="h-full">
                 <div 
                     onClick={() => setActivePage('leaderboard')}
-                    className="sheen-sweep group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-primary-red/30 shadow-xl cursor-pointer hover:border-primary-red hover:shadow-[0_0_20px_rgba(218,41,28,0.2)] transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
+                    className="group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 md:p-10 border border-primary-red/30 shadow-xl cursor-pointer hover:border-primary-red hover:shadow-[0_0_20px_rgba(218,41,28,0.2)] transition-all duration-300 h-full flex flex-col justify-center min-h-[350px]"
                 >
                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-25 group-hover:brightness-150 transition-all transform group-hover:-rotate-12 duration-500">
                         <LeaderboardIcon className="w-64 h-64 text-primary-red" />
@@ -305,7 +305,7 @@ const QuickAction: React.FC<{
 }> = ({ icon: Icon, label, sub, onClick, highlight }) => (
     <div
         onClick={onClick}
-        className={`sheen-sweep group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 border border-pure-white/10 shadow-xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 min-h-[240px] flex flex-col justify-between ${highlight ? 'ring-1 ring-primary-red/30' : ''}`}
+        className={`group relative overflow-hidden bg-carbon-fiber rounded-2xl p-6 border border-pure-white/10 shadow-xl cursor-pointer hover:border-primary-red/50 transition-all duration-300 transform hover:-translate-y-1 min-h-[240px] flex flex-col justify-between ${highlight ? 'ring-1 ring-primary-red/30' : ''}`}
     >
         {/* Background Icon Faded */}
         <div className="absolute -top-6 -right-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:brightness-150 transition-all transform group-hover:scale-110 group-hover:rotate-12 duration-500 pointer-events-none">
