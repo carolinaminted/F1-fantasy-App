@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -224,8 +225,12 @@ const App: React.FC = () => {
       'schedule'
   ];
   
-  // Updated: Include Admin Dashboard specifically in the locked layout logic for desktop view
-  const isLockedLayout = lockedDesktopPages.includes(activePage) || (activePage === 'admin' && adminSubPage === 'dashboard');
+  // Updated: Include Admin Dashboard and data-heavy tables in locked layout logic for desktop view
+  // 'scoring' and 'results' (ResultsForm) remain scrollable pages for now as they are long forms
+  const isLockedLayout = lockedDesktopPages.includes(activePage) || (
+      activePage === 'admin' && 
+      ['dashboard', 'invitations', 'entities', 'manage-users', 'schedule'].includes(adminSubPage)
+  );
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
   const [leaderboardCache, setLeaderboardCache] = useState<LeaderboardCache | null>(null);
@@ -485,7 +490,7 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
     };
-  }, [isAuthenticated]);
+  }, []); // Fix: Empty dependency array ensures this effect runs ONLY once on mount.
 
   useEffect(() => {
     if (scrollContainerRef.current) {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ScoringSettingsDoc, ScoringProfile, PointsSystem } from '../types.ts';
 import { saveScoringSettings } from '../services/firestoreService.ts';
@@ -7,6 +8,8 @@ import { DEFAULT_POINTS_SYSTEM } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
+import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
@@ -176,9 +179,13 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
             
             <div className="px-4 md:px-0 space-y-6">
                 {/* Main Profile Control Card */}
-                <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-2xl relative overflow-hidden">
-                    <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
-                        <div className="flex-1 w-full space-y-2">
+                <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-2xl relative">
+                    
+                    {/* Row 1: Dropdown and Action Buttons */}
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-3 relative z-30">
+                        
+                        {/* Left: Dropdown */}
+                        <div className="w-full md:flex-1 min-w-0">
                              <ProfileDropdown 
                                 profiles={localSettings.profiles} 
                                 activeProfileId={localSettings.activeProfileId}
@@ -186,45 +193,54 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 onSelect={handleProfileSelect}
                                 disabled={isSaving}
                             />
-                            <div className="flex gap-4 px-1">
-                                <button
-                                    onClick={handleCreateNew}
-                                    disabled={isSaving}
-                                    className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-pure-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                    + New
-                                </button>
-                                {!isActiveProfile && editForm && (
-                                    <button
-                                        onClick={handleDelete}
-                                        disabled={isSaving}
-                                        className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-primary-red transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                    >
-                                        {isSaving ? 'Deleting...' : 'Delete'}
-                                    </button>
-                                )}
-                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 w-full md:w-auto">
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-shrink-0">
+                            <button
+                                onClick={handleCreateNew}
+                                disabled={isSaving}
+                                className="h-12 px-6 rounded-xl bg-carbon-black border border-pure-white/10 hover:bg-pure-white/5 text-pure-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            >
+                                + New
+                            </button>
+
                             <button
                                 onClick={() => handleSaveProfile(true)}
                                 disabled={isSaving}
-                                className="w-full md:w-48 bg-primary-red hover:bg-red-600 text-pure-white font-black py-3 rounded-xl shadow-[0_0_20px_rgba(218,41,28,0.3)] transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
+                                className="h-12 w-12 flex items-center justify-center rounded-xl bg-primary-red hover:bg-red-600 text-pure-white shadow-lg shadow-primary-red/20 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent"
+                                title="Save Changes"
                             >
-                                {isSaving ? 'Saving...' : 'Save Changes'}
+                                {isSaving ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <SaveIcon className="w-6 h-6" />
+                                )}
                             </button>
-                            
-                            {!isActiveProfile && editForm && (
+                        </div>
+                    </div>
+
+                    {/* Row 2: Context Actions (Active/Delete) */}
+                    <div className="flex items-center gap-4 px-1 h-6 relative z-20">
+                        {!isActiveProfile && editForm && (
+                            <>
                                 <button
                                     onClick={handleMakeActive}
                                     disabled={isSaving}
-                                    className="text-[10px] text-center font-black uppercase tracking-widest text-green-500 hover:underline disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="text-[10px] font-black uppercase tracking-widest text-green-500 hover:text-green-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
                                 >
-                                    {isSaving ? 'Recalculating...' : 'Make Active System'}
+                                    Make Active
                                 </button>
-                            )}
-                        </div>
+                                <div className="w-px h-3 bg-pure-white/10"></div>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isSaving}
+                                    className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    Delete
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -337,7 +353,7 @@ const ProfileDropdown: React.FC<{
             <button 
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
-                className="w-full bg-carbon-black border border-pure-white/10 rounded-xl py-3 px-4 flex items-center justify-between hover:border-primary-red transition-all shadow-inner focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-12 bg-carbon-black border border-pure-white/10 rounded-xl px-4 flex items-center justify-between hover:border-primary-red transition-all shadow-inner focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <div className="flex items-center gap-3 truncate">
                     <span className="font-black text-xl md:text-2xl text-pure-white truncate uppercase italic tracking-tighter">{selectedProfile?.name || 'Select Profile'}</span>
@@ -349,7 +365,7 @@ const ProfileDropdown: React.FC<{
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in-down origin-top">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden animate-fade-in-down origin-top">
                     <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {profiles.map(p => (
                             <button
@@ -438,16 +454,5 @@ const ScoringInput: React.FC<{
         />
     );
 };
-
-const FastestLapIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
-    <path d="M15,1H9v2h6V1M12,5.5A7.5,7.5 0 0,0 4.5,13A7.5,7.5 0 0,0 12,20.5A7.5,7.5 0 0,0 19.5,13A7.5,7.5 0 0,0 12,5.5M12,7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13A6,6 0 0,1 12,7m-.5,2V12.5l3.5,2l.8-1.2l-2.8-1.6V9H11.5Z" />
-  </svg>
-);
 
 export default ScoringSettingsPage;
