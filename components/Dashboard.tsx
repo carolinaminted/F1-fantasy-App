@@ -105,15 +105,6 @@ const Dashboard: React.FC<DashboardProps> = ({
       
       {/* 1. HERO SECTION - Full Screen for Immersive Feel */}
       <div className="relative w-full h-[90vh] md:h-screen flex items-center justify-center overflow-hidden">
-         {/* Background Image with Parallax-like feel */}
-         <div 
-            className="absolute inset-0 bg-cover bg-center z-0" 
-            style={{ 
-                backgroundImage: `url('https://media.formula1.com/image/upload/f_auto,c_limit,w_1440,q_auto/f_auto/q_auto/content/dam/fom-website/manual/Misc/2021-Master-Folder/F1%202021%20Generic/F1%202021%20Generic%20(5)')`,
-                filter: 'brightness(0.5) contrast(1.1)'
-            }}
-         ></div>
-         <div className="absolute inset-0 bg-gradient-to-t from-carbon-black via-carbon-black/50 to-transparent z-10"></div>
          
          {/* Hero Content - Centered */}
          <div 
@@ -340,4 +331,3 @@ const QuickAction: React.FC<{
 );
 
 export default Dashboard;
-    
