@@ -10,6 +10,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
+import { TrashIcon } from './icons/TrashIcon.tsx';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
@@ -231,14 +232,6 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 >
                                     Make Active
                                 </button>
-                                <div className="w-px h-3 bg-pure-white/10"></div>
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={isSaving}
-                                    className="text-[10px] font-black uppercase tracking-widest text-highlight-silver hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                    Delete
-                                </button>
                             </>
                         )}
                     </div>
@@ -249,7 +242,19 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                         
                         {/* Profile Name Field */}
                         <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
-                            <label className="block text-[10px] font-black uppercase text-highlight-silver mb-3 tracking-[0.2em]">Profile Name</label>
+                            <div className="flex justify-between items-start mb-3">
+                                <label className="block text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Profile Name</label>
+                                {!isActiveProfile && (
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={isSaving}
+                                        className="text-highlight-silver/50 hover:text-primary-red transition-colors -mt-1 -mr-1 p-2 rounded-full hover:bg-pure-white/5"
+                                        title="Delete this profile"
+                                    >
+                                        <TrashIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
                             <input 
                                 type="text" 
                                 value={editForm.name}

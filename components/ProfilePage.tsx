@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -32,6 +33,7 @@ interface ProfilePageProps {
   // New Prop: If present, enables penalty management UI
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
   events: Event[];
+  isPublicView?: boolean;
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -138,7 +140,7 @@ const PenaltyManager: React.FC<{
     );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events, isPublicView = false }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -296,6 +298,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   // Logic for Dues Button Click
   const handleDuesClick = () => {
+      if (isPublicView) return; // Disable for public view
       if (user.duesPaidStatus === 'Paid') {
           setModalData({
               title: "Season Status",
@@ -518,34 +521,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setModalData({ title: `Usage History: ${entityName}`, content });
   };
 
-
   return (
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
-      {/* Page Header */}
-      <PageHeader 
-          title="PROFILE" 
-          icon={ProfileIcon} 
-      />
+      {/* Page Header - Only show if not in public view, or show simplified title */}
+      {!isPublicView && (
+          <PageHeader 
+              title="PROFILE" 
+              icon={ProfileIcon} 
+          />
+      )}
 
       {/* Profile Info Section */}
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
         <div className="flex flex-col items-center justify-center mb-8 relative z-10">
-            {/* Dues Status */}
+            {/* Dues Status - Disable click in public view */}
             <button 
                 onClick={handleDuesClick}
-                disabled={!setActivePage}
+                disabled={!setActivePage || isPublicView}
                 className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
                     ? 'bg-green-600 text-pure-white'
                     : 'bg-primary-red text-pure-white animate-pulse-red-limited'
-                } ${setActivePage ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+                } ${setActivePage && !isPublicView ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
             >
                 Dues: {user.duesPaidStatus || 'Unpaid'}
             </button>
 
-            {/* Edit Details Button */}
-            {!isEditingProfile && setActivePage && (
+            {/* Edit Details Button - Hide in Public View */}
+            {!isEditingProfile && setActivePage && !isPublicView && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
                     className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
@@ -633,10 +637,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${!isPublicView ? 'lg:grid-cols-3' : ''} gap-4 w-full`}>
                 <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
                 <InfoCard icon={DriverIcon} label="Name" value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'} />
-                <InfoCard icon={ProfileIcon} label="Email" value={user.email} />
+                {!isPublicView && <InfoCard icon={ProfileIcon} label="Email" value={user.email} />}
             </div>
         )}
       </div>
@@ -816,7 +820,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                             )}
                                         </div>
                                     )}
-                                    {onUpdatePenalty && (
+                                    {onUpdatePenalty && !isPublicView && (
                                         <PenaltyManager 
                                             eventId={event.id} 
                                             currentPenalty={picks.penalty || 0}
