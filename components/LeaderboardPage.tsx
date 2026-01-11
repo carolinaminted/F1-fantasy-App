@@ -17,10 +17,11 @@ import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
-import { ListSkeleton } from './LoadingSkeleton.tsx';
+import { ListSkeleton, ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks } from '../services/firestoreService.ts';
+import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks, getUserPicks } from '../services/firestoreService.ts';
+import ProfilePage from './ProfilePage.tsx';
 
 // --- Configuration ---
 const REFRESH_COOLDOWN_SECONDS = 60;
@@ -267,7 +268,7 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
     );
 };
 
-const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMore: () => void, isPaging: boolean }> = ({ users, hasMore, onFetchMore, isPaging }) => {
+const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMore: () => void, isPaging: boolean, onSelectUser?: (user: ProcessedUser) => void }> = ({ users, hasMore, onFetchMore, isPaging, onSelectUser }) => {
     const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
 
     if (users.length === 0) return null;
@@ -318,11 +319,15 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                 <div className="flex-1 relative h-full flex items-center ml-4 md:ml-6 mr-1 md:mr-2">
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     <div 
-                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-6 md:pr-14"
+                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-6 md:pr-14 cursor-pointer"
                                         style={{ width: `${percent}%` }}
+                                        onClick={() => onSelectUser?.(user)}
                                     >
-                                        <div className="relative">
-                                            <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover:scale-110`} />
+                                        <div className="relative group/car">
+                                            <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover/car:scale-125`} />
+                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/car:opacity-100 whitespace-nowrap pointer-events-none transition-opacity font-bold uppercase tracking-wider shadow-lg border border-pure-white/10 z-20">
+                                                Inspect
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -364,19 +369,21 @@ const StandingsView: React.FC<{
     hasMore: boolean;
     onFetchMore: () => void;
     isPaging: boolean;
-}> = ({ users, currentUser, hasMore, onFetchMore, isPaging }) => {
+    onSelectUser: (user: ProcessedUser) => void;
+}> = ({ users, currentUser, hasMore, onFetchMore, isPaging, onSelectUser }) => {
     
     return (
         <div className="flex flex-col h-full animate-fade-in pb-safe overflow-hidden">
             <div className="flex flex-col h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0">
-                    <RaceChart users={users} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} />
+                    <RaceChart users={users} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} onSelectUser={onSelectUser} />
                 </div>
             </div>
         </div>
     );
 };
 
+// ... PopularityView, InsightsView, EntityStatsView remain unchanged ...
 const PopularityView: React.FC<{ 
     allLeaguePicks: { [uid: string]: { [eid: string]: PickSelection } }; 
     allDrivers: Driver[]; 
@@ -384,6 +391,7 @@ const PopularityView: React.FC<{
     events: Event[];
     isLoading?: boolean;
 }> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading }) => {
+    // ... logic remains same
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all');
 
     const stats = useMemo(() => {
@@ -480,28 +488,20 @@ const PopularityView: React.FC<{
                 </div>
             </div>
 
-            {/* Redesigned Grid Container: One Unified Scrollable Grid for Mobile */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
-                    {/* Most Picked Teams */}
                     <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
                         <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
                         <SimpleBarChart data={stats.teams} />
                     </div>
-
-                    {/* Most Picked Drivers */}
                     <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
                         <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Drivers</h3>
                         <SimpleBarChart data={stats.drivers} />
                     </div>
-
-                    {/* Least Picked Teams */}
                     <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
                         <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Teams</h3>
                         <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
                     </div>
-
-                    {/* Least Picked Drivers */}
                     <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
                         <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Drivers</h3>
                         <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
@@ -520,6 +520,7 @@ const InsightsView: React.FC<{
     allDrivers: Driver[];
     events: Event[];
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
+    // ... logic remains same
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
         const findMax = (key: keyof NonNullable<ProcessedUser['breakdown']>) => {
@@ -590,15 +591,12 @@ const InsightsView: React.FC<{
 
     return (
         <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
-            {/* Top Superlatives */}
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
                 <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
                 <SuperlativeCard title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} />
                 <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
             </div>
-
-            {/* Detailed Analytics Grid */}
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-4">
                 <TrendChart title="Overall Power Ranking" subtitle="Top 5 Total Points" data={chartData.total} icon={TrophyIcon} />
                 <TrendChart title="Qualifying Masters" subtitle="Top 5 Quali Points" data={chartData.quali} icon={PolePositionIcon} />
@@ -631,6 +629,7 @@ const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: Proces
 );
 
 const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
+    // ... logic remains same
     const stats = useMemo(() => {
         const driverScores: Record<string, { total: number; sprint: number; fl: number; quali: number }> = {};
         const teamScores: Record<string, number> = {};
@@ -746,11 +745,43 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [allLeaguePicks, setAllLeaguePicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
   const [isFetchingGlobalPicks, setIsFetchingGlobalPicks] = useState(false);
 
+  // New: Modal User State
+  const [selectedUserProfile, setSelectedUserProfile] = useState<ProcessedUser | null>(null);
+  const [modalPicks, setModalPicks] = useState<any>(null);
+  const [isLoadingPicks, setIsLoadingPicks] = useState(false);
+
   // Initialize from storage or default
   const [refreshPolicy, setRefreshPolicy] = useState<RefreshPolicy>(() => {
         const saved = localStorage.getItem('lb_refresh_policy');
         return saved ? JSON.parse(saved) : { count: 0, lastRefresh: 0, dayStart: Date.now(), lockedUntil: 0 };
   });
+
+  // Fetch Picks on Modal Open if needed
+  useEffect(() => {
+    if (selectedUserProfile) {
+        // Check cache first
+        const cached = leaderboardCache?.allPicks?.[selectedUserProfile.id];
+        // Ensure cached is not just an empty object if user actually has picks (but cache might be partial)
+        // For simplicity, if cache exists and source is 'private_fallback', we trust it. 
+        // If source is 'public', allPicks is usually empty, so we must fetch.
+        
+        // However, fetching a single user doc is cheap.
+        if (cached && Object.keys(cached).length > 0) {
+            setModalPicks(cached);
+        } else {
+            setIsLoadingPicks(true);
+            getUserPicks(selectedUserProfile.id).then(picks => {
+                setModalPicks(picks);
+                setIsLoadingPicks(false);
+            }).catch(err => {
+                console.error("Failed to fetch user picks", err);
+                setIsLoadingPicks(false);
+            });
+        }
+    } else {
+        setModalPicks(null);
+    }
+  }, [selectedUserProfile, leaderboardCache]);
 
   // Calculate initial cooldown/lockout time
   const calculateRemainingTime = useCallback(() => {
@@ -785,8 +816,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           setCooldownTime(prev => {
               if (prev <= 1) {
                   // Timer finished. 
-                  // If this was a lockout timer, reset logic is handled by calculateRemainingTime or manual interactions
-                  // but we should check if we need to clear the lockedUntil flag in local state for consistency
                   const stored = localStorage.getItem('lb_refresh_policy');
                   if (stored) {
                       const p = JSON.parse(stored);
@@ -957,6 +986,11 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
       );
   }
 
+  // Merge current user data if self-inspecting to show PII
+  const userToDisplay = (currentUser && selectedUserProfile && currentUser.id === selectedUserProfile.id) 
+    ? { ...selectedUserProfile, ...currentUser } 
+    : selectedUserProfile;
+
   return (
       <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
           <div className="flex-none pb-4 md:pb-6">
@@ -984,11 +1018,54 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
           </div>
 
           <div className="flex-1 overflow-hidden px-2 md:px-0 pb-4">
-            {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} />}
+            {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
             {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
           </div>
+
+          {/* User Profile Modal */}
+          {selectedUserProfile && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSelectedUserProfile(null)}>
+                <div className="bg-carbon-black border border-pure-white/10 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                    {/* Header - Centered with Red Icon */}
+                    <div className="relative flex items-center justify-center p-4 border-b border-pure-white/10 bg-carbon-fiber">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-primary-red/20 p-2 rounded-full border border-primary-red/50 shadow-[0_0_10px_rgba(218,41,28,0.3)]">
+                                <F1CarIcon className="w-5 h-5 text-primary-red" />
+                            </div>
+                            <h2 className="text-xl md:text-2xl font-black text-pure-white uppercase italic tracking-wider">
+                                Team Inspection
+                            </h2>
+                        </div>
+                        <button 
+                            onClick={() => setSelectedUserProfile(null)} 
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-pure-white/10 rounded-full text-highlight-silver hover:text-pure-white transition-colors"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 bg-carbon-black/50">
+                        {isLoadingPicks ? (
+                            <ProfileSkeleton />
+                        ) : (
+                            <ProfilePage 
+                                user={userToDisplay!}
+                                seasonPicks={modalPicks || {}}
+                                raceResults={raceResults}
+                                pointsSystem={pointsSystem}
+                                allDrivers={allDrivers}
+                                allConstructors={allConstructors}
+                                events={events}
+                                isPublicView={true}
+                            />
+                        )}
+                    </div>
+                </div>
+            </div>
+          )}
       </div>
   );
 };

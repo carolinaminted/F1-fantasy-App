@@ -1,30 +1,39 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { RaceResults, Event, EventResult, Driver, PointsSystem, Constructor } from '../types.ts';
+import { RaceResults, Event, EventResult, Driver, PointsSystem, Constructor, AdminLogEntry } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { HistoryIcon } from './icons/HistoryIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { logAdminAction, getAdminLogs } from '../services/firestoreService.ts';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
     onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
     setAdminSubPage: (page: 'dashboard') => void;
     allDrivers: Driver[];
-    allConstructors: Constructor[]; // New prop
+    allConstructors: Constructor[];
     formLocks: { [eventId: string]: boolean };
     onToggleLock: (eventId: string) => void;
-    activePointsSystem: PointsSystem; // New prop
+    activePointsSystem: PointsSystem;
     events: Event[];
+    adminId: string;
+    adminName: string;
 }
 
 type FilterType = 'all' | 'added' | 'pending';
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, allConstructors, formLocks, onToggleLock, activePointsSystem, events }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, allConstructors, formLocks, onToggleLock, activePointsSystem, events, adminId, adminName }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [filter, setFilter] = useState<FilterType>('all');
     const { showToast } = useToast();
+    
+    // Log Viewer State
+    const [showLogModal, setShowLogModal] = useState(false);
+    const [auditLogs, setAuditLogs] = useState<AdminLogEntry[]>([]);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
@@ -53,8 +62,65 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         }
     }, [filter, filteredEvents, selectedEventId]);
 
+    const generateDiff = (oldR: EventResult, newR: EventResult): string => {
+        const changes: string[] = [];
+
+        const getName = (id: string | null) => {
+            if (!id) return 'Empty';
+            const driver = allDrivers.find(d => d.id === id);
+            return driver ? driver.name : id;
+        };
+
+        // Check Fastest Lap
+        if (oldR.fastestLap !== newR.fastestLap) {
+            changes.push(`Fastest Lap: ${getName(oldR.fastestLap)} → ${getName(newR.fastestLap)}`);
+        }
+
+        // Check Array Comparators
+        const checkArray = (label: string, oldArr: (string|null)[] | undefined, newArr: (string|null)[] | undefined) => {
+            if (!newArr) return;
+            const oldSafe = oldArr || [];
+            
+            // Detect purely new entry vs edits
+            const wasEmpty = oldSafe.every(x => !x);
+            const isNowEmpty = newArr.every(x => !x);
+
+            if (wasEmpty && !isNowEmpty) {
+                changes.push(`Entered ${label} Results`);
+                return;
+            }
+            
+            const diffs: string[] = [];
+            newArr.forEach((newVal, idx) => {
+                const oldVal = oldSafe[idx] || null;
+                if (oldVal !== newVal) {
+                    diffs.push(`P${idx + 1}: ${getName(oldVal)}→${getName(newVal)}`);
+                }
+            });
+
+            if (diffs.length > 0) {
+                changes.push(`${label}: ${diffs.join(', ')}`);
+            }
+        };
+
+        checkArray('GP', oldR.grandPrixFinish, newR.grandPrixFinish);
+        checkArray('GP Quali', oldR.gpQualifying, newR.gpQualifying);
+        checkArray('Sprint', oldR.sprintFinish, newR.sprintFinish);
+        checkArray('Sprint Quali', oldR.sprintQualifying, newR.sprintQualifying);
+        
+        if (changes.length === 0) return "No visible changes (Save Triggered)";
+        return changes.join("; ");
+    };
+
     const handleSave = async (eventId: string, results: EventResult): Promise<boolean> => {
         try {
+            const event = events.find(e => e.id === eventId);
+            const currentRes = raceResults[eventId] || { 
+                grandPrixFinish: [], gpQualifying: [], fastestLap: null 
+            };
+
+            const changeSummary = generateDiff(currentRes, results);
+
             // Snapshot 1: Driver Teams (Existing)
             const driverTeamsSnapshot: { [driverId: string]: string } = {};
             allDrivers.forEach(d => {
@@ -69,12 +135,32 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             };
 
             await onResultsUpdate(eventId, resultsWithSnapshot);
+            
+            // Audit Logging
+            await logAdminAction({
+                adminId,
+                adminName,
+                eventId,
+                eventName: event?.name || eventId,
+                action: currentRes.grandPrixFinish?.length ? 'update' : 'create',
+                changes: changeSummary
+            });
+
             showToast(`Results for ${eventId} saved successfully!`, 'success');
             return true;
         } catch (error) {
-            showToast(`Error: Could not update results for ${eventId}. Please check your connection and try again.`, 'error');
+            showToast(`Error: Could not update results for ${eventId}.`, 'error');
             return false;
         }
+    };
+
+    const fetchLogs = async () => {
+        if (!selectedEventId) return;
+        setIsLoadingLogs(true);
+        setShowLogModal(true);
+        const logs = await getAdminLogs(selectedEventId);
+        setAuditLogs(logs);
+        setIsLoadingLogs(false);
     };
 
     const selectedEvent = useMemo(() => events.find(event => event.id === selectedEventId), [selectedEventId, events]);
@@ -105,6 +191,17 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         </button>
     );
 
+    const HistoryAction = (
+        <button 
+            onClick={fetchLogs}
+            disabled={!selectedEventId}
+            className={`flex items-center gap-2 transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30 ${!selectedEventId ? 'opacity-50 cursor-not-allowed text-highlight-silver' : 'text-pure-white hover:bg-carbon-black/80'}`}
+        >
+            <HistoryIcon className="w-4 h-4" />
+            <span className="text-sm font-bold hidden sm:inline">History</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white min-h-full">
             <div className="flex-none">
@@ -112,6 +209,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     title="RESULTS MANAGER" 
                     icon={TrackIcon} 
                     leftAction={DashboardAction}
+                    rightAction={HistoryAction}
                 />
             </div>
             
@@ -174,6 +272,45 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                     )}
                 </div>
             </div>
+
+            {/* Audit Log Modal */}
+            {showLogModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowLogModal(false)}>
+                    <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-pure-white/10 flex justify-between items-center bg-carbon-black/50 rounded-t-xl">
+                            <div className="flex items-center gap-2">
+                                <HistoryIcon className="w-5 h-5 text-primary-red" />
+                                <h3 className="text-lg font-bold text-pure-white">Audit Trail: {selectedEvent?.name}</h3>
+                            </div>
+                            <button onClick={() => setShowLogModal(false)} className="text-highlight-silver hover:text-pure-white text-2xl leading-none">&times;</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                            {isLoadingLogs ? (
+                                <div className="p-8 text-center text-highlight-silver italic">Loading history...</div>
+                            ) : auditLogs.length === 0 ? (
+                                <div className="p-8 text-center text-highlight-silver italic">No history found for this event.</div>
+                            ) : (
+                                <div className="divide-y divide-pure-white/5">
+                                    {auditLogs.map(log => {
+                                        const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date();
+                                        return (
+                                            <div key={log.id} className="p-4 hover:bg-pure-white/5 transition-colors">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="font-bold text-pure-white text-sm">{log.adminName}</span>
+                                                    <span className="text-xs text-highlight-silver font-mono">{date.toLocaleString()}</span>
+                                                </div>
+                                                <div className="text-xs text-primary-red font-bold uppercase tracking-wider mb-1">{log.action}</div>
+                                                <p className="text-sm text-highlight-silver whitespace-pre-wrap leading-relaxed">{log.changes}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

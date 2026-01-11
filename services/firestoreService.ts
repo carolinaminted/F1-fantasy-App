@@ -1,7 +1,7 @@
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
 
@@ -344,8 +344,17 @@ export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
     } as InvitationCode));
 };
 
+const generateCodeSuffix = (length: number) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+};
+
 export const createInvitationCode = async (adminUid: string): Promise<string> => {
-    const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const code = `LOL-${new Date().getFullYear()}-${generateCodeSuffix(10)}`;
     const codeRef = doc(db, 'invitation_codes', code);
     await setDoc(codeRef, {
         status: 'active',
@@ -358,7 +367,7 @@ export const createInvitationCode = async (adminUid: string): Promise<string> =>
 export const createBulkInvitationCodes = async (adminUid: string, count: number): Promise<void> => {
     const batch = writeBatch(db);
     for (let i = 0; i < count; i++) {
-        const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const code = `LOL-${new Date().getFullYear()}-${generateCodeSuffix(10)}`;
         const codeRef = doc(db, 'invitation_codes', code);
         batch.set(codeRef, {
             status: 'active',
@@ -376,5 +385,30 @@ export const deleteInvitationCode = async (code: string): Promise<void> => {
     } catch (error) {
         console.error("Error deleting invitation code", error);
         throw error;
+    }
+};
+
+export const logAdminAction = async (entry: Omit<AdminLogEntry, 'id' | 'timestamp'>) => {
+    try {
+        await addDoc(collection(db, 'admin_logs'), {
+            ...entry,
+            timestamp: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Failed to log admin action", e);
+    }
+};
+
+export const getAdminLogs = async (eventId?: string): Promise<AdminLogEntry[]> => {
+    try {
+        let q = query(collection(db, 'admin_logs'), orderBy('timestamp', 'desc'));
+        if (eventId) {
+            q = query(collection(db, 'admin_logs'), where('eventId', '==', eventId), orderBy('timestamp', 'desc'));
+        }
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as AdminLogEntry));
+    } catch (e) {
+        console.error("Failed to fetch logs", e);
+        return [];
     }
 };

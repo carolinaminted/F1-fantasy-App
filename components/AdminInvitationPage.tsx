@@ -115,94 +115,98 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
 
     return (
         <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
-            <PageHeader 
-                title="INVITATION MANAGER" 
-                icon={TicketIcon} 
-                leftAction={DashboardAction}
-            />
-
-            {/* Controls */}
-            <div className="bg-carbon-fiber backdrop-blur-sm rounded-lg p-4 border border-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center px-4 md:px-0 shadow-lg">
-                <div className="flex bg-carbon-black rounded-lg p-1 border border-pure-white/10">
-                    {(['all', 'active', 'used'] as const).map(f => (
-                        <button 
-                            key={f} 
-                            onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-md text-sm font-bold capitalize transition-colors ${filter === f ? 'bg-primary-red text-pure-white shadow-md' : 'text-highlight-silver hover:text-pure-white'}`}
-                        >
-                            {f}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="flex items-center gap-2 bg-carbon-black/50 p-2 rounded-lg border border-pure-white/10">
-                    <span className="text-xs text-highlight-silver font-bold uppercase mr-2">Create</span>
-                    <select 
-                        value={bulkAmount} 
-                        onChange={(e) => setBulkAmount(Number(e.target.value))}
-                        className="bg-carbon-black border border-accent-gray text-pure-white text-sm rounded px-2 py-1 focus:ring-1 focus:ring-primary-red outline-none"
-                    >
-                        <option value={1}>1 Code</option>
-                        <option value={5}>5 Codes</option>
-                        <option value={10}>10 Codes</option>
-                    </select>
-                    <button 
-                        onClick={handleCreateCode}
-                        disabled={isCreating}
-                        className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-1.5 px-4 rounded text-sm disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20"
-                    >
-                        {isCreating ? 'Generating...' : 'Generate'}
-                    </button>
-                </div>
+            <div className="flex-none">
+                <PageHeader 
+                    title="INVITATION MANAGER" 
+                    icon={TicketIcon} 
+                    leftAction={DashboardAction}
+                />
             </div>
 
-            {/* List */}
-            {isLoading ? <ListSkeleton /> : (
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8">
-                    <div className="bg-carbon-fiber backdrop-blur-sm rounded-lg border border-pure-white/10 shadow-xl overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-carbon-black/90 sticky top-0 z-10 backdrop-blur-md border-b border-pure-white/10">
-                                <tr>
-                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Code</th>
-                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center">Status</th>
-                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Created</th>
-                                    <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Used By</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCodes.map(code => (
-                                    <tr 
-                                        key={code.code} 
-                                        className="border-t border-pure-white/5 hover:bg-pure-white/5 transition-colors cursor-pointer group"
-                                        onClick={() => setSelectedCodeForDelete(code.code)}
-                                    >
-                                        <td className="p-4 font-mono font-bold text-pure-white tracking-wider group-hover:text-primary-red transition-colors">{code.code}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${getStatusColor(code.status)}`}>
-                                                {code.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">{formatDate(code.createdAt)}</td>
-                                        <td className="p-4 hidden md:table-cell">
-                                            {code.usedByEmail ? (
-                                                <div className="text-xs">
-                                                    <span className="text-pure-white block font-semibold">{code.usedByEmail}</span>
-                                                    <span className="text-highlight-silver block opacity-70">{formatDate(code.usedAt)}</span>
-                                                </div>
-                                            ) : <span className="text-highlight-silver text-xs opacity-50">-</span>}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredCodes.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="p-8 text-center text-highlight-silver italic bg-carbon-black/20">No codes found.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+            <div className="flex-1 flex flex-col min-h-0 px-4 md:px-0 pb-8">
+                {/* Controls - Fixed Height */}
+                <div className="bg-carbon-fiber backdrop-blur-sm rounded-lg p-4 border border-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center px-4 md:px-0 shadow-lg flex-none">
+                    <div className="flex bg-carbon-black rounded-lg p-1 border border-pure-white/10">
+                        {(['all', 'active', 'used'] as const).map(f => (
+                            <button 
+                                key={f} 
+                                onClick={() => setFilter(f)}
+                                className={`px-4 py-2 rounded-md text-sm font-bold capitalize transition-colors ${filter === f ? 'bg-primary-red text-pure-white shadow-md' : 'text-highlight-silver hover:text-pure-white'}`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-carbon-black/50 p-2 rounded-lg border border-pure-white/10">
+                        <span className="text-xs text-highlight-silver font-bold uppercase mr-2">Create</span>
+                        <select 
+                            value={bulkAmount} 
+                            onChange={(e) => setBulkAmount(Number(e.target.value))}
+                            className="bg-carbon-black border border-accent-gray text-pure-white text-sm rounded px-2 py-1 focus:ring-1 focus:ring-primary-red outline-none"
+                        >
+                            <option value={1}>1 Code</option>
+                            <option value={5}>5 Codes</option>
+                            <option value={10}>10 Codes</option>
+                        </select>
+                        <button 
+                            onClick={handleCreateCode}
+                            disabled={isCreating}
+                            className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-1.5 px-4 rounded text-sm disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20"
+                        >
+                            {isCreating ? 'Generating...' : 'Generate'}
+                        </button>
                     </div>
                 </div>
-            )}
+
+                {/* List Container - Takes Remaining Space */}
+                {isLoading ? <div className="flex-1"><ListSkeleton /></div> : (
+                    <div className="bg-carbon-fiber backdrop-blur-sm rounded-lg border border-pure-white/10 shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+                        <div className="overflow-y-auto custom-scrollbar flex-1">
+                            <table className="w-full text-left">
+                                <thead className="bg-carbon-black/90 sticky top-0 z-10 backdrop-blur-md border-b border-pure-white/10">
+                                    <tr>
+                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Code</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center">Status</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Created</th>
+                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Used By</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredCodes.map(code => (
+                                        <tr 
+                                            key={code.code} 
+                                            className="border-t border-pure-white/5 hover:bg-pure-white/5 transition-colors cursor-pointer group"
+                                            onClick={() => setSelectedCodeForDelete(code.code)}
+                                        >
+                                            <td className="p-4 font-mono font-bold text-pure-white tracking-wider group-hover:text-primary-red transition-colors">{code.code}</td>
+                                            <td className="p-4 text-center">
+                                                <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${getStatusColor(code.status)}`}>
+                                                    {code.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">{formatDate(code.createdAt)}</td>
+                                            <td className="p-4 hidden md:table-cell">
+                                                {code.usedByEmail ? (
+                                                    <div className="text-xs">
+                                                        <span className="text-pure-white block font-semibold">{code.usedByEmail}</span>
+                                                        <span className="text-highlight-silver block opacity-70">{formatDate(code.usedAt)}</span>
+                                                    </div>
+                                                ) : <span className="text-highlight-silver text-xs opacity-50">-</span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredCodes.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="p-8 text-center text-highlight-silver italic bg-carbon-black/20">No codes found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Delete Confirmation Modal */}
             {selectedCodeForDelete && (

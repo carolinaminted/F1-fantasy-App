@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { User } from '../types.ts';
 import { auth } from '../services/firebase.ts';
 import { signOut } from '@firebase/auth';
+import { SESSION_STORAGE_KEY } from '../constants.ts';
 
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 const WARNING_THRESHOLD = 10 * 60 * 1000; // 10 minutes (Warning triggers 5 mins before timeout)
@@ -18,6 +19,9 @@ export const useSessionGuard = (user: User | null) => {
             console.log(`Session Guard Logout Triggered: ${reason}`);
             setShowWarning(false); 
             
+            // Clear the persistence key so the next session is clean
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+
             // Set a flag in localStorage so App.tsx can show a friendly toast after reload
             localStorage.setItem('ff1_session_expired', 'true');
             
@@ -34,27 +38,52 @@ export const useSessionGuard = (user: User | null) => {
         }
     }, []);
 
+    // Manual Logout (Exposed to UI)
+    const logout = useCallback(async () => {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        await signOut(auth);
+    }, []);
+
     // Continue Session Function (User Interaction from Modal)
     const continueSession = useCallback(() => {
-        lastActivity.current = Date.now();
+        const now = Date.now();
+        lastActivity.current = now;
+        localStorage.setItem(SESSION_STORAGE_KEY, now.toString());
         setShowWarning(false);
     }, []);
 
-    // 1. Activity Listeners Effect
+    // 1. Initialization and Activity Listeners
     useEffect(() => {
         if (!user) return;
 
-        // If warning is active, we STOP listening to passive events.
-        // The user must explicitly click "Continue" in the modal.
-        if (showWarning) return;
+        // CHECK 1: Immediate Expiry Check on Mount
+        // If the browser was closed for a week, this check catches the stale session immediately.
+        const storedActivity = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (storedActivity) {
+            const lastActiveTime = parseInt(storedActivity, 10);
+            const elapsed = Date.now() - lastActiveTime;
+            
+            if (elapsed > IDLE_TIMEOUT) {
+                forceLogout("Session expired across reload/restart.");
+                return; // Stop setting up listeners
+            }
+            // Sync ref with stored time
+            lastActivity.current = lastActiveTime;
+        } else {
+            // New session or cleaned storage, mark now
+            localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
+        }
 
-        lastActivity.current = Date.now();
+        // If warning is active, we STOP listening to passive events.
+        if (showWarning) return;
 
         const updateActivity = () => {
             const now = Date.now();
             // Throttle updates to once per second
             if (now - lastActivity.current > 1000) {
                 lastActivity.current = now;
+                // PERSIST: Save to storage so it survives refresh/close
+                localStorage.setItem(SESSION_STORAGE_KEY, now.toString());
             }
         };
 
@@ -64,7 +93,7 @@ export const useSessionGuard = (user: User | null) => {
         return () => {
             events.forEach(evt => window.removeEventListener(evt, updateActivity));
         };
-    }, [user, showWarning]);
+    }, [user, showWarning, forceLogout]);
 
     // 2. Resume Detect (Visibility Change)
     // Mobile browsers suspend JS intervals when in background. 
@@ -75,12 +104,17 @@ export const useSessionGuard = (user: User | null) => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 const now = Date.now();
-                const timeSinceLastActivity = now - lastActivity.current;
+                
+                // Re-read storage in case another tab updated it (though we primarily care about this tab's logic)
+                const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+                const referenceTime = stored ? parseInt(stored, 10) : lastActivity.current;
+                
+                const timeSinceLastActivity = now - referenceTime;
                 
                 if (timeSinceLastActivity > IDLE_TIMEOUT) {
                     forceLogout("Session expired during sleep.");
                 } else if (timeSinceLastActivity > WARNING_THRESHOLD) {
-                    setIdleExpiryTime(lastActivity.current + IDLE_TIMEOUT);
+                    setIdleExpiryTime(referenceTime + IDLE_TIMEOUT);
                     setShowWarning(true);
                 }
             }
@@ -121,6 +155,6 @@ export const useSessionGuard = (user: User | null) => {
         showWarning, 
         idleExpiryTime, 
         continueSession,
-        logout: () => signOut(auth) 
+        logout 
     };
 };

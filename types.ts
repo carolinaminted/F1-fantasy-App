@@ -1,3 +1,4 @@
+
 // Fix: Create types definitions for the application.
 export enum EntityClass {
   A = 'A',
@@ -25,6 +26,17 @@ export interface User {
       fl: number;
   };
   displayRank?: number; // Client-side calculated rank for display
+}
+
+export interface AdminLogEntry {
+  id: string;
+  adminId: string;
+  adminName: string;
+  eventId: string;
+  eventName: string;
+  timestamp: any; // Firestore Timestamp
+  action: string;
+  changes: string;
 }
 
 export interface InvitationCode {

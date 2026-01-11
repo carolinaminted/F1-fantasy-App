@@ -62,7 +62,8 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
             r.grandPrixFinish?.some(pos => !!pos) || 
             !!r.fastestLap ||
             r.sprintFinish?.some(pos => !!pos) ||
-            r.gpQualifying?.some(pos => !!pos)
+            r.gpQualifying?.some(pos => !!pos) ||
+            r.sprintQualifying?.some(pos => !!pos)
         );
     };
 
@@ -241,7 +242,10 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
     const tabs = [
         { id: 'race', label: 'Race', icon: CheckeredFlagIcon },
         { id: 'quali', label: 'Quali', icon: PolePositionIcon },
-        ...(event.hasSprint ? [{ id: 'sprint', label: 'Sprint', icon: SprintIcon }] : []),
+        ...(event.hasSprint ? [
+            { id: 'sprint', label: 'Sprint', icon: SprintIcon },
+            { id: 'sprintQuali', label: 'Sprint Quali', icon: PolePositionIcon }
+        ] : []),
         { id: 'fastestlap', label: 'Fastest Lap', icon: FastestLapIcon },
     ];
     
@@ -276,6 +280,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
                 {activeTab === 'race' && <ResultTable results={results.grandPrixFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'quali' && <ResultTable results={results.gpQualifying} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'sprint' && event.hasSprint && <ResultTable results={results.sprintFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
+                {activeTab === 'sprintQuali' && event.hasSprint && <ResultTable results={results.sprintQualifying} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'fastestlap' && <FastestLapDisplay driverId={results.fastestLap} allDrivers={allDrivers} allConstructors={allConstructors} />}
             </div>
         </div>

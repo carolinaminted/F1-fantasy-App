@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
-import { CONSTRUCTORS } from '../constants.ts';
+import { CONSTRUCTORS, CURRENT_SEASON } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { db } from '../services/firebase.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
@@ -18,6 +18,7 @@ import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { PicksIcon } from './icons/PicksIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import type { Page } from '../App.tsx';
 
@@ -32,6 +33,7 @@ interface ProfilePageProps {
   // New Prop: If present, enables penalty management UI
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
   events: Event[];
+  isPublicView?: boolean;
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -86,36 +88,57 @@ const PenaltyManager: React.FC<{
     currentReason?: string;
     onSave: (eventId: string, penalty: number, reason: string) => Promise<void>; 
 }> = ({ eventId, currentPenalty, currentReason, onSave }) => {
-    const [penaltyPercent, setPenaltyPercent] = useState(currentPenalty * 100);
+    // Initialize with prop but keep local state for editing
+    const [penaltyPercent, setPenaltyPercent] = useState<string | number>(currentPenalty * 100);
     const [reason, setReason] = useState(currentReason || '');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Sync local state if props change (e.g. parent refresh or navigating between events)
+    useEffect(() => {
+        setPenaltyPercent(currentPenalty * 100);
+        setReason(currentReason || '');
+    }, [currentPenalty, currentReason]);
+
     const handleSave = async () => {
         setIsSaving(true);
-        await onSave(eventId, penaltyPercent / 100, reason);
+        const val = Number(penaltyPercent);
+        const finalPercent = isNaN(val) ? 0 : val;
+        await onSave(eventId, finalPercent / 100, reason);
+        setIsSaving(false);
+    };
+
+    const handleClear = async () => {
+        if (!window.confirm("Clear this penalty?")) return;
+        setIsSaving(true);
+        setPenaltyPercent(0);
+        setReason('');
+        await onSave(eventId, 0, '');
         setIsSaving(false);
     };
 
     return (
         <div className="mt-4 p-4 bg-red-900/20 border border-primary-red/30 rounded-lg">
-            <h4 className="flex items-center gap-2 text-sm font-bold text-primary-red uppercase mb-3">
-                <AdminIcon className="w-4 h-4" /> Admin Penalty Tribunal
-            </h4>
-            <div className="space-y-3">
-                <div>
-                    <label className="block text-xs font-bold text-highlight-silver mb-1">Penalty Deduction (%)</label>
-                    <div className="flex items-center gap-3">
+            <div className="flex justify-between items-center mb-3">
+                <h4 className="flex items-center gap-2 text-sm font-bold text-primary-red uppercase">
+                    <AdminIcon className="w-4 h-4" /> Admin Penalty Tribunal
+                </h4>
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] uppercase font-bold text-highlight-silver hidden sm:block">Deduction</label>
+                    <div className="flex items-center gap-1 bg-carbon-black border border-accent-gray rounded px-2 py-1 focus-within:border-primary-red transition-colors">
                         <input 
-                            type="range" 
+                            type="number" 
                             min="0" 
                             max="100" 
                             value={penaltyPercent}
-                            onChange={(e) => setPenaltyPercent(Number(e.target.value))}
-                            className="flex-1 accent-primary-red"
+                            onChange={(e) => setPenaltyPercent(e.target.value)}
+                            className="w-10 bg-transparent text-sm text-pure-white font-mono focus:outline-none text-right"
                         />
-                        <span className="font-mono font-bold text-pure-white w-12 text-right">{penaltyPercent}%</span>
+                        <span className="font-bold text-highlight-silver text-xs">%</span>
                     </div>
                 </div>
+            </div>
+            
+            <div className="space-y-3">
                 <div>
                     <label className="block text-xs font-bold text-highlight-silver mb-1">Reason / Infraction</label>
                     <input 
@@ -123,22 +146,32 @@ const PenaltyManager: React.FC<{
                         value={reason} 
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="e.g. Late Submission"
-                        className="w-full bg-carbon-black border border-accent-gray rounded px-2 py-1 text-sm text-pure-white"
+                        className="w-full bg-carbon-black border border-accent-gray rounded px-2 py-1.5 text-sm text-pure-white focus:border-primary-red focus:outline-none"
                     />
                 </div>
-                <button 
-                    onClick={handleSave} 
-                    disabled={isSaving}
-                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-1.5 px-4 rounded text-xs transition-colors disabled:opacity-50"
-                >
-                    {isSaving ? 'Applying Penalty...' : 'Apply Penalty Judgment'}
-                </button>
+                <div className="flex gap-2 pt-1">
+                    <button 
+                        onClick={handleSave} 
+                        disabled={isSaving}
+                        className="flex-1 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 shadow-lg shadow-primary-red/20"
+                    >
+                        {isSaving ? 'Applying...' : 'Apply Penalty Judgment'}
+                    </button>
+                    <button 
+                        onClick={handleClear}
+                        disabled={isSaving}
+                        className="bg-green-600 hover:bg-green-500 text-pure-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 shadow-lg shadow-green-600/20"
+                        type="button"
+                    >
+                        Clear Penalty
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events, isPublicView = false }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -148,7 +181,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ 
       displayName: user.displayName, 
-      email: user.email,
+      email: user.email, 
       firstName: user.firstName || '',
       lastName: user.lastName || '' 
   });
@@ -296,6 +329,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   // Logic for Dues Button Click
   const handleDuesClick = () => {
+      if (isPublicView) return; // Disable for public view
       if (user.duesPaidStatus === 'Paid') {
           setModalData({
               title: "Season Status",
@@ -518,34 +552,37 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setModalData({ title: `Usage History: ${entityName}`, content });
   };
 
+  const hasHistory = events.some(event => seasonPicks[event.id]);
 
   return (
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
-      {/* Page Header */}
-      <PageHeader 
-          title="PROFILE" 
-          icon={ProfileIcon} 
-      />
+      {/* Page Header - Only show if not in public view, or show simplified title */}
+      {!isPublicView && (
+          <PageHeader 
+              title="PROFILE" 
+              icon={ProfileIcon} 
+          />
+      )}
 
       {/* Profile Info Section */}
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
         <div className="flex flex-col items-center justify-center mb-8 relative z-10">
-            {/* Dues Status */}
+            {/* Dues Status - Disable click in public view */}
             <button 
                 onClick={handleDuesClick}
-                disabled={!setActivePage}
+                disabled={!setActivePage || isPublicView}
                 className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 ${
                     (user.duesPaidStatus || 'Unpaid') === 'Paid'
                     ? 'bg-green-600 text-pure-white'
                     : 'bg-primary-red text-pure-white animate-pulse-red-limited'
-                } ${setActivePage ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+                } ${setActivePage && !isPublicView ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
             >
                 Dues: {user.duesPaidStatus || 'Unpaid'}
             </button>
 
-            {/* Edit Details Button */}
-            {!isEditingProfile && setActivePage && (
+            {/* Edit Details Button - Hide in Public View */}
+            {!isEditingProfile && setActivePage && !isPublicView && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
                     className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
@@ -633,10 +670,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${!isPublicView ? 'lg:grid-cols-3' : ''} gap-4 w-full`}>
                 <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
                 <InfoCard icon={DriverIcon} label="Name" value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'} />
-                <InfoCard icon={ProfileIcon} label="Email" value={user.email} />
+                {!isPublicView && <InfoCard icon={ProfileIcon} label="Email" value={user.email} />}
             </div>
         )}
       </div>
@@ -729,6 +766,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
             <div className="space-y-2">
+                {!hasHistory && (
+                    <div className="bg-carbon-fiber rounded-lg p-8 ring-1 ring-pure-white/10 text-center flex flex-col items-center justify-center min-h-[250px] shadow-lg animate-fade-in">
+                        <div className="bg-carbon-black p-4 rounded-full mb-4 border border-pure-white/10 shadow-inner">
+                            <PicksIcon className="w-12 h-12 text-highlight-silver/30" />
+                        </div>
+                        <h3 className="text-xl font-bold text-pure-white mb-2">No History Yet</h3>
+                        <p className="text-sm text-highlight-silver max-w-xs mx-auto leading-relaxed">
+                            Your Grand Prix picks and scoring results will appear here once you submit your first entry for the {CURRENT_SEASON} season.
+                        </p>
+                    </div>
+                )}
                 {events.map(event => {
                     const picks = seasonPicks[event.id];
                     const results = raceResults[event.id];
@@ -816,7 +864,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                                             )}
                                         </div>
                                     )}
-                                    {onUpdatePenalty && (
+                                    {onUpdatePenalty && !isPublicView && (
                                         <PenaltyManager 
                                             eventId={event.id} 
                                             currentPenalty={picks.penalty || 0}
