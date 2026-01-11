@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
-import { CONSTRUCTORS } from '../constants.ts';
+import { CONSTRUCTORS, CURRENT_SEASON } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { db } from '../services/firebase.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
@@ -18,6 +18,7 @@ import { DriverIcon } from './icons/DriverIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { PicksIcon } from './icons/PicksIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import type { Page } from '../App.tsx';
 
@@ -180,7 +181,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ 
       displayName: user.displayName, 
-      email: user.email,
+      email: user.email, 
       firstName: user.firstName || '',
       lastName: user.lastName || '' 
   });
@@ -551,6 +552,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     setModalData({ title: `Usage History: ${entityName}`, content });
   };
 
+  const hasHistory = events.some(event => seasonPicks[event.id]);
+
   return (
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
@@ -763,6 +766,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
         <div>
             <h2 className="text-2xl font-bold mb-4 text-center">Picks & Points History</h2>
             <div className="space-y-2">
+                {!hasHistory && (
+                    <div className="bg-carbon-fiber rounded-lg p-8 ring-1 ring-pure-white/10 text-center flex flex-col items-center justify-center min-h-[250px] shadow-lg animate-fade-in">
+                        <div className="bg-carbon-black p-4 rounded-full mb-4 border border-pure-white/10 shadow-inner">
+                            <PicksIcon className="w-12 h-12 text-highlight-silver/30" />
+                        </div>
+                        <h3 className="text-xl font-bold text-pure-white mb-2">No History Yet</h3>
+                        <p className="text-sm text-highlight-silver max-w-xs mx-auto leading-relaxed">
+                            Your Grand Prix picks and scoring results will appear here once you submit your first entry for the {CURRENT_SEASON} season.
+                        </p>
+                    </div>
+                )}
                 {events.map(event => {
                     const picks = seasonPicks[event.id];
                     const results = raceResults[event.id];
