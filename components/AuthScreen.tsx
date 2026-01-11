@@ -8,6 +8,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser,
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
+import { SESSION_STORAGE_KEY } from '../constants.ts';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -271,6 +272,10 @@ const AuthScreen: React.FC = () => {
                   lastName: cleanLastName,
                   invitationCode: invitationCode // Passed from state
               });
+              
+              // Prime the session guard so we don't immediately expire the fresh session
+              localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
+
           } catch (profileError) {
               console.error("Profile creation failed:", profileError);
               if (auth.currentUser) await deleteUser(auth.currentUser);
@@ -293,6 +298,10 @@ const AuthScreen: React.FC = () => {
       setError(null);
       try {
           await signInWithEmailAndPassword(auth, email, password);
+          
+          // Prime the session guard so we don't immediately expire the fresh session
+          localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
+
       } catch (error: any) {
           setError('Invalid email or password. Please try again.');
           setIsLoading(false);

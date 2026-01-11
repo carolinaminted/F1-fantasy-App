@@ -305,55 +305,69 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
 const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onClose: () => void }> = ({ event, schedule, onClose }) => {
     const raceRaw = schedule?.race || event.lockAtUtc;
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-            <div className="w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-4 right-4 z-20 bg-carbon-black/50 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/10">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-                <div className="absolute inset-0 bg-gradient-to-br from-primary-red/20 via-transparent to-transparent pointer-events-none"></div>
-                <div className="relative z-10 p-6 md:p-10 flex flex-col md:flex-row gap-8 md:gap-12">
-                    <div className="flex-1 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="text-xs font-bold text-highlight-silver bg-carbon-black/50 border border-pure-white/10 px-3 py-1 rounded-full uppercase">Round {event.round}</span>
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-black text-pure-white mb-2 leading-none">{event.name}</h2>
-                        <div className="flex flex-col gap-1 mb-8">
-                            <p className="text-xl text-highlight-silver"><span className="font-bold text-pure-white">{event.country}</span>, {event.location}</p>
-                            <div className="flex items-center gap-2 text-sm font-bold text-highlight-silver/70 mt-1">
-                                <CircuitRoute eventId={event.id} className="w-5 h-5 text-highlight-silver" />
-                                {event.circuit}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+            {/* Added max-h-[85vh] and overflow-y-auto to handle small screens better */}
+            <div className="w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                
+                {/* Scrollable Container */}
+                <div className="overflow-y-auto custom-scrollbar relative w-full h-full">
+                    {/* Close Button - Sticky or Fixed */}
+                    <button onClick={onClose} className="absolute top-3 right-3 z-30 bg-carbon-black/80 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/20 shadow-lg">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary-red/10 via-transparent to-transparent pointer-events-none h-48"></div>
+                    
+                    {/* Content - Reduced padding on mobile (p-5 instead of p-6) */}
+                    <div className="relative z-10 p-5 md:p-10 flex flex-col md:flex-row gap-6 md:gap-12">
+                        <div className="flex-1 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-[10px] md:text-xs font-bold text-highlight-silver bg-carbon-black/50 border border-pure-white/10 px-3 py-1 rounded-full uppercase tracking-wider">Round {event.round}</span>
+                            </div>
+                            
+                            {/* Smaller Title on Mobile */}
+                            <h2 className="text-3xl md:text-5xl font-black text-pure-white mb-2 leading-none tracking-tight">{event.name}</h2>
+                            
+                            <div className="flex flex-col gap-1 mb-6">
+                                <p className="text-lg md:text-xl text-highlight-silver"><span className="font-bold text-pure-white">{event.country}</span>, {event.location}</p>
+                                <div className="flex items-center gap-2 text-xs md:text-sm font-bold text-highlight-silver/70 mt-1">
+                                    <CircuitRoute eventId={event.id} className="w-5 h-5 text-highlight-silver" />
+                                    {event.circuit}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-carbon-black/60 p-4 md:p-5 rounded-xl border border-pure-white/10 shadow-lg">
+                                <p className="text-[10px] md:text-xs text-primary-red uppercase tracking-widest font-black mb-2">Grand Prix Start</p>
+                                <div className="flex flex-wrap items-baseline gap-x-3 md:gap-x-4">
+                                    <span className="text-xl md:text-3xl font-bold text-pure-white">{formatSessionDate(raceRaw)}</span>
+                                    <span className="text-xl md:text-3xl font-black text-pure-white tracking-tight">{formatSessionTime(raceRaw)}</span>
+                                </div>
+                                <p className="text-highlight-silver/40 mt-2 text-[9px] md:text-[10px] uppercase font-bold tracking-widest">Eastern Standard Time</p>
                             </div>
                         </div>
-                        <div className="bg-carbon-black/60 p-5 rounded-xl border border-pure-white/10 shadow-lg">
-                            <p className="text-xs text-primary-red uppercase tracking-widest font-black mb-3">Grand Prix Start</p>
-                            <div className="flex flex-wrap items-baseline gap-x-4">
-                                <span className="text-2xl md:text-3xl font-bold text-pure-white">{formatSessionDate(raceRaw)}</span>
-                                <span className="text-2xl md:text-3xl font-black text-pure-white tracking-tight">{formatSessionTime(raceRaw)}</span>
+                        
+                        <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-5 md:p-6 border border-pure-white/5">
+                            <h3 className="text-xs md:text-sm font-bold text-pure-white uppercase tracking-wider mb-4 border-b border-pure-white/10 pb-3 flex items-center gap-2">
+                                <CalendarIcon className="w-4 h-4 text-highlight-silver" /> Session Timetable
+                            </h3>
+                            <div className="space-y-3">
+                                {!event.hasSprint ? (
+                                    <>
+                                        <SessionRow label="Practice 1" time={schedule?.fp1} />
+                                        <SessionRow label="Practice 2" time={schedule?.fp2} />
+                                        <SessionRow label="Practice 3" time={schedule?.fp3} />
+                                        <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
+                                    </>
+                                ) : (
+                                    <>
+                                        <SessionRow label="Practice 1" time={schedule?.fp1} />
+                                        <SessionRow label="Sprint Quali" time={schedule?.sprintQualifying} />
+                                        <SessionRow label="Sprint" time={schedule?.sprint} highlight />
+                                        <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
+                                    </>
+                                )}
+                                <SessionRow label="Grand Prix" time={raceRaw} isRace />
                             </div>
-                            <p className="text-highlight-silver/40 mt-2 text-[10px] uppercase font-bold tracking-widest">Eastern Standard Time</p>
-                        </div>
-                    </div>
-                    <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-6 border border-pure-white/5">
-                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-5 border-b border-pure-white/10 pb-3 flex items-center gap-2">
-                            <CalendarIcon className="w-4 h-4 text-highlight-silver" /> Session Timetable
-                        </h3>
-                        <div className="space-y-4">
-                            {!event.hasSprint ? (
-                                <>
-                                    <SessionRow label="Practice 1" time={schedule?.fp1} />
-                                    <SessionRow label="Practice 2" time={schedule?.fp2} />
-                                    <SessionRow label="Practice 3" time={schedule?.fp3} />
-                                    <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
-                                </>
-                            ) : (
-                                <>
-                                    <SessionRow label="Practice 1" time={schedule?.fp1} />
-                                    <SessionRow label="Sprint Quali" time={schedule?.sprintQualifying} />
-                                    <SessionRow label="Sprint" time={schedule?.sprint} highlight />
-                                    <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
-                                </>
-                            )}
-                            <SessionRow label="Grand Prix" time={raceRaw} isRace />
                         </div>
                     </div>
                 </div>

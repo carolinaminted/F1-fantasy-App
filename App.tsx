@@ -1,4 +1,3 @@
-
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -355,6 +354,7 @@ const App: React.FC = () => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};
     let unsubscribeProfile = () => {};
+    let unsubscribePicks = () => {}; // NEW: Separate listener for picks
     let unsubscribePoints = () => {};
     let unsubscribeSchedules = () => {};
     let unsubscribePublicProfile = () => {};
@@ -363,6 +363,7 @@ const App: React.FC = () => {
       unsubscribeResults();
       unsubscribeLocks();
       unsubscribeProfile();
+      unsubscribePicks();
       unsubscribePoints();
       unsubscribeSchedules();
       unsubscribePublicProfile();
@@ -444,27 +445,34 @@ const App: React.FC = () => {
             }
         });
 
+        // Listener 1: User Profile (Details)
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
           if (profileSnap.exists()) {
             const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
-            const userPicks = await getUserPicks(firebaseUser.uid);
-            
             setUser(prev => ({
                 ...userProfile,
                 rank: prev?.rank,
                 totalPoints: prev?.totalPoints
             }));
             
-            setSeasonPicks(userPicks);
+            // Only set authenticated once profile is loaded
             setIsAuthenticated(true);
             setIsLoading(false);
             
             clearTimeout(safetyTimeout);
-            // End transition slightly after data is set to allow React to flush render and ensure the overlay is seen
             setTimeout(() => setIsTransitioning(false), 2200);
           }
         });
+
+        // Listener 2: User Picks (Realtime Penalties/Selections)
+        const picksRef = doc(db, 'userPicks', firebaseUser.uid);
+        unsubscribePicks = onSnapshot(picksRef, (picksSnap) => {
+            if (picksSnap.exists()) {
+                setSeasonPicks(picksSnap.data() as { [eventId: string]: PickSelection });
+            }
+        });
+
       } else {
         setUser(null);
         setSeasonPicks({});
@@ -486,11 +494,12 @@ const App: React.FC = () => {
       unsubscribeResults();
       unsubscribeLocks();
       unsubscribeProfile();
+      unsubscribePicks();
       unsubscribePoints();
       unsubscribeSchedules();
       unsubscribePublicProfile();
     };
-  }, []); // Fix: Empty dependency array ensures this effect runs ONLY once on mount.
+  }, []); 
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -503,8 +512,7 @@ const App: React.FC = () => {
     if (!user) return;
     try {
       await saveUserPicks(user.id, eventId, picks, !!user.isAdmin);
-      const updatedPicks = await getUserPicks(user.id);
-      setSeasonPicks(updatedPicks);
+      // Removed getUserPicks re-fetch here because onSnapshot handles it now
       showToast(`Picks for ${eventId} submitted successfully!`, 'success');
     } catch (error) {
       console.error("Failed to submit picks:", error);
