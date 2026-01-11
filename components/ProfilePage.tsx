@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -88,36 +87,57 @@ const PenaltyManager: React.FC<{
     currentReason?: string;
     onSave: (eventId: string, penalty: number, reason: string) => Promise<void>; 
 }> = ({ eventId, currentPenalty, currentReason, onSave }) => {
-    const [penaltyPercent, setPenaltyPercent] = useState(currentPenalty * 100);
+    // Initialize with prop but keep local state for editing
+    const [penaltyPercent, setPenaltyPercent] = useState<string | number>(currentPenalty * 100);
     const [reason, setReason] = useState(currentReason || '');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Sync local state if props change (e.g. parent refresh or navigating between events)
+    useEffect(() => {
+        setPenaltyPercent(currentPenalty * 100);
+        setReason(currentReason || '');
+    }, [currentPenalty, currentReason]);
+
     const handleSave = async () => {
         setIsSaving(true);
-        await onSave(eventId, penaltyPercent / 100, reason);
+        const val = Number(penaltyPercent);
+        const finalPercent = isNaN(val) ? 0 : val;
+        await onSave(eventId, finalPercent / 100, reason);
+        setIsSaving(false);
+    };
+
+    const handleClear = async () => {
+        if (!window.confirm("Clear this penalty?")) return;
+        setIsSaving(true);
+        setPenaltyPercent(0);
+        setReason('');
+        await onSave(eventId, 0, '');
         setIsSaving(false);
     };
 
     return (
         <div className="mt-4 p-4 bg-red-900/20 border border-primary-red/30 rounded-lg">
-            <h4 className="flex items-center gap-2 text-sm font-bold text-primary-red uppercase mb-3">
-                <AdminIcon className="w-4 h-4" /> Admin Penalty Tribunal
-            </h4>
-            <div className="space-y-3">
-                <div>
-                    <label className="block text-xs font-bold text-highlight-silver mb-1">Penalty Deduction (%)</label>
-                    <div className="flex items-center gap-3">
+            <div className="flex justify-between items-center mb-3">
+                <h4 className="flex items-center gap-2 text-sm font-bold text-primary-red uppercase">
+                    <AdminIcon className="w-4 h-4" /> Admin Penalty Tribunal
+                </h4>
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] uppercase font-bold text-highlight-silver hidden sm:block">Deduction</label>
+                    <div className="flex items-center gap-1 bg-carbon-black border border-accent-gray rounded px-2 py-1 focus-within:border-primary-red transition-colors">
                         <input 
-                            type="range" 
+                            type="number" 
                             min="0" 
                             max="100" 
                             value={penaltyPercent}
-                            onChange={(e) => setPenaltyPercent(Number(e.target.value))}
-                            className="flex-1 accent-primary-red"
+                            onChange={(e) => setPenaltyPercent(e.target.value)}
+                            className="w-10 bg-transparent text-sm text-pure-white font-mono focus:outline-none text-right"
                         />
-                        <span className="font-mono font-bold text-pure-white w-12 text-right">{penaltyPercent}%</span>
+                        <span className="font-bold text-highlight-silver text-xs">%</span>
                     </div>
                 </div>
+            </div>
+            
+            <div className="space-y-3">
                 <div>
                     <label className="block text-xs font-bold text-highlight-silver mb-1">Reason / Infraction</label>
                     <input 
@@ -125,16 +145,26 @@ const PenaltyManager: React.FC<{
                         value={reason} 
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="e.g. Late Submission"
-                        className="w-full bg-carbon-black border border-accent-gray rounded px-2 py-1 text-sm text-pure-white"
+                        className="w-full bg-carbon-black border border-accent-gray rounded px-2 py-1.5 text-sm text-pure-white focus:border-primary-red focus:outline-none"
                     />
                 </div>
-                <button 
-                    onClick={handleSave} 
-                    disabled={isSaving}
-                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-1.5 px-4 rounded text-xs transition-colors disabled:opacity-50"
-                >
-                    {isSaving ? 'Applying Penalty...' : 'Apply Penalty Judgment'}
-                </button>
+                <div className="flex gap-2 pt-1">
+                    <button 
+                        onClick={handleSave} 
+                        disabled={isSaving}
+                        className="flex-1 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 shadow-lg shadow-primary-red/20"
+                    >
+                        {isSaving ? 'Applying...' : 'Apply Penalty Judgment'}
+                    </button>
+                    <button 
+                        onClick={handleClear}
+                        disabled={isSaving}
+                        className="bg-green-600 hover:bg-green-500 text-pure-white font-bold py-2 px-4 rounded text-xs transition-colors disabled:opacity-50 shadow-lg shadow-green-600/20"
+                        type="button"
+                    >
+                        Clear Penalty
+                    </button>
+                </div>
             </div>
         </div>
     );
