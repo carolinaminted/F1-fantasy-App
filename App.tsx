@@ -638,7 +638,19 @@ const App: React.FC = () => {
             case 'dashboard':
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
             case 'results':
-                return <ResultsManagerPage raceResults={raceResults} onResultsUpdate={handleResultsUpdate} setAdminSubPage={setAdminSubPage} allDrivers={allDrivers} allConstructors={allConstructors} formLocks={formLocks} onToggleLock={handleToggleFormLock} activePointsSystem={activePointsSystem} events={mergedEvents} />;
+                return <ResultsManagerPage 
+                          raceResults={raceResults} 
+                          onResultsUpdate={handleResultsUpdate} 
+                          setAdminSubPage={setAdminSubPage} 
+                          allDrivers={allDrivers} 
+                          allConstructors={allConstructors} 
+                          formLocks={formLocks} 
+                          onToggleLock={handleToggleFormLock} 
+                          activePointsSystem={activePointsSystem} 
+                          events={mergedEvents}
+                          adminId={user?.id || ''}
+                          adminName={user?.displayName || 'Admin'}
+                       />;
             case 'manage-users':
                 return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
             case 'scoring':

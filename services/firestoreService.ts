@@ -1,7 +1,7 @@
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS } from '../constants.ts';
 
@@ -376,5 +376,30 @@ export const deleteInvitationCode = async (code: string): Promise<void> => {
     } catch (error) {
         console.error("Error deleting invitation code", error);
         throw error;
+    }
+};
+
+export const logAdminAction = async (entry: Omit<AdminLogEntry, 'id' | 'timestamp'>) => {
+    try {
+        await addDoc(collection(db, 'admin_logs'), {
+            ...entry,
+            timestamp: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Failed to log admin action", e);
+    }
+};
+
+export const getAdminLogs = async (eventId?: string): Promise<AdminLogEntry[]> => {
+    try {
+        let q = query(collection(db, 'admin_logs'), orderBy('timestamp', 'desc'));
+        if (eventId) {
+            q = query(collection(db, 'admin_logs'), where('eventId', '==', eventId), orderBy('timestamp', 'desc'));
+        }
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as AdminLogEntry));
+    } catch (e) {
+        console.error("Failed to fetch logs", e);
+        return [];
     }
 };

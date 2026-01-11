@@ -107,6 +107,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // --- Admin Logs ---
+    match /admin_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
     // --- Invitation Codes ---
     match /invitation_codes/{code} {
       // Admins can do anything
