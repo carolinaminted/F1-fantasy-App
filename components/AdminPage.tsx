@@ -71,21 +71,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
             
             <div className="pb-20 md:pb-12 px-2">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                     <AdminTile
-                        icon={TeamIcon}
-                        title="Manage Drivers & Teams"
-                        subtitle="Entities"
-                        description="Update the active grid, transfers, and classes."
-                        onClick={() => setAdminSubPage('entities')}
-                        delay="0ms"
-                    />
                     <AdminTile
-                        icon={CalendarIcon}
-                        title="Schedule Manager"
-                        subtitle="Calendar"
-                        description="Set race dates, start times, and session details."
-                        onClick={() => setAdminSubPage('schedule')}
-                        delay="100ms"
+                        icon={ProfileIcon}
+                        title="Manage Users"
+                        subtitle="Membership"
+                        description="Search users, manage dues, and view profiles."
+                        onClick={() => setAdminSubPage('manage-users')}
+                        delay="0ms"
                     />
                     <AdminTile
                         icon={TrackIcon}
@@ -93,14 +85,22 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                         subtitle="Race Control"
                         description="Enter race results and lock/unlock pick forms."
                         onClick={() => setAdminSubPage('results')}
-                        delay="200ms"
+                        delay="100ms"
                     />
                     <AdminTile
-                        icon={ProfileIcon}
-                        title="Manage Users"
-                        subtitle="Membership"
-                        description="Search users, manage dues, and view profiles."
-                        onClick={() => setAdminSubPage('manage-users')}
+                        icon={CalendarIcon}
+                        title="Schedule Manager"
+                        subtitle="Calendar"
+                        description="Set race dates, start times, and session details."
+                        onClick={() => setAdminSubPage('schedule')}
+                        delay="200ms"
+                    />
+                     <AdminTile
+                        icon={TeamIcon}
+                        title="Drivers & Teams"
+                        subtitle="Entities"
+                        description="Update the active grid, transfers, and classes."
+                        onClick={() => setAdminSubPage('entities')}
                         delay="300ms"
                     />
                     <AdminTile
