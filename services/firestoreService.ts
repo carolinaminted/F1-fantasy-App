@@ -344,8 +344,17 @@ export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
     } as InvitationCode));
 };
 
+const generateCodeSuffix = (length: number) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+};
+
 export const createInvitationCode = async (adminUid: string): Promise<string> => {
-    const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const code = `LOL-${new Date().getFullYear()}-${generateCodeSuffix(10)}`;
     const codeRef = doc(db, 'invitation_codes', code);
     await setDoc(codeRef, {
         status: 'active',
@@ -358,7 +367,7 @@ export const createInvitationCode = async (adminUid: string): Promise<string> =>
 export const createBulkInvitationCodes = async (adminUid: string, count: number): Promise<void> => {
     const batch = writeBatch(db);
     for (let i = 0; i < count; i++) {
-        const code = `FF1-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const code = `LOL-${new Date().getFullYear()}-${generateCodeSuffix(10)}`;
         const codeRef = doc(db, 'invitation_codes', code);
         batch.set(codeRef, {
             status: 'active',

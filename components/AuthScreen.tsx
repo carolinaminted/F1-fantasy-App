@@ -363,7 +363,7 @@ const AuthScreen: React.FC = () => {
                               type="text" 
                               value={invitationCode}
                               onChange={(e) => { setInvitationCode(e.target.value); setError(null); }}
-                              placeholder="FF1-XXXX-XXXX"
+                              placeholder="LOL-XXXX-XXXX"
                               required
                               className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-primary-red focus:border-primary-red uppercase"
                             />
