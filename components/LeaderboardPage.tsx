@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -619,14 +618,9 @@ const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
     return (
         <div className="flex flex-col h-full animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
             <div className="bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5 mb-8">
-                <div className="flex items-center gap-4 mb-6 border-b border-pure-white/10 pb-4">
-                    <div className="p-3 bg-carbon-black rounded-full text-highlight-silver shadow-inner border border-pure-white/5">
-                        <TrashIcon className="w-8 h-8" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">The Wall of Shame</h2>
-                        <p className="text-sm text-highlight-silver">Principals who picked the driver finishing P22 (Last Place) the most often.</p>
-                    </div>
+                <div className="mb-6 border-b border-pure-white/10 pb-4 text-center">
+                    <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">The Wall of Shame</h2>
+                    <p className="text-sm text-highlight-silver">Principals who picked the driver finishing P22 (Last Place) the most often.</p>
                 </div>
 
                 {p22Data.length > 0 ? (
