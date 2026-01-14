@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -17,6 +16,7 @@ import { AdminIcon } from './icons/AdminIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
+import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ListSkeleton, ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
@@ -30,7 +30,7 @@ const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // --- Shared Types & Helpers ---
 
-type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities';
+type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities' | 'p22';
 
 type ProcessedUser = User;
 
@@ -607,6 +607,53 @@ const InsightsView: React.FC<{
     );
 };
 
+const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
+    const p22Data = useMemo(() => {
+        return [...users]
+            .filter(u => u.breakdown?.p22 && u.breakdown.p22 > 0)
+            .sort((a, b) => (b.breakdown!.p22 || 0) - (a.breakdown!.p22 || 0))
+            .slice(0, 10);
+    }, [users]);
+
+    return (
+        <div className="flex flex-col h-full animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
+            <div className="bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5 mb-8">
+                <div className="mb-6 border-b border-pure-white/10 pb-4 text-center">
+                    <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">The Wall of Shame</h2>
+                    <p className="text-sm text-highlight-silver">Principals who picked the driver finishing P22 (Last Place) the most often.</p>
+                </div>
+
+                {p22Data.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {p22Data.map((user, idx) => (
+                            <div key={user.id} className="flex items-center justify-between p-4 bg-carbon-black/40 rounded-lg border border-pure-white/5 hover:bg-pure-white/5 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <span className={`text-xl font-black w-8 text-center ${idx === 0 ? 'text-red-500' : 'text-highlight-silver'}`}>
+                                        {idx + 1}
+                                    </span>
+                                    <div>
+                                        <span className="font-bold text-pure-white text-lg block">{user.displayName}</span>
+                                        <span className="text-xs text-highlight-silver uppercase tracking-wider">Rank #{user.rank || '-'}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="block text-3xl font-black text-red-500/80 leading-none">{user.breakdown?.p22}</span>
+                                    <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-widest">Times</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="p-12 text-center text-highlight-silver italic">
+                        <TrashIcon className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                        <p>No one has picked the last-place driver yet. Good job!</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
     <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg h-full border border-pure-white/5">
        <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5 flex-shrink-0 shadow-inner">
@@ -980,6 +1027,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                       <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="100ms" />
                       <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="200ms" />
                       <NavTile icon={LightbulbIcon} title="Insights" subtitle="Deep Dive" desc="Deep dive into performance breakdowns and superlatives." onClick={() => setView('insights')} delay="300ms" />
+                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the P22 driver most often." onClick={() => setView('p22')} delay="400ms" />
                   </div>
               </div>
           </div>
@@ -1007,9 +1055,10 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                             {view === 'entities' && <TeamIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
                             {view === 'popular' && <TrendingUpIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
                             {view === 'insights' && <LightbulbIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
+                            {view === 'p22' && <TrashIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
                         </div>
                         <h1 className="text-base md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap text-center">
-                            {view === 'standings' ? 'League Standings' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : 'Performance Insights'}
+                            {view === 'standings' ? 'League Standings' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : view === 'p22' ? 'P22 Tracker' : 'Performance Insights'}
                         </h1>
                   </div>
                   
@@ -1022,6 +1071,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
             {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
             {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
+            {view === 'p22' && <P22View users={processedUsers} />}
           </div>
 
           {/* User Profile Modal */}

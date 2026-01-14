@@ -24,6 +24,7 @@ export interface User {
       quali: number;
       sprint: number;
       fl: number;
+      p22?: number; // New: Tracker for picking last place
   };
   displayRank?: number; // Client-side calculated rank for display
 }
@@ -109,6 +110,7 @@ export interface EventResult {
   grandPrixFinish: (string | null)[];
   gpQualifying: (string | null)[];
   fastestLap: string | null;
+  p22Driver?: string | null; // New: The driver who finished last
   sprintFinish?: (string | null)[];
   sprintQualifying?: (string | null)[];
   driverTeams?: { [driverId: string]: string }; // Snapshot of driver-team mapping at event time
@@ -162,6 +164,7 @@ export interface EventPointsBreakdown {
     gpQualifyingPoints: number;
     sprintQualifyingPoints: number;
     penaltyPoints: number; // New field
+    p22Count: number; // New field for internal tracking
 }
 
 export interface LeaderboardCache {

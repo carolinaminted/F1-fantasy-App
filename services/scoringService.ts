@@ -130,6 +130,12 @@ export const calculatePointsForEvent = (
         fastestLapPoints = pointsSystem.fastestLap || 0;
     }
 
+    // P22 Tracker (No Points, Just Count)
+    let p22Count = 0;
+    if (results.p22Driver && allPickedDrivers.includes(results.p22Driver)) {
+        p22Count = 1;
+    }
+
     const grandPrixPoints = teamGrandPrixPoints + driverGrandPrixPoints;
     const sprintPoints = teamSprintPoints + driverSprintPoints;
     const gpQualifyingPoints = teamGpQualifyingPoints + driverGpQualifyingPoints;
@@ -147,7 +153,7 @@ export const calculatePointsForEvent = (
         totalPoints = rawTotal - penaltyPoints;
     }
 
-    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints };
+    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints, p22Count };
 };
 
 export const calculateScoreRollup = (
@@ -163,6 +169,7 @@ export const calculateScoreRollup = (
     let sprintQualifyingPoints = 0;
     let penaltyPoints = 0;
     let totalPoints = 0;
+    let p22Count = 0;
 
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
       // Filter: Only include events that are in the current season configuration
@@ -180,9 +187,10 @@ export const calculateScoreRollup = (
       sprintQualifyingPoints += eventPoints.sprintQualifyingPoints;
       penaltyPoints += eventPoints.penaltyPoints;
       totalPoints += eventPoints.totalPoints;
+      p22Count += eventPoints.p22Count;
     });
 
-    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints };
+    return { totalPoints, grandPrixPoints, sprintPoints, fastestLapPoints, gpQualifyingPoints, sprintQualifyingPoints, penaltyPoints, p22Count };
 };
 
 /**
@@ -209,6 +217,10 @@ export const processLeaderboardStats = async (
         // Requires totalPoints and breakdown to be present in the public record.
         if (typeof user.totalPoints === 'number' && user.breakdown) {
              const isCurrentUser = currentUser && user.id === currentUser.id;
+             // Ensure p22 exists for legacy records
+             if (user.breakdown.p22 === undefined) {
+                 user.breakdown.p22 = 0;
+             }
              return {
                  ...user,
                  displayName: isCurrentUser ? currentUser.displayName : user.displayName,
@@ -226,7 +238,8 @@ export const processLeaderboardStats = async (
             gp: safeNum(scoreData.grandPrixPoints),
             sprint: safeNum(scoreData.sprintPoints),
             quali: safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints),
-            fl: safeNum(scoreData.fastestLapPoints)
+            fl: safeNum(scoreData.fastestLapPoints),
+            p22: safeNum(scoreData.p22Count)
         };
 
         const isCurrentUser = currentUser && user.id === currentUser.id;
