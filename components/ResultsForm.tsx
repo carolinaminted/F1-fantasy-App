@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventResult, Driver, Constructor } from '../types.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
@@ -9,6 +10,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { UnlockIcon } from './icons/UnlockIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
+import { TrashIcon } from './icons/TrashIcon.tsx';
 
 interface ResultsFormProps {
     event: Event;
@@ -24,6 +26,7 @@ const emptyResults = (event: Event): EventResult => ({
     grandPrixFinish: Array(10).fill(null),
     gpQualifying: Array(3).fill(null),
     fastestLap: null,
+    p22Driver: null,
     ...(event.hasSprint && {
         sprintFinish: Array(8).fill(null),
         sprintQualifying: Array(3).fill(null),
@@ -66,6 +69,14 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         flColor = allConstructors.find(c => c.id === cId)?.color || CONSTRUCTORS.find(c => c.id === cId)?.color;
     }
 
+    // Derive P22 selection state for rendering
+    const selectedP22Driver = allDrivers.find(d => d.id === results.p22Driver) || null;
+    let p22Color = undefined;
+    if (selectedP22Driver) {
+        const cId = selectedP22Driver.constructorId;
+        p22Color = allConstructors.find(c => c.id === cId)?.color || CONSTRUCTORS.find(c => c.id === cId)?.color;
+    }
+
     const handleSelect = (category: keyof EventResult, value: string | null, index: number) => {
         setResults(prev => {
             const newResults = { ...prev };
@@ -79,8 +90,8 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         });
     };
 
-    const handleFastestLapSelect = (value: string | null) => {
-        setResults(prev => ({ ...prev, fastestLap: value }));
+    const handleSingleSelect = (category: 'fastestLap' | 'p22Driver', value: string | null) => {
+        setResults(prev => ({ ...prev, [category]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +111,13 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         if (!results.fastestLap) {
             showToast("Please select a driver for Fastest Lap.", 'error');
             return;
+        }
+
+        // Validation: P22 Driver (Optional but recommended to warn)
+        if (!results.p22Driver) {
+             if (!confirm("P22 (Last Place) driver is not selected. Proceed?")) {
+                 return;
+             }
         }
 
         // Validation: Sprint (if applicable)
@@ -126,15 +144,17 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     const openDriverModal = (category: keyof EventResult, index: number, title: string, disabledIds: (string | null)[] = []) => {
         const handleSelection = (driverId: string | null) => {
-            if (category === 'fastestLap') {
-                handleFastestLapSelect(driverId);
+            if (category === 'fastestLap' || category === 'p22Driver') {
+                handleSingleSelect(category as 'fastestLap' | 'p22Driver', driverId);
             } else {
                 handleSelect(category, driverId, index);
             }
             setModalContent(null);
         };
 
-        const currentSelection = category === 'fastestLap' ? results.fastestLap : (results[category] as (string | null)[])[index];
+        const currentSelection = (category === 'fastestLap' || category === 'p22Driver') 
+            ? results[category] 
+            : (results[category] as (string | null)[])[index];
 
         const modalBody = (
             <div className="p-6">
@@ -178,7 +198,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     const renderGpContent = () => (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
-                {/* Fastest Lap - Moved here above Qualifying */}
+                {/* Fastest Lap */}
                 <div className="flex flex-col">
                     <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1">Fastest Lap</h4>
                     <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
@@ -193,6 +213,31 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                     disabled={false}
                                     color={flColor}
                                     forceColor={!!selectedFLDriver}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* P22 Driver */}
+                <div className="flex flex-col">
+                    <h4 className="text-xs font-bold text-highlight-silver uppercase mb-3 px-1 flex items-center gap-2">
+                        P22 (Last Place)
+                    </h4>
+                    <div className="bg-carbon-black/20 rounded-lg p-3 md:p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-6 flex justify-end">
+                                <TrashIcon className="w-4 h-4 text-highlight-silver" />
+                            </div>
+                            <div className="flex-1 h-14">
+                                <SelectorCard
+                                    option={selectedP22Driver}
+                                    isSelected={!!selectedP22Driver}
+                                    onClick={() => openDriverModal('p22Driver', 0, 'Select P22 (Last Place)')}
+                                    placeholder="Select P22..."
+                                    disabled={false}
+                                    color={p22Color}
+                                    forceColor={!!selectedP22Driver}
                                 />
                             </div>
                         </div>

@@ -1,3 +1,4 @@
+
 /**
  * Firebase Cloud Functions for F1 Fantasy League (Gen 2)
  */
@@ -30,7 +31,7 @@ const getDriverPoints = (driverId, resultList, pointsList) => {
 };
 
 const calculateEventScore = (picks, results, system, drivers) => {
-    if (!picks || !results) return { total: 0, breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0 } };
+    if (!picks || !results) return { total: 0, breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 } };
 
     const getTeamId = (driverId) => {
         if(results.driverTeams && results.driverTeams[driverId]) return results.driverTeams[driverId];
@@ -38,7 +39,7 @@ const calculateEventScore = (picks, results, system, drivers) => {
         return d ? d.constructorId : null;
     };
 
-    let gpPoints = 0, sprintPoints = 0, qualiPoints = 0, flPoints = 0;
+    let gpPoints = 0, sprintPoints = 0, qualiPoints = 0, flPoints = 0, p22Count = 0;
 
     const teamIds = [...(picks.aTeams || []), picks.bTeam].filter(Boolean);
     results.grandPrixFinish?.forEach((dId, idx) => {
@@ -66,6 +67,11 @@ const calculateEventScore = (picks, results, system, drivers) => {
         flPoints += system.fastestLap;
     }
 
+    // P22 Tracker Logic
+    if (results.p22Driver && driverIds.includes(results.p22Driver)) {
+        p22Count = 1;
+    }
+
     let total = gpPoints + sprintPoints + qualiPoints + flPoints;
 
     if (picks.penalty && picks.penalty > 0) {
@@ -73,7 +79,7 @@ const calculateEventScore = (picks, results, system, drivers) => {
         total -= deduction;
     }
 
-    return { total, breakdown: { gp: gpPoints, sprint: sprintPoints, quali: qualiPoints, fl: flPoints } };
+    return { total, breakdown: { gp: gpPoints, sprint: sprintPoints, quali: qualiPoints, fl: flPoints, p22: p22Count } };
 };
 
 /**
@@ -116,7 +122,7 @@ const recalculateEntireLeague = async () => {
         const allUserPicks = userDoc.data();
         
         let totalPoints = 0;
-        let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0 };
+        let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 
         Object.keys(allUserPicks).forEach(eventId => {
             const result = raceResults[eventId];
@@ -128,6 +134,10 @@ const recalculateEntireLeague = async () => {
                 breakdown.sprint += score.breakdown.sprint;
                 breakdown.quali += score.breakdown.quali;
                 breakdown.fl += score.breakdown.fl;
+                // Accumulate P22 count
+                if (score.breakdown.p22) {
+                    breakdown.p22 = (breakdown.p22 || 0) + score.breakdown.p22;
+                }
             }
         });
 
