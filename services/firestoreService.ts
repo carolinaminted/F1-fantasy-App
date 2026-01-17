@@ -1,13 +1,11 @@
+
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
-import { EVENTS } from '../constants.ts';
+import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 
-/**
- * SCALABILITY CONFIGURATION [S1C-01]
- */
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
 
@@ -18,374 +16,236 @@ export const triggerManualLeaderboardSync = async () => {
     return result.data as { success: boolean, usersProcessed: number };
 };
 
-// User Profile Management
-export const createUserProfileDocument = async (userAuth: FirebaseUser, additionalData: { displayName: string; firstName: string; lastName: string; invitationCode?: string }) => {
-    if (!userAuth) return;
-    const userRef = doc(db, 'users', userAuth.uid);
-    const publicUserRef = doc(db, 'public_users', userAuth.uid);
-    const userPicksRef = doc(db, 'userPicks', userAuth.uid);
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) {
-                const { email } = userAuth;
-                const { displayName, firstName, lastName, invitationCode } = additionalData;
-
-                transaction.set(userRef, {
-                    displayName,
-                    email,
-                    firstName,
-                    lastName,
-                    invitationCode: invitationCode || null,
-                    duesPaidStatus: 'Unpaid',
-                });
-
-                transaction.set(publicUserRef, {
-                    displayName,
-                });
-
-                transaction.set(userPicksRef, {});
-
-                if (invitationCode) {
-                    const invRef = doc(db, 'invitation_codes', invitationCode);
-                    transaction.update(invRef, {
-                        status: 'used',
-                        usedBy: userAuth.uid,
-                        usedByEmail: email,
-                        usedAt: serverTimestamp()
-                    });
-                }
-            }
-        });
-    } catch (error) {
-        console.error("Error creating user profile or picks document via transaction", error);
-        throw error;
-    }
-    return userRef;
-};
-
 export const getUserProfile = async (uid: string): Promise<User | null> => {
-    const userRef = doc(db, 'users', uid);
-    const snapshot = await getDoc(userRef);
-    if (snapshot.exists()) {
-        return { id: uid, ...snapshot.data() } as User;
-    }
+    const docRef = doc(db, 'users', uid);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) return { id: uid, ...snap.data() } as User;
     return null;
 };
 
-export const updateUserProfile = async (uid: string, data: { displayName: string; email: string; firstName?: string; lastName?: string }) => {
-    const userRef = doc(db, 'users', uid);
-    const publicUserRef = doc(db, 'public_users', uid);
+export const createUserProfileDocument = async (user: FirebaseUser, additionalData: any = {}) => {
+    if (!user) return;
+    const userRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userRef);
+    if (!snapshot.exists()) {
+        const { displayName, email } = user;
+        const createdAt = new Date();
+        try {
+            await setDoc(userRef, {
+                displayName: additionalData.displayName || displayName,
+                email,
+                createdAt,
+                ...additionalData
+            });
+        } catch (error) {
+            console.error('Error creating user document', error);
+            throw error;
+        }
+    }
     
-    try {
-        const batch = writeBatch(db);
-        batch.update(userRef, data);
-        batch.set(publicUserRef, { displayName: data.displayName }, { merge: true });
-        await batch.commit();
-        console.log(`Profile updated for user ${uid}`);
-    } catch (error) {
-        console.error("Error updating user profile", error);
-        throw error;
+    // Also create public profile
+    const publicRef = doc(db, 'public_users', user.uid);
+    const publicSnap = await getDoc(publicRef);
+    if (!publicSnap.exists()) {
+        await setDoc(publicRef, {
+            displayName: additionalData.displayName || user.displayName,
+            totalPoints: 0,
+            rank: 999,
+            breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 }
+        });
     }
 };
 
-export const updateUserDuesStatus = async (uid: string, status: 'Paid' | 'Unpaid') => {
+export const updateUserProfile = async (uid: string, data: Partial<User>) => {
     const userRef = doc(db, 'users', uid);
-    try {
-        await updateDoc(userRef, { duesPaidStatus: status });
-        console.log(`Dues status for user ${uid} updated to ${status}`);
-    } catch (error) {
-        console.error("Error updating dues status", error);
-        throw error;
+    await updateDoc(userRef, data);
+    
+    // Sync display name to public profile if changed
+    if (data.displayName) {
+        const publicRef = doc(db, 'public_users', uid);
+        await updateDoc(publicRef, { displayName: data.displayName });
     }
-};
-
-export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
-    const userRef = doc(db, 'users', uid);
-    try {
-        await updateDoc(userRef, { isAdmin });
-        console.log(`Admin status for user ${uid} updated to ${isAdmin}`);
-    } catch (error) {
-        console.error("Error updating admin status", error);
-        throw error;
-    }
-};
-
-export const getAllUsers = async (
-    limitCount: number = DEFAULT_PAGE_SIZE, 
-    lastVisible: QueryDocumentSnapshot<DocumentData> | null = null
-): Promise<{ users: User[], lastDoc: QueryDocumentSnapshot<DocumentData> | null }> => {
-    try {
-        const usersCollection = collection(db, 'users');
-        let q = query(usersCollection, orderBy('displayName'), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
-        
-        if (lastVisible) {
-            q = query(usersCollection, orderBy('displayName'), startAfter(lastVisible), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
-        }
-
-        const usersSnapshot = await getDocs(q);
-        const users: User[] = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        const last = usersSnapshot.docs[usersSnapshot.docs.length - 1] || null;
-        
-        return { users, lastDoc: last };
-    } catch (error) {
-        console.error("Error fetching users batch:", error);
-        return { users: [], lastDoc: null };
-    }
-};
-
-export const getAllUsersAndPicks = async (
-    limitCount: number = DEFAULT_PAGE_SIZE,
-    lastVisible: QueryDocumentSnapshot<DocumentData> | null = null
-): Promise<{ 
-    users: User[], 
-    allPicks: { [userId: string]: { [eventId: string]: PickSelection } }, 
-    lastDoc: QueryDocumentSnapshot<DocumentData> | null,
-    source: 'public' | 'private_fallback' 
-}> => {
-    try {
-        const publicUsersCollection = collection(db, 'public_users');
-        
-        let q = query(publicUsersCollection, orderBy('rank', 'asc'), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
-        
-        if (lastVisible) {
-            q = query(publicUsersCollection, orderBy('rank', 'asc'), startAfter(lastVisible), limit(Math.min(limitCount, MAX_PAGE_SIZE)));
-        }
-
-        const usersSnapshot = await getDocs(q);
-        let source: 'public' | 'private_fallback' = 'public';
-
-        let users: User[] = usersSnapshot.docs.map(doc => ({ 
-            id: doc.id, 
-            ...doc.data(),
-            email: '', 
-            duesPaidStatus: undefined,
-            isAdmin: false
-        } as User));
-
-        const isPreCalculated = users.length > 0 && typeof users[0].totalPoints === 'number';
-        
-        const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
-        
-        if (!isPreCalculated && users.length > 0) {
-            const userIds = users.map(u => u.id);
-            const userPicksCollection = collection(db, 'userPicks');
-            for (const uid of userIds) {
-                const pDoc = await getDoc(doc(userPicksCollection, uid));
-                if (pDoc.exists()) {
-                    allPicks[uid] = pDoc.data() as { [eventId: string]: PickSelection };
-                }
-            }
-        }
-
-        const last = usersSnapshot.docs[usersSnapshot.docs.length - 1] || null;
-        return { users, allPicks, lastDoc: last, source };
-    } catch (error) {
-        console.error("Error fetching leaderboard batch", error);
-        return { users: [], allPicks: {}, lastDoc: null, source: 'public' };
-    }
-};
-
-/**
- * Fetch all picks from every user in the league.
- * Used for frontend aggregation of popularity stats.
- */
-export const fetchAllUserPicks = async (): Promise<{ [userId: string]: { [eventId: string]: PickSelection } }> => {
-    const picksCollection = collection(db, 'userPicks');
-    const snapshot = await getDocs(picksCollection);
-    const allPicks: { [userId: string]: { [eventId: string]: PickSelection } } = {};
-    snapshot.forEach(doc => {
-        allPicks[doc.id] = doc.data() as { [eventId: string]: PickSelection };
-    });
-    return allPicks;
 };
 
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {
     const picksRef = doc(db, 'userPicks', uid);
-    const snapshot = await getDoc(picksRef);
-    return snapshot.exists() ? snapshot.data() as { [eventId: string]: PickSelection } : {};
+    const snap = await getDoc(picksRef);
+    if (snap.exists()) return snap.data() as { [eventId: string]: PickSelection };
+    return {};
 };
 
-export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdmin: boolean = false) => {
-    if (!isAdmin) {
-        const event = EVENTS.find(e => e.id === eventId);
-        if (event) {
-            const lockTime = new Date(event.lockAtUtc).getTime();
-            if (Date.now() >= lockTime) {
-                 throw new Error("Picks submission is locked for this event.");
-            }
-        }
-    }
-
+export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdminOverride = false) => {
     const picksRef = doc(db, 'userPicks', uid);
-    try {
-        await setDoc(picksRef, { [eventId]: picks }, { merge: true });
-    } catch (error) {
-        console.error("Error saving user picks", error);
-        throw error;
-    }
+    await setDoc(picksRef, { [eventId]: picks }, { merge: true });
 };
 
-export const updatePickPenalty = async (uid: string, eventId: string, penalty: number, reason: string) => {
-    const picksRef = doc(db, 'userPicks', uid);
-    try {
-        await updateDoc(picksRef, {
-            [`${eventId}.penalty`]: penalty,
-            [`${eventId}.penaltyReason`]: reason
-        });
-    } catch (error) {
-        console.error("Error updating penalty", error);
-        throw error;
-    }
+export const fetchAllUserPicks = async (): Promise<{ [uid: string]: { [eid: string]: PickSelection } }> => {
+    const colRef = collection(db, 'userPicks');
+    const snap = await getDocs(colRef);
+    const all: { [uid: string]: { [eid: string]: PickSelection } } = {};
+    snap.forEach(d => {
+        all[d.id] = d.data() as any;
+    });
+    return all;
 };
 
 export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
-    const locksRef = doc(db, 'app_state', 'form_locks');
-    try {
-        await setDoc(locksRef, locks);
-    } catch (error) {
-        console.error("Error saving form locks", error);
-        throw error;
-    }
+    const ref = doc(db, 'app_state', 'form_locks');
+    await setDoc(ref, locks, { merge: true });
 };
 
 export const saveRaceResults = async (results: RaceResults) => {
-    const resultsRef = doc(db, 'app_state', 'race_results');
-    try {
-        await setDoc(resultsRef, results);
-    } catch (error) {
-        console.error("Error saving race results", error);
-        throw error;
-    }
+    const ref = doc(db, 'app_state', 'race_results');
+    await setDoc(ref, results, { merge: true });
 };
 
 export const saveScoringSettings = async (settings: ScoringSettingsDoc) => {
-    const configRef = doc(db, 'app_state', 'scoring_config');
-    try {
-        await setDoc(configRef, settings);
-    } catch (error) {
-        console.error("Error saving scoring settings", error);
-        throw error;
-    }
+    const ref = doc(db, 'app_state', 'scoring_config');
+    await setDoc(ref, settings);
 };
 
-export const getLeagueEntities = async (): Promise<{ drivers: Driver[]; constructors: Constructor[] } | null> => {
-    const entitiesRef = doc(db, 'app_state', 'entities');
-    const snapshot = await getDoc(entitiesRef);
-    if (snapshot.exists()) {
-        return snapshot.data() as { drivers: Driver[]; constructors: Constructor[] };
-    }
+export const getLeagueEntities = async (): Promise<{ drivers: Driver[], constructors: Constructor[] } | null> => {
+    const ref = doc(db, 'app_state', 'entities');
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data() as { drivers: Driver[], constructors: Constructor[] };
     return null;
 };
 
 export const saveLeagueEntities = async (drivers: Driver[], constructors: Constructor[]) => {
-    const entitiesRef = doc(db, 'app_state', 'entities');
-    try {
-        await setDoc(entitiesRef, { drivers, constructors });
-    } catch (error) {
-        console.error("Error saving league entities", error);
-        throw error;
-    }
+    const ref = doc(db, 'app_state', 'entities');
+    await setDoc(ref, { drivers, constructors });
 };
 
 export const getEventSchedules = async (): Promise<{ [eventId: string]: EventSchedule }> => {
-    const schedulesRef = doc(db, 'app_state', 'event_schedules');
-    const snapshot = await getDoc(schedulesRef);
-    if (snapshot.exists()) {
-        return snapshot.data() as { [eventId: string]: EventSchedule };
-    }
+    const ref = doc(db, 'app_state', 'event_schedules');
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data() as { [eventId: string]: EventSchedule };
     return {};
 };
 
 export const saveEventSchedule = async (eventId: string, schedule: EventSchedule) => {
-    const schedulesRef = doc(db, 'app_state', 'event_schedules');
-    try {
-        await setDoc(schedulesRef, { [eventId]: schedule }, { merge: true });
-    } catch (error) {
-        console.error("Error saving event schedule", error);
-        throw error;
-    }
+    const ref = doc(db, 'app_state', 'event_schedules');
+    await setDoc(ref, { [eventId]: schedule }, { merge: true });
 };
 
-export const logDuesPaymentInitiation = async (
-    user: User, 
-    amountInDollars: number, 
-    season: string, 
-    memo: string
-) => {
-    if (!user) throw new Error("User must be logged in to initiate a payment.");
-    const duesPaymentData = {
+export const getAllUsers = async (pageSize = 50, lastDoc: any = null) => {
+    let q = query(collection(db, 'users'), orderBy('displayName'), limit(pageSize));
+    if (lastDoc) {
+        q = query(collection(db, 'users'), orderBy('displayName'), startAfter(lastDoc), limit(pageSize));
+    }
+    const snap = await getDocs(q);
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
+    return { users, lastDoc: snap.docs[snap.docs.length - 1] };
+};
+
+export const getAllUsersAndPicks = async (pageSize = 50, lastDoc: any = null) => {
+    let q = query(collection(db, 'public_users'), orderBy('totalPoints', 'desc'), limit(pageSize));
+    
+    if (lastDoc) {
+        q = query(collection(db, 'public_users'), orderBy('totalPoints', 'desc'), startAfter(lastDoc), limit(pageSize));
+    }
+    
+    const snap = await getDocs(q);
+    const users: User[] = [];
+    
+    snap.forEach(d => {
+        const data = d.data();
+        users.push({ id: d.id, displayName: data.displayName, ...data } as User);
+    });
+
+    // In this implementation, we mostly use public data. 
+    // `allPicks` is returned empty for 'public' source as calculations are pre-baked.
+    const allPicks: { [uid: string]: { [eid: string]: PickSelection } } = {};
+    
+    return { 
+        users, 
+        allPicks, 
+        lastDoc: snap.docs[snap.docs.length - 1],
+        source: 'public' as const
+    };
+};
+
+export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
+    const ref = doc(db, 'users', uid);
+    await updateDoc(ref, { isAdmin });
+};
+
+export const updateUserDuesStatus = async (uid: string, status: 'Paid' | 'Unpaid') => {
+    const ref = doc(db, 'users', uid);
+    await updateDoc(ref, { duesPaidStatus: status });
+};
+
+export const updatePickPenalty = async (uid: string, eventId: string, penalty: number, reason: string) => {
+    const ref = doc(db, 'userPicks', uid);
+    await updateDoc(ref, {
+        [`${eventId}.penalty`]: penalty,
+        [`${eventId}.penaltyReason`]: reason
+    });
+};
+
+export const logDuesPaymentInitiation = async (user: User, amount: number, season: string, memo: string) => {
+    const ref = collection(db, 'dues_payments');
+    await addDoc(ref, {
         uid: user.id,
-        email: user.email,
-        amount: amountInDollars * 100, 
+        userEmail: user.email,
+        amount,
         season,
         memo,
-        status: 'initiated' as const,
-        createdAt: Timestamp.now(),
-    };
-    try {
-        const duesCollectionRef = collection(db, 'dues_payments');
-        const docRef = await addDoc(duesCollectionRef, duesPaymentData);
-        return docRef.id;
-    } catch (error) {
-        console.error("Error logging dues payment initiation:", error);
-        throw error;
-    }
+        status: 'initiated',
+        timestamp: serverTimestamp()
+    });
 };
 
 export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
-    const codesRef = collection(db, 'invitation_codes');
-    const q = query(codesRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-        code: doc.id,
-        ...doc.data()
-    } as InvitationCode));
+    const ref = collection(db, 'invitation_codes');
+    const snap = await getDocs(ref);
+    return snap.docs.map(d => d.data() as InvitationCode);
 };
 
-const generateCodeSuffix = (length: number) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-};
-
-export const createInvitationCode = async (adminUid: string): Promise<string> => {
-    const code = `LOL-${new Date().getFullYear()}-${generateCodeSuffix(10)}`;
-    const codeRef = doc(db, 'invitation_codes', code);
-    await setDoc(codeRef, {
+export const createInvitationCode = async (createdByUid: string) => {
+    const code = 'LOL-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    const ref = doc(db, 'invitation_codes', code);
+    await setDoc(ref, {
+        code,
         status: 'active',
         createdAt: serverTimestamp(),
-        createdBy: adminUid
+        createdBy: createdByUid
     });
     return code;
 };
 
-export const createBulkInvitationCodes = async (adminUid: string, count: number): Promise<void> => {
+export const createBulkInvitationCodes = async (createdByUid: string, count: number) => {
     const batch = writeBatch(db);
     for (let i = 0; i < count; i++) {
-        const code = `LOL-${new Date().getFullYear()}-${generateCodeSuffix(10)}`;
-        const codeRef = doc(db, 'invitation_codes', code);
-        batch.set(codeRef, {
+        const code = 'LOL-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const ref = doc(db, 'invitation_codes', code);
+        batch.set(ref, {
+            code,
             status: 'active',
             createdAt: serverTimestamp(),
-            createdBy: adminUid
+            createdBy: createdByUid
         });
     }
     await batch.commit();
 };
 
-export const deleteInvitationCode = async (code: string): Promise<void> => {
-    const codeRef = doc(db, 'invitation_codes', code);
-    try {
-        await deleteDoc(codeRef);
-    } catch (error) {
-        console.error("Error deleting invitation code", error);
-        throw error;
+export const deleteInvitationCode = async (code: string) => {
+    const ref = doc(db, 'invitation_codes', code);
+    await deleteDoc(ref);
+};
+
+export const getLeagueConfig = async (): Promise<LeagueConfig> => {
+    const configRef = doc(db, 'app_state', 'league_config');
+    const snapshot = await getDoc(configRef);
+    if (snapshot.exists()) {
+        return snapshot.data() as LeagueConfig;
     }
+    return { duesAmount: LEAGUE_DUES_AMOUNT };
+};
+
+export const saveLeagueConfig = async (config: LeagueConfig) => {
+    const configRef = doc(db, 'app_state', 'league_config');
+    await setDoc(configRef, config, { merge: true });
 };
 
 export const logAdminAction = async (entry: Omit<AdminLogEntry, 'id' | 'timestamp'>) => {
