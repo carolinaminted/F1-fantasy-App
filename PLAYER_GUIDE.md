@@ -17,7 +17,18 @@ Welcome to the Lights Out League! This guide covers everything you need to get r
 > **📸 Screenshot 1: Bottom Navigation Bar (Mobile)**
 > Show the 5 navigation icons clearly labeled. This is the first thing users need to understand.
 
+Desktop:
+
+<img width="3805" height="1790" alt="image" src="https://github.com/user-attachments/assets/3463a331-ece8-407e-aa56-c8ea7ee403b5" />
+
+Mobile:
+
+<img width="788" height="1397" alt="image" src="https://github.com/user-attachments/assets/0fa8a64a-ee4f-416e-a5e6-345ed064dc12" />
+
+
 ---
+
+
 
 ## 1. Getting Started: Registration
 
@@ -26,21 +37,52 @@ You'll need an **Invitation Code** from the League Administrator.
 ### Step-by-Step:
 
 1. Open the Lights Out League website
-2. Enter your **Invitation Code** (format: `LOL-XXXX-XXXX`)
-3. Tap **Validate Code**
-4. Enter your **Email Address** → Tap **Send Verification Code**
-5. Check your inbox for a 6-digit code → Enter it on screen
-6. Fill in your details:
+2. Select "Sign Up"
+3. Enter your **Invitation Code** (format: `LOL-XXXX-XXXX`)
+4. Tap **Validate Code**
+5. Enter your **Email Address** → Tap **Send Verification Code**
+6. Check your inbox for a 6-digit code → Enter it on screen
+7. Fill in your details:
    - First Name & Last Name
    - **Team Name** (this is your racing alias — be creative!)
    - Password
-7. Tap **Complete Registration**
+8. Tap **Complete Registration**
+
+> **Landing Page**
+> Landing Page:
+
+<img width="3802" height="1776" alt="image" src="https://github.com/user-attachments/assets/2f289876-b57b-41db-b516-468c940c68c4" />
 
 > **📸 Screenshot 2: Invitation Code Entry Screen**
 > Show the code input field with the `LOL-XXXX-XXXX` placeholder format visible.
 
+Desktop:
+
+<img width="3801" height="1767" alt="image" src="https://github.com/user-attachments/assets/0ced3956-8584-47f4-bc37-136436422ef5" />
+
+Mobile:
+
+<img width="771" height="1382" alt="image" src="https://github.com/user-attachments/assets/39b38e30-64a6-49f5-819c-2d84aa6d7108" />
+
+
+Send verification code:
+
+Desktop:
+<img width="3805" height="1774" alt="image" src="https://github.com/user-attachments/assets/a4dae6ee-1b7f-461f-9db6-82710f85312e" />
+
+Mobile:
+<img width="781" height="1383" alt="image" src="https://github.com/user-attachments/assets/4db715e5-8b13-4f35-aead-b44993ae5aa7" />
+
+
 > **📸 Screenshot 3: Registration Details Form**
 > Show the final form with Name, Team Name, and Password fields.
+
+Desktop:
+<img width="3813" height="1779" alt="image" src="https://github.com/user-attachments/assets/e83cd98e-29a1-4159-8f3c-3569bec840ab" />
+
+Mobile:
+<img width="785" height="1392" alt="image" src="https://github.com/user-attachments/assets/2449a0a8-fa81-4cbc-b725-f5589bb0327c" />
+
 
 ---
 
