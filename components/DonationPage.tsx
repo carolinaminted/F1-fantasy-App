@@ -53,15 +53,15 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                         <h2 className="text-xl font-semibold text-pure-white">Contribute to League Operational Costs</h2>
                         <p className="text-highlight-silver text-sm mt-2 mb-4 flex-grow">Your contribution helps cover hosting fees and keeps the league running smoothly for the season. Thank you for your support!</p>
                          <a 
-                            href={PAYPAL_DONATION_URL}
+                            href="https://venmo.com/u/nexuslife42"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-4 inline-block bg-blue-600 hover:bg-blue-500 text-pure-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105"
+                            className="mt-4 inline-block bg-[#008CFF] hover:opacity-90 text-pure-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105"
                         >
-                            Donate via PayPal
+                            Donate via Venmo
                         </a>
                         <p className="text-xs text-highlight-silver/50 mt-4">
-                            Note: You will be redirected to PayPal's secure website
+                            Note: You will be redirected to Venmo
                         </p>
                     </div>
                 </div>

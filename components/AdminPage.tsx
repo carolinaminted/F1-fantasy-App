@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
@@ -7,8 +8,10 @@ import { TrackIcon } from './icons/TrackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { SyncIcon } from './icons/SyncIcon.tsx';
+import { DuesIcon } from './icons/DuesIcon.tsx';
+import { SaveIcon } from './icons/SaveIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { triggerManualLeaderboardSync } from '../services/firestoreService.ts';
+import { triggerManualLeaderboardSync, getLeagueConfig, saveLeagueConfig } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminPageProps {
@@ -19,6 +22,23 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const { showToast } = useToast();
+
+    // Dues Management State
+    const [showDuesModal, setShowDuesModal] = useState(false);
+    const [currentDuesAmount, setCurrentDuesAmount] = useState<number>(25);
+    const [isSavingDues, setIsSavingDues] = useState(false);
+
+    useEffect(() => {
+        const loadDues = async () => {
+            try {
+                const config = await getLeagueConfig();
+                setCurrentDuesAmount(config.duesAmount);
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        loadDues();
+    }, []);
 
     const handleManualSyncClick = () => {
         if (isSyncing) return;
@@ -45,19 +65,44 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
         }
     };
 
-    const SyncHeaderAction = (
-        <button
-            onClick={handleManualSyncClick}
-            disabled={isSyncing}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border shadow-lg backdrop-blur-md z-[60] relative ${
-                isSyncing 
-                ? 'bg-carbon-black/80 border-accent-gray text-highlight-silver cursor-wait' 
-                : 'bg-carbon-black/60 border-primary-red/50 text-primary-red hover:bg-primary-red hover:text-pure-white hover:shadow-[0_0_20px_rgba(218,41,28,0.4)] hover:scale-105 active:scale-95 cursor-pointer'
-            }`}
-        >
-            <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Recalculating...' : 'Sync Leaderboard'}</span>
-        </button>
+    const handleSaveDues = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSavingDues(true);
+        try {
+            await saveLeagueConfig({ duesAmount: Number(currentDuesAmount) });
+            showToast(`Dues amount updated to $${currentDuesAmount}`, 'success');
+            setShowDuesModal(false);
+        } catch (error) {
+            console.error(error);
+            showToast("Failed to save dues amount.", 'error');
+        } finally {
+            setIsSavingDues(false);
+        }
+    };
+
+    const HeaderActions = (
+        <div className="flex items-center gap-3">
+            <button
+                onClick={() => setShowDuesModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-all border shadow-lg backdrop-blur-md relative bg-carbon-black/60 border-green-500/50 text-green-500 hover:bg-green-600 hover:text-pure-white hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:scale-105 active:scale-95 cursor-pointer"
+            >
+                <DuesIcon className="w-4 h-4" />
+                <span>Dues</span>
+            </button>
+
+            <button
+                onClick={handleManualSyncClick}
+                disabled={isSyncing}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border shadow-lg backdrop-blur-md z-[60] relative ${
+                    isSyncing 
+                    ? 'bg-carbon-black/80 border-accent-gray text-highlight-silver cursor-wait' 
+                    : 'bg-carbon-black/60 border-primary-red/50 text-primary-red hover:bg-primary-red hover:text-pure-white hover:shadow-[0_0_20px_rgba(218,41,28,0.4)] hover:scale-105 active:scale-95 cursor-pointer'
+                }`}
+            >
+                <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
+            </button>
+        </div>
     );
 
     return (
@@ -66,7 +111,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 title="ADMIN DASHBOARD" 
                 icon={AdminIcon} 
                 subtitle="League Controls & Configuration"
-                rightAction={SyncHeaderAction}
+                rightAction={HeaderActions}
             />
             
             <div className="pb-20 md:pb-12 px-2">
@@ -122,7 +167,59 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 </div>
             </div>
 
-            {/* Custom Confirmation Modal */}
+            {/* Dues Management Modal */}
+            {showDuesModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => !isSavingDues && setShowDuesModal(false)}>
+                    <div className="bg-carbon-fiber border border-green-500/30 rounded-xl p-8 max-w-sm w-full shadow-[0_0_50px_rgba(34,197,94,0.1)] ring-1 ring-pure-white/10 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
+                            <DuesIcon className="w-8 h-8 text-green-500" />
+                        </div>
+                        
+                        <h2 className="text-xl font-bold text-pure-white mb-2 text-center">Configure League Dues</h2>
+                        <p className="text-highlight-silver mb-6 text-sm text-center">
+                            Set the entry fee amount for the current season. This amount will prepopulate on the payment page.
+                        </p>
+                        
+                        <form onSubmit={handleSaveDues}>
+                            <div className="relative mb-6">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-highlight-silver font-bold">$</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={currentDuesAmount}
+                                    onChange={(e) => setCurrentDuesAmount(parseFloat(e.target.value))}
+                                    className="w-full bg-carbon-black border border-accent-gray rounded-lg py-2 pl-8 pr-4 text-pure-white font-bold focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
+                                    placeholder="25.00"
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={isSavingDues}
+                                    className="w-full bg-green-600 hover:bg-green-500 text-pure-white font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-green-600/20 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                                >
+                                    {isSavingDues ? 'Saving...' : <><SaveIcon className="w-4 h-4" /> Save Amount</>}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDuesModal(false)}
+                                    disabled={isSavingDues}
+                                    className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 text-xs uppercase"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Confirmation Modal for Sync */}
             {showConfirmModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in">
                     <div className="bg-accent-gray border border-primary-red/50 rounded-xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(218,41,28,0.2)] ring-1 ring-pure-white/10 animate-peek-up">

@@ -1,54 +1,6 @@
-
-// Fix: Create types definitions for the application.
 export enum EntityClass {
   A = 'A',
-  B = 'B',
-}
-
-export interface User {
-  id: string;
-  displayName: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  duesPaidStatus?: 'Paid' | 'Unpaid';
-  isAdmin?: boolean;
-  invitationCode?: string; // New field
-  // Pre-calculated fields from Cloud Function
-  totalPoints?: number;
-  rank?: number;
-  prevRank?: number; // For trending indicators
-  // Breakdown of points for insights
-  breakdown?: {
-      gp: number;
-      quali: number;
-      sprint: number;
-      fl: number;
-      p22?: number; // New: Tracker for picking last place
-  };
-  displayRank?: number; // Client-side calculated rank for display
-}
-
-export interface AdminLogEntry {
-  id: string;
-  adminId: string;
-  adminName: string;
-  eventId: string;
-  eventName: string;
-  timestamp: any; // Firestore Timestamp
-  action: string;
-  changes: string;
-}
-
-export interface InvitationCode {
-  code: string;
-  status: 'active' | 'reserved' | 'used';
-  createdBy?: string;
-  createdAt: any; // Firestore Timestamp
-  usedBy?: string;
-  usedByEmail?: string;
-  usedAt?: any;
-  reservedAt?: any;
+  B = 'B'
 }
 
 export interface Constructor {
@@ -56,7 +8,7 @@ export interface Constructor {
   name: string;
   class: EntityClass;
   isActive: boolean;
-  color: string; // New: Team branding color
+  color: string;
 }
 
 export interface Driver {
@@ -72,28 +24,31 @@ export interface Event {
   round: number;
   name: string;
   country: string;
-  location: string; // City/Region (Renamed from circuit)
-  circuit: string; // Full Track Name
+  location: string;
+  circuit: string;
   hasSprint: boolean;
   lockAtUtc: string;
   softDeadlineUtc: string;
 }
 
-// New: Detailed schedule for a specific event
-export interface EventSchedule {
-    eventId: string;
-    fp1?: string; // ISO Date String
-    fp2?: string;
-    fp3?: string;
-    qualifying?: string;
-    sprintQualifying?: string;
-    sprint?: string;
-    race?: string;
-    // Allow overriding the default calculated lock times
-    customLockAt?: string;
-    // Overrides
-    name?: string;
-    hasSprint?: boolean;
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  firstName?: string;
+  lastName?: string;
+  isAdmin?: boolean;
+  duesPaidStatus?: 'Paid' | 'Unpaid';
+  rank?: number;
+  totalPoints?: number;
+  breakdown?: {
+      gp: number;
+      sprint: number;
+      quali: number;
+      fl: number;
+      p22: number;
+  };
+  displayRank?: number; // Client-side calc
 }
 
 export interface PickSelection {
@@ -102,39 +57,23 @@ export interface PickSelection {
   aDrivers: (string | null)[];
   bDrivers: (string | null)[];
   fastestLap: string | null;
-  penalty?: number; // 0.0 to 1.0 (e.g. 0.2 for 20%)
+  penalty?: number;
   penaltyReason?: string;
 }
 
 export interface EventResult {
-  grandPrixFinish: (string | null)[];
-  gpQualifying: (string | null)[];
-  fastestLap: string | null;
-  p22Driver?: string | null; // New: The driver who finished last
+  grandPrixFinish?: (string | null)[];
   sprintFinish?: (string | null)[];
+  gpQualifying?: (string | null)[];
   sprintQualifying?: (string | null)[];
-  driverTeams?: { [driverId: string]: string }; // Snapshot of driver-team mapping at event time
-  scoringSnapshot?: PointsSystem; // Snapshot of points rules used for this result
+  fastestLap: string | null;
+  p22Driver: string | null;
+  driverTeams?: { [driverId: string]: string };
+  scoringSnapshot?: PointsSystem;
 }
 
 export interface RaceResults {
   [eventId: string]: EventResult;
-}
-
-export interface DuesPaymentInitiation {
-  id: string; // Firestore document ID
-  uid: string;
-  email: string;
-  amount: number; // in cents
-  season: string;
-  memo: string;
-  status: 'initiated';
-  createdAt: { seconds: number; nanoseconds: number };
-}
-
-export interface UsageRollup {
-    teams: { [id: string]: number };
-    drivers: { [id: string]: number };
 }
 
 export interface PointsSystem {
@@ -146,14 +85,53 @@ export interface PointsSystem {
 }
 
 export interface ScoringProfile {
-  id: string;
-  name: string;
-  config: PointsSystem;
+    id: string;
+    name: string;
+    config: PointsSystem;
 }
 
 export interface ScoringSettingsDoc {
-  activeProfileId: string;
-  profiles: ScoringProfile[];
+    activeProfileId: string;
+    profiles: ScoringProfile[];
+}
+
+export interface EventSchedule {
+    eventId: string;
+    name?: string;
+    hasSprint?: boolean;
+    fp1?: string;
+    fp2?: string;
+    fp3?: string;
+    qualifying?: string;
+    sprintQualifying?: string;
+    sprint?: string;
+    race?: string;
+    customLockAt?: string;
+}
+
+export interface InvitationCode {
+    code: string;
+    status: 'active' | 'reserved' | 'used';
+    createdAt: any; // Timestamp
+    usedAt?: any; // Timestamp
+    usedByEmail?: string;
+    reservedAt?: any; // Timestamp
+}
+
+export interface AdminLogEntry {
+    id: string;
+    adminId: string;
+    adminName: string;
+    eventId: string;
+    eventName: string;
+    action: string;
+    changes: string;
+    timestamp?: any;
+}
+
+export interface UsageRollup {
+    teams: { [id: string]: number };
+    drivers: { [id: string]: number };
 }
 
 export interface EventPointsBreakdown {
@@ -163,8 +141,8 @@ export interface EventPointsBreakdown {
     fastestLapPoints: number;
     gpQualifyingPoints: number;
     sprintQualifyingPoints: number;
-    penaltyPoints: number; // New field
-    p22Count: number; // New field for internal tracking
+    penaltyPoints: number;
+    p22Count: number;
 }
 
 export interface LeaderboardCache {
@@ -172,4 +150,9 @@ export interface LeaderboardCache {
     allPicks: { [userId: string]: { [eventId: string]: PickSelection } };
     source: 'public' | 'private_fallback';
     lastUpdated: number;
+    lastDoc?: any;
+}
+
+export interface LeagueConfig {
+    duesAmount: number;
 }
