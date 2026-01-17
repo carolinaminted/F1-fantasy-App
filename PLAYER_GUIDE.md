@@ -43,12 +43,10 @@ You'll need an **Invitation Code** from the League Administrator.
 8. Tap **Complete Registration**
 
 > **Landing Page**
-> Landing Page:
 
 <img width="2000" height="900" alt="image" src="https://github.com/user-attachments/assets/2f289876-b57b-41db-b516-468c940c68c4" />
 
 > **📸 Screenshot 2: Invitation Code Entry Screen**
-> Show the code input field with the `LOL-XXXX-XXXX` placeholder format visible.
 
 Desktop:
 
