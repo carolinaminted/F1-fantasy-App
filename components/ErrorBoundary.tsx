@@ -12,7 +12,6 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Explicitly use React.Component to ensure type inheritance is recognized and 'props'/'setState' are available.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
@@ -27,7 +26,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  // Fix: Accessing this.props and this.setState now works correctly with explicit React.Component inheritance.
   handleReload = () => {
     const { onReset } = this.props;
     if (onReset) {
@@ -40,7 +38,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render(): ReactNode {
     const { hasError, error } = this.state;
-    // Fix: Accessing this.props now works correctly in the render method via explicit React.Component inheritance.
     const { children, fallback } = this.props;
 
     if (hasError) {

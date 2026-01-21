@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
@@ -6,7 +7,7 @@ import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
 import { httpsCallable } from '@firebase/functions';
-import { createUserProfileDocument } from '../services/firestoreService.ts';
+import { createUserProfileDocument, markInvitationCodeUsed } from '../services/firestoreService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { SESSION_STORAGE_KEY } from '../constants.ts';
 
@@ -136,7 +137,6 @@ const AuthScreen: React.FC = () => {
     }
   };
 
-  // ... (Keep existing handler functions: handleValidateInvitation, handleSendCode, handleVerifyCode, handleSignup, handleLogin, handleResetPassword) ...
   const handleValidateInvitation = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -177,7 +177,6 @@ const AuthScreen: React.FC = () => {
       }
   };
 
-  // --- Step 1: Send Verification Code ---
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -212,7 +211,6 @@ const AuthScreen: React.FC = () => {
     }
   };
 
-  // --- Step 2: Verify Code ---
   const handleVerifyCode = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -237,7 +235,6 @@ const AuthScreen: React.FC = () => {
       }
   };
 
-  // --- Step 3: Create Account ---
   const handleSignup = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -265,27 +262,34 @@ const AuthScreen: React.FC = () => {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           try {
-              // PASS INVITATION CODE HERE to be saved and marked used
+              // 1. Create Private Profile (PII)
               await createUserProfileDocument(user, { 
                   displayName: cleanDisplayName, 
                   firstName: cleanFirstName, 
-                  lastName: cleanLastName,
-                  invitationCode: invitationCode // Passed from state
+                  lastName: cleanLastName
               });
               
-              // Prime the session guard so we don't immediately expire the fresh session
+              // 2. Mark invitation code as used
+              // Rules allow a user to claim their own code during the signup transaction
+              await markInvitationCodeUsed(invitationCode, user.uid);
+              
+              // 3. Prime the session guard
               localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
 
+              // SUCCESS: onAuthStateChanged in App.tsx will pick up the new user and private doc.
+              // Note: The public record will be automatically created by the 'initializePublicProfile' Cloud Function.
+
           } catch (profileError) {
-              console.error("Profile creation failed:", profileError);
+              console.error("Profile creation/cleanup failed:", profileError);
+              // CRITICAL: Cleanup if firestore setup fails to allow retry
               if (auth.currentUser) await deleteUser(auth.currentUser);
-              throw new Error("Failed to create user profile.");
+              throw new Error("Failed to finalize your account profile. Please check your connection and try again.");
           }
       } catch (error: any) {
           if (error.code === 'auth/email-already-in-use') {
             setError('This email is already in use.');
           } else {
-            setError('Failed to sign up. Please try again.');
+            setError(error.message || 'Failed to sign up. Please try again.');
           }
           console.error(error);
           setIsLoading(false);

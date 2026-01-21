@@ -23,36 +23,34 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
     return null;
 };
 
+/**
+ * Creates the initial user document.
+ * Note: public_users is now handled by a Cloud Function trigger to avoid permission errors on protected fields.
+ */
 export const createUserProfileDocument = async (user: FirebaseUser, additionalData: any = {}) => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
+    
     if (!snapshot.exists()) {
         const { displayName, email } = user;
         const createdAt = new Date();
         try {
+            // Only write to private user doc. 
+            // The Cloud Function 'initializePublicProfile' will detect this and set up the leaderboard doc.
             await setDoc(userRef, {
                 displayName: additionalData.displayName || displayName,
                 email,
                 createdAt,
-                ...additionalData
+                firstName: additionalData.firstName || '',
+                lastName: additionalData.lastName || '',
+                isAdmin: false,
+                duesPaidStatus: 'Unpaid'
             });
         } catch (error) {
             console.error('Error creating user document', error);
             throw error;
         }
-    }
-    
-    // Also create public profile
-    const publicRef = doc(db, 'public_users', user.uid);
-    const publicSnap = await getDoc(publicRef);
-    if (!publicSnap.exists()) {
-        await setDoc(publicRef, {
-            displayName: additionalData.displayName || user.displayName,
-            totalPoints: 0,
-            rank: 999,
-            breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 }
-        });
     }
 };
 
@@ -230,6 +228,15 @@ export const createBulkInvitationCodes = async (createdByUid: string, count: num
         });
     }
     await batch.commit();
+};
+
+export const markInvitationCodeUsed = async (code: string, userId: string) => {
+    const ref = doc(db, 'invitation_codes', code);
+    await updateDoc(ref, {
+        status: 'used',
+        usedBy: userId,
+        usedAt: serverTimestamp()
+    });
 };
 
 export const deleteInvitationCode = async (code: string) => {
