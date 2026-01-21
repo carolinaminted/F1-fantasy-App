@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -286,7 +287,8 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                 <div className="space-y-1 relative z-10 pb-8 pt-4">
                     {users.map((user, idx) => {
                         const points = user.totalPoints || 0;
-                        const rank = user.rank || idx + 1;
+                        // Fix: Prioritize visual rank to correct '999' issue for new/tied users
+                        const rank = user.displayRank || idx + 1;
                         const percent = (points / maxPoints) * 100;
                         
                         let carColor = "text-primary-red"; 

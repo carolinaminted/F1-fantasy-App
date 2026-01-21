@@ -252,8 +252,12 @@ export const processLeaderboardStats = async (
         };
     });
 
-    // Sort descending by Total Points
-    processed.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+    // Sort descending by Total Points, with Name tie-breaker for deterministic ordering
+    processed.sort((a, b) => {
+        const pointsDiff = (b.totalPoints || 0) - (a.totalPoints || 0);
+        if (pointsDiff !== 0) return pointsDiff;
+        return a.displayName.localeCompare(b.displayName);
+    });
 
     // Assign Ranks
     processed.forEach((u, i) => u.displayRank = i + 1);
