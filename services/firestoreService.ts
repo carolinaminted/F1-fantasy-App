@@ -9,6 +9,17 @@ import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
 
+// Helper to sanitize user data
+const sanitizeUser = (id: string, data: DocumentData): User => {
+    return {
+        id,
+        ...data,
+        displayName: data.displayName || 'Unknown Team',
+        email: data.email || '',
+        duesPaidStatus: data.duesPaidStatus || 'Unpaid'
+    } as User;
+};
+
 // Cloud Function Wrappers
 export const triggerManualLeaderboardSync = async () => {
     const syncFn = httpsCallable(functions, 'manualLeaderboardSync');
@@ -19,38 +30,40 @@ export const triggerManualLeaderboardSync = async () => {
 export const getUserProfile = async (uid: string): Promise<User | null> => {
     const docRef = doc(db, 'users', uid);
     const snap = await getDoc(docRef);
-    if (snap.exists()) return { id: uid, ...snap.data() } as User;
+    if (snap.exists()) return sanitizeUser(uid, snap.data());
     return null;
 };
 
-/**
- * Creates the initial user document.
- * Note: public_users is now handled by a Cloud Function trigger to avoid permission errors on protected fields.
- */
 export const createUserProfileDocument = async (user: FirebaseUser, additionalData: any = {}) => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
-    
     if (!snapshot.exists()) {
         const { displayName, email } = user;
         const createdAt = new Date();
         try {
-            // Only write to private user doc. 
-            // The Cloud Function 'initializePublicProfile' will detect this and set up the leaderboard doc.
             await setDoc(userRef, {
-                displayName: additionalData.displayName || displayName,
+                displayName: additionalData.displayName || displayName || 'New Team',
                 email,
                 createdAt,
-                firstName: additionalData.firstName || '',
-                lastName: additionalData.lastName || '',
-                isAdmin: false,
-                duesPaidStatus: 'Unpaid'
+                ...additionalData
             });
         } catch (error) {
             console.error('Error creating user document', error);
             throw error;
         }
+    }
+    
+    // Also create public profile
+    const publicRef = doc(db, 'public_users', user.uid);
+    const publicSnap = await getDoc(publicRef);
+    if (!publicSnap.exists()) {
+        await setDoc(publicRef, {
+            displayName: additionalData.displayName || user.displayName || 'New Team',
+            totalPoints: 0,
+            rank: 999,
+            breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 }
+        });
     }
 };
 
@@ -132,7 +145,7 @@ export const getAllUsers = async (pageSize = 50, lastDoc: any = null) => {
         q = query(collection(db, 'users'), orderBy('displayName'), startAfter(lastDoc), limit(pageSize));
     }
     const snap = await getDocs(q);
-    const users = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
+    const users = snap.docs.map(d => sanitizeUser(d.id, d.data()));
     return { users, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
@@ -147,8 +160,7 @@ export const getAllUsersAndPicks = async (pageSize = 50, lastDoc: any = null) =>
     const users: User[] = [];
     
     snap.forEach(d => {
-        const data = d.data();
-        users.push({ id: d.id, displayName: data.displayName, ...data } as User);
+        users.push(sanitizeUser(d.id, d.data()));
     });
 
     // In this implementation, we mostly use public data. 
@@ -228,15 +240,6 @@ export const createBulkInvitationCodes = async (createdByUid: string, count: num
         });
     }
     await batch.commit();
-};
-
-export const markInvitationCodeUsed = async (code: string, userId: string) => {
-    const ref = doc(db, 'invitation_codes', code);
-    await updateDoc(ref, {
-        status: 'used',
-        usedBy: userId,
-        usedAt: serverTimestamp()
-    });
 };
 
 export const deleteInvitationCode = async (code: string) => {

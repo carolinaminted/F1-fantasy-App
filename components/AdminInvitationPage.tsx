@@ -4,7 +4,6 @@ import { User, InvitationCode } from '../types.ts';
 import { getInvitationCodes, createInvitationCode, createBulkInvitationCodes, deleteInvitationCode } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
-import { CopyIcon } from './icons/CopyIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
@@ -21,8 +20,8 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     const [isCreating, setIsCreating] = useState(false);
     const [bulkAmount, setBulkAmount] = useState(1);
     
-    // Selection State (for Modal)
-    const [selectedCode, setSelectedCode] = useState<string | null>(null);
+    // Deletion State
+    const [selectedCodeForDelete, setSelectedCodeForDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
     const { showToast } = useToast();
@@ -64,22 +63,13 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         }
     };
 
-    const handleCopyCode = () => {
-        if (!selectedCode) return;
-        navigator.clipboard.writeText(selectedCode).then(() => {
-            showToast("Code copied to clipboard", 'success');
-        }, () => {
-            showToast("Failed to copy code", 'error');
-        });
-    };
-
     const handleDeleteCode = async () => {
-        if (!selectedCode) return;
+        if (!selectedCodeForDelete) return;
         setIsDeleting(true);
         try {
-            await deleteInvitationCode(selectedCode);
-            showToast(`Code ${selectedCode} deleted permanently.`, 'success');
-            setSelectedCode(null);
+            await deleteInvitationCode(selectedCodeForDelete);
+            showToast(`Code ${selectedCodeForDelete} deleted permanently.`, 'success');
+            setSelectedCodeForDelete(null);
             await loadCodes();
         } catch (error) {
             console.error(error);
@@ -188,7 +178,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                                         <tr 
                                             key={code.code} 
                                             className="hover:bg-pure-white/5 transition-colors cursor-pointer group"
-                                            onClick={() => setSelectedCode(code.code)}
+                                            onClick={() => setSelectedCodeForDelete(code.code)}
                                         >
                                             <td className="p-4 font-mono font-bold text-pure-white tracking-widest group-hover:text-primary-red transition-colors min-w-[200px]">{code.code}</td>
                                             <td className="p-4 text-center">
@@ -219,52 +209,34 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                 )}
             </div>
 
-            {/* Code Actions Modal (Copy / Delete) */}
-            {selectedCode && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => !isDeleting && setSelectedCode(null)}>
-                    <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] ring-1 ring-pure-white/10 animate-peek-up" onClick={e => e.stopPropagation()}>
-                        
-                        <div className="w-16 h-16 bg-carbon-black rounded-full flex items-center justify-center mx-auto mb-6 border border-pure-white/10 shadow-inner">
+            {/* Delete Confirmation Modal */}
+            {selectedCodeForDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => !isDeleting && setSelectedCodeForDelete(null)}>
+                    <div className="bg-accent-gray border border-primary-red/50 rounded-xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(218,41,28,0.3)] ring-1 ring-pure-white/10 animate-peek-up" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-primary-red/20 rounded-full flex items-center justify-center mx-auto mb-6">
                             <TicketIcon className="w-8 h-8 text-primary-red" />
                         </div>
                         
-                        <h2 className="text-xs font-bold text-highlight-silver uppercase tracking-[0.2em] mb-3">Invitation Code</h2>
-                        
-                        <div className="bg-carbon-black p-4 rounded-lg border border-accent-gray mb-8 relative group cursor-pointer shadow-inner" onClick={handleCopyCode}>
-                             <p className="text-xl md:text-2xl font-mono font-black text-pure-white tracking-widest break-all select-all">
-                                {selectedCode}
-                             </p>
-                             <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                 <span className="text-xs font-bold text-pure-white uppercase tracking-wider flex items-center gap-2">
-                                     <CopyIcon className="w-4 h-4" /> Click to Copy
-                                 </span>
-                             </div>
-                        </div>
+                        <h2 className="text-2xl font-bold text-pure-white mb-2 uppercase italic tracking-tighter">Discard Code?</h2>
+                        <p className="text-highlight-silver mb-8 text-sm leading-relaxed">
+                            Are you sure you want to permanently delete invitation code <span className="text-pure-white font-mono font-bold tracking-wider">{selectedCodeForDelete}</span>?
+                            This action cannot be undone.
+                        </p>
                         
                         <div className="flex flex-col gap-3">
                             <button
-                                onClick={handleCopyCode}
-                                className="w-full bg-pure-white hover:bg-highlight-silver text-carbon-black font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
-                            >
-                                <CopyIcon className="w-4 h-4" /> Copy Code
-                            </button>
-
-                            <div className="h-px bg-pure-white/10 w-full my-2"></div>
-
-                            <button
                                 onClick={handleDeleteCode}
                                 disabled={isDeleting}
-                                className="w-full bg-red-900/10 hover:bg-red-900/30 text-red-500 border border-red-500/20 hover:border-red-500/50 font-bold py-3 px-6 rounded-lg transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                                className="w-full bg-primary-red hover:bg-red-600 text-pure-white font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/20 uppercase tracking-widest text-xs"
                             >
-                                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                                {isDeleting ? 'Deleting...' : 'Confirm Permanent Deletion'}
                             </button>
-                            
                             <button
-                                onClick={() => setSelectedCode(null)}
+                                onClick={() => setSelectedCodeForDelete(null)}
                                 disabled={isDeleting}
-                                className="text-highlight-silver hover:text-pure-white text-xs font-bold py-2 mt-1"
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 text-xs uppercase"
                             >
-                                Close
+                                Abort
                             </button>
                         </div>
                     </div>

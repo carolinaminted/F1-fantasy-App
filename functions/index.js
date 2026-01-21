@@ -4,7 +4,7 @@
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const functions = require("firebase-functions");
 const logger = functions.logger;
 const admin = require("firebase-admin");
@@ -196,29 +196,6 @@ const checkRateLimit = async (ip, operation, limit, windowSeconds) => {
 };
 
 // --- EXPORTED FUNCTIONS ---
-
-/**
- * Automaticaly initialize public profiles for new users.
- * This prevents the client-side app from needing write permissions on protected leaderboard fields.
- */
-exports.initializePublicProfile = onDocumentCreated("users/{userId}", async (event) => {
-    const userId = event.params.userId;
-    const userData = event.data.data();
-    
-    logger.info(`Initializing public profile for user: ${userId}`);
-    
-    try {
-        await db.collection('public_users').doc(userId).set({
-            displayName: userData.displayName || "New Principal",
-            totalPoints: 0,
-            rank: 999,
-            breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 },
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
-        });
-    } catch (err) {
-        logger.error(`Failed to initialize public profile for ${userId}:`, err);
-    }
-});
 
 exports.updateLeaderboardOnResults = onDocumentWritten(
     { document: 'app_state/race_results', memory: "512MiB", timeoutSeconds: 300 }, 
