@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -12,7 +12,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Explicitly use React.Component to ensure type inheritance is recognized and 'props'/'setState' are available.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -26,6 +27,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
+  // Fix: Accessing this.props and this.setState now works correctly with explicit React.Component inheritance.
   handleReload = () => {
     const { onReset } = this.props;
     if (onReset) {
@@ -38,6 +40,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render(): ReactNode {
     const { hasError, error } = this.state;
+    // Fix: Accessing this.props now works correctly in the render method via explicit React.Component inheritance.
     const { children, fallback } = this.props;
 
     if (hasError) {

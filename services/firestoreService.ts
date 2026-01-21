@@ -199,7 +199,10 @@ export const logDuesPaymentInitiation = async (user: User, amount: number, seaso
 export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
     const ref = collection(db, 'invitation_codes');
     const snap = await getDocs(ref);
-    return snap.docs.map(d => d.data() as InvitationCode);
+    return snap.docs.map(d => ({
+        ...d.data(),
+        code: d.data().code || d.id
+    } as InvitationCode));
 };
 
 export const createInvitationCode = async (createdByUid: string) => {
