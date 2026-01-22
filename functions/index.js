@@ -89,11 +89,13 @@ const calculateEventScore = (picks, results, system, drivers) => {
 const recalculateEntireLeague = async () => {
     logger.info("Starting recalculateEntireLeague...");
     
-    const [resultsSnap, usersSnap, scoringSnap, entitiesSnap] = await Promise.all([
+    // Fetch picks, results, config, AND user profiles to sync display names
+    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap] = await Promise.all([
         db.collection('app_state').doc('race_results').get(),
         db.collection('userPicks').get(),
         db.collection('app_state').doc('scoring_config').get(),
-        db.collection('app_state').doc('entities').get()
+        db.collection('app_state').doc('entities').get(),
+        db.collection('users').get() // Fetch profiles to repair missing public_users names
     ]);
 
     if (!resultsSnap.exists) {
@@ -103,6 +105,12 @@ const recalculateEntireLeague = async () => {
 
     const raceResults = resultsSnap.data();
     const driversList = entitiesSnap.exists ? (entitiesSnap.data().drivers || []) : [];
+    
+    // Create Map of UserID -> DisplayName
+    const userProfileMap = {};
+    usersSnap.forEach(doc => {
+        userProfileMap[doc.id] = doc.data().displayName || 'Unknown Team';
+    });
     
     let pointsSystem = DEFAULT_POINTS;
     if (scoringSnap.exists) {
@@ -117,9 +125,9 @@ const recalculateEntireLeague = async () => {
 
     const leaderboardScores = [];
 
-    usersSnap.forEach(userDoc => {
-        const userId = userDoc.id;
-        const allUserPicks = userDoc.data();
+    picksSnap.forEach(pickDoc => {
+        const userId = pickDoc.id;
+        const allUserPicks = pickDoc.data();
         
         let totalPoints = 0;
         let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
@@ -134,14 +142,16 @@ const recalculateEntireLeague = async () => {
                 breakdown.sprint += score.breakdown.sprint;
                 breakdown.quali += score.breakdown.quali;
                 breakdown.fl += score.breakdown.fl;
-                // Accumulate P22 count
                 if (score.breakdown.p22) {
                     breakdown.p22 = (breakdown.p22 || 0) + score.breakdown.p22;
                 }
             }
         });
 
-        leaderboardScores.push({ userId, totalPoints, breakdown });
+        // Use the name from the users collection, fallback to ID if completely missing
+        const displayName = userProfileMap[userId] || `Team ${userId.substring(0, 4)}`;
+
+        leaderboardScores.push({ userId, displayName, totalPoints, breakdown });
     });
 
     leaderboardScores.sort((a, b) => b.totalPoints - a.totalPoints);
@@ -150,6 +160,7 @@ const recalculateEntireLeague = async () => {
     leaderboardScores.forEach((score, index) => {
         const publicRef = db.collection('public_users').doc(score.userId);
         batch.set(publicRef, {
+            displayName: score.displayName, // Repair name
             totalPoints: score.totalPoints,
             breakdown: score.breakdown,
             rank: index + 1,

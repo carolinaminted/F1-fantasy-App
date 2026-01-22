@@ -10,6 +10,7 @@ import { CopyIcon } from './icons/CopyIcon.tsx';
 import { getGenericDocuments, saveGenericDocument, deleteGenericDocument } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
+import { Timestamp } from '@firebase/firestore';
 
 interface DatabaseManagerPageProps {
     setAdminSubPage: (page: 'dashboard') => void;
@@ -84,10 +85,18 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         if (selectedCollection === 'app_state') {
             return 'Configuration Document';
         }
+        // Fallback for public_users without display name
+        if (selectedCollection === 'public_users') {
+             return <span className="text-highlight-silver italic opacity-70">ID: {doc.id}</span>;
+        }
         return <span className="text-highlight-silver italic">No Label</span>;
     };
 
     const getSecondField = (doc: any) => {
+        if (doc.lastUpdated) {
+             const date = doc.lastUpdated.toDate ? doc.lastUpdated.toDate() : new Date(doc.lastUpdated);
+             return date.toLocaleString();
+        }
         if (doc.createdAt) {
             const date = doc.createdAt.toDate ? doc.createdAt.toDate() : new Date(doc.createdAt);
             return date.toLocaleString();
@@ -116,6 +125,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         setJsonContent('');
         setJsonError(null);
         setConfirmDelete(false);
+        setIsSaving(false); // Ensure loading state is reset when closing
     };
 
     const handleSave = async () => {
@@ -124,7 +134,18 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         setJsonError(null);
 
         try {
-            const parsed = JSON.parse(jsonContent);
+            // Reviver function to restore Firestore Timestamps
+            const parsed = JSON.parse(jsonContent, (key, value) => {
+                if (value && typeof value === 'object') {
+                    // Check if object matches Timestamp signature (seconds + nanoseconds)
+                    // This handles standard JSON serialization of Timestamps
+                    if ('seconds' in value && 'nanoseconds' in value) {
+                        return new Timestamp(value.seconds, value.nanoseconds);
+                    }
+                }
+                return value;
+            });
+
             await saveGenericDocument(selectedCollection, selectedDoc.id, parsed);
             showToast("Document saved successfully.", 'success');
             
@@ -133,8 +154,8 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
             closeEditor();
         } catch (error: any) {
             console.error(error);
-            setJsonError(error.message || "Invalid JSON");
-            showToast("Failed to save document.", 'error');
+            setJsonError(error.message || "Invalid JSON or Schema Error");
+            showToast("Failed to save document. Check console.", 'error');
         } finally {
             setIsSaving(false);
         }

@@ -48,6 +48,17 @@ service cloud.firestore {
                         && !request.resource.data.diff(resource.data).changedKeys().hasAny(['duesPaidStatus', 'isAdmin'])
                         && isValidUserUpdate(request.resource.data)
                        ) || isAdmin();
+      
+      // Allow admins to delete users (e.g., via Database Manager)
+      allow delete: if isAdmin();
+
+      match /donations/{donationId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId)
+                      && request.resource.data.userId == userId
+                      && request.resource.data.createdAt == request.time;
+        allow update, delete: if false; 
+      }
     }
 
     // --- Public User Profiles (Safe for Leaderboard) ---
@@ -90,6 +101,9 @@ service cloud.firestore {
       allow update: if (isOwner(userId) || isAdmin())
                     && isValidPublicSchema(request.resource.data)
                     && (isAdmin() || !isUserUpdatingSystemFields());
+
+      // DELETE: Allow admins to delete public profiles (e.g., via Database Manager)
+      allow delete: if isAdmin();
     }
     
     // --- User Picks ---

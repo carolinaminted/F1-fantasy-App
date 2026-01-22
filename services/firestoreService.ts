@@ -65,6 +65,23 @@ export const createUserProfileDocument = async (user: FirebaseUser, additionalDa
             breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 }
         });
     }
+
+    // Mark Invitation Code as Used
+    // This connects the code to the specific user and email for Admin tracking
+    if (additionalData.invitationCode) {
+        try {
+            const inviteRef = doc(db, 'invitation_codes', additionalData.invitationCode);
+            await updateDoc(inviteRef, {
+                status: 'used',
+                usedBy: user.uid,
+                usedByEmail: user.email, // Capturing the email for admin records
+                usedAt: serverTimestamp()
+            });
+        } catch (error) {
+            console.warn(`Failed to mark invitation code ${additionalData.invitationCode} as used:`, error);
+            // We do not throw here to prevent blocking the sign-up flow if this non-critical step fails
+        }
+    }
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
