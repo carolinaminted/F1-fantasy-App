@@ -557,7 +557,7 @@ const InsightsView: React.FC<{
     }, [users]);
 
     const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
-        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg overflow-hidden border border-pure-white/5">
+        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg border border-pure-white/5">
             <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2 flex-none">
                 <div>
                     <h3 className="text-lg font-bold text-pure-white">{title}</h3>
@@ -565,7 +565,7 @@ const InsightsView: React.FC<{
                 </div>
                 {Icon && <Icon className="w-5 h-5 text-primary-red" />}
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="w-full">
                 {data.length > 0 ? (
                     <div className="space-y-3">
                         {data.map((item, idx) => (
