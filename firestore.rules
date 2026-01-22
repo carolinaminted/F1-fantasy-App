@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -129,6 +130,17 @@ service cloud.firestore {
       allow update: if isSignedIn() 
                     && request.resource.data.status == 'used'
                     && request.resource.data.usedBy == request.auth.uid;
+    }
+
+    // --- System Collections (Admin Access) ---
+    match /email_verifications/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /rate_limits_ip/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /rate_limits/{id} {
+      allow read, write: if isAdmin();
     }
   }
 }

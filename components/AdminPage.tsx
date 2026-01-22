@@ -113,6 +113,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 icon={AdminIcon} 
                 subtitle="League Controls & Configuration"
                 rightAction={HeaderActions}
+                onIconClick={() => setAdminSubPage('database')}
             />
             
             <div className="pb-20 md:pb-12 px-2">
@@ -134,20 +135,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                         delay="100ms"
                     />
                     <AdminTile
-                        icon={DatabaseIcon}
-                        title="Database Manager"
-                        subtitle="System Core"
-                        description="Directly view and edit raw collection data."
-                        onClick={() => setAdminSubPage('database')}
-                        delay="200ms"
-                    />
-                    <AdminTile
                         icon={CalendarIcon}
                         title="Schedule Manager"
                         subtitle="Calendar"
                         description="Set race dates, start times, and session details."
                         onClick={() => setAdminSubPage('schedule')}
-                        delay="300ms"
+                        delay="200ms"
                     />
                      <AdminTile
                         icon={TeamIcon}
@@ -155,7 +148,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                         subtitle="Entities"
                         description="Update the active grid, transfers, and classes."
                         onClick={() => setAdminSubPage('entities')}
-                        delay="400ms"
+                        delay="300ms"
                     />
                     <AdminTile
                         icon={TrophyIcon}
@@ -163,7 +156,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                         subtitle="Rules"
                         description="Configure points awarded for race results."
                         onClick={() => setAdminSubPage('scoring')}
-                        delay="500ms"
+                        delay="400ms"
                     />
                     <AdminTile
                         icon={TicketIcon}
@@ -171,7 +164,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                         subtitle="Onboarding"
                         description="Create and manage registration codes."
                         onClick={() => setAdminSubPage('invitations')}
-                        delay="600ms"
+                        delay="500ms"
                     />
                 </div>
             </div>

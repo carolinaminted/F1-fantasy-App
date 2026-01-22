@@ -275,15 +275,15 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
             {/* JSON Editor Modal */}
             {selectedDoc && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={closeEditor}>
-                    <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+                    <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl w-full md:w-[95vw] md:max-w-[1600px] h-[85vh] md:h-[90vh] flex flex-col shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
                         
                         {/* Header */}
-                        <div className="p-4 border-b border-pure-white/10 bg-carbon-black/50 flex justify-between items-center rounded-t-xl">
-                            <div>
-                                <h3 className="text-lg font-bold text-pure-white">Edit Document</h3>
-                                <p className="text-xs text-highlight-silver font-mono">{selectedCollection} / {selectedDoc.id}</p>
+                        <div className="p-4 border-b border-pure-white/10 bg-carbon-black/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 rounded-t-xl shrink-0">
+                            <div className="min-w-0">
+                                <h3 className="text-xl font-bold text-pure-white">Edit Document</h3>
+                                <p className="text-xs text-highlight-silver font-mono truncate max-w-[300px] md:max-w-none">{selectedCollection} / {selectedDoc.id}</p>
                             </div>
-                            <button onClick={closeEditor} className="text-highlight-silver hover:text-pure-white text-2xl leading-none px-2">&times;</button>
+                            <button onClick={closeEditor} className="absolute top-4 right-4 md:static text-highlight-silver hover:text-pure-white text-3xl leading-none px-2">&times;</button>
                         </div>
 
                         {/* Editor Area */}
@@ -299,37 +299,37 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                     setJsonContent(e.target.value);
                                     setJsonError(null);
                                 }}
-                                className="w-full h-full bg-transparent text-green-400 font-mono text-sm p-4 outline-none resize-none"
+                                className="w-full h-full bg-transparent text-green-400 font-mono text-sm md:text-base leading-relaxed p-4 md:p-6 outline-none resize-none"
                                 spellCheck={false}
                             />
                         </div>
 
                         {/* Footer / Error Bar */}
-                        <div className="p-4 border-t border-pure-white/10 bg-carbon-black/50 flex flex-col md:flex-row justify-between items-center gap-4 rounded-b-xl">
-                            <div className="flex-1">
+                        <div className="p-4 border-t border-pure-white/10 bg-carbon-black/50 flex flex-col md:flex-row justify-between items-center gap-4 rounded-b-xl shrink-0">
+                            <div className="flex-1 w-full md:w-auto">
                                 {jsonError && (
-                                    <p className="text-xs font-bold text-red-500 bg-red-900/20 px-3 py-1 rounded border border-red-500/30">
+                                    <p className="text-xs font-bold text-red-500 bg-red-900/20 px-3 py-2 rounded border border-red-500/30">
                                         Error: {jsonError}
                                     </p>
                                 )}
                                 {!jsonError && (
-                                    <p className="text-xs text-highlight-silver opacity-60">
+                                    <p className="text-xs text-highlight-silver opacity-60 text-center md:text-left">
                                         Valid JSON format required. ID cannot be changed here.
                                     </p>
                                 )}
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 w-full md:w-auto justify-end">
                                 <button
                                     onClick={handleDelete}
                                     disabled={isSaving}
-                                    className="px-4 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 font-bold rounded-lg border border-red-500/30 text-xs uppercase tracking-wider flex items-center gap-2 transition-colors disabled:opacity-50"
+                                    className="px-6 py-3 md:py-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 font-bold rounded-lg border border-red-500/30 text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 flex-1 md:flex-none"
                                 >
                                     <TrashIcon className="w-4 h-4" /> Delete
                                 </button>
                                 <button
                                     onClick={handleSave}
                                     disabled={isSaving || !!jsonError}
-                                    className="px-6 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50"
+                                    className="px-8 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-1 md:flex-none"
                                 >
                                     {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
                                     Save Changes
