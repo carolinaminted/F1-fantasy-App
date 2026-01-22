@@ -39,6 +39,9 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
     const [jsonContent, setJsonContent] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [jsonError, setJsonError] = useState<string | null>(null);
+    
+    // Delete Confirmation State
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const { showToast } = useToast();
 
@@ -79,8 +82,6 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         if (doc.action) return doc.action; // Admin logs
         // App State specifics
         if (selectedCollection === 'app_state') {
-            // race_results doesn't have a name field at root usually, it's a map. 
-            // Just return ID.
             return 'Configuration Document';
         }
         return <span className="text-highlight-silver italic">No Label</span>;
@@ -103,6 +104,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
     // Editor Handlers
     const openEditor = (doc: any) => {
         setSelectedDoc(doc);
+        setConfirmDelete(false); // Reset confirmation state
         // Exclude ID from the editable JSON body to prevent confusion, usually we don't change IDs
         const { id, ...data } = doc;
         setJsonContent(JSON.stringify(data, null, 2));
@@ -113,6 +115,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         setSelectedDoc(null);
         setJsonContent('');
         setJsonError(null);
+        setConfirmDelete(false);
     };
 
     const handleSave = async () => {
@@ -137,21 +140,23 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         }
     };
 
-    const handleDelete = async () => {
-        if (!selectedDoc) return;
-        if (!window.confirm(`Are you sure you want to delete document ${selectedDoc.id}? This cannot be undone.`)) return;
+    const handleDeleteClick = () => {
+        setConfirmDelete(true);
+    };
 
+    const confirmDeletion = async () => {
+        if (!selectedDoc) return;
+        
         setIsSaving(true);
         try {
             await deleteGenericDocument(selectedCollection, selectedDoc.id);
             setDocuments(prev => prev.filter(d => d.id !== selectedDoc.id));
-            showToast("Document deleted.", 'success');
+            showToast("Document deleted successfully.", 'success');
             closeEditor();
         } catch (error) {
             console.error(error);
             showToast("Failed to delete document.", 'error');
-        } finally {
-            setIsSaving(false);
+            setIsSaving(false); // Only reset if failed, otherwise modal closing handles it
         }
     };
 
@@ -306,35 +311,67 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
 
                         {/* Footer / Error Bar */}
                         <div className="p-4 border-t border-pure-white/10 bg-carbon-black/50 flex flex-col md:flex-row justify-between items-center gap-4 rounded-b-xl shrink-0">
-                            <div className="flex-1 w-full md:w-auto">
-                                {jsonError && (
-                                    <p className="text-xs font-bold text-red-500 bg-red-900/20 px-3 py-2 rounded border border-red-500/30">
-                                        Error: {jsonError}
-                                    </p>
-                                )}
-                                {!jsonError && (
-                                    <p className="text-xs text-highlight-silver opacity-60 text-center md:text-left">
-                                        Valid JSON format required. ID cannot be changed here.
-                                    </p>
-                                )}
-                            </div>
-                            <div className="flex gap-3 w-full md:w-auto justify-end">
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={isSaving}
-                                    className="px-6 py-3 md:py-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 font-bold rounded-lg border border-red-500/30 text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 flex-1 md:flex-none"
-                                >
-                                    <TrashIcon className="w-4 h-4" /> Delete
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={isSaving || !!jsonError}
-                                    className="px-8 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-1 md:flex-none"
-                                >
-                                    {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
-                                    Save Changes
-                                </button>
-                            </div>
+                            
+                            {confirmDelete ? (
+                                <>
+                                    <div className="flex-1 w-full md:w-auto text-red-500 font-bold text-sm animate-pulse text-center md:text-left">
+                                        ⚠️ Confirm permanent deletion of {selectedDoc.id}?
+                                    </div>
+                                    <div className="flex gap-3 w-full md:w-auto justify-end">
+                                        <button
+                                            onClick={() => setConfirmDelete(false)}
+                                            disabled={isSaving}
+                                            type="button"
+                                            className="px-6 py-2 bg-transparent border border-highlight-silver text-highlight-silver font-bold rounded-lg text-xs uppercase hover:text-pure-white hover:border-pure-white transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={confirmDeletion}
+                                            disabled={isSaving}
+                                            type="button"
+                                            className="px-6 py-2 bg-red-600 hover:bg-red-500 text-pure-white font-bold rounded-lg shadow-lg text-xs uppercase flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <TrashIcon className="w-4 h-4" />}
+                                            Yes, Delete
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex-1 w-full md:w-auto">
+                                        {jsonError && (
+                                            <p className="text-xs font-bold text-red-500 bg-red-900/20 px-3 py-2 rounded border border-red-500/30">
+                                                Error: {jsonError}
+                                            </p>
+                                        )}
+                                        {!jsonError && (
+                                            <p className="text-xs text-highlight-silver opacity-60 text-center md:text-left">
+                                                Valid JSON format required. ID cannot be changed here.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3 w-full md:w-auto justify-end">
+                                        <button
+                                            onClick={handleDeleteClick}
+                                            disabled={isSaving}
+                                            type="button"
+                                            className="px-6 py-3 md:py-2 bg-red-900/20 hover:bg-red-900/40 text-red-500 font-bold rounded-lg border border-red-500/30 text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 flex-1 md:flex-none"
+                                        >
+                                            <TrashIcon className="w-4 h-4" /> Delete
+                                        </button>
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={isSaving || !!jsonError}
+                                            type="button"
+                                            className="px-8 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-1 md:flex-none"
+                                        >
+                                            {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
