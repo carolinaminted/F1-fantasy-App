@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -47,6 +48,17 @@ service cloud.firestore {
                         && !request.resource.data.diff(resource.data).changedKeys().hasAny(['duesPaidStatus', 'isAdmin'])
                         && isValidUserUpdate(request.resource.data)
                        ) || isAdmin();
+      
+      // Allow admins to delete users (e.g., via Database Manager)
+      allow delete: if isAdmin();
+
+      match /donations/{donationId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId)
+                      && request.resource.data.userId == userId
+                      && request.resource.data.createdAt == request.time;
+        allow update, delete: if false; 
+      }
     }
 
     // --- Public User Profiles (Safe for Leaderboard) ---
@@ -55,7 +67,6 @@ service cloud.firestore {
       allow read: if true;
       
       // Schema Validation: STRICT MODE
-      // Enforces allowed keys whitelist, types, and string length limits.
       function isValidPublicSchema(data) {
         let allowedKeys = ['displayName', 'photoURL', 'totalPoints', 'rank', 'breakdown', 'lastUpdated'];
         
@@ -73,18 +84,26 @@ service cloud.firestore {
         return hasOnlyAllowed && validName && validPhoto && validPoints && validRank && validBreakdown && validTimestamp;
       }
 
-      // System Integrity Check
-      // Users should only be able to update 'displayName' or 'photoURL'.
-      // System fields (points, rank, breakdown) must NOT be touched by client-side user writes.
-      function isUserTouchingSystemFields() {
-         return (resource != null && request.resource.data.diff(resource.data).changedKeys().hasAny(['totalPoints', 'rank', 'breakdown', 'lastUpdated']))
-             || (resource == null && request.resource.data.keys().hasAny(['totalPoints', 'rank', 'breakdown', 'lastUpdated']));
+      // Check if user is trying to update restricted system fields during an UPDATE
+      function isUserUpdatingSystemFields() {
+         return request.resource.data.diff(resource.data).changedKeys().hasAny(['totalPoints', 'rank', 'breakdown', 'lastUpdated']);
       }
       
-      // Only owner or admin can update the public profile
-      allow write: if (isOwner(userId) || isAdmin())
-                   && isValidPublicSchema(request.resource.data)
-                   && (isAdmin() || !isUserTouchingSystemFields());
+      // CREATE: Allow owner to create ONLY if initializing with defaults
+      allow create: if (isOwner(userId) || isAdmin())
+                    && isValidPublicSchema(request.resource.data)
+                    && (isAdmin() || (
+                        request.resource.data.totalPoints == 0 &&
+                        request.resource.data.rank == 999
+                    ));
+
+      // UPDATE: Allow owner to update display info, but NOT system fields
+      allow update: if (isOwner(userId) || isAdmin())
+                    && isValidPublicSchema(request.resource.data)
+                    && (isAdmin() || !isUserUpdatingSystemFields());
+
+      // DELETE: Allow admins to delete public profiles (e.g., via Database Manager)
+      allow delete: if isAdmin();
     }
     
     // --- User Picks ---
@@ -125,6 +144,17 @@ service cloud.firestore {
       allow update: if isSignedIn() 
                     && request.resource.data.status == 'used'
                     && request.resource.data.usedBy == request.auth.uid;
+    }
+
+    // --- System Collections (Admin Access) ---
+    match /email_verifications/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /rate_limits_ip/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /rate_limits/{id} {
+      allow read, write: if isAdmin();
     }
   }
 }

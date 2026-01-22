@@ -9,6 +9,17 @@ import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
 
+// Helper to sanitize user data
+const sanitizeUser = (id: string, data: DocumentData): User => {
+    return {
+        id,
+        ...data,
+        displayName: data.displayName || 'Unknown Team',
+        email: data.email || '',
+        duesPaidStatus: data.duesPaidStatus || 'Unpaid'
+    } as User;
+};
+
 // Cloud Function Wrappers
 export const triggerManualLeaderboardSync = async () => {
     const syncFn = httpsCallable(functions, 'manualLeaderboardSync');
@@ -19,7 +30,7 @@ export const triggerManualLeaderboardSync = async () => {
 export const getUserProfile = async (uid: string): Promise<User | null> => {
     const docRef = doc(db, 'users', uid);
     const snap = await getDoc(docRef);
-    if (snap.exists()) return { id: uid, ...snap.data() } as User;
+    if (snap.exists()) return sanitizeUser(uid, snap.data());
     return null;
 };
 
@@ -32,7 +43,7 @@ export const createUserProfileDocument = async (user: FirebaseUser, additionalDa
         const createdAt = new Date();
         try {
             await setDoc(userRef, {
-                displayName: additionalData.displayName || displayName,
+                displayName: additionalData.displayName || displayName || 'New Team',
                 email,
                 createdAt,
                 ...additionalData
@@ -48,11 +59,28 @@ export const createUserProfileDocument = async (user: FirebaseUser, additionalDa
     const publicSnap = await getDoc(publicRef);
     if (!publicSnap.exists()) {
         await setDoc(publicRef, {
-            displayName: additionalData.displayName || user.displayName,
+            displayName: additionalData.displayName || user.displayName || 'New Team',
             totalPoints: 0,
             rank: 999,
             breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 }
         });
+    }
+
+    // Mark Invitation Code as Used
+    // This connects the code to the specific user and email for Admin tracking
+    if (additionalData.invitationCode) {
+        try {
+            const inviteRef = doc(db, 'invitation_codes', additionalData.invitationCode);
+            await updateDoc(inviteRef, {
+                status: 'used',
+                usedBy: user.uid,
+                usedByEmail: user.email, // Capturing the email for admin records
+                usedAt: serverTimestamp()
+            });
+        } catch (error) {
+            console.warn(`Failed to mark invitation code ${additionalData.invitationCode} as used:`, error);
+            // We do not throw here to prevent blocking the sign-up flow if this non-critical step fails
+        }
     }
 };
 
@@ -134,7 +162,7 @@ export const getAllUsers = async (pageSize = 50, lastDoc: any = null) => {
         q = query(collection(db, 'users'), orderBy('displayName'), startAfter(lastDoc), limit(pageSize));
     }
     const snap = await getDocs(q);
-    const users = snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
+    const users = snap.docs.map(d => sanitizeUser(d.id, d.data()));
     return { users, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
@@ -149,8 +177,7 @@ export const getAllUsersAndPicks = async (pageSize = 50, lastDoc: any = null) =>
     const users: User[] = [];
     
     snap.forEach(d => {
-        const data = d.data();
-        users.push({ id: d.id, displayName: data.displayName, ...data } as User);
+        users.push(sanitizeUser(d.id, d.data()));
     });
 
     // In this implementation, we mostly use public data. 
@@ -199,7 +226,10 @@ export const logDuesPaymentInitiation = async (user: User, amount: number, seaso
 export const getInvitationCodes = async (): Promise<InvitationCode[]> => {
     const ref = collection(db, 'invitation_codes');
     const snap = await getDocs(ref);
-    return snap.docs.map(d => d.data() as InvitationCode);
+    return snap.docs.map(d => ({
+        ...d.data(),
+        code: d.data().code || d.id
+    } as InvitationCode));
 };
 
 export const createInvitationCode = async (createdByUid: string) => {
@@ -271,4 +301,41 @@ export const getAdminLogs = async (eventId?: string): Promise<AdminLogEntry[]> =
         console.error("Failed to fetch logs", e);
         return [];
     }
+};
+
+// --- Generic Database Manager Functions ---
+
+export const getGenericDocuments = async (collectionName: string, pageSize = 20, lastDoc: any = null) => {
+    const colRef = collection(db, collectionName);
+    // Note: We don't know the fields, so we can't reliably sort by 'createdAt' unless we know it exists.
+    // Defaulting to simple limit or sorting by document ID if possible, but Firestore auto-sorts by ID.
+    // For pagination to work, we need an orderBy.
+    let q = query(colRef, limit(pageSize));
+    if (lastDoc) {
+        q = query(colRef, startAfter(lastDoc), limit(pageSize));
+    }
+    
+    const snap = await getDocs(q);
+    const docs = snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
+    
+    return { 
+        docs, 
+        lastDoc: snap.docs[snap.docs.length - 1] 
+    };
+};
+
+export const saveGenericDocument = async (collectionName: string, docId: string, data: any) => {
+    const docRef = doc(db, collectionName, docId);
+    // Use merge: true to avoid overwriting entire doc if we are just patching
+    // But for a full editor save, we might want to replace. 
+    // Let's use set with merge so it creates if not exists but updates otherwise.
+    await setDoc(docRef, data, { merge: true });
+};
+
+export const deleteGenericDocument = async (collectionName: string, docId: string) => {
+    const docRef = doc(db, collectionName, docId);
+    await deleteDoc(docRef);
 };

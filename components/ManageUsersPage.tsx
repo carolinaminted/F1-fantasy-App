@@ -66,8 +66,8 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         }
         const lowercasedTerm = searchTerm.toLowerCase();
         return result.filter(user =>
-            user.displayName.toLowerCase().includes(lowercasedTerm) ||
-            user.email.toLowerCase().includes(lowercasedTerm)
+            (user.displayName || '').toLowerCase().includes(lowercasedTerm) ||
+            (user.email || '').toLowerCase().includes(lowercasedTerm)
         );
     }, [searchTerm, allUsers, filterType]);
 
@@ -182,10 +182,10 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                                 <td className="p-4 align-middle">
                                                     <span className="font-bold text-base md:text-lg text-pure-white group-hover:text-primary-red transition-colors block">{user.displayName}</span>
                                                     {/* Mobile email fallback */}
-                                                    <span className="md:hidden text-xs text-highlight-silver font-mono opacity-70">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
+                                                    <span className="md:hidden text-xs text-highlight-silver font-mono opacity-70">{user.email?.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
                                                 </td>
                                                 <td className="p-4 align-middle hidden md:table-cell">
-                                                    <span className="text-sm text-highlight-silver font-mono">{user.email.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
+                                                    <span className="text-sm text-highlight-silver font-mono">{user.email?.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
                                                 </td>
                                                 <td className="p-4 text-center align-middle">
                                                      <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full border ${

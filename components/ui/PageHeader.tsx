@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface PageHeaderProps {
@@ -6,9 +7,10 @@ interface PageHeaderProps {
     subtitle?: string;
     rightAction?: React.ReactNode;
     leftAction?: React.ReactNode;
+    onIconClick?: () => void;
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, icon: Icon, subtitle, rightAction, leftAction }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, icon: Icon, subtitle, rightAction, leftAction, onIconClick }) => {
     return (
         <div className="relative flex flex-col md:flex-row items-center justify-center py-4 md:py-6 mb-4 md:mb-6 w-full max-w-7xl mx-auto px-4 md:px-0 flex-none">
             
@@ -22,7 +24,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, icon: Icon, subti
             {/* Center Content */}
             <div className="flex flex-col items-center z-10 text-center pointer-events-none">
                 <div className="flex items-center gap-3 mb-1">
-                    <div className="p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] backdrop-blur-sm">
+                    <div 
+                        onClick={onIconClick}
+                        className={`p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] backdrop-blur-sm ${onIconClick ? 'pointer-events-auto cursor-pointer active:scale-95 transition-transform' : ''}`}
+                    >
                         <Icon className="w-6 h-6 md:w-7 md:h-7 text-primary-red" />
                     </div>
                     <h1 className="text-2xl md:text-3xl font-black uppercase italic tracking-wider text-pure-white drop-shadow-md">

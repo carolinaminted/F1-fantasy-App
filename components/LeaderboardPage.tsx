@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -269,9 +270,10 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
 };
 
 const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMore: () => void, isPaging: boolean, onSelectUser?: (user: ProcessedUser) => void }> = ({ users, hasMore, onFetchMore, isPaging, onSelectUser }) => {
-    const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
+    // Safety check: ensure users is defined
+    if (!users || users.length === 0) return null;
 
-    if (users.length === 0) return null;
+    const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
     
     return (
         <div className="w-full py-2 px-1 md:px-2 md:py-4 pt-12 md:pt-16">
@@ -303,6 +305,10 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                             rankColor = "text-orange-400";
                         }
 
+                        // Safe display name handling
+                        const displayName = user.displayName || "Unknown Team";
+                        const shortName = displayName.length > 12 ? `${displayName.substring(0, 12)}...` : displayName;
+
                         return (
                             <div key={user.id} className="flex items-center gap-2 md:gap-3 h-10 md:h-12 group hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors">
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
@@ -310,10 +316,10 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                 </div>
                                 <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
                                     <span className="md:hidden">
-                                        {user.displayName.length > 12 ? `${user.displayName.substring(0, 12)}...` : user.displayName}
+                                        {shortName}
                                     </span>
                                     <span className="hidden md:inline truncate">
-                                        {user.displayName}
+                                        {displayName}
                                     </span>
                                 </div>
                                 <div className="flex-1 relative h-full flex items-center ml-4 md:ml-6 mr-1 md:mr-2">
@@ -632,7 +638,7 @@ const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
                                         {idx + 1}
                                     </span>
                                     <div>
-                                        <span className="font-bold text-pure-white text-lg block">{user.displayName}</span>
+                                        <span className="font-bold text-pure-white text-lg block">{user.displayName || "Unknown"}</span>
                                         <span className="text-xs text-highlight-silver uppercase tracking-wider">Rank #{user.rank || '-'}</span>
                                     </div>
                                 </div>

@@ -10,12 +10,13 @@ import { TicketIcon } from './icons/TicketIcon.tsx';
 import { SyncIcon } from './icons/SyncIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
+import { DatabaseIcon } from './icons/DatabaseIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { triggerManualLeaderboardSync, getLeagueConfig, saveLeagueConfig } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database') => void;
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
@@ -112,6 +113,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 icon={AdminIcon} 
                 subtitle="League Controls & Configuration"
                 rightAction={HeaderActions}
+                onIconClick={() => setAdminSubPage('database')}
             />
             
             <div className="pb-20 md:pb-12 px-2">

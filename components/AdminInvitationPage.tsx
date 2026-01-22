@@ -90,8 +90,8 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'active': return 'bg-green-600/80 text-pure-white shadow-[0_0_10px_rgba(34,197,94,0.3)]';
-            case 'reserved': return 'bg-yellow-500/80 text-carbon-black';
+            case 'active': return 'bg-green-500 text-carbon-black shadow-[0_0_10px_rgba(34,197,94,0.4)]';
+            case 'reserved': return 'bg-yellow-500 text-carbon-black';
             case 'used': return 'bg-carbon-black text-highlight-silver border border-pure-white/20';
             default: return 'bg-carbon-black';
         }
@@ -100,13 +100,14 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     const formatDate = (timestamp: any) => {
         if (!timestamp) return '-';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleDateString();
+        // Matching screenshot format MM/DD/YYYY
+        return date.toLocaleDateString('en-US');
     };
 
     const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/70 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
         >
             <BackIcon className="w-4 h-4" /> 
             <span className="text-sm font-bold">Dashboard</span>
@@ -123,15 +124,15 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                 />
             </div>
 
-            <div className="flex-1 flex flex-col min-h-0 px-4 md:px-0 pb-8">
+            <div className="flex-1 flex flex-col min-h-0 px-2 md:px-0 pb-8">
                 {/* Controls - Fixed Height */}
-                <div className="bg-carbon-fiber backdrop-blur-sm rounded-lg p-4 border border-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center px-4 md:px-0 shadow-lg flex-none">
+                <div className="bg-carbon-fiber/50 backdrop-blur-sm rounded-lg p-4 border border-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center shadow-lg flex-none ring-1 ring-pure-white/5">
                     <div className="flex bg-carbon-black rounded-lg p-1 border border-pure-white/10">
                         {(['all', 'active', 'used'] as const).map(f => (
                             <button 
                                 key={f} 
                                 onClick={() => setFilter(f)}
-                                className={`px-4 py-2 rounded-md text-sm font-bold capitalize transition-colors ${filter === f ? 'bg-primary-red text-pure-white shadow-md' : 'text-highlight-silver hover:text-pure-white'}`}
+                                className={`px-5 py-2 rounded-md text-sm font-bold uppercase transition-all ${filter === f ? 'bg-primary-red text-pure-white shadow-lg' : 'text-highlight-silver hover:text-pure-white hover:bg-white/5'}`}
                             >
                                 {f}
                             </button>
@@ -139,11 +140,11 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                     </div>
 
                     <div className="flex items-center gap-2 bg-carbon-black/50 p-2 rounded-lg border border-pure-white/10">
-                        <span className="text-xs text-highlight-silver font-bold uppercase mr-2">Create</span>
+                        <span className="text-[10px] text-highlight-silver font-black uppercase tracking-widest mr-2 ml-1">Create</span>
                         <select 
                             value={bulkAmount} 
                             onChange={(e) => setBulkAmount(Number(e.target.value))}
-                            className="bg-carbon-black border border-accent-gray text-pure-white text-sm rounded px-2 py-1 focus:ring-1 focus:ring-primary-red outline-none"
+                            className="bg-carbon-black border border-accent-gray text-pure-white text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-primary-red outline-none appearance-none cursor-pointer"
                         >
                             <option value={1}>1 Code</option>
                             <option value={5}>5 Codes</option>
@@ -152,7 +153,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                         <button 
                             onClick={handleCreateCode}
                             disabled={isCreating}
-                            className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-1.5 px-4 rounded text-sm disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20"
+                            className="bg-primary-red hover:bg-red-600 text-pure-white font-black py-2 px-6 rounded-lg text-xs uppercase tracking-widest disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20 active:scale-95"
                         >
                             {isCreating ? 'Generating...' : 'Generate'}
                         </button>
@@ -161,44 +162,44 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
 
                 {/* List Container - Takes Remaining Space */}
                 {isLoading ? <div className="flex-1"><ListSkeleton /></div> : (
-                    <div className="bg-carbon-fiber backdrop-blur-sm rounded-lg border border-pure-white/10 shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+                    <div className="bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-pure-white/5">
                         <div className="overflow-y-auto custom-scrollbar flex-1">
-                            <table className="w-full text-left">
-                                <thead className="bg-carbon-black/90 sticky top-0 z-10 backdrop-blur-md border-b border-pure-white/10">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-carbon-black/80 sticky top-0 z-10 backdrop-blur-md border-b border-pure-white/10">
                                     <tr>
-                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver">Code</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver text-center">Status</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Created</th>
-                                        <th className="p-4 text-xs font-bold uppercase text-highlight-silver hidden md:table-cell">Used By</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest">Code</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Status</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Created</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Used By</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-pure-white/5">
                                     {filteredCodes.map(code => (
                                         <tr 
                                             key={code.code} 
-                                            className="border-t border-pure-white/5 hover:bg-pure-white/5 transition-colors cursor-pointer group"
+                                            className="hover:bg-pure-white/5 transition-colors cursor-pointer group"
                                             onClick={() => setSelectedCodeForDelete(code.code)}
                                         >
-                                            <td className="p-4 font-mono font-bold text-pure-white tracking-wider group-hover:text-primary-red transition-colors">{code.code}</td>
+                                            <td className="p-4 font-mono font-bold text-pure-white tracking-widest group-hover:text-primary-red transition-colors min-w-[200px]">{code.code}</td>
                                             <td className="p-4 text-center">
-                                                <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${getStatusColor(code.status)}`}>
+                                                <span className={`inline-block px-3 py-1 text-[10px] font-black uppercase rounded-lg ${getStatusColor(code.status)}`}>
                                                     {code.status}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-sm text-highlight-silver hidden md:table-cell">{formatDate(code.createdAt)}</td>
-                                            <td className="p-4 hidden md:table-cell">
+                                            <td className="p-4 text-sm text-highlight-silver font-medium text-center">{formatDate(code.createdAt)}</td>
+                                            <td className="p-4 text-center">
                                                 {code.usedByEmail ? (
-                                                    <div className="text-xs">
-                                                        <span className="text-pure-white block font-semibold">{code.usedByEmail}</span>
-                                                        <span className="text-highlight-silver block opacity-70">{formatDate(code.usedAt)}</span>
+                                                    <div className="inline-flex flex-col items-center">
+                                                        <span className="text-pure-white block font-bold text-xs">{code.usedByEmail}</span>
+                                                        <span className="text-[10px] text-highlight-silver block opacity-50 uppercase tracking-tighter">{formatDate(code.usedAt)}</span>
                                                     </div>
-                                                ) : <span className="text-highlight-silver text-xs opacity-50">-</span>}
+                                                ) : <span className="text-highlight-silver text-xs opacity-30 font-bold">-</span>}
                                             </td>
                                         </tr>
                                     ))}
                                     {filteredCodes.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="p-8 text-center text-highlight-silver italic bg-carbon-black/20">No codes found.</td>
+                                            <td colSpan={4} className="p-12 text-center text-highlight-silver italic bg-carbon-black/20 opacity-50 font-bold uppercase tracking-widest">No matching codes found in database.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -216,9 +217,9 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                             <TicketIcon className="w-8 h-8 text-primary-red" />
                         </div>
                         
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Delete Code?</h2>
+                        <h2 className="text-2xl font-bold text-pure-white mb-2 uppercase italic tracking-tighter">Discard Code?</h2>
                         <p className="text-highlight-silver mb-8 text-sm leading-relaxed">
-                            Are you sure you want to permanently delete invitation code <span className="text-pure-white font-mono font-bold">{selectedCodeForDelete}</span>?
+                            Are you sure you want to permanently delete invitation code <span className="text-pure-white font-mono font-bold tracking-wider">{selectedCodeForDelete}</span>?
                             This action cannot be undone.
                         </p>
                         
@@ -235,7 +236,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                                 disabled={isDeleting}
                                 className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 text-xs uppercase"
                             >
-                                Cancel
+                                Abort
                             </button>
                         </div>
                     </div>
