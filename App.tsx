@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -13,6 +14,7 @@ import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
 import ManageSchedulePage from './components/ManageSchedulePage.tsx';
 import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
 import AdminInvitationPage from './components/AdminInvitationPage.tsx';
+import DatabaseManagerPage from './components/DatabaseManagerPage.tsx'; // Import
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
@@ -203,7 +205,7 @@ const App: React.FC = () => {
   const [transitionVariant, setTransitionVariant] = useState(1);
   const [activePage, setActivePage] = useState<Page>('home');
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations'>('dashboard');
+  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -228,7 +230,7 @@ const App: React.FC = () => {
   // 'scoring' and 'results' (ResultsForm) remain scrollable pages for now as they are long forms
   const isLockedLayout = lockedDesktopPages.includes(activePage) || (
       activePage === 'admin' && 
-      ['dashboard', 'invitations', 'entities', 'manage-users', 'schedule'].includes(adminSubPage)
+      ['dashboard', 'invitations', 'entities', 'manage-users', 'schedule', 'database'].includes(adminSubPage)
   );
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
@@ -661,6 +663,8 @@ const App: React.FC = () => {
                 return <ManageSchedulePage setAdminSubPage={setAdminSubPage} existingSchedules={eventSchedules} onScheduleUpdate={handleScheduleUpdate} />;
             case 'invitations':
                 return <AdminInvitationPage setAdminSubPage={setAdminSubPage} user={user} />;
+            case 'database':
+                return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} />;
         }

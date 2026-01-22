@@ -285,3 +285,40 @@ export const getAdminLogs = async (eventId?: string): Promise<AdminLogEntry[]> =
         return [];
     }
 };
+
+// --- Generic Database Manager Functions ---
+
+export const getGenericDocuments = async (collectionName: string, pageSize = 20, lastDoc: any = null) => {
+    const colRef = collection(db, collectionName);
+    // Note: We don't know the fields, so we can't reliably sort by 'createdAt' unless we know it exists.
+    // Defaulting to simple limit or sorting by document ID if possible, but Firestore auto-sorts by ID.
+    // For pagination to work, we need an orderBy.
+    let q = query(colRef, limit(pageSize));
+    if (lastDoc) {
+        q = query(colRef, startAfter(lastDoc), limit(pageSize));
+    }
+    
+    const snap = await getDocs(q);
+    const docs = snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
+    
+    return { 
+        docs, 
+        lastDoc: snap.docs[snap.docs.length - 1] 
+    };
+};
+
+export const saveGenericDocument = async (collectionName: string, docId: string, data: any) => {
+    const docRef = doc(db, collectionName, docId);
+    // Use merge: true to avoid overwriting entire doc if we are just patching
+    // But for a full editor save, we might want to replace. 
+    // Let's use set with merge so it creates if not exists but updates otherwise.
+    await setDoc(docRef, data, { merge: true });
+};
+
+export const deleteGenericDocument = async (collectionName: string, docId: string) => {
+    const docRef = doc(db, collectionName, docId);
+    await deleteDoc(docRef);
+};
