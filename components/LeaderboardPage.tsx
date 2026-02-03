@@ -348,6 +348,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                     {hasMore && (
                         <div className="flex justify-center pt-8">
                             <button 
+                                // Fix: use onFetchMore from props instead of handleFetchMore
                                 onClick={onFetchMore}
                                 disabled={isPaging}
                                 className="bg-carbon-black hover:bg-accent-gray text-pure-white font-bold py-2.5 px-8 rounded-lg border border-pure-white/10 shadow-lg flex items-center gap-3 transition-all transform active:scale-95"
@@ -471,7 +472,7 @@ const PopularityView: React.FC<{
                     <TrendingUpIcon className="w-12 h-12 text-primary-red" />
                 </div>
                 <h3 className="text-xl font-bold text-pure-white mb-2">Analyzing League Trends...</h3>
-                <p className="text-highlight-silver max-w-sm">Fetching and calculating popularity data from the entire league roster.</p>
+                <p className="text-highlight-silver max-sm">Fetching and calculating popularity data from the entire league roster.</p>
             </div>
         );
     }
@@ -1028,12 +1029,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                 rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
               />
               <div className="pb-20 md:pb-12 px-4 md:px-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} />
                       <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="100ms" />
                       <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="200ms" />
                       <NavTile icon={LightbulbIcon} title="Insights" subtitle="Deep Dive" desc="Deep dive into performance breakdowns and superlatives." onClick={() => setView('insights')} delay="300ms" />
-                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the P22 driver most often." onClick={() => setView('p22')} delay="400ms" />
+                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the driver finishing P22 (Last Place) the most often." onClick={() => setView('p22')} delay="400ms" />
                   </div>
               </div>
           </div>

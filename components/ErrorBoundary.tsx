@@ -1,3 +1,4 @@
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
@@ -12,7 +13,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: explicitly extend React.Component with typed props and state to resolve inheritance errors.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -27,6 +29,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   handleReload = () => {
+    // Fix: Accessed via this.props and this.setState correctly.
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -37,6 +40,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render(): ReactNode {
+    // Fix: Accessed via this.state and this.props correctly.
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 
