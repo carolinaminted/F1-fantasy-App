@@ -116,7 +116,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         try {
             const event = events.find(e => e.id === eventId);
             const currentRes = raceResults[eventId] || { 
-                grandPrixFinish: [], gpQualifying: [], fastestLap: null 
+                grandPrixFinish: [], gpQualifying: [], fastestLap: null, p22Driver: null
             };
 
             const changeSummary = generateDiff(currentRes, results);

@@ -331,7 +331,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                     >
                                         <div className="relative group/car">
                                             <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover/car:scale-125`} />
-                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/car:opacity-100 whitespace-nowrap pointer-events-none transition-opacity font-bold uppercase tracking-wider shadow-lg border border-pure-white/10 z-20">
+                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/car:opacity-10 whitespace-nowrap pointer-events-none transition-opacity font-bold uppercase tracking-wider shadow-lg border border-pure-white/10 z-20">
                                                 Inspect
                                             </div>
                                         </div>
@@ -810,6 +810,53 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         return saved ? JSON.parse(saved) : { count: 0, lastRefresh: 0, dayStart: Date.now(), lockedUntil: 0 };
   });
 
+  // Calculate initial cooldown/lockout time
+  const calculateRemainingTime = useCallback(() => {
+        const now = Date.now();
+        if (refreshPolicy.lockedUntil > now) {
+            return Math.ceil((refreshPolicy.lockedUntil - now) / 1000);
+        }
+        const elapsed = (now - refreshPolicy.lastRefresh) / 1000;
+        if (elapsed < REFRESH_COOLDOWN_SECONDS) {
+            return Math.ceil(REFRESH_COOLDOWN_SECONDS - elapsed);
+        }
+        return 0;
+  }, [refreshPolicy]);
+
+  const [cooldownTime, setCooldownTime] = useState(calculateRemainingTime());
+
+  // Check for daily reset on mount/focus to ensure UI is up to date
+  useEffect(() => {
+      const checkPolicyIntegrity = () => {
+          const now = Date.now();
+          const stored = localStorage.getItem('lb_refresh_policy');
+          if (stored) {
+              const p = JSON.parse(stored);
+              
+              // Condition 1: Day has passed (24h window)
+              if (now - p.dayStart > 24 * 60 * 60 * 1000) {
+                  const newP = { count: 0, lastRefresh: 0, dayStart: now, lockedUntil: 0 };
+                  localStorage.setItem('lb_refresh_policy', JSON.stringify(newP));
+                  setRefreshPolicy(newP);
+                  setCooldownTime(0);
+                  return;
+              }
+
+              // Condition 2: Lockout has expired but day hasn't reset (Edge case correction)
+              if (p.lockedUntil > 0 && now > p.lockedUntil) {
+                   const newP = { ...p, lockedUntil: 0 };
+                   localStorage.setItem('lb_refresh_policy', JSON.stringify(newP));
+                   setRefreshPolicy(newP);
+                   setCooldownTime(0);
+              }
+          }
+      };
+
+      checkPolicyIntegrity();
+      window.addEventListener('focus', checkPolicyIntegrity);
+      return () => window.removeEventListener('focus', checkPolicyIntegrity);
+  }, []);
+
   // Fetch Picks on Modal Open if needed
   useEffect(() => {
     if (selectedUserProfile) {
@@ -836,21 +883,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         setModalPicks(null);
     }
   }, [selectedUserProfile, leaderboardCache]);
-
-  // Calculate initial cooldown/lockout time
-  const calculateRemainingTime = useCallback(() => {
-        const now = Date.now();
-        if (refreshPolicy.lockedUntil > now) {
-            return Math.ceil((refreshPolicy.lockedUntil - now) / 1000);
-        }
-        const elapsed = (now - refreshPolicy.lastRefresh) / 1000;
-        if (elapsed < REFRESH_COOLDOWN_SECONDS) {
-            return Math.ceil(REFRESH_COOLDOWN_SECONDS - elapsed);
-        }
-        return 0;
-  }, [refreshPolicy]);
-
-  const [cooldownTime, setCooldownTime] = useState(calculateRemainingTime());
 
   // [S1A-03] Extract scoring transformations out of React Effects
   const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
