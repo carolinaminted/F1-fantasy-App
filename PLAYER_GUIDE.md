@@ -61,8 +61,8 @@ You'll need an **Invitation Code** from the League Administrator.
 
 If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing the Picks screen.
 
-> **📸 Screenshot 4: "Pit Lane Closed" Warning**
-> Show the red overlay with the dues warning and instructions.
+<img width="532" height="449" alt="image" src="https://github.com/user-attachments/assets/099bfb14-2641-45ed-81c6-36759aebf49d" />
+
 
 ### How to Pay:
 
@@ -72,8 +72,8 @@ If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing th
 4. Complete payment via **PayPal**
 5. Once an Admin approves your payment, you're cleared immediately
 
-> **📸 Screenshot 5: Dues Payment Screen**
-> Show the payment amount, memo field with copy button, and PayPal button.
+<img width="700" height="610" alt="image" src="https://github.com/user-attachments/assets/3022ec61-25bc-4bb1-bf1c-0e0765ea9a2c" />
+
 
 ---
 
