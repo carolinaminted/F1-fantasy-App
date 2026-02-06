@@ -20,6 +20,7 @@ Welcome to the Lights Out League! This guide covers everything you need to get r
 Desktop:
 
 <img width="245" height="315" alt="image" src="https://github.com/user-attachments/assets/8ebeb281-e2c5-40cb-b0f7-4ffc937a401b" />
+
 <br>
 
 Mobile:
