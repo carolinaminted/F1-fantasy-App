@@ -6,16 +6,25 @@ Welcome to the Lights Out League! This guide covers everything you need to get r
 
 ## Quick Reference: Navigation
 
-| Icon | Name | What It Does |
-|------|------|--------------|
-| 🏠 Dashboard | Home | Your race weekend command center |
-| 🎯 Steering Wheel | Picks | Submit your team selections |
-| 🏆 Podium | Leaderboard | View standings and stats |
-| 🏁 Flag | League Hub | Pay dues, league info |
-| 🪖 Helmet | Profile | Your stats and pick history |
+## Quick Reference: Navigation
 
-> **📸 Screenshot 1: Bottom Navigation Bar (Mobile)**
-> Show the 5 navigation icons clearly labeled. This is the first thing users need to understand.
+| Icon | Name | What It Does |
+|---|---|---|
+| 🟥 (pixel logo) | User/Account Badge | Shows logged-in identity, rank, and points. |
+| 🏠 | Home | Main landing page / overview. |
+| 👤 | Profile | Your account details, identity, and personal stats/history. |
+| 📄 | GP Picks | Submit or review Grand Prix picks. |
+| 📊 | Leaderboard | View rankings, points, and performance. |
+| 👥 | League | League settings/info, members, and league-related actions. |
+
+Desktop:
+
+<img width="456" height="637" alt="image" src="https://github.com/user-attachments/assets/8ebeb281-e2c5-40cb-b0f7-4ffc937a401b" />
+
+
+Mobile:
+<img width="665" height="105" alt="image" src="https://github.com/user-attachments/assets/a7487701-d276-4a9d-a2f0-24b621d22c97" />
+
 
 ---
 
