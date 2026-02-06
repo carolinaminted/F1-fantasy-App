@@ -104,8 +104,7 @@ This is the core gameplay. **Submit before the lock-in time** (usually Qualifyin
 
 - ✅ You can **edit picks unlimited times** before the countdown hits `00:00`
 - ❌ Once locked, **no changes** — the form is sealed for fairness
-- ⏱️ The countdown shows time remaining until lock-in
-
+  
 ---
 
 ## 4. Viewing the Leaderboard
