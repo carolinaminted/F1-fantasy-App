@@ -6,8 +6,6 @@ Welcome to the Lights Out League! This guide covers everything you need to get r
 
 ## Quick Reference: Navigation
 
-## Quick Reference: Navigation
-
 | Icon | Name | What It Does |
 |---|---|---|
 | 🟥 (pixel logo) | User/Account Badge | Shows logged-in identity, rank, and points. |
