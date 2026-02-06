@@ -51,7 +51,7 @@ You'll need an **Invitation Code** from the League Administrator.
 <img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/88960f4d-6e0e-4114-8846-fab64a26d199" />
 <img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/b00f2e25-2a7d-4513-9435-04b99f2db293" />
 <img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/a900bb55-36ce-4535-93a5-4867dccca045" />
-<img width="525" height="570" alt="image" src="https://github.com/user-attachments/assets/bb3677c9-64a2-4a9d-b746-e06a75bb7eec" />
+<img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/bb3677c9-64a2-4a9d-b746-e06a75bb7eec" />
 
 ---
 
