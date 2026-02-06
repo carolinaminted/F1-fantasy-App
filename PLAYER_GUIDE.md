@@ -137,11 +137,9 @@ View your personal stats and pick history.
    - **Dues Status**
 3. Scroll down for **Pick History** — tap any past race to expand
 
-> **📸 Screenshot 10: Profile Page (Top Section)**
-> Show the user's name, team name, total points, and breakdown cards.
+<img width="2000" height="800" alt="image" src="https://github.com/user-attachments/assets/7a6097cd-c4d7-42d8-8f73-6aab89039260" />
+<img width="2000" height="800" alt="image" src="https://github.com/user-attachments/assets/37b69fc3-1d71-47be-bf28-2221d93e59c6" />
 
-> **📸 Screenshot 11: Pick History (Expanded Race)**
-> Show an expanded past race card with the user's selections visible.
 
 ---
 
