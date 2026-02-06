@@ -8,7 +8,7 @@ Welcome to the Lights Out League! This guide covers everything you need to get r
 
 | Icon | Name | What It Does |
 |---|---|---|
-| 🟥 (pixel logo) | User/Account Badge | Shows logged-in identity, rank, and points. |
+| 🟥 | User/Account Badge | Shows logged-in identity, rank, and points. |
 | 🏠 | Home | Main landing page / overview. |
 | 👤 | Profile | Your account details, identity, and personal stats/history. |
 | 📄 | GP Picks | Submit or review Grand Prix picks. |
@@ -31,6 +31,12 @@ Mobile:
 ## 1. Getting Started: Registration
 
 You'll need an **Invitation Code** from the League Administrator.
+
+### 1) Accessing the site
+
+- Open the site URL in a modern browser (mobile or desktop).
+
+Website URL —> f1.carolinaminted.net
 
 ### Step-by-Step:
 
