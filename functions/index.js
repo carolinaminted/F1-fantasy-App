@@ -267,7 +267,7 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   });
 
   // Security Fix: Demo Mode Code Exposure in Production
-  // Only in dev/test environments - remove from production bundle
+  // Only in dev/test environments - remove from production bundle 
   if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_MODE === 'true') {
       return { success: true, demoMode: true, code: code };
   }

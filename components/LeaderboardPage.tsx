@@ -331,7 +331,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                                     >
                                         <div className="relative group/car">
                                             <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover/car:scale-125`} />
-                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/car:opacity-100 whitespace-nowrap pointer-events-none transition-opacity font-bold uppercase tracking-wider shadow-lg border border-pure-white/10 z-20">
+                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/car:opacity-10 whitespace-nowrap pointer-events-none transition-opacity font-bold uppercase tracking-wider shadow-lg border border-pure-white/10 z-20">
                                                 Inspect
                                             </div>
                                         </div>
@@ -348,6 +348,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                     {hasMore && (
                         <div className="flex justify-center pt-8">
                             <button 
+                                // Fix: use onFetchMore from props instead of handleFetchMore
                                 onClick={onFetchMore}
                                 disabled={isPaging}
                                 className="bg-carbon-black hover:bg-accent-gray text-pure-white font-bold py-2.5 px-8 rounded-lg border border-pure-white/10 shadow-lg flex items-center gap-3 transition-all transform active:scale-95"
@@ -471,7 +472,7 @@ const PopularityView: React.FC<{
                     <TrendingUpIcon className="w-12 h-12 text-primary-red" />
                 </div>
                 <h3 className="text-xl font-bold text-pure-white mb-2">Analyzing League Trends...</h3>
-                <p className="text-highlight-silver max-w-sm">Fetching and calculating popularity data from the entire league roster.</p>
+                <p className="text-highlight-silver max-sm">Fetching and calculating popularity data from the entire league roster.</p>
             </div>
         );
     }
@@ -557,7 +558,7 @@ const InsightsView: React.FC<{
     }, [users]);
 
     const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
-        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg overflow-hidden border border-pure-white/5">
+        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg border border-pure-white/5">
             <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2 flex-none">
                 <div>
                     <h3 className="text-lg font-bold text-pure-white">{title}</h3>
@@ -565,7 +566,7 @@ const InsightsView: React.FC<{
                 </div>
                 {Icon && <Icon className="w-5 h-5 text-primary-red" />}
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="w-full">
                 {data.length > 0 ? (
                     <div className="space-y-3">
                         {data.map((item, idx) => (
@@ -809,6 +810,53 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         return saved ? JSON.parse(saved) : { count: 0, lastRefresh: 0, dayStart: Date.now(), lockedUntil: 0 };
   });
 
+  // Calculate initial cooldown/lockout time
+  const calculateRemainingTime = useCallback(() => {
+        const now = Date.now();
+        if (refreshPolicy.lockedUntil > now) {
+            return Math.ceil((refreshPolicy.lockedUntil - now) / 1000);
+        }
+        const elapsed = (now - refreshPolicy.lastRefresh) / 1000;
+        if (elapsed < REFRESH_COOLDOWN_SECONDS) {
+            return Math.ceil(REFRESH_COOLDOWN_SECONDS - elapsed);
+        }
+        return 0;
+  }, [refreshPolicy]);
+
+  const [cooldownTime, setCooldownTime] = useState(calculateRemainingTime());
+
+  // Check for daily reset on mount/focus to ensure UI is up to date
+  useEffect(() => {
+      const checkPolicyIntegrity = () => {
+          const now = Date.now();
+          const stored = localStorage.getItem('lb_refresh_policy');
+          if (stored) {
+              const p = JSON.parse(stored);
+              
+              // Condition 1: Day has passed (24h window)
+              if (now - p.dayStart > 24 * 60 * 60 * 1000) {
+                  const newP = { count: 0, lastRefresh: 0, dayStart: now, lockedUntil: 0 };
+                  localStorage.setItem('lb_refresh_policy', JSON.stringify(newP));
+                  setRefreshPolicy(newP);
+                  setCooldownTime(0);
+                  return;
+              }
+
+              // Condition 2: Lockout has expired but day hasn't reset (Edge case correction)
+              if (p.lockedUntil > 0 && now > p.lockedUntil) {
+                   const newP = { ...p, lockedUntil: 0 };
+                   localStorage.setItem('lb_refresh_policy', JSON.stringify(newP));
+                   setRefreshPolicy(newP);
+                   setCooldownTime(0);
+              }
+          }
+      };
+
+      checkPolicyIntegrity();
+      window.addEventListener('focus', checkPolicyIntegrity);
+      return () => window.removeEventListener('focus', checkPolicyIntegrity);
+  }, []);
+
   // Fetch Picks on Modal Open if needed
   useEffect(() => {
     if (selectedUserProfile) {
@@ -835,21 +883,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
         setModalPicks(null);
     }
   }, [selectedUserProfile, leaderboardCache]);
-
-  // Calculate initial cooldown/lockout time
-  const calculateRemainingTime = useCallback(() => {
-        const now = Date.now();
-        if (refreshPolicy.lockedUntil > now) {
-            return Math.ceil((refreshPolicy.lockedUntil - now) / 1000);
-        }
-        const elapsed = (now - refreshPolicy.lastRefresh) / 1000;
-        if (elapsed < REFRESH_COOLDOWN_SECONDS) {
-            return Math.ceil(REFRESH_COOLDOWN_SECONDS - elapsed);
-        }
-        return 0;
-  }, [refreshPolicy]);
-
-  const [cooldownTime, setCooldownTime] = useState(calculateRemainingTime());
 
   // [S1A-03] Extract scoring transformations out of React Effects
   const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
@@ -1028,12 +1061,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                 rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
               />
               <div className="pb-20 md:pb-12 px-4 md:px-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} />
                       <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="100ms" />
                       <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="200ms" />
                       <NavTile icon={LightbulbIcon} title="Insights" subtitle="Deep Dive" desc="Deep dive into performance breakdowns and superlatives." onClick={() => setView('insights')} delay="300ms" />
-                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the P22 driver most often." onClick={() => setView('p22')} delay="400ms" />
+                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the driver finishing P22 (Last Place) the most often." onClick={() => setView('p22')} delay="400ms" />
                   </div>
               </div>
           </div>
