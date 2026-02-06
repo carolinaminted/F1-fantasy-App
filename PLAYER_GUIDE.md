@@ -36,7 +36,7 @@ You'll need an **Invitation Code** from the League Administrator.
 
 - Open the site URL in a modern browser (mobile or desktop).
 
-Website URL —> f1.carolinaminted.net
+Website URL —> [Lights Out League Landing Page](f1.carolinaminted.net)
 
 ### Step-by-Step:
 
