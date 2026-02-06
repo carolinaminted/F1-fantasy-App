@@ -26,21 +26,21 @@ You'll need an **Invitation Code** from the League Administrator.
 ### Step-by-Step:
 
 1. Open the Lights Out League website
-2. Enter your **Invitation Code** (format: `LOL-XXXX-XXXX`)
-3. Tap **Validate Code**
-4. Enter your **Email Address** → Tap **Send Verification Code**
-5. Check your inbox for a 6-digit code → Enter it on screen
-6. Fill in your details:
+2. Select Sign Up
+4. Enter your **Invitation Code** (format: `LOL-XXXX-XXXX`)
+5. Tap **Validate Code**
+6. Enter your **Email Address** → Tap **Send Verification Code**
+7. Check your inbox for a 6-digit code → Enter it on screen
+8. Fill in your details:
    - First Name & Last Name
    - **Team Name** (this is your racing alias — be creative!)
    - Password
-7. Tap **Complete Registration**
+9. Tap **Complete Registration**
 
-> **📸 Screenshot 2: Invitation Code Entry Screen**
-> Show the code input field with the `LOL-XXXX-XXXX` placeholder format visible.
-
-> **📸 Screenshot 3: Registration Details Form**
-> Show the final form with Name, Team Name, and Password fields.
+<img width="572" height="527" alt="image" src="https://github.com/user-attachments/assets/88960f4d-6e0e-4114-8846-fab64a26d199" />
+<img width="513" height="461" alt="image" src="https://github.com/user-attachments/assets/b00f2e25-2a7d-4513-9435-04b99f2db293" />
+<img width="499" height="420" alt="image" src="https://github.com/user-attachments/assets/a900bb55-36ce-4535-93a5-4867dccca045" />
+<img width="472" height="626" alt="image" src="https://github.com/user-attachments/assets/bb3677c9-64a2-4a9d-b746-e06a75bb7eec" />
 
 ---
 
@@ -82,17 +82,14 @@ This is the core gameplay. **Submit before the lock-in time** (usually Qualifyin
 
 ### How to Submit:
 
-1. Tap **Picks** (Steering Wheel icon)
+1. Tap **Picks**
 2. Select the **Event** from the dropdown (if not auto-selected)
 3. Make your selections for Teams, Drivers, and Fastest Lap
 4. Review your choices
 5. Tap **Lock In Picks** (big red button)
 
-> **📸 Screenshot 6: Picks Form Overview**
-> Show the full form with Team and Driver selection cards visible.
+><img width="2000" height="800" alt="Screenshot 2026-01-16 212404" src="https://github.com/user-attachments/assets/b3f28a6a-eab8-4fff-bc76-41f411e62adb" />
 
-> **📸 Screenshot 7: Lock In Button + Countdown Timer**
-> Show the bottom of the form with the countdown timer and red Lock In button.
 
 ### Important Notes:
 
@@ -118,11 +115,8 @@ Track your performance against the competition.
 | **Insights** | Deep stats and superlatives |
 | **Teams & Drivers** | Real-world results with league scoring |
 
-> **📸 Screenshot 8: Leaderboard Hub (Nav Tiles)**
-> Show the four navigation tiles for Standings, Popular Picks, Insights, Teams & Drivers.
+<img width="1126" height="610" alt="image" src="https://github.com/user-attachments/assets/14d1d9af-6730-49ab-929d-bd66c6e39d27" />
 
-> **📸 Screenshot 9: Standings View**
-> Show the ranked list of players with points.
 
 ### Refreshing Scores:
 
