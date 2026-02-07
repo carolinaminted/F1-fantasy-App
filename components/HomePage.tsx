@@ -1,4 +1,3 @@
-
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState } from 'react';
 import PicksForm from './PicksForm.tsx';
@@ -62,8 +61,9 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   const isDuesPaid = user.duesPaidStatus === 'Paid';
 
   // Selector Component extracted for cleaner render in PageHeader
+  // Updated: Changed md:w-80 to md:w-64 for better alignment and header space conservation.
   const EventSelector = (
-      <div className="relative w-full md:w-80">
+      <div className="relative w-full md:w-64">
           <label htmlFor="event-selector" className="sr-only">Select Event</label>
           <select
               id="event-selector"
@@ -78,7 +78,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                   const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
                   return (
                       <option key={event.id} value={event.id}>
-                         {isLocked ? '🔒' : '🟢'} Round {event.round}: {event.name}
+                         {isLocked ? '🔒' : '🟢'} R{event.round}: {event.name}
                       </option>
                   );
               })}

@@ -107,8 +107,9 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
         </button>
     );
 
+    // Updated: Reduced width to md:w-64 for consistent PageHeader spacing.
     const SearchBar = (
-        <div className="relative w-full md:w-72" ref={dropdownRef}>
+        <div className="relative w-full md:w-64" ref={dropdownRef}>
             <div className="relative group">
                 <input
                     type="text"

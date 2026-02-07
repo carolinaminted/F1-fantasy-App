@@ -222,7 +222,8 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                         <FilterButton label="Pending" value="pending" current={filter} onClick={setFilter} />
                     </div>
 
-                    <div className="relative w-full md:w-80">
+                    {/* Updated: Reduced width to md:w-64 for consistency. */}
+                    <div className="relative w-full md:w-64">
                         <select
                             value={selectedEventId}
                             onChange={(e) => setSelectedEventId(e.target.value)}
@@ -293,7 +294,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                             ) : (
                                 <div className="divide-y divide-pure-white/5">
                                     {auditLogs.map(log => {
-                                        const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date();
+                                        const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
                                         return (
                                             <div key={log.id} className="p-4 hover:bg-pure-white/5 transition-colors">
                                                 <div className="flex justify-between items-start mb-1">

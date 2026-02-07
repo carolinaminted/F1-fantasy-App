@@ -12,9 +12,9 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Explicitly use React.Component to ensure proper type resolution for state, props, and setState inherited properties
+// Fix: Explicitly use React.Component to ensure proper inheritance and type resolution for state, props, and setState
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly declare and initialize the state property to satisfy TypeScript's existence checks on this.state
+  // Fix: Explicitly declare and initialize the state property inherited from React.Component
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -33,10 +33,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   handleReload = () => {
-    // Fix: Accessing this.props in an arrow function correctly through React.Component extension
+    // Fix: Correctly access this.props which is defined on the React.Component base class
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Use this.setState inherited from React.Component to clear error state
+        // Fix: Correctly call this.setState which is defined on the React.Component base class
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -45,7 +45,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   render(): ReactNode {
-    // Fix: Accessing this.state and this.props correctly within the render method of the class component
+    // Fix: Correctly access this.state and this.props which are defined on the React.Component base class
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 
@@ -68,26 +68,4 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           
           <div className="bg-carbon-black/80 p-4 rounded-lg border border-red-500/20 max-w-lg w-full mb-8 overflow-hidden text-left shadow-inner">
              <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider mb-1">Telemetry Data:</p>
-             <p className="text-xs font-mono text-red-400 break-words">
-                {error?.toString() || "Unknown Critical Failure"}
-             </p>
-          </div>
-
-          <button
-            onClick={this.handleReload}
-            className="group relative bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg shadow-lg transition-all transform hover:scale-105 overflow-hidden"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-                BOX BOX (RELOAD)
-            </span>
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
-          </button>
-        </div>
-      );
-    }
-
-    return children;
-  }
-}
-
-export default ErrorBoundary;
+             <p className="text-xs font-mono text-red-
