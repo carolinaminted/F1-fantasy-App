@@ -277,11 +277,40 @@ exports.sendAuthCode = onCall({ cors: true }, async (request) => {
   }
 
   const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailEmail, pass: gmailPassword } });
+  
+  // Updated Email Template with "Lights Out League" branding and carbon fiber styling
+  const htmlContent = `
+    <div style="background-color: #0A0A0A; color: #F5F5F5; font-family: 'Arial', sans-serif; padding: 40px; text-align: center; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #2C2C2C;">
+      <div style="margin-bottom: 40px;">
+        <!-- Logo Approximation -->
+        <div style="font-size: 36px; font-weight: 900; font-style: italic; line-height: 1; letter-spacing: -1px; margin-bottom: 5px;">
+          <span style="color: #DA291C;">LIGHTS</span> <span style="color: #FFFFFF;">OUT</span>
+        </div>
+        <div style="font-size: 14px; font-weight: 400; letter-spacing: 0.4em; color: #FFFFFF;">
+          LEAGUE
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 25px; font-size: 16px; color: #C0C0C0;">
+        Your verification code is:
+      </div>
+      
+      <div style="background-color: #1a1a1a; color: #FFFFFF; font-size: 42px; font-weight: bold; letter-spacing: 8px; padding: 25px; border-radius: 8px; border: 1px solid #DA291C; display: inline-block; margin-bottom: 30px; box-shadow: 0 0 15px rgba(218, 41, 28, 0.2);">
+        ${code}
+      </div>
+      
+      <div style="font-size: 12px; color: #666666; margin-top: 20px; border-top: 1px solid #333333; padding-top: 20px;">
+        This code expires in 10 minutes.<br/>
+        If you didn't request this, please ignore this email.
+      </div>
+    </div>
+  `;
+
   await transporter.sendMail({
-    from: `"F1 Fantasy League" <${gmailEmail}>`,
+    from: `"Lights Out League" <${gmailEmail}>`,
     to: email,
     subject: "Your Verification Code",
-    html: `<div style="font-family: sans-serif; padding: 20px;"><h2 style="color: #DA291C;">F1 Fantasy One</h2><p>Code: <strong style="font-size: 24px;">${code}</strong></p></div>`
+    html: htmlContent
   });
   return { success: true };
 });

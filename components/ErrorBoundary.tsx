@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -12,16 +12,13 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Fix: Explicitly use React.Component to ensure proper inheritance and type resolution for state, props, and setState
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly declare and initialize the state property inherited from React.Component
-  state: ErrorBoundaryState = {
-    hasError: false,
-    error: null
-  };
-
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    this.state = {
+      hasError: false,
+      error: null
+    };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -33,10 +30,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   handleReload = () => {
-    // Fix: Correctly access this.props which is defined on the React.Component base class
     const { onReset } = this.props;
     if (onReset) {
-        // Fix: Correctly call this.setState which is defined on the React.Component base class
         this.setState({ hasError: false, error: null });
         onReset();
     } else {
@@ -45,7 +40,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   render(): ReactNode {
-    // Fix: Correctly access this.state and this.props which are defined on the React.Component base class
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 
