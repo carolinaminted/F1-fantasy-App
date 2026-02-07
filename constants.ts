@@ -74,7 +74,7 @@ export const EVENTS: Event[] = [
 
 export const USAGE_LIMITS = {
   [EntityClass.A]: { teams: 10, drivers: 8 },
-  [EntityClass.B]: { teams: 5, drivers: 5 },
+  [EntityClass.B]: { teams: 4, drivers: 4 },
 };
 
 // Fix: Imported PointsSystem to resolve "Cannot find name 'PointsSystem'" error.

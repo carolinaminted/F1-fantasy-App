@@ -7,24 +7,15 @@ Welcome to the Lights Out League! This guide covers everything you need to get r
 ## Quick Reference: Navigation
 
 | Icon | Name | What It Does |
-|---|---|---|
-| 🟥 | User/Account Badge | Shows logged-in identity, rank, and points. |
-| 🏠 | Home | Main landing page / overview. |
-| 👤 | Profile | Your account details, identity, and personal stats/history. |
-| 📄 | GP Picks | Submit or review Grand Prix picks. |
-| 📊 | Leaderboard | View rankings, points, and performance. |
-| 👥 | League | League settings/info, members, and league-related actions. |
+|------|------|--------------|
+| 🏠 Dashboard | Home | Your race weekend command center |
+| 🎯 Steering Wheel | Picks | Submit your team selections |
+| 🏆 Podium | Leaderboard | View standings and stats |
+| 🏁 Flag | League Hub | Pay dues, league info |
+| 🪖 Helmet | Profile | Your stats and pick history |
 
-Desktop:
-
-<img width="245" height="315" alt="image" src="https://github.com/user-attachments/assets/8ebeb281-e2c5-40cb-b0f7-4ffc937a401b" />
-
-<br>
-
-Mobile:
-
-<img width="300" height="80" alt="image" src="https://github.com/user-attachments/assets/a7487701-d276-4a9d-a2f0-24b621d22c97" />
-
+> **📸 Screenshot 1: Bottom Navigation Bar (Mobile)**
+> Show the 5 navigation icons clearly labeled. This is the first thing users need to understand.
 
 ---
 
@@ -32,30 +23,24 @@ Mobile:
 
 You'll need an **Invitation Code** from the League Administrator.
 
-### 1) Accessing the site
-
-- Open the site URL in a modern browser (mobile or desktop).
-
-Website URL —> [Lights Out League Landing Page](f1.carolinaminted.net)
-
 ### Step-by-Step:
 
 1. Open the Lights Out League website
-2. Select Sign Up
-4. Enter your **Invitation Code** (format: `LOL-XXXX-XXXX`)
-5. Tap **Validate Code**
-6. Enter your **Email Address** → Tap **Send Verification Code**
-7. Check your inbox for a 6-digit code → Enter it on screen
-8. Fill in your details:
+2. Enter your **Invitation Code** (format: `LOL-XXXX-XXXX`)
+3. Tap **Validate Code**
+4. Enter your **Email Address** → Tap **Send Verification Code**
+5. Check your inbox for a 6-digit code → Enter it on screen
+6. Fill in your details:
    - First Name & Last Name
    - **Team Name** (this is your racing alias — be creative!)
    - Password
-9. Tap **Complete Registration**
+7. Tap **Complete Registration**
 
-<img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/88960f4d-6e0e-4114-8846-fab64a26d199" />
-<img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/b00f2e25-2a7d-4513-9435-04b99f2db293" />
-<img width="570" height="525" alt="image" src="https://github.com/user-attachments/assets/a900bb55-36ce-4535-93a5-4867dccca045" />
-<img width="570" height="750" alt="image" src="https://github.com/user-attachments/assets/bb3677c9-64a2-4a9d-b746-e06a75bb7eec" />
+> **📸 Screenshot 2: Invitation Code Entry Screen**
+> Show the code input field with the `LOL-XXXX-XXXX` placeholder format visible.
+
+> **📸 Screenshot 3: Registration Details Form**
+> Show the final form with Name, Team Name, and Password fields.
 
 ---
 
@@ -65,8 +50,8 @@ Website URL —> [Lights Out League Landing Page](f1.carolinaminted.net)
 
 If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing the Picks screen.
 
-<img width="532" height="449" alt="image" src="https://github.com/user-attachments/assets/099bfb14-2641-45ed-81c6-36759aebf49d" />
-
+> **📸 Screenshot 4: "Pit Lane Closed" Warning**
+> Show the red overlay with the dues warning and instructions.
 
 ### How to Pay:
 
@@ -76,8 +61,8 @@ If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing th
 4. Complete payment via **PayPal**
 5. Once an Admin approves your payment, you're cleared immediately
 
-<img width="700" height="610" alt="image" src="https://github.com/user-attachments/assets/3022ec61-25bc-4bb1-bf1c-0e0765ea9a2c" />
-
+> **📸 Screenshot 5: Dues Payment Screen**
+> Show the payment amount, memo field with copy button, and PayPal button.
 
 ---
 
@@ -97,20 +82,24 @@ This is the core gameplay. **Submit before the lock-in time** (usually Qualifyin
 
 ### How to Submit:
 
-1. Tap **Picks**
+1. Tap **Picks** (Steering Wheel icon)
 2. Select the **Event** from the dropdown (if not auto-selected)
 3. Make your selections for Teams, Drivers, and Fastest Lap
 4. Review your choices
 5. Tap **Lock In Picks** (big red button)
 
-><img width="2000" height="800" alt="Screenshot 2026-01-16 212404" src="https://github.com/user-attachments/assets/b3f28a6a-eab8-4fff-bc76-41f411e62adb" />
+> **📸 Screenshot 6: Picks Form Overview**
+> Show the full form with Team and Driver selection cards visible.
 
+> **📸 Screenshot 7: Lock In Button + Countdown Timer**
+> Show the bottom of the form with the countdown timer and red Lock In button.
 
 ### Important Notes:
 
 - ✅ You can **edit picks unlimited times** before the countdown hits `00:00`
 - ❌ Once locked, **no changes** — the form is sealed for fairness
-  
+- ⏱️ The countdown shows time remaining until lock-in
+
 ---
 
 ## 4. Viewing the Leaderboard
@@ -129,8 +118,11 @@ Track your performance against the competition.
 | **Insights** | Deep stats and superlatives |
 | **Teams & Drivers** | Real-world results with league scoring |
 
-<img width="1126" height="610" alt="image" src="https://github.com/user-attachments/assets/14d1d9af-6730-49ab-929d-bd66c6e39d27" />
+> **📸 Screenshot 8: Leaderboard Hub (Nav Tiles)**
+> Show the four navigation tiles for Standings, Popular Picks, Insights, Teams & Drivers.
 
+> **📸 Screenshot 9: Standings View**
+> Show the ranked list of players with points.
 
 ### Refreshing Scores:
 
@@ -151,10 +143,11 @@ View your personal stats and pick history.
    - **Dues Status**
 3. Scroll down for **Pick History** — tap any past race to expand
 
-<img width="2000" height="800" alt="image" src="https://github.com/user-attachments/assets/7a6097cd-c4d7-42d8-8f73-6aab89039260" />
-<img width="3777" height="1760" alt="image" src="https://github.com/user-attachments/assets/f5177442-201c-472a-ae4e-3bbd6653b303" />
+> **📸 Screenshot 10: Profile Page (Top Section)**
+> Show the user's name, team name, total points, and breakdown cards.
 
-
+> **📸 Screenshot 11: Pick History (Expanded Race)**
+> Show an expanded past race card with the user's selections visible.
 
 ---
 
