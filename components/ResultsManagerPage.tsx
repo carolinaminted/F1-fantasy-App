@@ -1,13 +1,14 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver, PointsSystem, Constructor, AdminLogEntry } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
-import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { HistoryIcon } from './icons/HistoryIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { logAdminAction, getAdminLogs } from '../services/firestoreService.ts';
+import { EventSelector } from './ui/EventSelector.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
@@ -23,11 +24,8 @@ interface ResultsManagerPageProps {
     adminName: string;
 }
 
-type FilterType = 'all' | 'added' | 'pending';
-
 const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, allConstructors, formLocks, onToggleLock, activePointsSystem, events, adminId, adminName }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
-    const [filter, setFilter] = useState<FilterType>('all');
     const { showToast } = useToast();
     
     // Log Viewer State
@@ -45,22 +43,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         const hasSprintQuali = results.sprintQualifying?.some(pos => !!pos);
         return hasGpFinish || hasFastestLap || hasSprintFinish || hasGpQuali || hasSprintQuali;
     };
-
-    const filteredEvents = useMemo(() => {
-        return events.filter(event => {
-            const hasResults = checkHasResults(event);
-            if (filter === 'all') return true;
-            if (filter === 'added') return hasResults;
-            if (filter === 'pending') return !hasResults;
-            return true;
-        });
-    }, [filter, raceResults, events]);
-
-    useEffect(() => {
-        if (selectedEventId && !filteredEvents.find(e => e.id === selectedEventId)) {
-            setSelectedEventId('');
-        }
-    }, [filter, filteredEvents, selectedEventId]);
 
     const generateDiff = (oldR: EventResult, newR: EventResult): string => {
         const changes: string[] = [];
@@ -165,22 +147,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
     const selectedEvent = useMemo(() => events.find(event => event.id === selectedEventId), [selectedEventId, events]);
 
-    const FilterButton: React.FC<{label: string, value: FilterType, current: FilterType, onClick: (val: FilterType) => void}> = ({ label, value, current, onClick }) => {
-        const isActive = value === current;
-        return (
-            <button
-                onClick={() => onClick(value)}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex-1 ${
-                    isActive
-                        ? 'bg-primary-red text-pure-white'
-                        : 'bg-carbon-black text-highlight-silver hover:bg-carbon-black/80'
-                }`}
-            >
-                {label}
-            </button>
-        );
-    };
-
     const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
@@ -202,6 +168,26 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         </button>
     );
 
+    // Dropdown Filters Logic
+    const handleEventFilter = (event: Event, filter: string) => {
+        const hasResults = checkHasResults(event);
+        if (filter === 'added') return hasResults;
+        if (filter === 'pending') return !hasResults;
+        return true;
+    };
+
+    const renderEventStatus = (event: Event) => {
+        const hasResults = checkHasResults(event);
+        const isLocked = formLocks[event.id];
+        
+        return (
+            <div className="flex items-center gap-2">
+                {isLocked && <span className="text-[9px] text-primary-red border border-primary-red/50 rounded px-1 font-bold uppercase">Locked</span>}
+                {hasResults && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white min-h-full">
             <div className="flex-none">
@@ -214,36 +200,23 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             </div>
             
             <div className="flex flex-col px-4 md:px-0">
-                {/* Control Bar */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between flex-shrink-0 shadow-lg">
-                    <div className="flex gap-2 w-full md:w-auto p-1 bg-accent-gray/50 rounded-lg">
-                        <FilterButton label="All Rounds" value="all" current={filter} onClick={setFilter} />
-                        <FilterButton label="Done" value="added" current={filter} onClick={setFilter} />
-                        <FilterButton label="Pending" value="pending" current={filter} onClick={setFilter} />
-                    </div>
-
-                    {/* Updated: Reduced width to md:w-64 for consistency. */}
-                    <div className="relative w-full md:w-64">
-                        <select
-                            value={selectedEventId}
-                            onChange={(e) => setSelectedEventId(e.target.value)}
-                            className="w-full appearance-none bg-carbon-black border border-accent-gray rounded-lg py-3 pl-4 pr-10 text-pure-white text-sm font-black uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary-red cursor-pointer shadow-inner transition-all hover:border-highlight-silver"
-                        >
-                            <option value="" disabled>Select GP Weekend...</option>
-                            {filteredEvents.map(event => {
-                                const isLocked = formLocks[event.id];
-                                const hasResults = checkHasResults(event);
-                                const statusMarker = hasResults ? '✓' : '○';
-                                return (
-                                    <option key={event.id} value={event.id}>
-                                        {statusMarker} R{event.round}: {event.name} {isLocked ? '(LOCKED)' : ''}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver">
-                            <ChevronDownIcon className="w-5 h-5" />
-                        </div>
+                {/* Control Bar with Event Selector */}
+                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-end flex-shrink-0 shadow-lg">
+                    
+                    <div className="w-full md:w-auto flex-grow flex justify-end">
+                        <EventSelector 
+                            events={events}
+                            selectedEventId={selectedEventId}
+                            onSelect={(e) => setSelectedEventId(e.id)}
+                            filters={[
+                                { label: 'All Rounds', value: 'all' },
+                                { label: 'Done', value: 'added' },
+                                { label: 'Pending', value: 'pending' }
+                            ]}
+                            filterPredicate={handleEventFilter}
+                            renderStatus={renderEventStatus}
+                            placeholder="Select GP Weekend..."
+                        />
                     </div>
                 </div>
 

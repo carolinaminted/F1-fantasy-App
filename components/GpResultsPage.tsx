@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver as DriverType, Constructor } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -6,6 +7,7 @@ import { SprintIcon } from './icons/SprintIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
+import { EventSelector } from './ui/EventSelector.tsx';
 
 interface GpResultsPageProps {
   raceResults: RaceResults;
@@ -15,11 +17,7 @@ interface GpResultsPageProps {
 }
 
 const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors, events }) => {
-    const [searchTerm, setSearchTerm] = useState('');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [filterStatus, setFilterStatus] = useState<'all' | 'results' | 'pending'>('all');
-    const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Auto-select the last completed event on load if none selected
     useEffect(() => {
@@ -34,25 +32,12 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                 // Select the last one (most recent)
                 const lastCompleted = completedEvents[completedEvents.length - 1];
                 setSelectedEventId(lastCompleted.id);
-                setSearchTerm(lastCompleted.name);
             } else {
                 // Or just the first event if season hasn't started or no results
                 setSelectedEventId(events[0].id);
-                setSearchTerm(events[0].name);
             }
         }
     }, [events, raceResults]);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     // Helper to check status
     const hasResults = (eventId: string) => {
@@ -69,99 +54,19 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
 
     const selectedEvent = useMemo(() => events.find(e => e.id === selectedEventId), [selectedEventId, events]);
 
-    const filteredEvents = useMemo(() => {
-        const isExactMatch = selectedEvent && searchTerm === selectedEvent.name;
-        const effectiveSearch = isExactMatch ? '' : searchTerm.toLowerCase();
-
-        return events.filter(event => {
-            const resultsIn = hasResults(event.id);
-            if (filterStatus === 'results' && !resultsIn) return false;
-            if (filterStatus === 'pending' && resultsIn) return false;
-
-            if (!effectiveSearch) return true;
-            return (
-                event.name.toLowerCase().includes(effectiveSearch) ||
-                event.country.toLowerCase().includes(effectiveSearch) ||
-                event.round.toString().includes(effectiveSearch) ||
-                event.location.toLowerCase().includes(effectiveSearch)
-            );
-        });
-    }, [searchTerm, filterStatus, selectedEvent, raceResults, events]);
-
-    const handleEventSelect = (event: Event) => {
-        setSelectedEventId(event.id);
-        setSearchTerm(event.name);
-        setIsDropdownOpen(false);
+    const handleEventFilter = (event: Event, filter: string) => {
+        const resultsIn = hasResults(event.id);
+        if (filter === 'results') return resultsIn;
+        if (filter === 'pending') return !resultsIn;
+        return true;
     };
 
-    const FilterButton: React.FC<{ label: string; value: typeof filterStatus }> = ({ label, value }) => (
-        <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterStatus(value); }}
-            className={`flex-1 px-2 py-1 text-[10px] font-bold rounded-lg transition-colors border ${
-                filterStatus === value
-                ? 'bg-primary-red text-pure-white border-primary-red'
-                : 'bg-carbon-black text-highlight-silver border-pure-white/10 hover:border-highlight-silver hover:text-pure-white'
-            }`}
-        >
-            {label}
-        </button>
-    );
-
-    // Updated: Reduced width to md:w-64 for consistent PageHeader spacing.
-    const SearchBar = (
-        <div className="relative w-full md:w-64" ref={dropdownRef}>
-            <div className="relative group">
-                <input
-                    type="text"
-                    aria-label="Select Event"
-                    placeholder="Select Grand Prix..."
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setIsDropdownOpen(true); }}
-                    onFocus={(e) => { setIsDropdownOpen(true); e.target.select(); }}
-                    className="w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent transition-all text-sm h-9"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-highlight-silver group-focus-within:text-primary-red transition-colors">
-                    <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </div>
-            </div>
-
-            {isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col animate-fade-in-down z-50">
-                    <div className="flex-shrink-0 p-2 bg-carbon-black/95 border-b border-pure-white/10 grid grid-cols-3 gap-2 backdrop-blur-sm sticky top-0 z-50">
-                        <FilterButton label="All" value="all" />
-                        <FilterButton label="Results" value="results" />
-                        <FilterButton label="Pending" value="pending" />
-                    </div>
-                    <div className="overflow-y-auto custom-scrollbar">
-                        {filteredEvents.length > 0 ? (
-                            filteredEvents.map(event => {
-                                const resultsIn = hasResults(event.id);
-                                return (
-                                    <button
-                                        key={event.id}
-                                        onClick={() => handleEventSelect(event)}
-                                        className={`w-full text-left px-3 py-2 border-b border-pure-white/5 last:border-0 hover:bg-pure-white/5 transition-colors flex items-center justify-between group ${selectedEventId === event.id ? 'bg-pure-white/10' : ''}`}
-                                    >
-                                        <div>
-                                            <div className="font-bold text-pure-white text-xs">R{event.round}: {event.name}</div>
-                                            <div className="text-[10px] text-highlight-silver">{event.location}</div>
-                                        </div>
-                                        {resultsIn && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
-                                        )}
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="p-3 text-center text-highlight-silver text-xs">
-                                No events found.
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+    const renderEventStatus = (event: Event) => {
+        const resultsIn = hasResults(event.id);
+        return resultsIn ? (
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
+        ) : null;
+    };
 
     return (
         <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto pb-10 md:pb-safe">
@@ -169,7 +74,21 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                 <PageHeader 
                     title="RACE RESULTS" 
                     icon={CheckeredFlagIcon} 
-                    rightAction={SearchBar}
+                    rightAction={
+                        <EventSelector 
+                            events={events}
+                            selectedEventId={selectedEventId}
+                            onSelect={(e) => setSelectedEventId(e.id)}
+                            filters={[
+                                { label: 'All', value: 'all' },
+                                { label: 'Results', value: 'results' },
+                                { label: 'Pending', value: 'pending' }
+                            ]}
+                            filterPredicate={handleEventFilter}
+                            renderStatus={renderEventStatus}
+                            placeholder="Select Grand Prix..."
+                        />
+                    }
                 />
             </div>
             

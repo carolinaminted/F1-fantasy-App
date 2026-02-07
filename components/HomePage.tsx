@@ -1,3 +1,4 @@
+
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState } from 'react';
 import PicksForm from './PicksForm.tsx';
@@ -7,6 +8,7 @@ import useFantasyData from '../hooks/useFantasyData.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
+import { EventSelector } from './ui/EventSelector.tsx';
 
 interface HomePageProps {
   user: User;
@@ -60,34 +62,22 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   // Check dues status
   const isDuesPaid = user.duesPaidStatus === 'Paid';
 
-  // Selector Component extracted for cleaner render in PageHeader
-  // Updated: Changed md:w-80 to md:w-64 for better alignment and header space conservation.
-  const EventSelector = (
-      <div className="relative w-full md:w-64">
-          <label htmlFor="event-selector" className="sr-only">Select Event</label>
-          <select
-              id="event-selector"
-              value={selectedEvent.id}
-              onChange={(e) => {
-                  const event = events.find(ev => ev.id === e.target.value);
-                  if (event) setSelectedEvent(event);
-              }}
-              className="w-full bg-carbon-black/70 border border-accent-gray rounded-xl shadow-sm py-3 px-4 text-pure-white font-bold focus:outline-none focus:ring-2 focus:ring-primary-red focus:border-transparent appearance-none transition-all cursor-pointer hover:border-highlight-silver"
-          >
-              {events.map(event => {
-                  const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
-                  return (
-                      <option key={event.id} value={event.id}>
-                         {isLocked ? '🔒' : '🟢'} R{event.round}: {event.name}
-                      </option>
-                  );
-              })}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-highlight-silver">
-            <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-          </div>
-      </div>
-  );
+  // Filter Logic for Dropdown
+  const handleEventFilter = (event: Event, filter: string) => {
+      const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+      if (filter === 'active') return !isLocked;
+      if (filter === 'locked') return isLocked;
+      return true;
+  };
+
+  // Status Indicator Render
+  const renderEventStatus = (event: Event) => {
+      const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+      if (isLocked) {
+          return <span className="text-[10px] font-bold text-primary-red uppercase border border-primary-red/30 px-1.5 py-0.5 rounded">Locked</span>;
+      }
+      return <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>;
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-0 md:px-4 flex flex-col md:h-[calc(100vh-6rem)]">
@@ -95,7 +85,21 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
       <PageHeader 
           title="Grand Prix Picks" 
           icon={PicksIcon} 
-          rightAction={EventSelector}
+          rightAction={
+              <EventSelector 
+                  events={events}
+                  selectedEventId={selectedEvent.id}
+                  onSelect={setSelectedEvent}
+                  filters={[
+                      { label: 'All', value: 'all' },
+                      { label: 'Active', value: 'active' },
+                      { label: 'Locked', value: 'locked' }
+                  ]}
+                  filterPredicate={handleEventFilter}
+                  renderStatus={renderEventStatus}
+                  placeholder="Select GP..."
+              />
+          }
       />
       
       {/* Form Container: Scrollable on mobile, strictly fitted on Desktop (internal scroll if needed) */}

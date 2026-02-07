@@ -68,4 +68,26 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           
           <div className="bg-carbon-black/80 p-4 rounded-lg border border-red-500/20 max-w-lg w-full mb-8 overflow-hidden text-left shadow-inner">
              <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider mb-1">Telemetry Data:</p>
-             <p className="text-xs font-mono text-red-
+             <p className="text-xs font-mono text-red-400 break-words">
+                {error?.toString() || "Unknown Critical Failure"}
+             </p>
+          </div>
+
+          <button
+            onClick={this.handleReload}
+            className="group relative bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg shadow-lg transition-all transform hover:scale-105 overflow-hidden"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+                BOX BOX (RELOAD)
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
+          </button>
+        </div>
+      );
+    }
+
+    return children;
+  }
+}
+
+export default ErrorBoundary;
