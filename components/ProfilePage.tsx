@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -585,7 +586,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
             {!isEditingProfile && setActivePage && !isPublicView && (
                 <button 
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-sm font-bold text-pure-white hover:text-primary-red transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
+                    className="text-sm font-bold text-pure-white hover:text-pure-white transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
                 >
                     Edit Details
                 </button>
@@ -670,11 +671,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                 </div>
             </form>
         ) : (
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${!isPublicView ? 'lg:grid-cols-3' : ''} gap-4 w-full`}>
-                <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
-                <InfoCard icon={DriverIcon} label="Name" value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'} />
-                {!isPublicView && <InfoCard icon={ProfileIcon} label="Email" value={user.email} />}
-            </div>
+            isPublicView ? (
+                <div className="flex justify-center w-full">
+                    <div className="flex flex-col items-center justify-center p-6 rounded-lg bg-black/20 w-full max-w-md border border-pure-white/5 shadow-inner">
+                        <F1CarIcon className="w-8 h-8 text-primary-red mb-3 opacity-80" />
+                        <span className="text-xs font-bold uppercase text-highlight-silver mb-2 tracking-widest">Team Name</span>
+                        <span className="text-2xl md:text-4xl font-black text-pure-white text-center break-words w-full px-2 leading-tight">{user.displayName}</span>
+                    </div>
+                </div>
+            ) : (
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full`}>
+                    <InfoCard icon={F1CarIcon} label="Team Name" value={user.displayName} />
+                    <InfoCard icon={DriverIcon} label="Name" value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'} />
+                    <InfoCard icon={ProfileIcon} label="Email" value={user.email} />
+                </div>
+            )
         )}
       </div>
 
