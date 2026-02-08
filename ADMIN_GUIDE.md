@@ -23,16 +23,39 @@ To access the dashboard, tap the **Admin** icon in the bottom navigation bar (Mo
 <img width="1249" height="780" alt="image" src="https://github.com/user-attachments/assets/bac10e1e-e71d-47be-9bf6-cf68c46bebfc" />
 
 
-📝 JSON Structure Guide
-The importer expects a single JSON Object where:
-Keys are the Event IDs (e.g., aus_26, bhr_26, etc.).
-Values are objects containing the session times and settings.
-⏰ Timezone Rule
-Crucial: All dates and times must be entered in Eastern Standard Time (EST/EDT) format: YYYY-MM-DDTHH:MM. Do not add Z or timezone offsets at the end.
-1. Standard Race Weekend Template
-Use this structure for normal Grand Prix weekends (FP1, FP2, FP3, Quali, Race).
-code
-JSON
+# JSON Schedule Importer Guide
+
+## JSON Structure
+
+The importer expects **one JSON object**:
+
+* **Keys** = event IDs (for example: `aus_26`, `bhr_26`)
+* **Values** = objects that contain session times and optional settings for that event
+
+---
+
+## Timezone Rule
+
+All date/time values must be entered in **Eastern Time (EST/EDT)** using this format:
+
+`YYYY-MM-DDTHH:MM`
+
+**Important:**
+
+* Do **not** add `Z`
+* Do **not** add timezone offsets (for example `-05:00`)
+
+✅ Correct: `2026-03-05T06:30`
+❌ Incorrect: `2026-03-05T06:30Z`
+❌ Incorrect: `2026-03-05T06:30-05:00`
+
+---
+
+## Standard Race Weekend Template
+
+Use this for normal Grand Prix weekends (`fp1`, `fp2`, `fp3`, `qualifying`, `race`).
+
+```json
 {
   "bhr_26": {
     "fp1": "2026-03-05T06:30",
@@ -49,10 +72,15 @@ JSON
     "race": "2026-03-23T00:00"
   }
 }
-2. Sprint Weekend Template
-Use this for Sprint weekends. You must include "hasSprint": true.
-code
-JSON
+```
+
+---
+
+## Sprint Weekend Template
+
+Use this for sprint weekends. You must include `"hasSprint": true`.
+
+```json
 {
   "chn_26": {
     "hasSprint": true,
@@ -63,22 +91,49 @@ JSON
     "race": "2026-04-21T03:00"
   }
 }
-3. Key Fields Reference
-Field	Description
-fp1, fp2, fp3	Practice session start times.
-qualifying	Grand Prix Qualifying start time.
-sprintQualifying	Sprint Qualifying start time (Sprint weekends only).
-sprint	Sprint Race start time (Sprint weekends only).
-race	Main Grand Prix Race start time.
-hasSprint	Set to true if it is a sprint weekend.
-customLockAt	(Optional) Override the automatic lock time.
-name	(Optional) Rename the event (e.g. "Rolex Australian GP").
-🚀 How to Import
-Prepare your JSON using a text editor (like VS Code or Notepad).
-Go to the Admin Dashboard > Schedule Manager.
-Click the Bulk Import JSON button in the top right.
-Paste your JSON into the text area.
-Click Push to Firebase.
+```
+
+---
+
+## Field Reference
+
+| Field               | Description                                                                   |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `fp1`, `fp2`, `fp3` | Practice session start times                                                  |
+| `qualifying`        | Grand Prix qualifying start time                                              |
+| `sprintQualifying`  | Sprint qualifying start time (sprint weekends only)                           |
+| `sprint`            | Sprint race start time (sprint weekends only)                                 |
+| `race`              | Main Grand Prix race start time                                               |
+| `hasSprint`         | Set to `true` for sprint weekends                                             |
+| `customLockAt`      | *(Optional)* Overrides automatic lock time                                    |
+| `name`              | *(Optional)* Custom event display name (for example: `"Rolex Australian GP"`) |
+
+---
+
+## How to Import
+
+1. Prepare your JSON in a text editor (for example VS Code or Notepad).
+2. Open **Admin Dashboard → Schedule Manager**.
+3. Click **Bulk Import JSON** (top-right).
+4. Paste your JSON into the text area.
+5. Click **Push to Firebase**.
+
+---
+
+## Minimal Valid Example
+
+```json
+{
+  "jpn_26": {
+    "fp1": "2026-04-03T22:30",
+    "fp2": "2026-04-04T02:00",
+    "fp3": "2026-04-04T22:30",
+    "qualifying": "2026-04-05T02:00",
+    "race": "2026-04-06T01:00"
+  }
+}
+```
+
 
 ---
 
