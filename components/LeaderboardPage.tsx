@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -390,7 +389,6 @@ const StandingsView: React.FC<{
     );
 };
 
-// ... PopularityView, InsightsView, EntityStatsView remain unchanged ...
 const PopularityView: React.FC<{ 
     allLeaguePicks: { [uid: string]: { [eid: string]: PickSelection } }; 
     allDrivers: Driver[]; 
@@ -398,7 +396,6 @@ const PopularityView: React.FC<{
     events: Event[];
     isLoading?: boolean;
 }> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading }) => {
-    // ... logic remains same
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all');
 
     const stats = useMemo(() => {
@@ -409,7 +406,6 @@ const PopularityView: React.FC<{
 
         if (Object.keys(allLeaguePicks).length === 0) return { teams: [], leastTeams: [], drivers: [], leastDrivers: [] };
 
-        // Identify which events actually have picks in the data to determine "Recent"
         const eventIdsWithPicks = new Set<string>();
         Object.values(allLeaguePicks).forEach(userPicks => {
             Object.keys(userPicks).forEach(eid => eventIdsWithPicks.add(eid));
@@ -453,7 +449,7 @@ const PopularityView: React.FC<{
                     value: val, 
                     color: getColor(id, type)
                 }))
-                .filter(item => item.value > 0 || order === 'asc') // Only show zero values in "Least"
+                .filter(item => item.value > 0 || order === 'asc') 
                 .sort((a, b) => order === 'desc' ? b.value - a.value : a.value - b.value)
                 .slice(0, 5);
 
@@ -519,6 +515,66 @@ const PopularityView: React.FC<{
     );
 };
 
+// --- Enhanced Superlative Card & TrendChart for Insights ---
+
+type InsightVariant = 'gp' | 'quali' | 'sprint' | 'fl' | 'total';
+
+const getVariantStyles = (variant: InsightVariant) => {
+    switch (variant) {
+        case 'gp': return { text: 'text-primary-red', bg: 'bg-primary-red', border: 'border-primary-red', gradient: 'from-primary-red/10' };
+        case 'quali': return { text: 'text-blue-500', bg: 'bg-blue-500', border: 'border-blue-500', gradient: 'from-blue-500/10' };
+        case 'sprint': return { text: 'text-yellow-500', bg: 'bg-yellow-500', border: 'border-yellow-500', gradient: 'from-yellow-500/10' };
+        case 'fl': return { text: 'text-purple-500', bg: 'bg-purple-500', border: 'border-purple-500', gradient: 'from-purple-500/10' };
+        case 'total': return { text: 'text-orange-500', bg: 'bg-orange-500', border: 'border-orange-500', gradient: 'from-orange-500/10' };
+        default: return { text: 'text-pure-white', bg: 'bg-pure-white', border: 'border-pure-white', gradient: 'from-pure-white/5' };
+    }
+};
+
+const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null; variant: InsightVariant }> = ({ title, icon: Icon, data, variant }) => {
+    const styles = getVariantStyles(variant);
+    
+    return (
+        <div className="group relative overflow-hidden bg-carbon-fiber rounded-xl p-5 ring-1 ring-pure-white/10 shadow-lg h-full border border-pure-white/5 hover:border-pure-white/20 transition-all duration-300">
+            {/* Background Gradient & Pattern */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+            <div className="absolute inset-0 bg-checkered-flag opacity-[0.03] pointer-events-none"></div>
+            
+            <div className="relative z-10 flex items-start justify-between">
+                <div className="min-w-0 flex-1 mr-2">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${styles.text} shadow-inner`}>
+                            <Icon className="w-5 h-5" />
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${styles.text} opacity-80 truncate`}>{title}</span>
+                    </div>
+                    
+                    {data ? (
+                        <div className="mt-1">
+                            <p className="text-lg font-bold text-pure-white truncate leading-tight mb-1">{data.user.displayName}</p>
+                            <p className={`text-3xl font-black font-mono ${styles.text} drop-shadow-sm leading-none`}>
+                                {Number(data.score || 0).toLocaleString()} <span className="text-[10px] font-bold text-highlight-silver uppercase align-top ml-0.5">pts</span>
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="mt-4">
+                            <p className="text-sm text-highlight-silver italic opacity-50">No data available yet</p>
+                        </div>
+                    )}
+                </div>
+                
+                {/* Rank Badge */}
+                {data && (
+                    <div className="text-right flex-shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm bg-carbon-black border ${styles.border} ${styles.text} shadow-lg`}>
+                            1
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const InsightsView: React.FC<{ 
     users: ProcessedUser[]; 
     allPicks: { [uid: string]: { [eid: string]: PickSelection } }; 
@@ -527,7 +583,6 @@ const InsightsView: React.FC<{
     allDrivers: Driver[];
     events: Event[];
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
-    // ... logic remains same
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
         const findMax = (key: keyof NonNullable<ProcessedUser['breakdown']>) => {
@@ -557,58 +612,78 @@ const InsightsView: React.FC<{
         };
     }, [users]);
 
-    const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any }> = ({ title, data, subtitle, icon: Icon }) => (
-        <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-lg border border-pure-white/5">
-            <div className="flex justify-between items-start mb-4 border-b border-pure-white/10 pb-2 flex-none">
-                <div>
-                    <h3 className="text-lg font-bold text-pure-white">{title}</h3>
-                    <p className="text-xs text-highlight-silver uppercase tracking-wider">{subtitle}</p>
+    const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any; variant: InsightVariant }> = ({ title, data, subtitle, icon: Icon, variant }) => {
+        const styles = getVariantStyles(variant);
+        const maxVal = Math.max(...data.map(d => d.value), 1);
+
+        return (
+            <div className="bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-xl border border-pure-white/5 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-checkered-flag opacity-[0.02] pointer-events-none"></div>
+                
+                {/* Header */}
+                <div className="flex justify-between items-start mb-6 relative z-10 border-b border-pure-white/5 pb-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-pure-white leading-tight">{title}</h3>
+                        <p className={`text-xs font-bold uppercase tracking-wider mt-1 ${styles.text}`}>{subtitle}</p>
+                    </div>
+                    {Icon && (
+                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/5 ${styles.text}`}>
+                            <Icon className="w-5 h-5" />
+                        </div>
+                    )}
                 </div>
-                {Icon && <Icon className="w-5 h-5 text-primary-red" />}
-            </div>
-            <div className="w-full">
-                {data.length > 0 ? (
-                    <div className="space-y-3">
-                        {data.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
-                                <span className={`w-5 text-center font-bold text-sm ${idx === 0 ? 'text-yellow-400' : 'text-highlight-silver'}`}>{idx + 1}</span>
-                                <div className="flex-1">
-                                    <div className="flex justify-between text-xs mb-1">
-                                        <span className="font-semibold text-ghost-white truncate">{item.label}</span>
-                                        <span className="font-mono font-bold text-lg md:text-xl text-primary-red">{item.value}</span>
+
+                {/* List */}
+                <div className="w-full relative z-10 flex-1 flex flex-col justify-center">
+                    {data.length > 0 ? (
+                        <div className="space-y-4">
+                            {data.map((item, idx) => (
+                                <div key={idx} className="group/row">
+                                    <div className="flex justify-between items-end mb-1 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-mono font-bold w-4 ${idx < 3 ? styles.text : 'text-highlight-silver'}`}>
+                                                {idx + 1}.
+                                            </span>
+                                            <span className="font-semibold text-ghost-white truncate max-w-[120px] sm:max-w-xs">
+                                                {item.label}
+                                            </span>
+                                        </div>
+                                        <span className={`font-mono font-bold ${idx === 0 ? styles.text : 'text-pure-white'}`}>
+                                            {item.value}
+                                        </span>
                                     </div>
-                                    <div className="w-full bg-carbon-black rounded-full h-1.5 border border-pure-white/5">
+                                    <div className="w-full bg-carbon-black rounded-full h-2 border border-pure-white/5 overflow-hidden">
                                         <div 
-                                            className={`h-1.5 rounded-full ${idx === 0 ? 'bg-yellow-400' : 'bg-highlight-silver/50'}`} 
-                                            style={{ width: `${(item.value / Math.max(data[0].value, 1)) * 100}%` }}
+                                            className={`h-full rounded-full transition-all duration-500 ${styles.bg} ${idx === 0 ? 'opacity-100' : 'opacity-70 group-hover/row:opacity-100'}`} 
+                                            style={{ width: `${(item.value / maxVal) * 100}%` }}
                                         />
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="h-full flex items-center justify-center text-highlight-silver italic text-sm py-8">
-                        Not enough data.
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-highlight-silver italic text-sm py-8 opacity-50">
+                            Awaiting data...
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} />
-                <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} />
-                <SuperlativeCard title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} />
-                <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} />
+                <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} variant="gp" />
+                <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} variant="quali" />
+                <SuperlativeCard title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} variant="sprint" />
+                <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} variant="fl" />
             </div>
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-4">
-                <TrendChart title="Overall Power Ranking" subtitle="Top 5 Total Points" data={chartData.total} icon={TrophyIcon} />
-                <TrendChart title="Qualifying Masters" subtitle="Top 5 Quali Points" data={chartData.quali} icon={PolePositionIcon} />
-                <TrendChart title="Sunday Specialists" subtitle="Top 5 Grand Prix Points" data={chartData.gp} icon={CheckeredFlagIcon} />
-                <TrendChart title="Sprint Specialists" subtitle="Top 5 Sprint Points" data={chartData.sprint} icon={SprintIcon} />
+                <TrendChart title="Overall Power Ranking" subtitle="Top 5 Total Points" data={chartData.total} icon={TrophyIcon} variant="total" />
+                <TrendChart title="Qualifying Masters" subtitle="Top 5 Quali Points" data={chartData.quali} icon={PolePositionIcon} variant="quali" />
+                <TrendChart title="Sunday Specialists" subtitle="Top 5 Grand Prix Points" data={chartData.gp} icon={CheckeredFlagIcon} variant="gp" />
+                <TrendChart title="Sprint Specialists" subtitle="Top 5 Sprint Points" data={chartData.sprint} icon={SprintIcon} variant="sprint" />
             </div>
         </div>
     );
@@ -660,27 +735,6 @@ const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
         </div>
     );
 };
-
-const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null }> = ({ title, icon: Icon, data }) => (
-    <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex items-center gap-4 shadow-lg h-full border border-pure-white/5">
-       <div className="bg-carbon-black p-3 rounded-full text-primary-red border border-pure-white/5 flex-shrink-0 shadow-inner">
-           <Icon className="w-8 h-8" />
-       </div>
-       <div className="min-w-0">
-           <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider truncate mb-0.5">{title}</p>
-           {data ? (
-               <>
-                   <p className="text-xl font-bold text-pure-white truncate">{data.user.displayName}</p>
-                   <p className="text-3xl md:text-4xl font-black text-primary-red font-mono mt-1 leading-none drop-shadow-md">
-                       {Number(data.score || 0).toLocaleString()} <span className="text-[10px] font-bold text-highlight-silver align-top uppercase">pts</span>
-                   </p>
-               </>
-           ) : (
-               <p className="text-sm text-highlight-silver italic mt-1">No data yet</p>
-           )}
-       </div>
-   </div>
-);
 
 const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
     // ... logic remains same
