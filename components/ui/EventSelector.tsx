@@ -29,18 +29,9 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
     filterPredicate,
     renderStatus
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<string>(filters[0]?.value || 'all');
     const dropdownRef = useRef<HTMLDivElement>(null);
-
-    // Sync search term with selected event name when closed or selected
-    useEffect(() => {
-        if (!isDropdownOpen && selectedEventId) {
-            const selected = events.find(e => e.id === selectedEventId);
-            if (selected) setSearchTerm(selected.name);
-        }
-    }, [selectedEventId, isDropdownOpen, events]);
 
     // Close on click outside
     useEffect(() => {
@@ -54,47 +45,34 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
     }, []);
 
     const filteredEvents = useMemo(() => {
-        const selectedEvent = events.find(e => e.id === selectedEventId);
-        const isExactMatch = selectedEvent && searchTerm === selectedEvent.name;
-        const effectiveSearch = isExactMatch ? '' : searchTerm.toLowerCase();
-
         return events.filter(event => {
             // 1. Check Filter Tab
             if (!filterPredicate(event, activeFilter)) return false;
-
-            // 2. Check Search Term
-            if (!effectiveSearch) return true;
-            return (
-                event.name.toLowerCase().includes(effectiveSearch) ||
-                event.country.toLowerCase().includes(effectiveSearch) ||
-                event.round.toString().includes(effectiveSearch) ||
-                event.location.toLowerCase().includes(effectiveSearch)
-            );
+            return true;
         });
-    }, [events, searchTerm, activeFilter, filterPredicate, selectedEventId]);
+    }, [events, activeFilter, filterPredicate]);
 
     const handleSelect = (event: Event) => {
         onSelect(event);
-        setSearchTerm(event.name);
         setIsDropdownOpen(false);
     };
 
+    const selectedEvent = events.find(e => e.id === selectedEventId);
+
     return (
         <div className="relative w-full md:w-64" ref={dropdownRef}>
-            <div className="relative group">
-                <input
-                    type="text"
-                    aria-label={placeholder}
-                    placeholder={placeholder}
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setIsDropdownOpen(true); }}
-                    onFocus={(e) => { setIsDropdownOpen(true); e.target.select(); }}
-                    className="w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent transition-all text-sm h-9"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-highlight-silver group-focus-within:text-primary-red transition-colors">
+            <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent transition-all text-sm h-9 text-left relative flex items-center"
+            >
+                <span className="block truncate w-full">
+                    {selectedEvent ? selectedEvent.name : placeholder}
+                </span>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-highlight-silver">
                     <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
-            </div>
+            </button>
 
             {isDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col animate-fade-in-down z-50">
