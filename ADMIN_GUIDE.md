@@ -23,6 +23,63 @@ To access the dashboard, tap the **Admin** icon in the bottom navigation bar (Mo
 <img width="1249" height="780" alt="image" src="https://github.com/user-attachments/assets/bac10e1e-e71d-47be-9bf6-cf68c46bebfc" />
 
 
+📝 JSON Structure Guide
+The importer expects a single JSON Object where:
+Keys are the Event IDs (e.g., aus_26, bhr_26, etc.).
+Values are objects containing the session times and settings.
+⏰ Timezone Rule
+Crucial: All dates and times must be entered in Eastern Standard Time (EST/EDT) format: YYYY-MM-DDTHH:MM. Do not add Z or timezone offsets at the end.
+1. Standard Race Weekend Template
+Use this structure for normal Grand Prix weekends (FP1, FP2, FP3, Quali, Race).
+code
+JSON
+{
+  "bhr_26": {
+    "fp1": "2026-03-05T06:30",
+    "fp2": "2026-03-05T10:00",
+    "fp3": "2026-03-06T07:30",
+    "qualifying": "2026-03-06T11:00",
+    "race": "2026-03-07T10:00"
+  },
+  "aus_26": {
+    "fp1": "2026-03-20T21:30",
+    "fp2": "2026-03-21T01:00",
+    "fp3": "2026-03-21T21:30",
+    "qualifying": "2026-03-22T01:00",
+    "race": "2026-03-23T00:00"
+  }
+}
+2. Sprint Weekend Template
+Use this for Sprint weekends. You must include "hasSprint": true.
+code
+JSON
+{
+  "chn_26": {
+    "hasSprint": true,
+    "fp1": "2026-04-18T23:30",
+    "sprintQualifying": "2026-04-19T03:30",
+    "sprint": "2026-04-19T23:00",
+    "qualifying": "2026-04-20T03:00",
+    "race": "2026-04-21T03:00"
+  }
+}
+3. Key Fields Reference
+Field	Description
+fp1, fp2, fp3	Practice session start times.
+qualifying	Grand Prix Qualifying start time.
+sprintQualifying	Sprint Qualifying start time (Sprint weekends only).
+sprint	Sprint Race start time (Sprint weekends only).
+race	Main Grand Prix Race start time.
+hasSprint	Set to true if it is a sprint weekend.
+customLockAt	(Optional) Override the automatic lock time.
+name	(Optional) Rename the event (e.g. "Rolex Australian GP").
+🚀 How to Import
+Prepare your JSON using a text editor (like VS Code or Notepad).
+Go to the Admin Dashboard > Schedule Manager.
+Click the Bulk Import JSON button in the top right.
+Paste your JSON into the text area.
+Click Push to Firebase.
+
 ---
 
 ## 1. Onboarding: Invitation Codes
