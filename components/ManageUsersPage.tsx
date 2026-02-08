@@ -76,6 +76,11 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         setSelectedUser(updatedUser);
     };
 
+    const handleUserDeleted = (userId: string) => {
+        setAllUsers(prev => prev.filter(u => u.id !== userId));
+        setSelectedUser(null);
+    };
+
     const DashboardAction = (
         <button 
             onClick={() => selectedUser ? setSelectedUser(null) : setAdminSubPage('dashboard')}
@@ -101,6 +106,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                         raceResults={raceResults} 
                         pointsSystem={pointsSystem} 
                         onUpdateUser={handleUserUpdate}
+                        onDeleteUser={handleUserDeleted}
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         events={events}

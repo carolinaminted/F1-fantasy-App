@@ -1,6 +1,6 @@
 
 import { db, functions } from './firebase.ts';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
@@ -93,6 +93,45 @@ export const updateUserProfile = async (uid: string, data: Partial<User>) => {
         const publicRef = doc(db, 'public_users', uid);
         await updateDoc(publicRef, { displayName: data.displayName });
     }
+};
+
+export const purgeUserData = async (uid: string) => {
+    // 1. Delete User Profile
+    const userRef = doc(db, 'users', uid);
+    await deleteDoc(userRef);
+
+    // 2. Delete Public Profile
+    const publicRef = doc(db, 'public_users', uid);
+    await deleteDoc(publicRef);
+
+    // 3. Delete Picks
+    const picksRef = doc(db, 'userPicks', uid);
+    await deleteDoc(picksRef);
+
+    // 4. Delete Dues Payments (Query)
+    const duesQ = query(collection(db, 'dues_payments'), where('uid', '==', uid));
+    const duesSnap = await getDocs(duesQ);
+    const duesBatch = writeBatch(db);
+    duesSnap.forEach(d => duesBatch.delete(d.ref));
+    await duesBatch.commit();
+
+    // 5. Reset Invitation Code (Query) - Optional but good for cleanup
+    const inviteQ = query(collection(db, 'invitation_codes'), where('usedBy', '==', uid));
+    const inviteSnap = await getDocs(inviteQ);
+    if (!inviteSnap.empty) {
+        const inviteBatch = writeBatch(db);
+        inviteSnap.forEach(d => {
+            inviteBatch.update(d.ref, {
+                status: 'active',
+                usedBy: deleteField(),
+                usedByEmail: deleteField(),
+                usedAt: deleteField()
+            });
+        });
+        await inviteBatch.commit();
+    }
+    
+    return true;
 };
 
 export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: PickSelection }> => {

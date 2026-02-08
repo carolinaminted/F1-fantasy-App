@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
-import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus, updatePickPenalty } from '../services/firestoreService.ts';
+import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus, updatePickPenalty, purgeUserData } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
+import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
@@ -13,12 +14,13 @@ interface AdminUserProfileViewProps {
     raceResults: RaceResults;
     pointsSystem: PointsSystem;
     onUpdateUser: (updatedUser: User) => void;
+    onDeleteUser: (userId: string) => void;
     allDrivers: Driver[];
     allConstructors: Constructor[];
     events: Event[];
 }
 
-const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults, pointsSystem, onUpdateUser, allDrivers, allConstructors, events }) => {
+const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults, pointsSystem, onUpdateUser, onDeleteUser, allDrivers, allConstructors, events }) => {
     const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
     const [isLoading, setIsLoading] = useState(true);
     
@@ -29,6 +31,10 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     // Saving states
     const [isSavingAdmin, setIsSavingAdmin] = useState(false);
     const [isSavingDues, setIsSavingDues] = useState(false);
+    
+    // Purge states
+    const [isPurging, setIsPurging] = useState(false);
+    const [showPurgeModal, setShowPurgeModal] = useState(false);
 
     const { showToast } = useToast();
 
@@ -94,6 +100,20 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
         } catch (error) {
             console.error("Failed to update penalty", error);
             showToast("Failed to apply penalty. Please try again.", 'error');
+        }
+    };
+
+    const handleConfirmPurge = async () => {
+        setIsPurging(true);
+        try {
+            await purgeUserData(targetUser.id);
+            showToast(`User ${targetUser.displayName} purged successfully.`, 'success');
+            setShowPurgeModal(false);
+            onDeleteUser(targetUser.id);
+        } catch (error) {
+            console.error("Failed to purge user:", error);
+            showToast("Failed to purge user data. Check console.", 'error');
+            setIsPurging(false);
         }
     };
 
@@ -210,6 +230,70 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 onUpdatePenalty={handlePenaltyUpdate}
                 events={events}
             />
+
+            {/* Danger Zone */}
+            <div className="mt-8 border border-red-500/20 rounded-xl overflow-hidden bg-red-900/5">
+                <div className="bg-red-900/20 px-6 py-4 border-b border-red-500/20 flex items-center gap-2">
+                    <TrashIcon className="w-5 h-5 text-red-500" />
+                    <h3 className="text-red-500 font-bold uppercase tracking-wider text-sm">Danger Zone</h3>
+                </div>
+                <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="text-center md:text-left">
+                        <h4 className="font-bold text-pure-white text-sm">Purge User Data</h4>
+                        <p className="text-xs text-highlight-silver mt-1 max-w-md">
+                            Permanently delete this user's profile, public stats, and all historical picks. Invitation code will be reset.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setShowPurgeModal(true)}
+                        className="bg-red-600 hover:bg-red-500 text-pure-white font-bold py-2.5 px-6 rounded-lg text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/20 whitespace-nowrap"
+                    >
+                        Purge User Data
+                    </button>
+                </div>
+            </div>
+
+            {/* Purge Confirmation Modal */}
+            {showPurgeModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => !isPurging && setShowPurgeModal(false)}>
+                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
+                            <TrashIcon className="w-8 h-8 text-red-500" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-pure-white mb-2">Confirm User Purge</h2>
+                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
+                            Are you absolutely sure you want to delete <span className="text-pure-white font-bold">{targetUser.displayName}</span>?
+                            <br/><br/>
+                            <span className="text-red-400 font-bold">This action cannot be undone.</span> All picks, points, and profile data will be permanently erased.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleConfirmPurge}
+                                disabled={isPurging}
+                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isPurging ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <span>Purging Data...</span>
+                                    </>
+                                ) : (
+                                    'Yes, Purge User'
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setShowPurgeModal(false)}
+                                disabled={isPurging}
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
