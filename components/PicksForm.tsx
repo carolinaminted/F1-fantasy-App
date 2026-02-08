@@ -8,6 +8,7 @@ import { LockIcon } from './icons/LockIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
+import CountdownTimer from './CountdownTimer.tsx';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -229,21 +230,30 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </p>
           </div>
 
-          <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2">
-              <div>
-                  <p className="text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
-                      {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
-                  </p>
-                  <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
-                      {isFormLockedForStatus ? "LOCKED" : "OPEN"}
-                  </p>
-              </div>
-              <div>
-                {isSubmitted ? (
-                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
-                ) : (
-                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
-                )}
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+              {!isFormLockedForStatus && (
+                  <div className="flex flex-col items-center">
+                      <p className="hidden md:block text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-1 opacity-80">Time Remaining</p>
+                      <CountdownTimer targetDate={event.lockAtUtc} />
+                  </div>
+              )}
+
+              <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px]">
+                  <div>
+                      <p className="hidden md:block text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
+                          {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
+                      </p>
+                      <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
+                          {isFormLockedForStatus ? "LOCKED" : "OPEN"}
+                      </p>
+                  </div>
+                  <div>
+                    {isSubmitted ? (
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
+                    ) : (
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
+                    )}
+                  </div>
               </div>
           </div>
         </div>
