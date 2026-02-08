@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
@@ -15,12 +16,10 @@ const AuthScreen: React.FC = () => {
   const [isResetting, setIsResetting] = useState(false);
   
   // Signup Flow State
-  // New Step: 'invitation' must happen before 'email'
   const [signupStep, setSignupStep] = useState<'invitation' | 'email' | 'code' | 'details'>('invitation');
   
   // Invitation Code State
   const [invitationCode, setInvitationCode] = useState('');
-  // We use this local state only for immediate UX feedback, not security enforcement
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [blockUntil, setBlockUntil] = useState<number>(0);
   const [timeLeftBlocked, setTimeLeftBlocked] = useState(0);
@@ -40,8 +39,10 @@ const AuthScreen: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
 
-  // Easter Egg State
-  const [easterEggStage, setEasterEggStage] = useState<'idle' | 'enter' | 'donuts' | 'celebrate' | 'exit'>('idle');
+  // Easter Egg State: Race Start Sequence
+  const [easterEggState, setEasterEggState] = useState<'idle' | 'lights' | 'racing' | 'finished'>('idle');
+  const [activeLights, setActiveLights] = useState(0);
+  
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,7 +70,6 @@ const AuthScreen: React.FC = () => {
       setError(null);
       setResetMessage(null);
       setIsResetting(false);
-      // Reset to invitation step if switching to signup, unless we are blocked
       setSignupStep('invitation');
       setCodeInput('');
       setResetAttempts(0);
@@ -77,66 +77,73 @@ const AuthScreen: React.FC = () => {
       setConfirmPassword('');
   };
 
-  const triggerEasterEgg = () => {
-      setEasterEggStage('enter');
-      // Drive in (1s)
-      setTimeout(() => {
-          setEasterEggStage('donuts');
-          // Spin 2 laps (2s)
-          setTimeout(() => {
-              setEasterEggStage('celebrate'); // Stop & Show Trophy
-              // Pause (1.5s)
+  const triggerRaceSequence = () => {
+      setEasterEggState('lights');
+      setActiveLights(0);
+      
+      // Start the 5 red lights sequence
+      let currentLight = 0;
+      const interval = setInterval(() => {
+          currentLight++;
+          setActiveLights(currentLight);
+          
+          if (currentLight >= 5) {
+              clearInterval(interval);
+              
+              // Random hold time before lights out (between 0.2s and 2s is realistic for F1)
+              const holdTime = 200 + Math.random() * 1800;
+              
               setTimeout(() => {
-                  setEasterEggStage('exit');
-                  // Drive away (1s)
+                  setEasterEggState('racing'); // Lights Out!
+                  
+                  // Trigger Confetti
+                  import('canvas-confetti').then(module => {
+                      const confetti = module.default;
+                      // Initial Burst
+                      confetti({
+                          particleCount: 150,
+                          spread: 100,
+                          origin: { y: 0.6 },
+                          colors: ['#DA291C', '#FFFFFF', '#000000'],
+                          zIndex: 10000
+                      });
+                      
+                      // Follow up side cannons
+                      setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 10000 }), 300);
+                      setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 10000 }), 300);
+                  });
+
+                  // Reset after race animation completes
                   setTimeout(() => {
-                      setEasterEggStage('idle');
-                  }, 1000);
-              }, 1500);
-          }, 2000);
-      }, 1000);
-  }
+                      setEasterEggState('finished');
+                      setTimeout(() => setEasterEggState('idle'), 500);
+                  }, 2500);
+              }, holdTime);
+          }
+      }, 800); // 0.8s between each red light turning on
+  };
 
   const handleLogoClick = async () => {
-    // [S3A-01] Lazy-load canvas-confetti
-    try {
-      const confettiModule = await import('canvas-confetti');
-      const confetti = confettiModule.default;
-      
-      // Checkered Flag Confetti Celebration
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.6 },
-        colors: ['#ffffff', '#000000', '#1a1a1a', '#cccccc'],
-        disableForReducedMotion: true,
-        zIndex: 2000
-      });
-    } catch (e) {
-      console.error("Failed to load confetti", e);
-    }
-    
     setError(null);
     setResetMessage(null);
 
-    // Easter Egg Logic: 5 clicks in 11 seconds
+    // Easter Egg Logic: 5 clicks in 2 seconds
     clickCountRef.current += 1;
     
     // Start timer on first click
     if (clickCountRef.current === 1) {
         clickTimerRef.current = setTimeout(() => {
-            clickCountRef.current = 0; // Reset after 11s
-        }, 11000);
+            clickCountRef.current = 0; // Reset
+        }, 2000);
     }
 
-    if (clickCountRef.current === 5) {
+    if (clickCountRef.current >= 5) {
         if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
         clickCountRef.current = 0;
-        triggerEasterEgg();
+        triggerRaceSequence();
     }
   };
 
-  // ... (Keep existing handler functions: handleValidateInvitation, handleSendCode, handleVerifyCode, handleSignup, handleLogin, handleResetPassword) ...
   const handleValidateInvitation = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -146,13 +153,12 @@ const AuthScreen: React.FC = () => {
       setIsLoading(true);
       try {
           const validateFn = httpsCallable(functions, 'validateInvitationCode');
-          // Trim and uppercase code for consistency
           const codeToSubmit = invitationCode.trim().toUpperCase();
           const result = await validateFn({ code: codeToSubmit });
           const data = result.data as any;
 
           if (data.valid) {
-              setInvitationCode(codeToSubmit); // Normalize
+              setInvitationCode(codeToSubmit);
               setSignupStep('email');
               setFailedAttempts(0);
           } else {
@@ -161,14 +167,11 @@ const AuthScreen: React.FC = () => {
 
       } catch (err: any) {
           console.error("Invitation validation failed:", err);
-          
-          // Check for server-side rate limit error
           if (err.code === 'resource-exhausted' || (err.message && err.message.includes('Too many attempts'))) {
-              const blockTime = Date.now() + 10 * 60 * 1000; // 10 minutes (UX Sync)
+              const blockTime = Date.now() + 10 * 60 * 1000;
               setBlockUntil(blockTime);
               setError("Maximum attempts reached. Please try again in 10 minutes.");
           } else {
-              // UX Counter (Non-blocking security, just feedback)
               setFailedAttempts(prev => prev + 1);
               setError(err.message || "Invalid or used invitation code.");
           }
@@ -177,7 +180,6 @@ const AuthScreen: React.FC = () => {
       }
   };
 
-  // --- Step 1: Send Verification Code ---
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -212,7 +214,6 @@ const AuthScreen: React.FC = () => {
     }
   };
 
-  // --- Step 2: Verify Code ---
   const handleVerifyCode = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -237,7 +238,6 @@ const AuthScreen: React.FC = () => {
       }
   };
 
-  // --- Step 3: Create Account ---
   const handleSignup = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -265,15 +265,12 @@ const AuthScreen: React.FC = () => {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           try {
-              // PASS INVITATION CODE HERE to be saved and marked used
               await createUserProfileDocument(user, { 
                   displayName: cleanDisplayName, 
                   firstName: cleanFirstName, 
                   lastName: cleanLastName,
-                  invitationCode: invitationCode // Passed from state
+                  invitationCode: invitationCode
               });
-              
-              // Prime the session guard so we don't immediately expire the fresh session
               localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
 
           } catch (profileError) {
@@ -298,10 +295,7 @@ const AuthScreen: React.FC = () => {
       setError(null);
       try {
           await signInWithEmailAndPassword(auth, email, password);
-          
-          // Prime the session guard so we don't immediately expire the fresh session
           localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
-
       } catch (error: any) {
           setError('Invalid email or password. Please try again.');
           setIsLoading(false);
@@ -334,7 +328,6 @@ const AuthScreen: React.FC = () => {
       }
   };
   
-  // Render Helpers
   const renderSignupStep = () => {
       switch(signupStep) {
           case 'invitation':
@@ -523,62 +516,74 @@ const AuthScreen: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto w-full relative">
-      {/* Easter Egg Overlay */}
-      {easterEggStage !== 'idle' && (
-          <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
-              {/* Spinner Container (Rotates the car around the center) */}
-              {/* Size corresponds to the orbit diameter + margin */}
-              <div className={`relative w-[700px] h-[700px] flex items-center justify-center ${easterEggStage === 'donuts' ? 'animate-spin-1s' : ''}`}>
-                  
-                  {/* Car Container (Translates car to the "track" edge and handles orientation) */}
-                  <div 
-                      className="absolute transition-all duration-[1000ms] ease-in-out"
-                      style={{
-                          transform: `
-                              translateX(${
-                                  // Orientation logic:
-                                  // F1CarIcon naturally points UP.
-                                  // When at Left (-350px): 
-                                  //   - Tangent (Up) is 0deg.
-                                  //   - Drive Right is 90deg.
-                                  // Exit right
-                                  easterEggStage === 'exit' ? '120vw' : 
-                                  // Start far left
-                                  easterEggStage === 'enter' ? '-120vw' : 
-                                  // Orbit radius (Left side)
-                                  '-350px' 
-                              })
-                              rotate(${
-                                  easterEggStage === 'enter' ? '90deg' : // Driving in (Right)
-                                  easterEggStage === 'donuts' ? '0deg' : // Orbiting (Tangent/Up at 9 o'clock)
-                                  easterEggStage === 'celebrate' || easterEggStage === 'exit' ? '90deg' : // Turning to exit (Right)
-                                  '90deg' 
-                              })
-                          `,
-                          // Override position for enter state to start from left
-                          left: '50%', 
-                          top: '50%',
-                          marginLeft: '-6rem', // Half of car width (w-48 = 12rem) roughly
-                          marginTop: '-6rem'
-                      }}
-                  >
-                      {/* Car Graphic */}
-                      <div className="relative">
-                          <F1CarIcon className="w-48 h-48 text-primary-red drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" />
-                          
-                          {/* Trophy Reveal */}
-                          <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-opacity duration-500 ${easterEggStage === 'celebrate' || easterEggStage === 'exit' ? 'opacity-100' : 'opacity-0'}`}>
-                              <TrophyIcon className="w-24 h-24 text-yellow-400 drop-shadow-lg animate-bounce" />
+      {/* Race Start Easter Egg Overlay */}
+      {easterEggState !== 'idle' && (
+          <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center justify-center overflow-hidden">
+              <style>
+                  {`
+                    @keyframes raceBy {
+                        0% { transform: translateX(-120vw); opacity: 0; }
+                        10% { opacity: 1; }
+                        100% { transform: translateX(120vw); opacity: 1; }
+                    }
+                    .animate-race-car {
+                        animation: raceBy 1.5s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards;
+                    }
+                    .animate-race-car-delayed {
+                        animation: raceBy 1.6s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards;
+                        animation-delay: 0.1s;
+                    }
+                  `}
+              </style>
+
+              {/* Start Lights */}
+              <div className={`transition-opacity duration-100 mb-20 ${easterEggState === 'racing' ? 'opacity-0' : 'opacity-100'}`}>
+                   <div className="bg-[#1a1a1a] p-4 md:p-6 rounded-3xl border-4 border-gray-800 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex gap-4 md:gap-6">
+                       {[1, 2, 3, 4, 5].map(i => (
+                           <div 
+                              key={i} 
+                              className={`w-12 h-12 md:w-20 md:h-20 rounded-full border-4 border-gray-700 shadow-inner transition-all duration-75 ${
+                                  activeLights >= i 
+                                  ? 'bg-[#FF0000] shadow-[0_0_40px_#FF0000] scale-105 border-red-900' 
+                                  : 'bg-[#0f0f0f] opacity-50'
+                              }`} 
+                           />
+                       ))}
+                   </div>
+              </div>
+              
+              {/* Racing Action */}
+              {easterEggState === 'racing' && (
+                  <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center">
+                      {/* Track Blur */}
+                      <div className="absolute w-full h-40 bg-gray-800/20 blur-xl"></div>
+                      
+                      {/* Lights Out Text */}
+                      <div className="absolute top-1/4 animate-ping text-5xl md:text-8xl font-black text-white italic uppercase tracking-tighter opacity-80">
+                          LIGHTS OUT!
+                      </div>
+
+                      {/* Cars */}
+                      <div className="relative w-full h-full">
+                          {/* Car 1: Red Bull / Max Style */}
+                          <div className="absolute top-[45%] left-0 animate-race-car">
+                              <F1CarIcon className="w-48 h-48 md:w-80 md:h-80 text-primary-red rotate-90 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]" />
+                              <div className="absolute top-1/2 left-0 w-full h-2 bg-white/10 blur-xl"></div>
+                          </div>
+
+                          {/* Car 2: McLaren / Lando Style */}
+                          <div className="absolute top-[55%] left-0 animate-race-car-delayed">
+                              <F1CarIcon className="w-48 h-48 md:w-80 md:h-80 text-yellow-500 rotate-90 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]" />
                           </div>
                       </div>
                   </div>
-              </div>
+              )}
           </div>
       )}
 
       <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl relative z-10">
         <div 
-          className="flex flex-col items-center mb-6 cursor-pointer select-none"
+          className="flex flex-col items-center mb-6 cursor-pointer select-none active:scale-95 transition-transform"
           onClick={handleLogoClick}
         >
           <F1FantasyLogo className="w-64 h-auto mb-4"/>
