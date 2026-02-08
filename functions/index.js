@@ -240,7 +240,7 @@ exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
     }
 });
 
-exports.sendAuthCode = onCall({ cors: true }, async (request) => {
+exports.sendAuthCode = onCall({ cors: true, memory: "512MiB" }, async (request) => {
   const email = request.data.email;
   if (!email) throw new HttpsError("invalid-argument", "Email is required");
 
