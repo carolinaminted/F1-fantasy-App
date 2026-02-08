@@ -20,8 +20,8 @@ To access the dashboard, tap the **Admin** icon in the bottom navigation bar (Mo
 | 🏆 | Scoring | Configure points systems and profiles |
 | 🎟️ | Invitations | Generate codes for new player registration |
 
-> **📸 Screenshot 1: Admin Dashboard**
-> Show the grid of admin tools and the top header actions (Dues, Sync).
+<img width="1249" height="780" alt="image" src="https://github.com/user-attachments/assets/bac10e1e-e71d-47be-9bf6-cf68c46bebfc" />
+
 
 ---
 
@@ -36,8 +36,8 @@ The league is invite-only. You must generate codes for players to register.
 3. **Share:** Tap a code in the list to open details, then tap **Copy Code**.
 4. **Monitor:** The list shows which codes are `Active`, `Reserved` (in validation), or `Used` (and by whom).
 
-> **📸 Screenshot 2: Invitation Manager**
-> Show the list of codes and the generation controls.
+<img width="1445" height="933" alt="image" src="https://github.com/user-attachments/assets/7484d08c-e030-43c0-94f2-9bbfba65761f" />
+
 
 ---
 
@@ -53,8 +53,8 @@ Manage the roster, verify payments, and handle access.
 4. Toggle **League Dues** to **"Paid"**.
 5. Tap **Save Changes**.
 
-> **📸 Screenshot 3: Admin User Profile View**
-> Show the Admin Privileges and League Dues toggles.
+<img width="1458" height="964" alt="image" src="https://github.com/user-attachments/assets/22c13495-0f58-4328-ab74-d95947eef6e1" />
+
 
 ### Setting the Season Fee:
 
@@ -96,8 +96,8 @@ The system auto-locks based on the Schedule, but you can override it manually.
 
 > **⚠️ CRITICAL:** Saving results automatically triggers a league-wide score recalculation. This may take 10-30 seconds.
 
-> **📸 Screenshot 4: Results Entry Form**
-> Show the driver selectors for P1, P2, P3, etc.
+<img width="1434" height="928" alt="image" src="https://github.com/user-attachments/assets/ffac7d90-3024-4059-a633-67d4e3be250a" />
+
 
 ---
 
