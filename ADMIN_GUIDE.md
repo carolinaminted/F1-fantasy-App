@@ -62,6 +62,9 @@ Manage the roster, verify payments, and handle access.
 2. Enter the amount (e.g., 25.00).
 3. Tap **Save Amount**. This updates the payment screen for all players.
 
+<img width="445" height="207" alt="image" src="https://github.com/user-attachments/assets/8224fbf3-b87a-4a1a-bac4-858ae281166c" />
+
+
 ### Penalties & Adjustments:
 
 If a player submits picks late or violates rules:
