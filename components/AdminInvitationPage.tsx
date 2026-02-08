@@ -99,13 +99,18 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         });
 
         // Sort by created date descending (Newest first)
+        // This ensures the most recently created codes appear at the top of the list
         return filtered.sort((a, b) => {
             const getTime = (ts: any) => {
                 if (!ts) return 0;
-                // Handle Firestore Timestamp or standard Date/string
+                // Handle Firestore Timestamp
                 if (typeof ts.toMillis === 'function') return ts.toMillis();
-                return new Date(ts).getTime();
+                // Handle Date object or string
+                const d = new Date(ts);
+                const time = d.getTime();
+                return isNaN(time) ? 0 : time;
             };
+            // Descending order: b - a
             return getTime(b.createdAt) - getTime(a.createdAt);
         });
     }, [codes, filter]);
@@ -298,3 +303,4 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
 };
 
 export default AdminInvitationPage;
+    
