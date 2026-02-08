@@ -8,7 +8,6 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
-import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
@@ -114,8 +113,20 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                 </div>
 
-                <div className={`relative ${isRacing ? 'animate-victory-lap z-50' : ''}`}>
-                    <F1CarIcon className="w-16 h-16 text-primary-red mx-auto mb-4 drop-shadow-[0_0_15px_rgba(218,41,28,0.5)]" />
+                {/* Minimalist 5 Lights Gantry */}
+                <div className="mb-6 flex flex-col items-center justify-center relative py-2">
+                    {/* Gantry Bar (Thin Line behind lights) */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 md:w-64 h-1 bg-accent-gray rounded-full shadow-lg"></div>
+                    
+                    {/* The Lights */}
+                    <div className="flex gap-4 md:gap-6 relative z-10">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div 
+                                key={i}
+                                className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-[#ff0000] shadow-[0_0_20px_rgba(255,0,0,0.9)] border border-red-900 ring-1 ring-black/50"
+                            />
+                        ))}
+                    </div>
                 </div>
                 
                 <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2 cursor-pointer active:scale-95 transition-transform uppercase">
