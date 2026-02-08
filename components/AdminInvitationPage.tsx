@@ -91,11 +91,22 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     };
 
     const filteredCodes = useMemo(() => {
-        return codes.filter(code => {
+        const filtered = codes.filter(code => {
             if (filter === 'all') return true;
             if (filter === 'active') return code.status === 'active';
             if (filter === 'used') return code.status === 'used';
             return true;
+        });
+
+        // Sort by created date descending (Newest first)
+        return filtered.sort((a, b) => {
+            const getTime = (ts: any) => {
+                if (!ts) return 0;
+                // Handle Firestore Timestamp or standard Date/string
+                if (typeof ts.toMillis === 'function') return ts.toMillis();
+                return new Date(ts).getTime();
+            };
+            return getTime(b.createdAt) - getTime(a.createdAt);
         });
     }, [codes, filter]);
 
