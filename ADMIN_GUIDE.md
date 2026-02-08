@@ -71,6 +71,9 @@ If a player submits picks late or violates rules:
 4. Use the **Admin Penalty Tribunal** box to enter a percentage deduction (e.g., 20%) and a reason.
 5. Tap **Apply Penalty**.
 
+<img width="1384" height="923" alt="image" src="https://github.com/user-attachments/assets/19c2d347-3e18-45ef-8f32-ec55851ed968" />
+
+
 ---
 
 ## 3. Race Operations: Results & Locks
