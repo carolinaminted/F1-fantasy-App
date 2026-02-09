@@ -54,6 +54,21 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
 
     const selectedEvent = useMemo(() => events.find(e => e.id === selectedEventId), [selectedEventId, events]);
 
+    const eventDate = useMemo(() => {
+        if (!selectedEvent?.lockAtUtc) return null;
+        try {
+            const date = new Date(selectedEvent.lockAtUtc);
+            if (isNaN(date.getTime())) return null;
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                timeZone: 'America/New_York'
+            });
+        } catch (e) {
+            return null;
+        }
+    }, [selectedEvent]);
+
     const handleEventFilter = (event: Event, filter: string) => {
         const resultsIn = hasResults(event.id);
         if (filter === 'results') return resultsIn;
@@ -99,7 +114,14 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                         {/* Event Header Panel */}
                         <div className="flex-none px-4 py-3 border-b border-pure-white/10 bg-gradient-to-r from-carbon-black/80 to-carbon-black/40 flex flex-row justify-between items-center gap-2">
                             <div>
-                                <h2 className="text-xl md:text-2xl font-black text-pure-white leading-tight">{selectedEvent.name}</h2>
+                                <div className="flex items-baseline gap-3">
+                                    <h2 className="text-xl md:text-2xl font-black text-pure-white leading-tight">{selectedEvent.name}</h2>
+                                    {eventDate && (
+                                        <span className="text-sm md:text-base font-bold text-highlight-silver/50 uppercase tracking-widest">
+                                            {eventDate}
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="text-xs text-highlight-silver flex items-center gap-2 mt-0.5">
                                     <span className="bg-pure-white/10 text-pure-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Round {selectedEvent.round}</span>
                                     {selectedEvent.country}
