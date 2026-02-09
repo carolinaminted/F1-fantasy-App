@@ -314,7 +314,7 @@ const SuperlativeCard: React.FC<{
                 {data ? (
                     <div className="w-full flex-1 flex flex-col justify-center items-center text-center min-w-0 mt-1">
                         <p className="text-xs md:text-sm font-bold text-pure-white truncate w-full px-1 mb-1">{data.user.displayName}</p>
-                        <p className={`text-2xl md:text-3xl font-black font-mono ${styles.text} drop-shadow-sm leading-none`}>
+                        <p className={`text-3xl md:text-4xl font-black font-mono ${styles.text} drop-shadow-sm leading-none`}>
                             {Number(data.score || 0).toLocaleString()}
                         </p>
                     </div>
@@ -329,21 +329,21 @@ const SuperlativeCard: React.FC<{
 };
 
 const TopListRow: React.FC<{ item: { label: string, value: number }, idx: number, styles: any, maxVal: number }> = ({ item, idx, styles, maxVal }) => (
-    <div className="group/row">
-        <div className="flex justify-between items-end mb-1 text-sm">
-            <div className="flex items-center gap-3 min-w-0">
-                <span className={`font-mono font-bold w-6 ${idx < 3 ? styles.text : 'text-highlight-silver opacity-70'} shrink-0`}>
+    <div className="group/row mb-3">
+        <div className="flex justify-between items-center mb-1">
+            <div className="flex items-center gap-3 min-w-0 mr-4">
+                <span className={`font-mono font-bold w-6 text-right ${idx < 3 ? styles.text : 'text-highlight-silver opacity-70'} shrink-0 text-sm md:text-base`}>
                     {idx + 1}.
                 </span>
-                <span className="font-semibold text-ghost-white truncate">
+                <span className="font-bold text-ghost-white truncate text-sm md:text-base">
                     {item.label}
                 </span>
             </div>
-            <span className={`font-mono font-bold ${idx === 0 ? styles.text : 'text-pure-white'} shrink-0 pl-2`}>
+            <span className={`font-mono font-black ${idx === 0 ? styles.text : 'text-pure-white'} shrink-0 text-2xl md:text-3xl leading-none`}>
                 {item.value}
             </span>
         </div>
-        <div className="w-full bg-carbon-black rounded-full h-2.5 border border-pure-white/5 overflow-hidden">
+        <div className="w-full bg-carbon-black rounded-full h-1.5 md:h-2 border border-pure-white/5 overflow-hidden">
             <div 
                 className={`h-full rounded-full transition-all duration-700 ease-out ${styles.bg} ${idx === 0 ? 'opacity-100 shadow-[0_0_10px_currentColor]' : 'opacity-60 group-hover/row:opacity-100'}`} 
                 style={{ width: `${(item.value / maxVal) * 100}%` }}
