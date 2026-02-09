@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -736,7 +737,7 @@ const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
     );
 };
 
-const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors }) => {
+const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
     // ... logic remains same
     const stats = useMemo(() => {
         const driverScores: Record<string, { total: number; sprint: number; fl: number; quali: number }> = {};
@@ -744,8 +745,11 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
         allDrivers.forEach(d => driverScores[d.id] = { total: 0, sprint: 0, fl: 0, quali: 0 });
         allConstructors.forEach(c => teamScores[c.id] = 0);
 
-        Object.values(raceResults).forEach((results: EventResult) => {
+        // Strict Filtering: Iterate events schedule, not raw DB keys to avoid ghost data
+        events.forEach(event => {
+            const results = raceResults[event.id];
             if (!results) return;
+
             const addPoints = (driverId: string | null, pts: number, category: 'race' | 'sprint' | 'quali' | 'fl' = 'race') => {
                 if (!driverId) return;
                 if (driverScores[driverId]) {
@@ -794,7 +798,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
             driversQuali: formatData(driverScores, (id) => driverScores[id].quali, getName, 'driver', 5), 
             driversFL: formatData(driverScores, (id) => driverScores[id].fl, getName, 'driver', 5) 
         };
-    }, [raceResults, pointsSystem, allDrivers, allConstructors]);
+    }, [raceResults, pointsSystem, allDrivers, allConstructors, events]);
 
     return (
         <div className="space-y-8 animate-fade-in pt-4 pb-12 h-full overflow-y-auto custom-scrollbar px-1">
@@ -817,8 +821,9 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                 </div>
                 <div className="bg-carbon-fiber rounded-xl p-6 border border-pure-white/10 shadow-lg">
                     <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-6 flex items-center gap-2">
-                        <PolePositionIcon className="w-5 h-5 text-blue-500" /> Qualifying Kings
+                        <PolePositionIcon className="w-5 h-5 text-blue-500" /> Qualifying Points
                     </h3>
+                    <p className="text-[10px] text-highlight-silver/70 -mt-4 mb-4 ml-7">Includes GP Quali & Sprint Quali Scores</p>
                     <SimpleBarChart data={stats.driversQuali} />
                 </div>
                 <div className="bg-carbon-fiber rounded-xl p-6 border border-pure-white/10 shadow-lg">
@@ -1163,7 +1168,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
-            {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />}
+            {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'p22' && <P22View users={processedUsers} />}
           </div>
 
