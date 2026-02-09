@@ -5,6 +5,7 @@ import ResultsForm from './ResultsForm.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { HistoryIcon } from './icons/HistoryIcon.tsx';
+import { TrashIcon } from './icons/TrashIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { logAdminAction, getAdminLogs } from '../services/firestoreService.ts';
@@ -32,6 +33,9 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     const [showLogModal, setShowLogModal] = useState(false);
     const [auditLogs, setAuditLogs] = useState<AdminLogEntry[]>([]);
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+    // Reset Confirmation State
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
@@ -136,6 +140,32 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         }
     };
 
+    const handleInitiateReset = () => {
+        if (!selectedEvent) return;
+        setShowResetConfirm(true);
+    };
+
+    const handleConfirmReset = async () => {
+        if (!selectedEvent) return;
+        
+        const emptyRes: EventResult = {
+            grandPrixFinish: Array(10).fill(null),
+            gpQualifying: Array(3).fill(null),
+            fastestLap: null,
+            p22Driver: null,
+            ...(selectedEvent.hasSprint && {
+                sprintFinish: Array(8).fill(null),
+                sprintQualifying: Array(3).fill(null),
+            }),
+        };
+
+        const success = await handleSave(selectedEvent.id, emptyRes);
+        if (success) {
+            showToast(`Results reset for ${selectedEvent.name}.`, 'success');
+        }
+        setShowResetConfirm(false);
+    };
+
     const fetchLogs = async () => {
         if (!selectedEventId) return;
         setIsLoadingLogs(true);
@@ -233,9 +263,19 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                 isLocked={!!formLocks[selectedEvent.id]}
                                 onToggleLock={() => onToggleLock(selectedEvent.id)}
                             />
-                            <p className="text-center text-[10px] font-bold uppercase tracking-widest text-highlight-silver mt-6 pt-4 border-t border-pure-white/5 opacity-50">
-                                Recalculation engine triggers automatically upon saving.
-                            </p>
+                            
+                            <div className="mt-6 pt-4 border-t border-pure-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-highlight-silver opacity-50 text-center md:text-left">
+                                    Recalculation engine triggers automatically upon saving.
+                                </p>
+                                <button
+                                    onClick={handleInitiateReset}
+                                    className="flex items-center gap-2 text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors px-3 py-2 rounded hover:bg-red-900/10 border border-transparent hover:border-red-500/20"
+                                    title="Reset all results for this event"
+                                >
+                                    <TrashIcon className="w-4 h-4" /> Reset Event Results
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-64 md:h-96 bg-accent-gray/20 rounded-xl border-2 border-dashed border-accent-gray/50 m-2">
@@ -281,6 +321,41 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                     })}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reset Confirmation Modal */}
+            {showResetConfirm && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowResetConfirm(false)}>
+                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
+                            <TrashIcon className="w-8 h-8 text-red-500" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-pure-white mb-2">Reset Results?</h2>
+                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
+                            You are about to clear all race data for <span className="text-pure-white font-bold">{selectedEvent?.name}</span>.
+                            <br/><br/>
+                            This will remove P1-P10, Quali, Sprint, and Fastest Lap records. Scores will be recalculated to 0 for this event.
+                            <br/><br/>
+                            <span className="text-red-400 font-bold uppercase tracking-wide">This action cannot be undone.</span>
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleConfirmReset}
+                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
+                            >
+                                Yes, Reset Everything
+                            </button>
+                            <button
+                                onClick={() => setShowResetConfirm(false)}
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
+                            >
+                                Cancel
+                            </button>
                         </div>
                     </div>
                 </div>
