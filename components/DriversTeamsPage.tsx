@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Driver, Constructor, EntityClass } from '../types.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
@@ -25,6 +26,7 @@ const TEAM_URLS: Record<string, string> = {
     'haas': 'https://www.formula1.com/en/teams/haas',
     'audi': 'https://www.formula1.com/en/teams/kick-sauber',
     'alpine': 'https://www.formula1.com/en/teams/alpine',
+    'cadillac': 'https://www.formula1.com/en/teams/cadillac',
 };
 
 const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allConstructors, setActivePage }) => {
