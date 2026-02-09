@@ -262,145 +262,6 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
     );
 };
 
-// --- View Components ---
-
-const StandingsView: React.FC<{ users: ProcessedUser[], currentUser: User | null, hasMore: boolean, onFetchMore: () => void, isPaging: boolean, onSelectUser: (user: ProcessedUser) => void }> = ({ users, currentUser, hasMore, onFetchMore, isPaging, onSelectUser }) => {
-    return (
-        <div className="flex flex-col h-full animate-fade-in pb-safe pt-2">
-             {/* Header Row */}
-             <div className="flex items-center px-4 py-2 text-[10px] font-bold text-highlight-silver uppercase tracking-widest border-b border-pure-white/10 bg-carbon-black/20">
-                <div className="w-10 text-center">Rank</div>
-                <div className="flex-1">Team Principal</div>
-                <div className="w-16 text-right">Points</div>
-             </div>
-             
-             <div className="overflow-y-auto custom-scrollbar flex-1 pb-20">
-                {users.map((user, idx) => {
-                    const isMe = currentUser?.id === user.id;
-                    const rank = user.displayRank || idx + 1;
-                    return (
-                        <div 
-                            key={user.id} 
-                            onClick={() => onSelectUser(user)}
-                            className={`flex items-center px-4 py-3 border-b border-pure-white/5 cursor-pointer transition-colors ${isMe ? 'bg-primary-red/10 hover:bg-primary-red/20' : 'hover:bg-pure-white/5'}`}
-                        >
-                            <div className={`w-10 text-center font-black text-lg ${rank <= 3 ? 'text-primary-red' : 'text-highlight-silver'}`}>{rank}</div>
-                            <div className="flex-1 min-w-0 pr-4">
-                                <div className={`font-bold truncate ${isMe ? 'text-primary-red' : 'text-pure-white'}`}>{user.displayName}</div>
-                                {user.breakdown && (
-                                    <div className="flex gap-2 text-[10px] text-highlight-silver opacity-70">
-                                        <span>GP: {user.breakdown.gp}</span>
-                                        <span>•</span>
-                                        <span>Sprint: {user.breakdown.sprint}</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="w-16 text-right font-mono font-bold text-pure-white text-lg">{user.totalPoints}</div>
-                        </div>
-                    )
-                })}
-                {hasMore && (
-                    <div className="p-4 text-center">
-                        <button onClick={onFetchMore} disabled={isPaging} className="text-xs font-bold text-highlight-silver hover:text-pure-white uppercase tracking-widest bg-carbon-black px-6 py-3 rounded-lg border border-pure-white/10 shadow-lg">
-                            {isPaging ? 'Loading...' : 'Load More Results'}
-                        </button>
-                    </div>
-                )}
-             </div>
-        </div>
-    )
-};
-
-const PopularityView: React.FC<{ 
-    allLeaguePicks: { [uid: string]: { [eid: string]: PickSelection } }; 
-    allDrivers: Driver[]; 
-    allConstructors: Constructor[]; 
-    events: Event[];
-    isLoading: boolean;
-}> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading }) => {
-    const stats = useMemo(() => {
-        const driverCounts: Record<string, number> = {};
-        const teamCounts: Record<string, number> = {};
-        let totalSelections = 0;
-
-        Object.values(allLeaguePicks).forEach(userPicks => {
-            Object.values(userPicks).forEach(pick => {
-                totalSelections++;
-                [...pick.aDrivers, ...pick.bDrivers].forEach(id => {
-                    if (id) driverCounts[id] = (driverCounts[id] || 0) + 1;
-                });
-                [...pick.aTeams, pick.bTeam].forEach(id => {
-                    if (id) teamCounts[id] = (teamCounts[id] || 0) + 1;
-                });
-            });
-        });
-
-        // Normalize scaling for visuals based on total events counted
-        // Since each pick selection has multiple drivers, we scale the bar relative to total users * events
-        // A rough normalization for bar width visualization
-        const normalize = totalSelections > 0 ? totalSelections : 1;
-
-        const sort = (rec: Record<string, number>, list: any[]) => Object.entries(rec)
-            .map(([id, count]) => ({ id, count, name: list.find(x => x.id === id)?.name || id }))
-            .sort((a, b) => b.count - a.count);
-
-        return {
-            drivers: sort(driverCounts, allDrivers),
-            teams: sort(teamCounts, allConstructors),
-            normalize
-        };
-    }, [allLeaguePicks, allDrivers, allConstructors]);
-
-    if (isLoading) return <ListSkeleton />;
-
-    return (
-        <div className="overflow-y-auto custom-scrollbar h-full pb-safe pt-2 px-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                {/* Drivers */}
-                <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 shadow-lg">
-                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <DriverIcon className="w-4 h-4 text-primary-red"/> Popular Drivers
-                    </h3>
-                    {stats.drivers.slice(0, 10).map((d, i) => (
-                        <div key={d.id} className="flex items-center justify-between mb-3 last:mb-0 group">
-                            <span className="text-sm text-pure-white font-semibold truncate w-1/2 flex items-center gap-2">
-                                <span className="text-highlight-silver w-4 text-right">{i+1}.</span> 
-                                {d.name}
-                            </span>
-                            <div className="flex items-center gap-2 w-1/2 justify-end">
-                                <div className="h-2 bg-carbon-black rounded-full flex-1 overflow-hidden border border-pure-white/5">
-                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (d.count / stats.normalize) * 100 * 3)}%` }}></div> 
-                                </div>
-                                <span className="text-xs font-mono text-highlight-silver w-8 text-right">{d.count}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                {/* Teams */}
-                <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 shadow-lg">
-                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <TeamIcon className="w-4 h-4 text-primary-red"/> Popular Teams
-                    </h3>
-                    {stats.teams.slice(0, 10).map((t, i) => (
-                        <div key={t.id} className="flex items-center justify-between mb-3 last:mb-0 group">
-                            <span className="text-sm text-pure-white font-semibold truncate w-1/2 flex items-center gap-2">
-                                <span className="text-highlight-silver w-4 text-right">{i+1}.</span>
-                                {t.name}
-                            </span>
-                            <div className="flex items-center gap-2 w-1/2 justify-end">
-                                <div className="h-2 bg-carbon-black rounded-full flex-1 overflow-hidden border border-pure-white/5">
-                                    <div className="h-full bg-primary-red rounded-full" style={{ width: `${Math.min(100, (t.count / stats.normalize) * 100 * 2)}%` }}></div>
-                                </div>
-                                <span className="text-xs font-mono text-highlight-silver w-8 text-right">{t.count}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // --- Enhanced Superlative Card & TrendChart for Insights ---
 
 type InsightVariant = 'gp' | 'quali' | 'sprint' | 'fl' | 'total';
@@ -429,10 +290,10 @@ const SuperlativeCard: React.FC<{
     return (
         <button 
             onClick={onClick}
-            className={`w-full text-left group relative overflow-hidden rounded-xl p-5 shadow-lg h-full border transition-all duration-300 outline-none
+            className={`w-full group relative overflow-hidden rounded-xl p-3 md:p-4 shadow-lg border transition-all duration-300 outline-none flex flex-col min-h-[120px] md:min-h-[140px]
                 ${isActive 
-                    ? `bg-carbon-fiber ring-2 ${styles.border} ring-opacity-50 opacity-100 scale-[1.02] z-10` 
-                    : 'bg-carbon-fiber/60 border-pure-white/5 opacity-60 hover:opacity-100 hover:scale-[1.01] hover:border-pure-white/20'
+                    ? `bg-carbon-fiber ring-1 ${styles.border} ring-offset-0 z-10 shadow-lg` 
+                    : 'bg-carbon-fiber/40 border-pure-white/5 opacity-70 hover:opacity-100 hover:bg-carbon-fiber/60 hover:border-pure-white/20'
                 }
             `}
         >
@@ -440,28 +301,28 @@ const SuperlativeCard: React.FC<{
             <div className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} to-transparent opacity-0 ${isActive ? 'opacity-20' : 'group-hover:opacity-10'} transition-opacity duration-500`}></div>
             <div className="absolute inset-0 bg-checkered-flag opacity-[0.03] pointer-events-none"></div>
             
-            <div className="relative z-10 flex flex-col justify-between h-full">
-                <div className="mb-2">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className={`p-1.5 rounded-lg bg-carbon-black border border-pure-white/10 ${styles.text} shadow-inner`}>
-                            <Icon className="w-4 h-4" />
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? styles.text : 'text-highlight-silver'} opacity-80 truncate`}>{title}</span>
+            <div className="relative z-10 flex flex-col h-full w-full min-w-0">
+                {/* Header: Icon + Title */}
+                <div className="flex items-center gap-2 mb-2 w-full">
+                    <div className={`p-1.5 rounded-lg bg-carbon-black border border-pure-white/10 ${styles.text} shadow-inner shrink-0`}>
+                        <Icon className="w-3 h-3 md:w-4 md:h-4" />
                     </div>
-                    
-                    {data ? (
-                        <div className="mt-1">
-                            <p className="text-sm md:text-base font-bold text-pure-white truncate leading-tight mb-0.5">{data.user.displayName}</p>
-                            <p className={`text-xl md:text-2xl font-black font-mono ${styles.text} drop-shadow-sm leading-none`}>
-                                {Number(data.score || 0).toLocaleString()}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="mt-2">
-                            <p className="text-xs text-highlight-silver italic opacity-50">No data</p>
-                        </div>
-                    )}
+                    <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${isActive ? styles.text : 'text-highlight-silver'} opacity-80 truncate`}>{title}</span>
                 </div>
+                
+                {/* Content: Name + Score (Centered) */}
+                {data ? (
+                    <div className="w-full flex-1 flex flex-col justify-center items-center text-center min-w-0 mt-1">
+                        <p className="text-xs md:text-sm font-bold text-pure-white truncate w-full px-1 mb-1">{data.user.displayName}</p>
+                        <p className={`text-2xl md:text-3xl font-black font-mono ${styles.text} drop-shadow-sm leading-none`}>
+                            {Number(data.score || 0).toLocaleString()}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center w-full mt-auto">
+                        <p className="text-[10px] text-highlight-silver italic opacity-50">No data</p>
+                    </div>
+                )}
             </div>
         </button>
     );
@@ -470,15 +331,15 @@ const SuperlativeCard: React.FC<{
 const TopListRow: React.FC<{ item: { label: string, value: number }, idx: number, styles: any, maxVal: number }> = ({ item, idx, styles, maxVal }) => (
     <div className="group/row">
         <div className="flex justify-between items-end mb-1 text-sm">
-            <div className="flex items-center gap-3">
-                <span className={`font-mono font-bold w-6 ${idx < 3 ? styles.text : 'text-highlight-silver opacity-70'}`}>
+            <div className="flex items-center gap-3 min-w-0">
+                <span className={`font-mono font-bold w-6 ${idx < 3 ? styles.text : 'text-highlight-silver opacity-70'} shrink-0`}>
                     {idx + 1}.
                 </span>
-                <span className="font-semibold text-ghost-white truncate max-w-[150px] sm:max-w-[200px]">
+                <span className="font-semibold text-ghost-white truncate">
                     {item.label}
                 </span>
             </div>
-            <span className={`font-mono font-bold ${idx === 0 ? styles.text : 'text-pure-white'}`}>
+            <span className={`font-mono font-bold ${idx === 0 ? styles.text : 'text-pure-white'} shrink-0 pl-2`}>
                 {item.value}
             </span>
         </div>
@@ -494,10 +355,10 @@ const TopListRow: React.FC<{ item: { label: string, value: number }, idx: number
 const InsightsView: React.FC<{ 
     users: ProcessedUser[]; 
     allPicks: { [uid: string]: { [eid: string]: PickSelection } }; 
-    raceResults: RaceResults;
-    pointsSystem: PointsSystem;
-    allDrivers: Driver[];
-    events: Event[];
+    raceResults: RaceResults; 
+    pointsSystem: PointsSystem; 
+    allDrivers: Driver[]; 
+    events: Event[]; 
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
     const [activeCategory, setActiveCategory] = useState<InsightVariant>('total');
 
@@ -570,9 +431,9 @@ const InsightsView: React.FC<{
     const ActiveIcon = getIcon(activeCategory);
 
     return (
-        <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col h-full gap-4 md:gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
             {/* Top Interactive Tiles */}
-            <div className="flex-none grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="flex-none grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <SuperlativeCard 
                     title="Season Leader" 
                     icon={TrophyIcon} 
@@ -616,34 +477,36 @@ const InsightsView: React.FC<{
             </div>
 
             {/* Consolidated List Section */}
-            <div className="flex-none bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 mb-8 transition-all duration-500">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-pure-white/5">
+            <div className="flex-1 min-h-0 bg-carbon-fiber rounded-xl ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 transition-all duration-500 flex flex-col overflow-hidden mb-8">
+                <div className="flex items-center gap-3 p-4 md:p-6 border-b border-pure-white/5 bg-carbon-black/20 flex-shrink-0">
                     <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${activeStyles.text}`}>
-                        <ActiveIcon className="w-6 h-6" />
+                        <ActiveIcon className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
-                    <h3 className="text-xl font-bold text-pure-white">{getTitle(activeCategory)}</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-pure-white truncate">{getTitle(activeCategory)}</h3>
                 </div>
 
-                {activeList.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                        {/* Left Column (1-5) */}
-                        <div className="space-y-4">
-                            {activeList.slice(0, 5).map((item, idx) => (
-                                <TopListRow key={idx} item={item} idx={idx} styles={activeStyles} maxVal={maxVal} />
-                            ))}
+                <div className="overflow-y-auto custom-scrollbar p-4 md:p-6">
+                    {activeList.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                            {/* Left Column (1-5) */}
+                            <div className="space-y-4">
+                                {activeList.slice(0, 5).map((item, idx) => (
+                                    <TopListRow key={idx} item={item} idx={idx} styles={activeStyles} maxVal={maxVal} />
+                                ))}
+                            </div>
+                            {/* Right Column (6-10) */}
+                            <div className="space-y-4">
+                                {activeList.slice(5, 10).map((item, idx) => (
+                                    <TopListRow key={idx + 5} item={item} idx={idx + 5} styles={activeStyles} maxVal={maxVal} />
+                                ))}
+                            </div>
                         </div>
-                        {/* Right Column (6-10) */}
-                        <div className="space-y-4">
-                            {activeList.slice(5, 10).map((item, idx) => (
-                                <TopListRow key={idx + 5} item={item} idx={idx + 5} styles={activeStyles} maxVal={maxVal} />
-                            ))}
+                    ) : (
+                        <div className="py-12 text-center text-highlight-silver italic opacity-50">
+                            No data available for this category yet.
                         </div>
-                    </div>
-                ) : (
-                    <div className="py-12 text-center text-highlight-silver italic opacity-50">
-                        No data available for this category yet.
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -794,6 +657,140 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
                         <FastestLapIcon className="w-5 h-5 text-purple-500" /> Fastest Lap Counts
                     </h3>
                     <SimpleBarChart data={stats.driversFL} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const StandingsView: React.FC<{ users: ProcessedUser[], currentUser: User | null, hasMore: boolean, onFetchMore: () => void, isPaging: boolean, onSelectUser: (user: ProcessedUser) => void }> = ({ users, currentUser, hasMore, onFetchMore, isPaging, onSelectUser }) => {
+    return (
+        <div className="flex flex-col h-full animate-fade-in pb-safe pt-2">
+             {/* Header Row */}
+             <div className="flex items-center px-4 py-2 text-[10px] font-bold text-highlight-silver uppercase tracking-widest border-b border-pure-white/10 bg-carbon-black/20">
+                <div className="w-10 text-center">Rank</div>
+                <div className="flex-1">Team Principal</div>
+                <div className="w-16 text-right">Points</div>
+             </div>
+             
+             <div className="overflow-y-auto custom-scrollbar flex-1 pb-20">
+                {users.map((user, idx) => {
+                    const isMe = currentUser?.id === user.id;
+                    const rank = user.displayRank || idx + 1;
+                    return (
+                        <div 
+                            key={user.id} 
+                            onClick={() => onSelectUser(user)}
+                            className={`flex items-center px-4 py-3 border-b border-pure-white/5 cursor-pointer transition-colors ${isMe ? 'bg-primary-red/10 hover:bg-primary-red/20' : 'hover:bg-pure-white/5'}`}
+                        >
+                            <div className={`w-10 text-center font-black text-lg ${rank <= 3 ? 'text-primary-red' : 'text-highlight-silver'}`}>{rank}</div>
+                            <div className="flex-1 min-w-0 pr-4">
+                                <div className={`font-bold truncate ${isMe ? 'text-primary-red' : 'text-pure-white'}`}>{user.displayName}</div>
+                                {user.breakdown && (
+                                    <div className="flex gap-2 text-[10px] text-highlight-silver opacity-70">
+                                        <span>GP: {user.breakdown.gp}</span>
+                                        <span>•</span>
+                                        <span>Sprint: {user.breakdown.sprint}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="w-16 text-right font-mono font-bold text-pure-white text-lg">{user.totalPoints}</div>
+                        </div>
+                    )
+                })}
+                {hasMore && (
+                    <div className="p-4 text-center">
+                        <button onClick={onFetchMore} disabled={isPaging} className="text-xs font-bold text-highlight-silver hover:text-pure-white uppercase tracking-widest bg-carbon-black px-6 py-3 rounded-lg border border-pure-white/10 shadow-lg">
+                            {isPaging ? 'Loading...' : 'Load More Results'}
+                        </button>
+                    </div>
+                )}
+             </div>
+        </div>
+    )
+};
+
+const PopularityView: React.FC<{ 
+    allLeaguePicks: { [uid: string]: { [eid: string]: PickSelection } }; 
+    allDrivers: Driver[]; 
+    allConstructors: Constructor[]; 
+    events: Event[];
+    isLoading: boolean;
+}> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading }) => {
+    const stats = useMemo(() => {
+        const driverCounts: Record<string, number> = {};
+        const teamCounts: Record<string, number> = {};
+        let totalSelections = 0;
+
+        Object.values(allLeaguePicks).forEach(userPicks => {
+            Object.values(userPicks).forEach(pick => {
+                totalSelections++;
+                [...pick.aDrivers, ...pick.bDrivers].forEach(id => {
+                    if (id) driverCounts[id] = (driverCounts[id] || 0) + 1;
+                });
+                [...pick.aTeams, pick.bTeam].forEach(id => {
+                    if (id) teamCounts[id] = (teamCounts[id] || 0) + 1;
+                });
+            });
+        });
+
+        const normalize = totalSelections > 0 ? totalSelections : 1;
+
+        const sort = (rec: Record<string, number>, list: any[]) => Object.entries(rec)
+            .map(([id, count]) => ({ id, count, name: list.find(x => x.id === id)?.name || id }))
+            .sort((a, b) => b.count - a.count);
+
+        return {
+            drivers: sort(driverCounts, allDrivers),
+            teams: sort(teamCounts, allConstructors),
+            normalize
+        };
+    }, [allLeaguePicks, allDrivers, allConstructors]);
+
+    if (isLoading) return <ListSkeleton />;
+
+    return (
+        <div className="overflow-y-auto custom-scrollbar h-full pb-safe pt-2 px-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                {/* Drivers */}
+                <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 shadow-lg">
+                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <DriverIcon className="w-4 h-4 text-primary-red"/> Popular Drivers
+                    </h3>
+                    {stats.drivers.slice(0, 10).map((d, i) => (
+                        <div key={d.id} className="flex items-center justify-between mb-3 last:mb-0 group">
+                            <span className="text-sm text-pure-white font-semibold truncate w-1/2 flex items-center gap-2">
+                                <span className="text-highlight-silver w-4 text-right">{i+1}.</span> 
+                                {d.name}
+                            </span>
+                            <div className="flex items-center gap-2 w-1/2 justify-end">
+                                <div className="h-2 bg-carbon-black rounded-full flex-1 overflow-hidden border border-pure-white/5">
+                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (d.count / stats.normalize) * 100 * 3)}%` }}></div> 
+                                </div>
+                                <span className="text-xs font-mono text-highlight-silver w-8 text-right">{d.count}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {/* Teams */}
+                <div className="bg-carbon-fiber rounded-xl p-5 border border-pure-white/10 shadow-lg">
+                    <h3 className="text-sm font-bold text-highlight-silver uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <TeamIcon className="w-4 h-4 text-primary-red"/> Popular Teams
+                    </h3>
+                    {stats.teams.slice(0, 10).map((t, i) => (
+                        <div key={t.id} className="flex items-center justify-between mb-3 last:mb-0 group">
+                            <span className="text-sm text-pure-white font-semibold truncate w-1/2 flex items-center gap-2">
+                                <span className="text-highlight-silver w-4 text-right">{i+1}.</span>
+                                {t.name}
+                            </span>
+                            <div className="flex items-center gap-2 w-1/2 justify-end">
+                                <div className="h-2 bg-carbon-black rounded-full flex-1 overflow-hidden border border-pure-white/5">
+                                    <div className="h-full bg-primary-red rounded-full" style={{ width: `${Math.min(100, (t.count / stats.normalize) * 100 * 2)}%` }}></div>
+                                </div>
+                                <span className="text-xs font-mono text-highlight-silver w-8 text-right">{t.count}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
