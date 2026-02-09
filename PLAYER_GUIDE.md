@@ -200,3 +200,11 @@ Contact the League Administrator for:
 - Payment issues
 - Account changes
 - Scoring disputes
+
+---
+
+## Beta Feedback Form
+
+See [this form]([url](https://forms.gle/gBoZBfnyM145MoqF7)) to provide feedback on your beta experience ot help improve the site by reporting bugs, new enhancement requests, and rate the site based on your experience.
+
+
