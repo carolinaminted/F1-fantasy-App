@@ -26,7 +26,7 @@ import ProfilePage from './ProfilePage.tsx';
 // --- Configuration ---
 const REFRESH_COOLDOWN_SECONDS = 60;
 const MAX_DAILY_REFRESHES = 5;
-const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
 // --- Shared Types & Helpers ---
 
@@ -76,7 +76,7 @@ const RefreshControl: React.FC<{
         return `${m}m ${s}s`;
     };
 
-    const isLocked = cooldown > 3600; // Consider it a "Lock" if wait is > 1 hour
+    const isLocked = cooldown > 610; // Consider it a "Lock" if wait is > 1 hour
     const remainingDaily = Math.max(0, MAX_DAILY_REFRESHES - dailyCount);
 
     return (

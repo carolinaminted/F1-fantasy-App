@@ -37,6 +37,7 @@ const AuthScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
+  const [resetCooldownTime, setResetCooldownTime] = useState(0);
 
   // Easter Egg Hook
   const { easterEggState, activeLights, handleTriggerClick } = useRaceStartEasterEgg();
@@ -60,6 +61,17 @@ const AuthScreen: React.FC = () => {
       }
       return () => clearInterval(interval);
   }, [blockUntil]);
+
+  // Timer for Reset Password Cooldown
+  React.useEffect(() => {
+      let interval: any;
+      if (resetCooldownTime > 0) {
+          interval = setInterval(() => {
+              setResetCooldownTime(prev => Math.max(0, prev - 1));
+          }, 1000);
+      }
+      return () => clearInterval(interval);
+  }, [resetCooldownTime]);
 
   const resetFlows = () => {
       setError(null);
@@ -250,7 +262,8 @@ const AuthScreen: React.FC = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (resetAttempts >= 3) return setError("Too many attempts. Please wait.");
+      if (resetAttempts >= 3) return setError("Maximum attempts reached. Please try again later.");
+      if (resetCooldownTime > 0) return; // Block if cooldown active
       if (!email) return setError("Please enter your email address.");
 
       setIsLoading(true);
@@ -258,18 +271,15 @@ const AuthScreen: React.FC = () => {
       setResetMessage(null);
       
       try {
-          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-          if (signInMethods.length === 0) {
-              setError("No account found with this email.");
-              setIsLoading(false);
-              return;
-          }
+          // Security Improvement: Don't check if user exists (enumeration). 
+          // Just attempt send. Firebase handles non-existent emails silently or throws specific errors we mask.
           await sendPasswordResetEmail(auth, email);
-          setResetMessage("Password reset email sent! Check your inbox.");
       } catch (err: any) {
-          setError(err.code === 'auth/user-not-found' ? "No account found." : "Failed to send reset email.");
+          console.error("Password reset error:", err);
       } finally {
+          setResetMessage("If an account exists with this email, a password reset link has been sent. Check your inbox and spam folder.");
           setResetAttempts(prev => prev + 1);
+          setResetCooldownTime(60); // Start 60s cooldown
           setIsLoading(false);
       }
   };
@@ -497,11 +507,14 @@ const AuthScreen: React.FC = () => {
                 </div>
                 <button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
+                    disabled={isLoading || resetCooldownTime > 0}
+                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
                 >
-                    {isLoading ? 'Sending...' : 'Send Reset Link'}
+                    {isLoading ? 'Sending...' : resetCooldownTime > 0 ? `Resend in ${resetCooldownTime}s` : 'Send Reset Link'}
                 </button>
+                {resetAttempts > 0 && resetAttempts < 3 && (
+                    <p className="text-xs text-highlight-silver text-center">Attempts remaining: {3 - resetAttempts}</p>
+                )}
             </form>
         ) : isLogin ? (
             <form onSubmit={handleLogin} className="space-y-4">
