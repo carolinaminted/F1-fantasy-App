@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import SelectorGroup from './SelectorGroup.tsx';
@@ -181,11 +182,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
             {/* Updated container with bg-carbon-fiber */}
             <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up relative overflow-hidden">
-                {/* Background flare */}
-                <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-                    <F1CarIcon className="w-64 h-64 text-pure-white" />
-                </div>
-
                 <h2 className="text-3xl font-bold text-ghost-white mb-4 relative z-10">Picks Submitted Successfully!</h2>
                 <p className="text-ghost-white relative z-10">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
                 

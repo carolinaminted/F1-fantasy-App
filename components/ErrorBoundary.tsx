@@ -18,6 +18,15 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     error: null,
   };
 
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+    this.handleReload = this.handleReload.bind(this);
+  }
+
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
@@ -26,7 +35,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  handleReload = () => {
+  handleReload() {
     const { onReset } = this.props;
     if (onReset) {
       this.setState({ hasError: false, error: null });
