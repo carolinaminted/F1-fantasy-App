@@ -25,8 +25,16 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     // Selection State
     const [selectedCode, setSelectedCode] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const { showToast } = useToast();
+
+    // Reset confirmation state when a new modal is opened
+    useEffect(() => {
+        if (selectedCode) {
+            setConfirmingDelete(false);
+        }
+    }, [selectedCode]);
 
     const loadCodes = async () => {
         setIsLoading(true);
@@ -65,9 +73,12 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         }
     };
 
-    const handleDeleteCode = async () => {
+    const handleDeleteClick = () => {
+        setConfirmingDelete(true);
+    };
+
+    const executeDelete = async () => {
         if (!selectedCode) return;
-        if (!window.confirm(`Are you sure you want to permanently delete code ${selectedCode}?`)) return;
 
         setIsDeleting(true);
         try {
@@ -264,36 +275,56 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                         </p>
                         
                         <div className="flex flex-col gap-3">
-                            {/* Primary Action: Copy */}
-                            <button
-                                onClick={handleCopyCode}
-                                className="w-full bg-pure-white hover:bg-highlight-silver text-carbon-black font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                            >
-                                <CopyIcon className="w-4 h-4" /> Copy Code
-                            </button>
-
+                            {!confirmingDelete && (
+                                <button
+                                    onClick={handleCopyCode}
+                                    className="w-full bg-pure-white hover:bg-highlight-silver text-carbon-black font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                                >
+                                    <CopyIcon className="w-4 h-4" /> Copy Code
+                                </button>
+                            )}
+                            
                             <div className="h-px bg-pure-white/10 w-full my-2"></div>
 
-                            {/* Secondary Action: Delete */}
-                            <button
-                                onClick={handleDeleteCode}
-                                disabled={isDeleting}
-                                className="w-full bg-red-900/10 hover:bg-red-900/30 text-red-500 font-bold py-3 px-6 rounded-lg transition-colors border border-red-500/20 hover:border-red-500/40 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
-                            >
-                                {isDeleting ? 'Deleting...' : (
-                                    <>
+                            {confirmingDelete ? (
+                                <div className="bg-red-900/20 p-4 rounded-lg border border-red-500/30 animate-fade-in">
+                                    <p className="text-sm font-bold text-red-400 mb-3">Are you sure? This is permanent.</p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setConfirmingDelete(false)}
+                                            disabled={isDeleting}
+                                            className="w-full bg-transparent hover:bg-pure-white/10 text-highlight-silver font-bold py-2 px-4 rounded-lg text-xs uppercase"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={executeDelete}
+                                            disabled={isDeleting}
+                                            className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-2 px-4 rounded-lg text-xs uppercase transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            {isDeleting ? 'Deleting...' : <><TrashIcon className="w-4 h-4" /> Confirm</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={handleDeleteClick}
+                                        disabled={isDeleting}
+                                        className="w-full bg-red-900/10 hover:bg-red-900/30 text-red-500 font-bold py-3 px-6 rounded-lg transition-colors border border-red-500/20 hover:border-red-500/40 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                                    >
                                         <TrashIcon className="w-4 h-4" /> Delete Permanently
-                                    </>
-                                )}
-                            </button>
-                            
-                            <button
-                                onClick={() => setSelectedCode(null)}
-                                disabled={isDeleting}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-2 px-6 rounded-lg transition-colors text-xs uppercase"
-                            >
-                                Close
-                            </button>
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => setSelectedCode(null)}
+                                        disabled={isDeleting}
+                                        className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-2 px-6 rounded-lg transition-colors text-xs uppercase"
+                                    >
+                                        Close
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
