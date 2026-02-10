@@ -303,6 +303,20 @@ export const deleteInvitationCode = async (code: string) => {
     await deleteDoc(ref);
 };
 
+export const reserveInvitationCode = async (code: string, reservedFor: string) => {
+    const ref = doc(db, 'invitation_codes', code);
+    await updateDoc(ref, {
+        reservedFor: reservedFor
+    });
+};
+
+export const clearReservation = async (code: string) => {
+     const ref = doc(db, 'invitation_codes', code);
+     await updateDoc(ref, {
+         reservedFor: deleteField()
+     });
+};
+
 export const getLeagueConfig = async (): Promise<LeagueConfig> => {
     const configRef = doc(db, 'app_state', 'league_config');
     const snapshot = await getDoc(configRef);

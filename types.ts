@@ -1,3 +1,4 @@
+
 export enum EntityClass {
   A = 'A',
   B = 'B'
@@ -116,6 +117,7 @@ export interface InvitationCode {
     usedAt?: any; // Timestamp
     usedByEmail?: string;
     reservedAt?: any; // Timestamp
+    reservedFor?: string; // Admin manual reservation note
 }
 
 export interface AdminLogEntry {
