@@ -54,9 +54,6 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                                 Donate Now
                             </a>
                         </div>
-                        <p className="text-[10px] text-highlight-silver/40 mt-4 font-mono uppercase tracking-widest">
-                            Secure External Link
-                        </p>
                     </div>
 
                     {/* Separator */}
@@ -79,7 +76,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                         
                         <div className="pt-4 pb-2">
                              <a 
-                                href="https://venmo.com/u/nexuslife42"
+                                href="https://venmo.com/u/John-Mckenna-4"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-block w-full md:w-auto bg-[#008CFF] hover:bg-[#0077D9] text-pure-white font-bold py-3 px-10 rounded-lg transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(0,140,255,0.3)] uppercase tracking-wider text-sm"
@@ -87,9 +84,6 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                                 Donate via Venmo
                             </a>
                         </div>
-                        <p className="text-[10px] text-highlight-silver/40 mt-4 font-mono uppercase tracking-widest">
-                            Secure External Link
-                        </p>
                     </div>
                 </div>
             </div>
