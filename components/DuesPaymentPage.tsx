@@ -4,11 +4,10 @@ import { User } from '../types.ts';
 import { Page } from '../App.tsx';
 import { PaymentIcon } from './icons/PaymentIcon.tsx';
 import { CopyIcon } from './icons/CopyIcon.tsx';
-import { PayPalIcon } from './icons/PayPalIcon.tsx';
 import { VenmoIcon } from './icons/VenmoIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, PAYPAL_PAY_DUES_URL } from '../constants.ts';
+import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON } from '../constants.ts';
 import { logDuesPaymentInitiation, getLeagueConfig } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
@@ -53,20 +52,13 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
         });
     };
     
-    const handlePay = async (provider: 'paypal' | 'venmo') => {
+    const handlePay = async () => {
         setIsProcessing(true);
         try {
-            await logDuesPaymentInitiation(user, amount, CURRENT_SEASON, memo + ` [${provider.toUpperCase()}]`);
+            await logDuesPaymentInitiation(user, amount, CURRENT_SEASON, memo + ` [VENMO]`);
             
-            let finalUrl = '';
-            
-            if (provider === 'paypal') {
-                // Append amount to PayPal donation URL to pre-fill the field
-                finalUrl = `${PAYPAL_PAY_DUES_URL}&amount=${amount.toFixed(2)}`;
-            } else {
-                // Link to Venmo Profile
-                finalUrl = 'https://venmo.com/u/John-Mckenna-4';
-            }
+            // Link to Venmo Profile
+            const finalUrl = 'https://venmo.com/u/John-Mckenna-4';
             
             window.open(finalUrl, '_blank', 'noopener,noreferrer');
         } catch (error) {
@@ -131,23 +123,8 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
                         </div>
 
                         <div className="mt-8 pt-6 border-t border-accent-gray/50 space-y-3">
-                            {/* PayPal Option Hidden Temporarily
                             <button
-                                onClick={() => handlePay('paypal')}
-                                disabled={isProcessing}
-                                className="w-full flex items-center justify-center gap-3 bg-[#003087] hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-blue-900/30 disabled:bg-accent-gray disabled:cursor-wait"
-                            >
-                                <PayPalIcon className="w-6 h-6" />
-                                {isProcessing ? 'Processing...' : 'Pay with PayPal'}
-                            </button>
-
-                            <div className="flex items-center justify-center text-xs text-highlight-silver font-bold uppercase tracking-wider my-2">
-                                <span>- OR -</span>
-                            </div>
-                            */}
-
-                            <button
-                                onClick={() => handlePay('venmo')}
+                                onClick={handlePay}
                                 disabled={isProcessing}
                                 className="w-full flex items-center justify-center gap-3 bg-[#008CFF] hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-blue-500/30 disabled:bg-accent-gray disabled:cursor-wait"
                             >

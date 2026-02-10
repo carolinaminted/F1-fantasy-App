@@ -58,11 +58,11 @@ If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing th
 1. Go to **League Hub** (Flag icon) or **Profile** (Helmet icon)
 2. Tap **Pay Dues**
 3. Copy the **Payment Memo** (this links your payment to your account)
-4. Complete payment via **PayPal**
+4. Complete payment via **Venmo**
 5. Once an Admin approves your payment, you're cleared immediately
 
 > **📸 Screenshot 5: Dues Payment Screen**
-> Show the payment amount, memo field with copy button, and PayPal button.
+> Show the payment amount, memo field with copy button, and Venmo button.
 
 ---
 
