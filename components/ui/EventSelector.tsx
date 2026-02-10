@@ -18,6 +18,7 @@ interface EventSelectorProps {
     filterPredicate: (event: Event, filterValue: string) => boolean;
     // Returns a React Node to display on the right side of the list item (e.g. status dot)
     renderStatus?: (event: Event) => React.ReactNode;
+    disabled?: boolean;
 }
 
 export const EventSelector: React.FC<EventSelectorProps> = ({
@@ -27,7 +28,8 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
     placeholder = "Select Event...",
     filters,
     filterPredicate,
-    renderStatus
+    renderStatus,
+    disabled
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<string>(filters[0]?.value || 'all');
@@ -43,6 +45,13 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Force close if disabled state changes to true
+    useEffect(() => {
+        if (disabled) {
+            setIsDropdownOpen(false);
+        }
+    }, [disabled]);
 
     const filteredEvents = useMemo(() => {
         return events.filter(event => {
@@ -63,8 +72,13 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
         <div className="relative w-full md:w-64" ref={dropdownRef}>
             <button
                 type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent transition-all text-sm h-9 text-left relative flex items-center"
+                disabled={disabled}
+                onClick={() => !disabled && setIsDropdownOpen(!isDropdownOpen)}
+                className={`w-full bg-carbon-black border border-accent-gray rounded-lg shadow-sm py-1.5 pl-3 pr-8 text-pure-white font-semibold transition-all text-sm h-9 text-left relative flex items-center ${
+                    disabled 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'focus:outline-none focus:ring-1 focus:ring-primary-red focus:border-transparent'
+                }`}
             >
                 <span className="block truncate w-full">
                     {selectedEvent ? selectedEvent.name : placeholder}
@@ -74,7 +88,7 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
                 </div>
             </button>
 
-            {isDropdownOpen && (
+            {isDropdownOpen && !disabled && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col animate-fade-in-down z-50">
                     <div className="flex-shrink-0 p-2 bg-carbon-black/95 border-b border-pure-white/10 flex gap-1 backdrop-blur-sm sticky top-0 z-50 overflow-x-auto no-scrollbar">
                         {filters.map(filter => (

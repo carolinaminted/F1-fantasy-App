@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -12,11 +12,9 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Reverted to class property syntax. The constructor-based approach was causing type errors
-  // where `this` was not correctly resolved, leading to properties like `state` and `props` not being found.
-  // This pattern is more robust with modern Babel setups.
-  state: ErrorBoundaryState = {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Use public state property to ensure compatibility
+  public state: ErrorBoundaryState = {
     hasError: false,
     error: null,
   };
