@@ -198,6 +198,11 @@ const AuthScreen: React.FC = () => {
       try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
+          
+          // Force token refresh so Firestore security rules see the new auth identity immediately.
+          // Without this, isOwner(userId) checks can fail due to token propagation delay.
+          await user.getIdToken(true);
+          
           try {
               await createUserProfileDocument(user, { 
                   displayName: cleanDisplayName, 
@@ -205,11 +210,18 @@ const AuthScreen: React.FC = () => {
                   lastName: cleanLastName,
                   invitationCode: invitationCode
               });
+              
+              // Prime the session guard so we don't immediately expire the fresh session
               localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
 
           } catch (profileError) {
               console.error("Profile creation failed:", profileError);
-              if (auth.currentUser) await deleteUser(auth.currentUser);
+              // Use the user ref from userCredential, NOT auth.currentUser (which can be stale)
+              try {
+                  await deleteUser(user);
+              } catch (rollbackError) {
+                  console.error("CRITICAL: Failed to rollback orphaned auth user:", user.uid, rollbackError);
+              }
               throw new Error("Failed to create user profile.");
           }
       } catch (error: any) {

@@ -36,52 +36,50 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
 
 export const createUserProfileDocument = async (user: FirebaseUser, additionalData: any = {}) => {
     if (!user) return;
-    const userRef = doc(db, 'users', user.uid);
-    const snapshot = await getDoc(userRef);
-    if (!snapshot.exists()) {
-        const { displayName, email } = user;
-        const createdAt = new Date();
-        try {
-            await setDoc(userRef, {
-                displayName: additionalData.displayName || displayName || 'New Team',
-                email,
-                createdAt,
-                ...additionalData
-            });
-        } catch (error) {
-            console.error('Error creating user document', error);
-            throw error;
+
+    // Destructure invitationCode OUT so it doesn't get spread into the user document
+    const { invitationCode, ...profileData } = additionalData;
+
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, 'users', user.uid);
+        const publicRef = doc(db, 'public_users', user.uid);
+
+        // Check if user already exists (idempotency guard)
+        const existingUser = await transaction.get(userRef);
+        if (existingUser.exists()) {
+            console.warn(`User document already exists for ${user.uid}, skipping creation.`);
+            return;
         }
-    }
-    
-    // Also create public profile
-    const publicRef = doc(db, 'public_users', user.uid);
-    const publicSnap = await getDoc(publicRef);
-    if (!publicSnap.exists()) {
-        await setDoc(publicRef, {
-            displayName: additionalData.displayName || user.displayName || 'New Team',
+
+        // ATOMIC WRITE 1: Create private user profile
+        transaction.set(userRef, {
+            displayName: profileData.displayName || user.displayName || 'New Team',
+            email: user.email,
+            firstName: profileData.firstName || '',
+            lastName: profileData.lastName || '',
+            duesPaidStatus: 'Unpaid',
+            createdAt: serverTimestamp(),
+        });
+
+        // ATOMIC WRITE 2: Create public profile for leaderboard
+        transaction.set(publicRef, {
+            displayName: profileData.displayName || user.displayName || 'New Team',
             totalPoints: 0,
             rank: 999,
             breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 }
         });
-    }
 
-    // Mark Invitation Code as Used
-    // This connects the code to the specific user and email for Admin tracking
-    if (additionalData.invitationCode) {
-        try {
-            const inviteRef = doc(db, 'invitation_codes', additionalData.invitationCode);
-            await updateDoc(inviteRef, {
+        // ATOMIC WRITE 3: Mark invitation code as used
+        if (invitationCode) {
+            const inviteRef = doc(db, 'invitation_codes', invitationCode);
+            transaction.update(inviteRef, {
                 status: 'used',
                 usedBy: user.uid,
-                usedByEmail: user.email, // Capturing the email for admin records
+                usedByEmail: user.email,
                 usedAt: serverTimestamp()
             });
-        } catch (error) {
-            console.warn(`Failed to mark invitation code ${additionalData.invitationCode} as used:`, error);
-            // We do not throw here to prevent blocking the sign-up flow if this non-critical step fails
         }
-    }
+    });
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
@@ -301,6 +299,20 @@ export const createBulkInvitationCodes = async (createdByUid: string, count: num
 export const deleteInvitationCode = async (code: string) => {
     const ref = doc(db, 'invitation_codes', code);
     await deleteDoc(ref);
+};
+
+export const reserveInvitationCode = async (code: string, reservedFor: string) => {
+    const ref = doc(db, 'invitation_codes', code);
+    await updateDoc(ref, {
+        reservedFor: reservedFor
+    });
+};
+
+export const clearReservation = async (code: string) => {
+     const ref = doc(db, 'invitation_codes', code);
+     await updateDoc(ref, {
+         reservedFor: deleteField()
+     });
 };
 
 export const getLeagueConfig = async (): Promise<LeagueConfig> => {
