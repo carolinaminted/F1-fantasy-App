@@ -4,10 +4,10 @@ import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { CONSTRUCTORS, CURRENT_SEASON } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
-import { db, auth } from '../services/firebase.ts';
+import { db, auth, functions } from '../services/firebase.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { doc, getDoc } from '@firebase/firestore';
-import { sendPasswordResetEmail } from '@firebase/auth';
+import { httpsCallable } from '@firebase/functions';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -198,7 +198,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     if (!isEditingProfile) {
         setProfileForm({ 
             displayName: user.displayName, 
-            email: user.email,
+            email: user.email, 
             firstName: user.firstName || '',
             lastName: user.lastName || ''
         });
@@ -310,16 +310,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       setResetStatus(null);
       
       try {
-          // Verify user.email exists before sending
-          if (!user.email) throw new Error("No email associated with profile.");
-          
-          await sendPasswordResetEmail(auth, user.email);
+          const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+          await sendResetLink({ email: user.email });
           setResetStatus({ type: 'success', message: `Password reset link sent to ${user.email}` });
           setResetCooldown(true);
-          setTimeout(() => setResetCooldown(false), 60000); // 60s cooldown
+          setTimeout(() => setResetCooldown(false), 60000);
       } catch (err: any) {
           console.error("Password reset error:", err);
-          setResetStatus({ type: 'error', message: 'Failed to send reset email. Please try again later.' });
+          if (err.code === 'functions/resource-exhausted') {
+              setResetStatus({ type: 'error', message: 'Too many attempts. Please wait a few minutes.' });
+          } else {
+              setResetStatus({ type: 'error', message: 'Failed to send reset email. Please try again later.' });
+          }
       }
   };
   

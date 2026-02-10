@@ -1,14 +1,15 @@
-
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, fetchSignInMethodsForEmail } from '@firebase/auth';
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { SESSION_STORAGE_KEY } from '../constants.ts';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
+import { EyeIcon } from './icons/EyeIcon.tsx';
+import { EyeOffIcon } from './icons/EyeOffIcon.tsx';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -38,6 +39,7 @@ const AuthScreen: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
   const [resetCooldownTime, setResetCooldownTime] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Easter Egg Hook
   const { easterEggState, activeLights, handleTriggerClick } = useRaceStartEasterEgg();
@@ -271,17 +273,23 @@ const AuthScreen: React.FC = () => {
       setResetMessage(null);
       
       try {
-          // Security Improvement: Don't check if user exists (enumeration). 
-          // Just attempt send. Firebase handles non-existent emails silently or throws specific errors we mask.
-          await sendPasswordResetEmail(auth, email);
+          const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+          await sendResetLink({ email });
       } catch (err: any) {
+          // Rate limit error from server
+          if (err.code === 'functions/resource-exhausted') {
+              setError("Too many attempts. Please wait a few minutes.");
+              setIsLoading(false);
+              return;
+          }
           console.error("Password reset error:", err);
-      } finally {
-          setResetMessage("If an account exists with this email, a password reset link has been sent. Check your inbox and spam folder.");
-          setResetAttempts(prev => prev + 1);
-          setResetCooldownTime(60); // Start 60s cooldown
-          setIsLoading(false);
       }
+      
+      // Always show generic success to prevent email enumeration
+      setResetMessage("If an account exists with this email, a password reset link has been sent. Check your inbox and spam folder.");
+      setResetAttempts(prev => prev + 1);
+      setResetCooldownTime(60); // Start 60s cooldown
+      setIsLoading(false);
   };
   
   const renderSignupStep = () => {
@@ -437,26 +445,46 @@ const AuthScreen: React.FC = () => {
                         </div>
                         <div>
                             <label className="text-sm font-bold text-ghost-white">Password</label>
-                            <input 
-                                type="password" 
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                minLength={6}
-                                className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
-                            />
+                            <div className="relative mt-1">
+                                <input 
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    minLength={6}
+                                    className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver hover:text-pure-white rounded-r-md focus:outline-none"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label className="text-sm font-bold text-ghost-white">Confirm Password</label>
-                            <input 
-                                type="password" 
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
-                            />
+                            <div className="relative mt-1">
+                                <input 
+                                    type={showPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver hover:text-pure-white rounded-r-md focus:outline-none"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
                         <button
                             type="submit"
@@ -531,14 +559,24 @@ const AuthScreen: React.FC = () => {
                 </div>
                 <div>
                     <label className="text-sm font-bold text-ghost-white" htmlFor="login-password">Password</label>
-                    <input 
-                        id="login-password"
-                        type="password" 
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                        required
-                        className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
-                    />
+                    <div className="relative mt-1">
+                        <input 
+                            id="login-password"
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                            required
+                            className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red pr-10"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver hover:text-pure-white rounded-r-md focus:outline-none"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                            {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                        </button>
+                    </div>
                 </div>
                 <button
                     type="submit"
