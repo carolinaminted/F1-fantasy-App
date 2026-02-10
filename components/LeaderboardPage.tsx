@@ -518,7 +518,7 @@ const PopularityView: React.FC<{
 
 // --- Enhanced Superlative Card & TrendChart for Insights ---
 
-type InsightVariant = 'gp' | 'quali' | 'sprint' | 'fl' | 'total';
+type InsightVariant = 'gp' | 'quali' | 'sprint' | 'fl';
 
 const getVariantStyles = (variant: InsightVariant) => {
     switch (variant) {
@@ -526,33 +526,59 @@ const getVariantStyles = (variant: InsightVariant) => {
         case 'quali': return { text: 'text-blue-500', bg: 'bg-blue-500', border: 'border-blue-500', gradient: 'from-blue-500/10' };
         case 'sprint': return { text: 'text-yellow-500', bg: 'bg-yellow-500', border: 'border-yellow-500', gradient: 'from-yellow-500/10' };
         case 'fl': return { text: 'text-purple-500', bg: 'bg-purple-500', border: 'border-purple-500', gradient: 'from-purple-500/10' };
-        case 'total': return { text: 'text-orange-500', bg: 'bg-orange-500', border: 'border-orange-500', gradient: 'from-orange-500/10' };
         default: return { text: 'text-pure-white', bg: 'bg-pure-white', border: 'border-pure-white', gradient: 'from-pure-white/5' };
     }
 };
 
-const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: ProcessedUser; score: number } | null; variant: InsightVariant }> = ({ title, icon: Icon, data, variant }) => {
-    const styles = getVariantStyles(variant);
+// Helper for variant color/text/border mapping used in both card and list
+const getVariantTheme = (variant: InsightVariant) => {
+    switch (variant) {
+        case 'gp': return { color: 'text-primary-red', border: 'border-primary-red', ring: 'ring-primary-red', bg: 'bg-primary-red', gradient: 'from-primary-red/20' };
+        case 'quali': return { color: 'text-blue-500', border: 'border-blue-500', ring: 'ring-blue-500', bg: 'bg-blue-500', gradient: 'from-blue-500/20' };
+        case 'sprint': return { color: 'text-yellow-500', border: 'border-yellow-500', ring: 'ring-yellow-500', bg: 'bg-yellow-500', gradient: 'from-yellow-500/20' };
+        case 'fl': return { color: 'text-purple-500', border: 'border-purple-500', ring: 'ring-purple-500', bg: 'bg-purple-500', gradient: 'from-purple-500/20' };
+        default: return { color: 'text-pure-white', border: 'border-pure-white', ring: 'ring-pure-white', bg: 'bg-pure-white', gradient: 'from-pure-white/20' };
+    }
+};
+
+const SuperlativeCard: React.FC<{ 
+    title: string; 
+    icon: any; 
+    data: { user: ProcessedUser; score: number } | null; 
+    variant: InsightVariant;
+    isActive: boolean;
+    onClick: () => void;
+}> = ({ title, icon: Icon, data, variant, isActive, onClick }) => {
+    const theme = getVariantTheme(variant);
     
     return (
-        <div className="group relative overflow-hidden bg-carbon-fiber rounded-xl p-5 ring-1 ring-pure-white/10 shadow-lg h-full border border-pure-white/5 hover:border-pure-white/20 transition-all duration-300">
+        <button 
+            onClick={onClick}
+            className={`
+                group relative overflow-hidden rounded-xl p-5 shadow-lg h-full text-left transition-all duration-300 w-full flex flex-col justify-between
+                ${isActive 
+                    ? `bg-carbon-fiber ring-2 ${theme.ring} scale-[1.02] opacity-100 z-10 border border-transparent` 
+                    : 'bg-carbon-fiber ring-1 ring-pure-white/10 opacity-70 hover:opacity-100 hover:scale-[1.01] border border-pure-white/5'
+                }
+            `}
+        >
             {/* Background Gradient & Pattern */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+            <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isActive ? 'opacity-100' : ''}`}></div>
             <div className="absolute inset-0 bg-checkered-flag opacity-[0.03] pointer-events-none"></div>
             
-            <div className="relative z-10 flex items-start justify-between">
+            <div className="relative z-10 flex items-start justify-between w-full">
                 <div className="min-w-0 flex-1 mr-2">
                     <div className="flex items-center gap-2 mb-3">
-                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${styles.text} shadow-inner`}>
+                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${theme.color} shadow-inner`}>
                             <Icon className="w-5 h-5" />
                         </div>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${styles.text} opacity-80 truncate`}>{title}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${theme.color} opacity-80 truncate`}>{title}</span>
                     </div>
                     
                     {data ? (
                         <div className="mt-1">
                             <p className="text-lg font-bold text-pure-white truncate leading-tight mb-1">{data.user.displayName}</p>
-                            <p className={`text-3xl font-black font-mono ${styles.text} drop-shadow-sm leading-none`}>
+                            <p className={`text-3xl font-black font-mono ${theme.color} drop-shadow-sm leading-none`}>
                                 {Number(data.score || 0).toLocaleString()} <span className="text-[10px] font-bold text-highlight-silver uppercase align-top ml-0.5">pts</span>
                             </p>
                         </div>
@@ -566,13 +592,18 @@ const SuperlativeCard: React.FC<{ title: string; icon: any; data: { user: Proces
                 {/* Rank Badge */}
                 {data && (
                     <div className="text-right flex-shrink-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm bg-carbon-black border ${styles.border} ${styles.text} shadow-lg`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm bg-carbon-black border ${theme.border} ${theme.color} shadow-lg`}>
                             1
                         </div>
                     </div>
                 )}
             </div>
-        </div>
+            
+            {/* Active Indicator */}
+            {isActive && (
+                <div className={`absolute bottom-0 left-0 right-0 h-1 ${theme.bg}`}></div>
+            )}
+        </button>
     );
 };
 
@@ -584,107 +615,137 @@ const InsightsView: React.FC<{
     allDrivers: Driver[];
     events: Event[];
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
+    
+    // State for interactive tab switching
+    const [activeCategory, setActiveCategory] = useState<'gp' | 'quali' | 'sprint' | 'fl'>('gp');
+
+    // Helper: Find current leader for preview tiles
+    const findMax = (key: 'gp' | 'quali' | 'sprint' | 'fl') => {
+        const validUsers = users.filter(u => u.breakdown && typeof u.breakdown[key] === 'number');
+        if (validUsers.length === 0) return null;
+        const sorted = [...validUsers].sort((a, b) => (b.breakdown?.[key] || 0) - (a.breakdown?.[key] || 0));
+        if ((sorted[0].breakdown?.[key] || 0) <= 0) return null;
+        return { user: sorted[0], score: sorted[0].breakdown![key] };
+    };
+
     const superlatives = useMemo(() => {
         if (users.length === 0) return null;
-        const findMax = (key: keyof NonNullable<ProcessedUser['breakdown']>) => {
-            const validUsers = users.filter(u => u.breakdown && typeof u.breakdown[key] === 'number');
-            if (validUsers.length === 0) return null;
-            const sorted = [...validUsers].sort((a, b) => (b.breakdown?.[key] || 0) - (a.breakdown?.[key] || 0));
-            if ((sorted[0].breakdown?.[key] || 0) <= 0) return null;
-            return { user: sorted[0], score: sorted[0].breakdown![key] };
-        };
-        return { gp: findMax('gp'), quali: findMax('quali'), sprint: findMax('sprint'), fl: findMax('fl') };
-    }, [users]);
-
-    const chartData = useMemo(() => {
-        const sortedBy = (key: keyof NonNullable<ProcessedUser['breakdown']>) => 
-            [...users]
-                .filter(u => u.breakdown)
-                .sort((a, b) => (b.breakdown![key] || 0) - (a.breakdown![key] || 0))
-                .slice(0, 5)
-                .map(u => ({ label: u.displayName, value: u.breakdown![key] || 0 }));
-
-        return {
-            total: [...users].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)).slice(0, 5).map(u => ({ label: u.displayName, value: u.totalPoints || 0 })),
-            gp: sortedBy('gp'),
-            quali: sortedBy('quali'),
-            sprint: sortedBy('sprint'),
-            fl: sortedBy('fl')
+        return { 
+            gp: findMax('gp'), 
+            quali: findMax('quali'), 
+            sprint: findMax('sprint'), 
+            fl: findMax('fl') 
         };
     }, [users]);
 
-    const TrendChart: React.FC<{ title: string; data: { label: string; value: number }[]; subtitle: string; icon?: any; variant: InsightVariant }> = ({ title, data, subtitle, icon: Icon, variant }) => {
-        const styles = getVariantStyles(variant);
-        const maxVal = Math.max(...data.map(d => d.value), 1);
+    // Compute Top 10 list for the active category
+    const top10List = useMemo(() => {
+        return [...users]
+            .filter(u => u.breakdown && typeof u.breakdown[activeCategory] === 'number')
+            .sort((a, b) => (b.breakdown![activeCategory] || 0) - (a.breakdown![activeCategory] || 0))
+            .slice(0, 10);
+    }, [users, activeCategory]);
 
-        return (
-            <div className="bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 flex flex-col h-full shadow-xl border border-pure-white/5 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-checkered-flag opacity-[0.02] pointer-events-none"></div>
-                
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6 relative z-10 border-b border-pure-white/5 pb-4">
-                    <div>
-                        <h3 className="text-lg font-bold text-pure-white leading-tight">{title}</h3>
-                        <p className={`text-xs font-bold uppercase tracking-wider mt-1 ${styles.text}`}>{subtitle}</p>
-                    </div>
-                    {Icon && (
-                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/5 ${styles.text}`}>
-                            <Icon className="w-5 h-5" />
-                        </div>
-                    )}
-                </div>
+    const activeTheme = getVariantTheme(activeCategory);
 
-                {/* List */}
-                <div className="w-full relative z-10 flex-1 flex flex-col justify-center">
-                    {data.length > 0 ? (
-                        <div className="space-y-4">
-                            {data.map((item, idx) => (
-                                <div key={idx} className="group/row">
-                                    <div className="flex justify-between items-end mb-1 text-xs">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-mono font-bold w-4 ${idx < 3 ? styles.text : 'text-highlight-silver'}`}>
-                                                {idx + 1}.
-                                            </span>
-                                            <span className="font-semibold text-ghost-white truncate max-w-[120px] sm:max-w-xs">
-                                                {item.label}
-                                            </span>
-                                        </div>
-                                        <span className={`font-mono font-bold ${idx === 0 ? styles.text : 'text-pure-white'}`}>
-                                            {item.value}
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-carbon-black rounded-full h-2 border border-pure-white/5 overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full transition-all duration-500 ${styles.bg} ${idx === 0 ? 'opacity-100' : 'opacity-70 group-hover/row:opacity-100'}`} 
-                                            style={{ width: `${(item.value / maxVal) * 100}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="h-full flex items-center justify-center text-highlight-silver italic text-sm py-8 opacity-50">
-                            Awaiting data...
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
+    // Get Title for the list section
+    const getCategoryTitle = () => {
+        switch(activeCategory) {
+            case 'gp': return "Sunday Specialists (Top 10 GP Points)";
+            case 'quali': return "Qualifying Masters (Top 10 Quali Points)";
+            case 'sprint': return "Sprint Specialists (Top 10 Sprint Points)";
+            case 'fl': return "Fastest Lap Hunters (Top 10 FL Points)";
+        }
     };
 
     return (
         <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
+            {/* Interactive Tiles Grid */}
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <SuperlativeCard title="Race Day Dominator" icon={CheckeredFlagIcon} data={superlatives?.gp || null} variant="gp" />
-                <SuperlativeCard title="Qualifying King" icon={PolePositionIcon} data={superlatives?.quali || null} variant="quali" />
-                <SuperlativeCard title="Sprint Specialist" icon={SprintIcon} data={superlatives?.sprint || null} variant="sprint" />
-                <SuperlativeCard title="Fastest Lap Hunter" icon={FastestLapIcon} data={superlatives?.fl || null} variant="fl" />
+                <SuperlativeCard 
+                    title="Race Day Dominator" 
+                    icon={CheckeredFlagIcon} 
+                    data={superlatives?.gp || null} 
+                    variant="gp" 
+                    isActive={activeCategory === 'gp'}
+                    onClick={() => setActiveCategory('gp')}
+                />
+                <SuperlativeCard 
+                    title="Qualifying King" 
+                    icon={PolePositionIcon} 
+                    data={superlatives?.quali || null} 
+                    variant="quali" 
+                    isActive={activeCategory === 'quali'}
+                    onClick={() => setActiveCategory('quali')}
+                />
+                <SuperlativeCard 
+                    title="Sprint Specialist" 
+                    icon={SprintIcon} 
+                    data={superlatives?.sprint || null} 
+                    variant="sprint" 
+                    isActive={activeCategory === 'sprint'}
+                    onClick={() => setActiveCategory('sprint')}
+                />
+                <SuperlativeCard 
+                    title="Fastest Lap Hunter" 
+                    icon={FastestLapIcon} 
+                    data={superlatives?.fl || null} 
+                    variant="fl" 
+                    isActive={activeCategory === 'fl'}
+                    onClick={() => setActiveCategory('fl')}
+                />
             </div>
-            <div className="flex-none grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-4">
-                <TrendChart title="Overall Power Ranking" subtitle="Top 5 Total Points" data={chartData.total} icon={TrophyIcon} variant="total" />
-                <TrendChart title="Qualifying Masters" subtitle="Top 5 Quali Points" data={chartData.quali} icon={PolePositionIcon} variant="quali" />
-                <TrendChart title="Sunday Specialists" subtitle="Top 5 Grand Prix Points" data={chartData.gp} icon={CheckeredFlagIcon} variant="gp" />
-                <TrendChart title="Sprint Specialists" subtitle="Top 5 Sprint Points" data={chartData.sprint} icon={SprintIcon} variant="sprint" />
+
+            {/* Dynamic Leaderboard Section */}
+            <div className="flex-1 mb-8 pb-4">
+                <div className={`bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300`}>
+                    
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-6 relative z-10 border-b border-pure-white/5 pb-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-pure-white leading-tight uppercase italic tracking-wider">{getCategoryTitle()}</h3>
+                            <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${activeTheme.color} opacity-80`}>Performance Breakdown</p>
+                        </div>
+                    </div>
+
+                    {/* Top 10 Grid */}
+                    <div className="w-full relative z-10">
+                        {top10List.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                                {top10List.map((user, idx) => {
+                                    const score = user.breakdown?.[activeCategory] || 0;
+                                    const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
+                                    const percent = (score / maxScore) * 100;
+
+                                    return (
+                                        <div key={user.id} className="group/row flex items-center gap-3 p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                            <div className={`w-8 h-8 flex items-center justify-center font-black text-sm rounded-md ${idx < 3 ? `${activeTheme.bg} text-carbon-black shadow-lg` : 'bg-pure-white/10 text-highlight-silver'}`}>
+                                                {idx + 1}
+                                            </div>
+                                            
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-baseline mb-1">
+                                                    <span className="font-bold text-pure-white truncate text-sm">{user.displayName}</span>
+                                                    <span className={`font-mono font-bold ${activeTheme.color} text-sm`}>{score}</span>
+                                                </div>
+                                                <div className="w-full bg-carbon-black rounded-full h-1.5 overflow-hidden border border-pure-white/5">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-500 ${activeTheme.bg} opacity-80`} 
+                                                        style={{ width: `${percent}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="h-40 flex items-center justify-center text-highlight-silver italic text-sm py-8 opacity-50 bg-carbon-black/20 rounded-lg border border-dashed border-pure-white/10">
+                                No points recorded in this category yet.
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -738,7 +799,6 @@ const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
 };
 
 const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: PointsSystem; allDrivers: Driver[]; allConstructors: Constructor[]; events: Event[] }> = ({ raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
-    // ... logic remains same
     const stats = useMemo(() => {
         const driverScores: Record<string, { total: number; sprint: number; fl: number; quali: number }> = {};
         const teamScores: Record<string, number> = {};
