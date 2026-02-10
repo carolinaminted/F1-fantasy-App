@@ -7,7 +7,7 @@ import { CopyIcon } from './icons/CopyIcon.tsx';
 import { VenmoIcon } from './icons/VenmoIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON } from '../constants.ts';
+import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, VENMO_PROFILE_URL } from '../constants.ts';
 import { logDuesPaymentInitiation, getLeagueConfig } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
@@ -58,9 +58,7 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
             await logDuesPaymentInitiation(user, amount, CURRENT_SEASON, memo + ` [VENMO]`);
             
             // Link to Venmo Profile
-            const finalUrl = 'https://venmo.com/u/John-Mckenna-4';
-            
-            window.open(finalUrl, '_blank', 'noopener,noreferrer');
+            window.open(VENMO_PROFILE_URL, '_blank', 'noopener,noreferrer');
         } catch (error) {
             console.error("Payment initiation failed:", error);
             showToast("Could not initiate payment. Please try again.", 'error');

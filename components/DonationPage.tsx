@@ -5,6 +5,7 @@ import { Page } from '../App.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
+import { DONATION_VENMO_URL } from '../constants.ts';
 
 interface DonationPageProps {
   user: User | null;
@@ -76,7 +77,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                         
                         <div className="pt-4 pb-2">
                              <a 
-                                href="https://venmo.com/u/John-Mckenna-4"
+                                href={DONATION_VENMO_URL}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-block w-full md:w-auto bg-[#008CFF] hover:bg-[#0077D9] text-pure-white font-bold py-3 px-10 rounded-lg transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(0,140,255,0.3)] uppercase tracking-wider text-sm"
