@@ -113,6 +113,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                 icon={AdminIcon} 
                 subtitle="League Controls & Configuration"
                 rightAction={HeaderActions}
+                onIconClick={() => setAdminSubPage('database')}
             />
             
             <div className="pb-20 md:pb-12 px-2">
