@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
@@ -660,8 +659,8 @@ const InsightsView: React.FC<{
 
     return (
         <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
-            {/* Interactive Tiles Grid */}
-            <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Interactive Tiles Grid - Added mx-1 to prevent cutoff on scale */}
+            <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mx-1">
                 <SuperlativeCard 
                     title="Race Day Dominator" 
                     icon={CheckeredFlagIcon} 
@@ -711,33 +710,57 @@ const InsightsView: React.FC<{
                     {/* Top 10 Grid */}
                     <div className="w-full relative z-10">
                         {top10List.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                                {top10List.map((user, idx) => {
-                                    const score = user.breakdown?.[activeCategory] || 0;
-                                    const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
-                                    const percent = (score / maxScore) * 100;
-
-                                    return (
-                                        <div key={user.id} className="group/row flex items-center gap-3 p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
-                                            <div className={`w-8 h-8 flex items-center justify-center font-black text-sm rounded-md ${idx < 3 ? `${activeTheme.bg} text-carbon-black shadow-lg` : 'bg-pure-white/10 text-highlight-silver'}`}>
-                                                {idx + 1}
-                                            </div>
-                                            
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-baseline mb-1">
-                                                    <span className="font-bold text-pure-white truncate text-sm">{user.displayName}</span>
-                                                    <span className={`font-mono font-bold ${activeTheme.color} text-sm`}>{score}</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                                {/* Column 1: Ranks 1-5 */}
+                                <div className="space-y-3">
+                                    {top10List.slice(0, 5).map((user, idx) => {
+                                        const rank = idx + 1;
+                                        const score = user.breakdown?.[activeCategory] || 0;
+                                        const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
+                                        const percent = (score / maxScore) * 100;
+                                        return (
+                                            <div key={user.id} className="group/row flex items-center gap-3 p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                                <div className={`w-8 h-8 flex items-center justify-center font-black text-sm rounded-md ${rank <= 3 ? `${activeTheme.bg} text-carbon-black shadow-lg` : 'bg-pure-white/10 text-highlight-silver'}`}>
+                                                    {rank}
                                                 </div>
-                                                <div className="w-full bg-carbon-black rounded-full h-1.5 overflow-hidden border border-pure-white/5">
-                                                    <div 
-                                                        className={`h-full rounded-full transition-all duration-500 ${activeTheme.bg} opacity-80`} 
-                                                        style={{ width: `${percent}%` }}
-                                                    />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-baseline mb-1">
+                                                        <span className="font-bold text-pure-white truncate text-sm">{user.displayName}</span>
+                                                        <span className={`font-mono font-bold ${activeTheme.color} text-sm`}>{score}</span>
+                                                    </div>
+                                                    <div className="w-full bg-carbon-black rounded-full h-1.5 overflow-hidden border border-pure-white/5">
+                                                        <div className={`h-full rounded-full transition-all duration-500 ${activeTheme.bg} opacity-80`} style={{ width: `${percent}%` }} />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
+                                {/* Column 2: Ranks 6-10 */}
+                                <div className="space-y-3">
+                                    {top10List.slice(5, 10).map((user, idx) => {
+                                        const rank = idx + 6;
+                                        const score = user.breakdown?.[activeCategory] || 0;
+                                        const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
+                                        const percent = (score / maxScore) * 100;
+                                        return (
+                                            <div key={user.id} className="group/row flex items-center gap-3 p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                                <div className="w-8 h-8 flex items-center justify-center font-black text-sm rounded-md bg-pure-white/10 text-highlight-silver">
+                                                    {rank}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-baseline mb-1">
+                                                        <span className="font-bold text-pure-white truncate text-sm">{user.displayName}</span>
+                                                        <span className={`font-mono font-bold ${activeTheme.color} text-sm`}>{score}</span>
+                                                    </div>
+                                                    <div className="w-full bg-carbon-black rounded-full h-1.5 overflow-hidden border border-pure-white/5">
+                                                        <div className={`h-full rounded-full transition-all duration-500 ${activeTheme.bg} opacity-80`} style={{ width: `${percent}%` }} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         ) : (
                             <div className="h-40 flex items-center justify-center text-highlight-silver italic text-sm py-8 opacity-50 bg-carbon-black/20 rounded-lg border border-dashed border-pure-white/10">
