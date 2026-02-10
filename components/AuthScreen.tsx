@@ -92,6 +92,27 @@ const AuthScreen: React.FC = () => {
     handleTriggerClick();
   };
 
+  const handleInvitationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setError(null);
+
+      // 1. Strip everything except alphanumeric characters
+      const raw = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+      // 2. Cap at 11 raw characters (3 + 4 + 4)
+      const capped = raw.slice(0, 11);
+
+      // 3. Insert dashes at correct positions: XXX-XXXX-XXXX
+      let formatted = capped;
+      if (capped.length > 3) {
+          formatted = capped.slice(0, 3) + '-' + capped.slice(3);
+      }
+      if (capped.length > 7) {
+          formatted = capped.slice(0, 3) + '-' + capped.slice(3, 7) + '-' + capped.slice(7);
+      }
+
+      setInvitationCode(formatted);
+  };
+
   const handleValidateInvitation = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
@@ -319,8 +340,9 @@ const AuthScreen: React.FC = () => {
                             <input 
                               type="text" 
                               value={invitationCode}
-                              onChange={(e) => { setInvitationCode(e.target.value); setError(null); }}
+                              onChange={handleInvitationCodeChange}
                               placeholder="LOL-XXXX-XXXX"
+                              maxLength={13}
                               required
                               className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-primary-red focus:border-primary-red uppercase"
                             />

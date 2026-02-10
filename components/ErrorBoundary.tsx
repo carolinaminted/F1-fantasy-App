@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -12,8 +12,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Use public state property to ensure compatibility
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null,

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Event, EventSchedule, RaceResults } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
@@ -189,7 +188,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
 
     return (
         <>
-            <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
+            <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto">
                 <div className="flex-none">
                     <PageHeader 
                         title="SEASON CALENDAR" 
@@ -201,8 +200,11 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                 </div>
 
                 {viewMode === 'upcoming' && (
-                    <div className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-                        <div className="overflow-y-auto custom-scrollbar flex-1 min-h-0 px-4 md:px-4 pb-8 pt-2">
+                    <div className="md:flex-1 md:min-h-0 flex flex-col md:overflow-hidden">
+                        <div 
+                            className="md:overflow-y-auto custom-scrollbar md:flex-1 md:min-h-0 px-4 md:px-4 pb-24 md:pb-8 pt-2"
+                            style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
+                        >
                             {nextRace ? (
                                 <div className="mb-6 animate-fade-in flex-none">
                                     <NextRaceHero event={nextRace} schedule={schedules[nextRace.id]} />
@@ -235,7 +237,10 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                 )}
 
                 {viewMode === 'full' && (
-                    <div className="flex-1 overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-8 pt-2">
+                    <div 
+                        className="md:flex-1 md:overflow-y-auto custom-scrollbar animate-fade-in px-4 md:px-4 pb-24 md:pb-8 pt-2"
+                        style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
+                    >
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map(event => {
                                 const isCompleted = !!raceResults?.[event.id]?.grandPrixFinish?.[0];
