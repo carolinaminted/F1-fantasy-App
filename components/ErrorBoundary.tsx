@@ -18,13 +18,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     error: null
   };
 
-  // Fix: Add a constructor to explicitly bind the 'handleReload' method.
-  // This ensures 'this' refers to the component instance, resolving errors when accessing 'this.props' and 'this.setState'.
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.handleReload = this.handleReload.bind(this);
-  }
-
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
@@ -33,9 +26,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  // Fix: Convert from a class field arrow function to a standard class method.
-  // This is a more traditional and widely supported way to define instance methods in React class components.
-  handleReload() {
+  // Fix: Converted to an arrow function to ensure `this` is correctly bound when used as an event handler.
+  // This resolves type errors related to accessing `this.props` and `this.setState`.
+  handleReload = () => {
     const { onReset } = this.props;
     if (onReset) {
         this.setState({ hasError: false, error: null });
@@ -43,7 +36,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     } else {
         window.location.reload();
     }
-  }
+  };
 
   render(): ReactNode {
     const { hasError, error } = this.state;

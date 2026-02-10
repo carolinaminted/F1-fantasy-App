@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
@@ -703,7 +702,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                         </div>
                         <div className="p-6 text-center">
                             <p className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 flex items-center justify-center gap-1">
-                                <TrophyIcon className="w-3 h-3 text-primary-red" /> Global Rank
+                                <TrophyIcon className="w-3 h-3 text-primary-red" /> Championship Rank
                             </p>
                             <p className="text-3xl md:text-4xl font-black text-pure-white">{globalRank ? `#${globalRank}` : '-'}</p>
                         </div>
