@@ -145,10 +145,12 @@ The league is invite-only. You must generate codes for players to register.
 
 1. Go to **Invitation Codes** (Ticket icon).
 2. **Create:** Select a quantity (1, 5, or 10) and tap **Generate**.
-3. **Share:** Tap a code in the list to open details, then tap **Copy Code**.
+3. **Share:** Tap a code in the list to open details, click reserve for user to enter there name or email to track, then tap **Copy Code**.
 4. **Monitor:** The list shows which codes are `Active`, `Reserved` (in validation), or `Used` (and by whom).
 
 <img width="1445" height="933" alt="image" src="https://github.com/user-attachments/assets/7484d08c-e030-43c0-94f2-9bbfba65761f" />
+<img width="583" height="618" alt="image" src="https://github.com/user-attachments/assets/2cb38dd9-5198-46ce-8209-4fae3d6aa1de" />
+
 
 
 ---
