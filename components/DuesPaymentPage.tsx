@@ -11,6 +11,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, PAYPAL_PAY_DUES_URL } from '../constants.ts';
 import { logDuesPaymentInitiation, getLeagueConfig } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface DuesPaymentPageProps {
     user: User;
@@ -76,12 +77,23 @@ const DuesPaymentPage: React.FC<DuesPaymentPageProps> = ({ user, setActivePage }
         }
     };
 
+    const hubAction = (
+        <button 
+            onClick={() => setActivePage('league-hub')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">League Hub</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-none">
                  <PageHeader 
                     title="PAY LEAGUE DUES" 
                     icon={DuesIcon}
+                    leftAction={hubAction}
                 />
             </div>
 

@@ -1,4 +1,5 @@
 
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -612,16 +613,16 @@ const App: React.FC = () => {
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':
-        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} setActivePage={navigateToPage} />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} />;
         return null;
       case 'points':
-        return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'schedule':
-        return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} raceResults={raceResults} />;
+        return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} raceResults={raceResults} setActivePage={navigateToPage} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':

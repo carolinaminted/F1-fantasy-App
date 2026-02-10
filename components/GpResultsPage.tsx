@@ -8,15 +8,18 @@ import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { EventSelector } from './ui/EventSelector.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
+import { Page } from '../App.tsx';
 
 interface GpResultsPageProps {
   raceResults: RaceResults;
   allDrivers: DriverType[];
   allConstructors: Constructor[];
   events: Event[];
+  setActivePage: (page: Page) => void;
 }
 
-const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors, events }) => {
+const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors, events, setActivePage }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
     // Auto-select the last completed event on load if none selected
@@ -83,12 +86,23 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
         ) : null;
     };
 
+    const hubAction = (
+        <button 
+            onClick={() => setActivePage('league-hub')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">League Hub</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto pb-10 md:pb-safe">
             <div className="flex-none">
                 <PageHeader 
                     title="RACE RESULTS" 
                     icon={CheckeredFlagIcon} 
+                    leftAction={hubAction}
                     rightAction={
                         <EventSelector 
                             events={events}

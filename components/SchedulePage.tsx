@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Event, EventSchedule, RaceResults } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
@@ -5,12 +6,15 @@ import { SprintIcon } from './icons/SprintIcon.tsx';
 import { CircuitRoute } from './icons/CircuitRoutes.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
+import { Page } from '../App.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
     events: Event[];
     onRefresh?: () => Promise<void>;
     raceResults?: RaceResults;
+    setActivePage: (page: Page) => void;
 }
 
 /**
@@ -83,7 +87,7 @@ const hexToRgba = (hex: string, alpha: number) => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh, raceResults }) => {
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh, raceResults, setActivePage }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -153,12 +157,23 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
             )}
         </div>
     );
+    
+    const hubAction = (
+        <button 
+            onClick={() => setActivePage('league-hub')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">League Hub</span>
+        </button>
+    );
+
 
     if (!events || events.length === 0) {
         return (
             <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
                 <div className="flex-none">
-                    <PageHeader title="SEASON CALENDAR" icon={CalendarIcon} />
+                    <PageHeader title="SEASON CALENDAR" icon={CalendarIcon} leftAction={hubAction} />
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
                     <CalendarIcon className="w-24 h-24 text-accent-gray opacity-20 mb-6" />
@@ -181,6 +196,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                         icon={CalendarIcon} 
                         subtitle="All times displayed in EST"
                         rightAction={RightAction}
+                        leftAction={hubAction}
                     />
                 </div>
 

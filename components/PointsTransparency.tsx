@@ -7,11 +7,14 @@ import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
+import { Page } from '../App.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface PointsTransparencyProps {
     pointsSystem: PointsSystem;
     allDrivers: Driver[];
     allConstructors: Constructor[];
+    setActivePage: (page: Page) => void;
 }
 
 const PointTile: React.FC<{ rank: number; points: number; isTop?: boolean }> = ({ rank, points, isTop }) => (
@@ -59,14 +62,25 @@ const PointsCard: React.FC<{
     </div>
 );
 
-const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem }) => {
+const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, setActivePage }) => {
     
+    const hubAction = (
+        <button 
+            onClick={() => setActivePage('league-hub')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">League Hub</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col h-full w-full max-w-7xl mx-auto pb-safe">
             <div className="flex-none">
                 <PageHeader 
                     title="SCORING RULES" 
                     icon={TrophyIcon} 
+                    leftAction={hubAction}
                 />
             </div>
 

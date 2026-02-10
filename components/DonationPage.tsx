@@ -4,6 +4,7 @@ import { User } from '../types.ts';
 import { Page } from '../App.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
+import { BackIcon } from './icons/BackIcon.tsx';
 
 interface DonationPageProps {
   user: User | null;
@@ -11,6 +12,16 @@ interface DonationPageProps {
 }
 
 const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
+    const hubAction = (
+        <button 
+            onClick={() => setActivePage('league-hub')}
+            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+        >
+            <BackIcon className="w-4 h-4" /> 
+            <span className="text-sm font-bold">League Hub</span>
+        </button>
+    );
+
     return (
         <div className="flex flex-col h-full overflow-hidden w-full">
             <div className="flex-none">
@@ -18,6 +29,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                     title="SUPPORT THE LEAGUE" 
                     icon={DonationIcon} 
                     subtitle="Help keep the league running." 
+                    leftAction={hubAction}
                 />
             </div>
 
