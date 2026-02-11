@@ -13,7 +13,7 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Initialize state in the constructor and bind methods to ensure `this` context.
+  // Fix: Initialize state in the constructor and bind event handlers to ensure correct `this` context.
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  handleReload() {
+  handleReload(): void {
     const { onReset } = this.props;
     if (onReset) {
       this.setState({ hasError: false, error: null });
@@ -73,17 +73,4 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             onClick={this.handleReload}
             className="group relative bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg shadow-lg transition-all transform hover:scale-105 overflow-hidden"
           >
-            <span className="relative z-10 flex items-center gap-2">
-                BOX BOX (RELOAD)
-            </span>
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
-          </button>
-        </div>
-      );
-    }
-
-    return children;
-  }
-}
-
-export default ErrorBoundary;
+            
