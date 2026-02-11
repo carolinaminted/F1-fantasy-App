@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -26,7 +27,7 @@ import ProfilePage from './ProfilePage.tsx';
 // --- Configuration ---
 const REFRESH_COOLDOWN_SECONDS = 60;
 const MAX_DAILY_REFRESHES = 5;
-const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
 // --- Shared Types & Helpers ---
 
@@ -76,7 +77,7 @@ const RefreshControl: React.FC<{
         return `${m}m ${s}s`;
     };
 
-    const isLocked = cooldown > 3600; // Consider it a "Lock" if wait is > 1 hour
+    const isLocked = cooldown > 610; // Consider it a "Lock" if wait is > 1 hour
     const remainingDaily = Math.max(0, MAX_DAILY_REFRESHES - dailyCount);
 
     return (
@@ -379,9 +380,9 @@ const StandingsView: React.FC<{
 }> = ({ users, currentUser, hasMore, onFetchMore, isPaging, onSelectUser }) => {
     
     return (
-        <div className="flex flex-col h-full animate-fade-in pb-safe overflow-hidden">
-            <div className="flex flex-col h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0">
+        <div className="flex flex-col md:h-full animate-fade-in pb-safe overflow-hidden">
+            <div className="flex flex-col md:h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
+                <div className="md:flex-1 md:overflow-y-auto custom-scrollbar p-4 md:min-h-0 pb-24 md:pb-4">
                     <RaceChart users={users} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} onSelectUser={onSelectUser} />
                 </div>
             </div>
@@ -474,7 +475,7 @@ const PopularityView: React.FC<{
     }
 
     return (
-        <div className="flex flex-col h-full animate-fade-in gap-4 pt-2 pb-4 overflow-hidden">
+        <div className="flex flex-col md:h-full animate-fade-in gap-4 pt-2 pb-4 md:overflow-hidden">
              <div className="flex-none flex flex-col md:flex-row justify-end items-center gap-4">
                 <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
@@ -491,7 +492,7 @@ const PopularityView: React.FC<{
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+            <div className="md:flex-1 md:overflow-y-auto custom-scrollbar pr-1 pb-24 md:pb-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
                     <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
                         <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
@@ -658,7 +659,7 @@ const InsightsView: React.FC<{
     };
 
     return (
-        <div className="flex flex-col h-full gap-6 animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col md:h-full gap-6 animate-fade-in pb-24 md:pb-safe pt-2 md:overflow-y-auto custom-scrollbar pr-1">
             {/* Interactive Tiles Grid - Added mx-1 to prevent cutoff on scale */}
             <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mx-1">
                 <SuperlativeCard 
@@ -696,7 +697,7 @@ const InsightsView: React.FC<{
             </div>
 
             {/* Dynamic Leaderboard Section */}
-            <div className="flex-1 mb-8 pb-4">
+            <div className="md:flex-1 mb-8 pb-4">
                 <div className={`bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300`}>
                     
                     {/* Header */}
@@ -783,7 +784,7 @@ const P22View: React.FC<{ users: ProcessedUser[] }> = ({ users }) => {
     }, [users]);
 
     return (
-        <div className="flex flex-col h-full animate-fade-in pb-safe pt-2 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col md:h-full animate-fade-in pb-24 md:pb-safe pt-2 md:overflow-y-auto custom-scrollbar pr-1">
             <div className="bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5 mb-8">
                 <div className="mb-6 border-b border-pure-white/10 pb-4 text-center">
                     <h2 className="text-2xl font-bold text-pure-white uppercase tracking-wider">The Wall of Shame</h2>
@@ -884,7 +885,7 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
     }, [raceResults, pointsSystem, allDrivers, allConstructors, events]);
 
     return (
-        <div className="space-y-8 animate-fade-in pt-4 pb-12 h-full overflow-y-auto custom-scrollbar px-1">
+        <div className="space-y-8 animate-fade-in pt-4 pb-24 md:pb-12 md:h-full md:overflow-y-auto custom-scrollbar px-1">
             <div className="bg-carbon-fiber shadow-lg rounded-xl p-6 border border-pure-white/10">
                 <div className="mb-8">
                     <h3 className="text-xl font-bold text-pure-white uppercase tracking-wider flex items-center gap-3">
@@ -945,12 +946,31 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [selectedUserProfile, setSelectedUserProfile] = useState<ProcessedUser | null>(null);
   const [modalPicks, setModalPicks] = useState<any>(null);
   const [isLoadingPicks, setIsLoadingPicks] = useState(false);
+  
+  const pageRef = useRef<HTMLDivElement>(null);
 
   // Initialize from storage or default
   const [refreshPolicy, setRefreshPolicy] = useState<RefreshPolicy>(() => {
         const saved = localStorage.getItem('lb_refresh_policy');
         return saved ? JSON.parse(saved) : { count: 0, lastRefresh: 0, dayStart: Date.now(), lockedUntil: 0 };
   });
+
+    // Fix: When the view changes, find the main scrolling container and scroll it to the top.
+    useEffect(() => {
+        if (view !== 'menu' && pageRef.current) {
+            let scrollParent = pageRef.current.parentElement;
+            while (scrollParent) {
+                const { overflowY } = window.getComputedStyle(scrollParent);
+                if (overflowY === 'auto' || overflowY === 'scroll') {
+                    scrollParent.scrollTop = 0;
+                    return;
+                }
+                scrollParent = scrollParent.parentElement;
+            }
+            // Fallback for body/window scrolling
+            window.scrollTo(0, 0);
+        }
+    }, [view]);
 
   // Calculate initial cooldown/lockout time
   const calculateRemainingTime = useCallback(() => {
@@ -1221,7 +1241,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
     : selectedUserProfile;
 
   return (
-      <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto">
+      <div ref={pageRef} className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto">
           <div className="flex-none pb-4 md:pb-6">
               <div className="flex flex-col items-center md:flex-row justify-between px-2 md:px-0 gap-4">
                   <div className="hidden md:flex items-center justify-between w-full md:w-auto">
@@ -1247,7 +1267,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
               </div>
           </div>
 
-          <div className="flex-1 overflow-hidden px-2 md:px-0 pb-4">
+          <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}

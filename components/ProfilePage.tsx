@@ -4,9 +4,10 @@ import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculateScoreRollup, calculatePointsForEvent } from '../services/scoringService.ts';
 import { CONSTRUCTORS, CURRENT_SEASON } from '../constants.ts';
 import { updateUserProfile, getAllUsersAndPicks } from '../services/firestoreService.ts';
-import { db } from '../services/firebase.ts';
+import { db, auth, functions } from '../services/firebase.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { doc, getDoc } from '@firebase/firestore';
+import { httpsCallable } from '@firebase/functions';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -188,12 +189,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // Password Reset State
+  const [resetCooldown, setResetCooldown] = useState(false);
+  const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   useEffect(() => {
     // Update local state if user prop changes (e.g. external update)
     if (!isEditingProfile) {
         setProfileForm({ 
             displayName: user.displayName, 
-            email: user.email,
+            email: user.email, 
             firstName: user.firstName || '',
             lastName: user.lastName || ''
         });
@@ -298,6 +303,26 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     } finally {
         setIsSavingProfile(false);
     }
+  };
+
+  const handlePasswordReset = async () => {
+      if (resetCooldown) return;
+      setResetStatus(null);
+      
+      try {
+          const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+          await sendResetLink({ email: user.email });
+          setResetStatus({ type: 'success', message: `Password reset link sent to ${user.email}` });
+          setResetCooldown(true);
+          setTimeout(() => setResetCooldown(false), 60000);
+      } catch (err: any) {
+          console.error("Password reset error:", err);
+          if (err.code === 'functions/resource-exhausted') {
+              setResetStatus({ type: 'error', message: 'Too many attempts. Please wait a few minutes.' });
+          } else {
+              setResetStatus({ type: 'error', message: 'Failed to send reset email. Please try again later.' });
+          }
+      }
   };
   
   // For Profile display, we can just show active ones in the breakdown to avoid clutter,
@@ -583,12 +608,26 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
             {/* Edit Details Button - Hide in Public View */}
             {!isEditingProfile && setActivePage && !isPublicView && (
-                <button 
-                    onClick={() => setIsEditingProfile(true)}
-                    className="text-sm font-bold text-pure-white hover:text-pure-white transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
-                >
-                    Edit Details
-                </button>
+                <div className="flex flex-col items-center gap-3">
+                    <button 
+                        onClick={() => setIsEditingProfile(true)}
+                        className="text-sm font-bold text-pure-white hover:text-pure-white transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
+                    >
+                        Edit Details
+                    </button>
+                    <button 
+                        onClick={handlePasswordReset}
+                        disabled={resetCooldown}
+                        className="text-xs font-semibold text-highlight-silver hover:text-pure-white transition-all px-5 py-1.5 rounded-full border border-accent-gray hover:border-highlight-silver disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        {resetCooldown ? 'Reset Link Sent ✓' : 'Reset Password'}
+                    </button>
+                    {resetStatus && (
+                        <p className={`text-xs text-center ${resetStatus.type === 'success' ? 'text-green-500' : 'text-primary-red'}`}>
+                            {resetStatus.message}
+                        </p>
+                    )}
+                </div>
             )}
         </div>
         

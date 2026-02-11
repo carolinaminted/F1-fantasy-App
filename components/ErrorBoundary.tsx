@@ -13,12 +13,14 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Initialize state in the constructor and bind methods to ensure `this` context.
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
       hasError: false,
-      error: null
+      error: null,
     };
+    this.handleReload = this.handleReload.bind(this);
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -29,13 +31,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  handleReload = () => {
+  handleReload() {
     const { onReset } = this.props;
     if (onReset) {
-        this.setState({ hasError: false, error: null });
-        onReset();
+      this.setState({ hasError: false, error: null });
+      onReset();
     } else {
-        window.location.reload();
+      window.location.reload();
     }
   }
 

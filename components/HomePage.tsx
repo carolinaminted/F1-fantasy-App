@@ -98,6 +98,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                   filterPredicate={handleEventFilter}
                   renderStatus={renderEventStatus}
                   placeholder="Select GP..."
+                  disabled={!isDuesPaid}
               />
           }
       />

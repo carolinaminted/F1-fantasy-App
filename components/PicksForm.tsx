@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import SelectorGroup from './SelectorGroup.tsx';
@@ -54,17 +55,40 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+  
+  // Time-based locking logic
+  const [isTimeLocked, setIsTimeLocked] = useState(() => {
+      return event.lockAtUtc ? new Date(event.lockAtUtc).getTime() <= Date.now() : false;
+  });
+
   const { showToast } = useToast();
 
   const isSubmitted = !!initialPicksForEvent;
-  // Admin can edit even if locked.
-  const isLockedByAdmin = formLocks[event.id] && !user.isAdmin;
+  
+  // Combine manual admin lock and automatic time lock
+  const isEffectiveLocked = formLocks[event.id] || isTimeLocked;
+  
+  // Admin Bypass: Admins can edit even if locked by time or manual toggle
+  const isLockedByAdmin = isEffectiveLocked && !user.isAdmin;
 
+  // Handle expiration from the Timer component
+  const handleTimerExpire = useCallback(() => {
+      if (!isTimeLocked) {
+          setIsTimeLocked(true);
+          // Only show toast if user is currently editing and not an admin (admins aren't affected)
+          if (isEditing && !user.isAdmin) {
+              showToast("Time's up! Picks for this event are now locked.", 'error');
+          }
+      }
+  }, [isTimeLocked, isEditing, user.isAdmin, showToast]);
+
+  // Sync state if event changes
   useEffect(() => {
     const savedPicks = initialPicksForEvent;
     setPicks(savedPicks || getInitialPicks());
     setIsEditing(!savedPicks);
-  }, [event.id, initialPicksForEvent]);
+    setIsTimeLocked(event.lockAtUtc ? new Date(event.lockAtUtc).getTime() <= Date.now() : false);
+  }, [event.id, initialPicksForEvent, event.lockAtUtc]);
 
   // Sort drivers by constructor RANK (based on constants/2025 Standings) 
   // to pair teammates together in the grid in correct team order (McLaren -> Cadillac)
@@ -120,6 +144,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     if (Date.now() >= lockTime) {
         if (!user.isAdmin) {
             showToast("Submissions for this event are closed.", 'error');
+            setIsTimeLocked(true);
             return;
         } else {
              // Optional: Warn admin
@@ -149,25 +174,34 @@ const PicksForm: React.FC<PicksFormProps> = ({
     );
   }
 
-  // isFormLockedForStatus reflects UI state. 
-  // If user is Admin, they can still edit, so we don't disable the "Edit Picks" button based on this alone.
-  const isFormLockedForStatus = formLocks[event.id]; 
-  const canEditDespiteLock = !!user.isAdmin;
+  // Determine if user can edit despite lock
+  const canEdit = !isEffectiveLocked || user.isAdmin;
   
   if(!isEditing) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
             {/* Updated container with bg-carbon-fiber */}
-            <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up">
-                <h2 className="text-3xl font-bold text-ghost-white mb-4">Picks Submitted Successfully!</h2>
-                <p className="text-ghost-white">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
-                <button 
-                  onClick={() => setIsEditing(true)} 
-                  disabled={isFormLockedForStatus && !canEditDespiteLock}
-                  className="mt-6 bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed transition-transform hover:scale-105"
-                >
-                  {isFormLockedForStatus && !canEditDespiteLock ? 'Editing Locked' : 'Edit Picks'}
-                </button>
+            <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up relative overflow-hidden">
+                <h2 className="text-3xl font-bold text-ghost-white mb-4 relative z-10">Picks Submitted Successfully!</h2>
+                <p className="text-ghost-white relative z-10">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
+                
+                {/* Show countdown even in confirmation state so user knows edit window */}
+                {!isEffectiveLocked && (
+                    <div className="mt-6 p-4 bg-carbon-black/40 rounded-lg inline-block border border-pure-white/5 backdrop-blur-sm relative z-10">
+                        <p className="text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-2">Time Remaining to Edit</p>
+                        <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+                    </div>
+                )}
+
+                <div className="mt-8 relative z-10">
+                    <button 
+                        onClick={() => setIsEditing(true)} 
+                        disabled={!canEdit}
+                        className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed transition-transform hover:scale-105 shadow-lg shadow-primary-red/20"
+                    >
+                        {!canEdit ? 'Editing Locked' : 'Edit Picks'}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -221,39 +255,41 @@ const PicksForm: React.FC<PicksFormProps> = ({
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
         {/* Compact Event Header for Mobile */}
-        <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none border border-pure-white/5">
-          <div className="flex-grow text-center md:text-left">
+        <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none border border-pure-white/5 relative overflow-hidden">
+          <div className="flex-grow text-center md:text-left z-10">
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
             <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
-            <p className="text-pure-white/80 font-semibold text-sm md:text-base mt-1">
-                {new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            <p className="text-pure-white/80 font-semibold text-sm md:text-base mt-1 flex items-center justify-center md:justify-start gap-2">
+                <span>{new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                <span className="text-highlight-silver">•</span>
+                <span className="font-mono text-primary-red">
+                    {new Date(event.lockAtUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
             </p>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-              {!isFormLockedForStatus && (
-                  <div className="flex flex-col items-center">
-                      <p className="hidden md:block text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-1 opacity-80">Time Remaining</p>
-                      <CountdownTimer targetDate={event.lockAtUtc} />
-                  </div>
-              )}
+          {/* Countdown Timer - Centered on mobile, Middle on Desktop */}
+          <div className="flex flex-col items-center justify-center py-2 md:py-0 md:px-6 z-10 border-y md:border-y-0 md:border-x border-pure-white/5 bg-black/10 md:bg-transparent rounded-lg md:rounded-none">
+              <p className="text-[9px] md:text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-1 opacity-80">Time Remaining</p>
+              <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+          </div>
 
-              <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px]">
-                  <div>
-                      <p className="hidden md:block text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
-                          {isFormLockedForStatus ? "Picks Locked" : "Picks Open"}
-                      </p>
-                      <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isFormLockedForStatus ? "text-primary-red" : "text-pure-white"}`}>
-                          {isFormLockedForStatus ? "LOCKED" : "OPEN"}
-                      </p>
-                  </div>
-                  <div>
-                    {isSubmitted ? (
-                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full">Submitted</span>
-                    ) : (
-                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full">Unsubmitted</span>
-                    )}
-                  </div>
+          {/* Status Badge */}
+          <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px] z-10">
+              <div>
+                  <p className="hidden md:block text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
+                      {isEffectiveLocked ? "Picks Locked" : "Picks Open"}
+                  </p>
+                  <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isEffectiveLocked ? "text-primary-red" : "text-pure-white"}`}>
+                      {isEffectiveLocked ? "LOCKED" : "OPEN"}
+                  </p>
+              </div>
+              <div>
+                {isSubmitted ? (
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full shadow-lg shadow-green-900/20">Submitted</span>
+                ) : (
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full border border-pure-white/10">Unsubmitted</span>
+                )}
               </div>
           </div>
         </div>
@@ -354,8 +390,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     disabled={!isSelectionComplete() || isLockedByAdmin}
                     className="w-full h-14 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
                 >
-                    <SubmitIcon className="w-6 h-6" />
-                    Lock In Picks
+                    {isLockedByAdmin ? <LockIcon className="w-6 h-6" /> : <SubmitIcon className="w-6 h-6" />}
+                    {isLockedByAdmin ? 'Event Locked' : 'Lock In Picks'}
                 </button>
             </div>
         </div>

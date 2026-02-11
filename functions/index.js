@@ -346,3 +346,82 @@ exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
         return { valid: true };
     });
 });
+
+exports.sendPasswordResetLink = onCall({ cors: true, memory: "512MiB" }, async (request) => {
+    const email = request.data.email;
+    if (!email) throw new HttpsError("invalid-argument", "Email is required");
+
+    const clientIp = getClientIp(request);
+    await checkRateLimit(clientIp, 'password_reset', 3, 600);
+
+    let gmailEmail = process.env.EMAIL_USER || "your-email@gmail.com";
+    let gmailPassword = process.env.EMAIL_PASS || "your-app-password";
+
+    if (gmailEmail === "your-email@gmail.com" || gmailPassword === "your-app-password") {
+        throw new HttpsError("failed-precondition", "Email service not configured.");
+    }
+
+    try {
+        // Generate the password reset link via Firebase Admin SDK
+        const resetLink = await admin.auth().generatePasswordResetLink(email);
+
+        const htmlContent = `
+          <div style="background-color: #0A0A0A; color: #F5F5F5; font-family: 'Arial', sans-serif; padding: 40px; text-align: center; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #2C2C2C;">
+            <div style="margin-bottom: 40px;">
+              <div style="font-size: 36px; font-weight: 900; font-style: italic; line-height: 1; letter-spacing: -1px; margin-bottom: 5px;">
+                <span style="color: #DA291C;">LIGHTS</span> <span style="color: #FFFFFF;">OUT</span>
+              </div>
+              <div style="font-size: 14px; font-weight: 400; letter-spacing: 0.4em; color: #FFFFFF;">
+                LEAGUE
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #FFFFFF;">
+              Password Reset Request
+            </div>
+            
+            <div style="margin-bottom: 25px; font-size: 14px; color: #C0C0C0;">
+              We received a request to reset the password for<br/>
+              <span style="color: #FFFFFF; font-weight: bold;">${email}</span>
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+              <a href="${resetLink}" 
+                 style="background-color: #DA291C; color: #FFFFFF; font-size: 16px; font-weight: bold; text-decoration: none; padding: 14px 40px; border-radius: 8px; display: inline-block; letter-spacing: 1px; box-shadow: 0 0 15px rgba(218, 41, 28, 0.3);">
+                RESET PASSWORD
+              </a>
+            </div>
+            
+            <div style="font-size: 12px; color: #666666; margin-bottom: 15px;">
+              This link expires in 1 hour.
+            </div>
+            
+            <div style="font-size: 12px; color: #666666; border-top: 1px solid #333333; padding-top: 20px;">
+              If you didn't request a password reset, you can safely ignore this email.<br/>
+              Your password will remain unchanged.
+            </div>
+          </div>
+        `;
+
+        const transporter = nodemailer.createTransport({ 
+            service: "gmail", 
+            auth: { user: gmailEmail, pass: gmailPassword } 
+        });
+
+        await transporter.sendMail({
+            from: `"Lights Out League" <${gmailEmail}>`,
+            to: email,
+            subject: "Reset Your Password — Lights Out League",
+            html: htmlContent
+        });
+
+    } catch (err) {
+        // CRITICAL: Do NOT expose whether the email exists in the system.
+        // auth/user-not-found should be caught silently.
+        // Log for debugging but return generic success.
+        logger.warn("Password reset attempt error (masked):", err.code || err.message);
+    }
+
+    // Always return success to prevent email enumeration
+    return { success: true };
+});

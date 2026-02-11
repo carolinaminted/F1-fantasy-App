@@ -1,14 +1,15 @@
-
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
 import { auth, functions } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, sendPasswordResetEmail, fetchSignInMethodsForEmail } from '@firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, fetchSignInMethodsForEmail } from '@firebase/auth';
 import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { SESSION_STORAGE_KEY } from '../constants.ts';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
+import { EyeIcon } from './icons/EyeIcon.tsx';
+import { EyeOffIcon } from './icons/EyeOffIcon.tsx';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,6 +38,8 @@ const AuthScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetAttempts, setResetAttempts] = useState(0);
+  const [resetCooldownTime, setResetCooldownTime] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Easter Egg Hook
   const { easterEggState, activeLights, handleTriggerClick } = useRaceStartEasterEgg();
@@ -61,6 +64,17 @@ const AuthScreen: React.FC = () => {
       return () => clearInterval(interval);
   }, [blockUntil]);
 
+  // Timer for Reset Password Cooldown
+  React.useEffect(() => {
+      let interval: any;
+      if (resetCooldownTime > 0) {
+          interval = setInterval(() => {
+              setResetCooldownTime(prev => Math.max(0, prev - 1));
+          }, 1000);
+      }
+      return () => clearInterval(interval);
+  }, [resetCooldownTime]);
+
   const resetFlows = () => {
       setError(null);
       setResetMessage(null);
@@ -76,6 +90,27 @@ const AuthScreen: React.FC = () => {
     setError(null);
     setResetMessage(null);
     handleTriggerClick();
+  };
+
+  const handleInvitationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setError(null);
+
+      // 1. Strip everything except alphanumeric characters
+      const raw = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+      // 2. Cap at 11 raw characters (3 + 4 + 4)
+      const capped = raw.slice(0, 11);
+
+      // 3. Insert dashes at correct positions: XXX-XXXX-XXXX
+      let formatted = capped;
+      if (capped.length > 3) {
+          formatted = capped.slice(0, 3) + '-' + capped.slice(3);
+      }
+      if (capped.length > 7) {
+          formatted = capped.slice(0, 3) + '-' + capped.slice(3, 7) + '-' + capped.slice(7);
+      }
+
+      setInvitationCode(formatted);
   };
 
   const handleValidateInvitation = async (e: React.FormEvent) => {
@@ -250,7 +285,8 @@ const AuthScreen: React.FC = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (resetAttempts >= 3) return setError("Too many attempts. Please wait.");
+      if (resetAttempts >= 3) return setError("Maximum attempts reached. Please try again later.");
+      if (resetCooldownTime > 0) return; // Block if cooldown active
       if (!email) return setError("Please enter your email address.");
 
       setIsLoading(true);
@@ -258,20 +294,23 @@ const AuthScreen: React.FC = () => {
       setResetMessage(null);
       
       try {
-          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-          if (signInMethods.length === 0) {
-              setError("No account found with this email.");
+          const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+          await sendResetLink({ email });
+      } catch (err: any) {
+          // Rate limit error from server
+          if (err.code === 'functions/resource-exhausted') {
+              setError("Too many attempts. Please wait a few minutes.");
               setIsLoading(false);
               return;
           }
-          await sendPasswordResetEmail(auth, email);
-          setResetMessage("Password reset email sent! Check your inbox.");
-      } catch (err: any) {
-          setError(err.code === 'auth/user-not-found' ? "No account found." : "Failed to send reset email.");
-      } finally {
-          setResetAttempts(prev => prev + 1);
-          setIsLoading(false);
+          console.error("Password reset error:", err);
       }
+      
+      // Always show generic success to prevent email enumeration
+      setResetMessage("If an account exists with this email, a password reset link has been sent. Check your inbox and spam folder.");
+      setResetAttempts(prev => prev + 1);
+      setResetCooldownTime(60); // Start 60s cooldown
+      setIsLoading(false);
   };
   
   const renderSignupStep = () => {
@@ -301,8 +340,9 @@ const AuthScreen: React.FC = () => {
                             <input 
                               type="text" 
                               value={invitationCode}
-                              onChange={(e) => { setInvitationCode(e.target.value); setError(null); }}
+                              onChange={handleInvitationCodeChange}
                               placeholder="LOL-XXXX-XXXX"
+                              maxLength={13}
                               required
                               className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-3 px-4 text-pure-white text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-primary-red focus:border-primary-red uppercase"
                             />
@@ -427,26 +467,46 @@ const AuthScreen: React.FC = () => {
                         </div>
                         <div>
                             <label className="text-sm font-bold text-ghost-white">Password</label>
-                            <input 
-                                type="password" 
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                minLength={6}
-                                className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
-                            />
+                            <div className="relative mt-1">
+                                <input 
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    minLength={6}
+                                    className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver hover:text-pure-white rounded-r-md focus:outline-none"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label className="text-sm font-bold text-ghost-white">Confirm Password</label>
-                            <input 
-                                type="password" 
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
-                            />
+                            <div className="relative mt-1">
+                                <input 
+                                    type={showPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver hover:text-pure-white rounded-r-md focus:outline-none"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
                         <button
                             type="submit"
@@ -497,11 +557,14 @@ const AuthScreen: React.FC = () => {
                 </div>
                 <button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
+                    disabled={isLoading || resetCooldownTime > 0}
+                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
                 >
-                    {isLoading ? 'Sending...' : 'Send Reset Link'}
+                    {isLoading ? 'Sending...' : resetCooldownTime > 0 ? `Resend in ${resetCooldownTime}s` : 'Send Reset Link'}
                 </button>
+                {resetAttempts > 0 && resetAttempts < 3 && (
+                    <p className="text-xs text-highlight-silver text-center">Attempts remaining: {3 - resetAttempts}</p>
+                )}
             </form>
         ) : isLogin ? (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -518,14 +581,24 @@ const AuthScreen: React.FC = () => {
                 </div>
                 <div>
                     <label className="text-sm font-bold text-ghost-white" htmlFor="login-password">Password</label>
-                    <input 
-                        id="login-password"
-                        type="password" 
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                        required
-                        className="mt-1 block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red"
-                    />
+                    <div className="relative mt-1">
+                        <input 
+                            id="login-password"
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                            required
+                            className="block w-full bg-carbon-black/50 border border-accent-gray rounded-md shadow-sm py-2 px-3 text-pure-white focus:outline-none focus:ring-primary-red focus:border-primary-red pr-10"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-highlight-silver hover:text-pure-white rounded-r-md focus:outline-none"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                            {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                        </button>
+                    </div>
                 </div>
                 <button
                     type="submit"

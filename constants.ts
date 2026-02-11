@@ -1,9 +1,9 @@
 import { Constructor, Driver, EntityClass, Event, PointsSystem, RaceResults } from './types.ts';
 
 export const LEAGUE_DUES_AMOUNT = 25; // in USD
+export const VENMO_PROFILE_URL = 'https://venmo.com/u/John-Mckenna-4';
+export const DONATION_VENMO_URL = 'https://venmo.com/u/nexuslife42';
 export const CURRENT_SEASON = '2026';
-export const PAYPAL_DONATION_URL = 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=jhouser1988%40gmail.com&item_name=Lights+Out+League+Operational+Costs&currency_code=USD';
-export const PAYPAL_PAY_DUES_URL = 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=jhouser1988%40gmail.com&item_name=Formula+Fantasy+One+Pay+Dues&currency_code=USD';
 export const SESSION_STORAGE_KEY = 'ff1_session_activity';
 
 export const CONSTRUCTORS: Constructor[] = [
