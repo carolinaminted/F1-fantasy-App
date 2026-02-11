@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 
 interface ErrorBoundaryProps {
@@ -12,14 +12,13 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+// Fix: Change React.Component to Component to resolve typing issues.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Fix: Initialize state as a class property instead of in the constructor. This is a more modern syntax and avoids potential issues with 'this' context in some environments, resolving the typing errors.
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };

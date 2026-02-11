@@ -520,17 +520,13 @@ const PopularityView: React.FC<{
 
 type InsightVariant = 'gp' | 'quali' | 'sprint' | 'fl';
 
-const getVariantStyles = (variant: InsightVariant) => {
-    switch (variant) {
-        case 'gp': return { text: 'text-primary-red', bg: 'bg-primary-red', border: 'border-primary-red', gradient: 'from-primary-red/10' };
-        case 'quali': return { text: 'text-blue-500', bg: 'bg-blue-500', border: 'border-blue-500', gradient: 'from-blue-500/10' };
-        case 'sprint': return { text: 'text-yellow-500', bg: 'bg-yellow-500', border: 'border-yellow-500', gradient: 'from-yellow-500/10' };
-        case 'fl': return { text: 'text-purple-500', bg: 'bg-purple-500', border: 'border-purple-500', gradient: 'from-purple-500/10' };
-        default: return { text: 'text-pure-white', bg: 'bg-pure-white', border: 'border-pure-white', gradient: 'from-pure-white/5' };
-    }
-};
+const categories = [
+    { key: 'gp' as const, shortLabel: 'Race', icon: CheckeredFlagIcon, fullTitle: 'Race Day Dominator', listTitle: 'Sunday Specialists (Top 10 GP Points)' },
+    { key: 'quali' as const, shortLabel: 'Quali', icon: PolePositionIcon, fullTitle: 'Qualifying King', listTitle: 'Qualifying Masters (Top 10 Quali Points)' },
+    { key: 'sprint' as const, shortLabel: 'Sprint', icon: SprintIcon, fullTitle: 'Sprint Specialist', listTitle: 'Sprint Specialists (Top 10 Sprint Points)' },
+    { key: 'fl' as const, shortLabel: 'FL', icon: FastestLapIcon, fullTitle: 'Fastest Lap Hunter', listTitle: 'Fastest Lap Hunters (Top 10 FL Points)' },
+];
 
-// Helper for variant color/text/border mapping used in both card and list
 const getVariantTheme = (variant: InsightVariant) => {
     switch (variant) {
         case 'gp': return { color: 'text-primary-red', border: 'border-primary-red', ring: 'ring-primary-red', bg: 'bg-primary-red', gradient: 'from-primary-red/20' };
@@ -616,10 +612,8 @@ const InsightsView: React.FC<{
     events: Event[];
 }> = ({ users, allPicks, raceResults, pointsSystem, allDrivers, events }) => {
     
-    // State for interactive tab switching
     const [activeCategory, setActiveCategory] = useState<'gp' | 'quali' | 'sprint' | 'fl'>('gp');
 
-    // Helper: Find current leader for preview tiles
     const findMax = (key: 'gp' | 'quali' | 'sprint' | 'fl') => {
         const validUsers = users.filter(u => u.breakdown && typeof u.breakdown[key] === 'number');
         if (validUsers.length === 0) return null;
@@ -638,7 +632,6 @@ const InsightsView: React.FC<{
         };
     }, [users]);
 
-    // Compute Top 10 list for the active category
     const top10List = useMemo(() => {
         return [...users]
             .filter(u => u.breakdown && typeof u.breakdown[activeCategory] === 'number')
@@ -647,72 +640,69 @@ const InsightsView: React.FC<{
     }, [users, activeCategory]);
 
     const activeTheme = getVariantTheme(activeCategory);
-
-    // Get Title for the list section
-    const getCategoryTitle = () => {
-        switch(activeCategory) {
-            case 'gp': return "Sunday Specialists (Top 10 GP Points)";
-            case 'quali': return "Qualifying Masters (Top 10 Quali Points)";
-            case 'sprint': return "Sprint Specialists (Top 10 Sprint Points)";
-            case 'fl': return "Fastest Lap Hunters (Top 10 FL Points)";
-        }
-    };
+    const activeCategoryData = categories.find(c => c.key === activeCategory);
 
     return (
-        <div className="flex flex-col md:h-full gap-6 animate-fade-in pb-24 md:pb-safe pt-2 md:overflow-y-auto custom-scrollbar pr-1">
-            {/* Interactive Tiles Grid - Added mx-1 to prevent cutoff on scale */}
-            <div className="flex-none grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mx-1">
-                <SuperlativeCard 
-                    title="Race Day Dominator" 
-                    icon={CheckeredFlagIcon} 
-                    data={superlatives?.gp || null} 
-                    variant="gp" 
-                    isActive={activeCategory === 'gp'}
-                    onClick={() => setActiveCategory('gp')}
-                />
-                <SuperlativeCard 
-                    title="Qualifying King" 
-                    icon={PolePositionIcon} 
-                    data={superlatives?.quali || null} 
-                    variant="quali" 
-                    isActive={activeCategory === 'quali'}
-                    onClick={() => setActiveCategory('quali')}
-                />
-                <SuperlativeCard 
-                    title="Sprint Specialist" 
-                    icon={SprintIcon} 
-                    data={superlatives?.sprint || null} 
-                    variant="sprint" 
-                    isActive={activeCategory === 'sprint'}
-                    onClick={() => setActiveCategory('sprint')}
-                />
-                <SuperlativeCard 
-                    title="Fastest Lap Hunter" 
-                    icon={FastestLapIcon} 
-                    data={superlatives?.fl || null} 
-                    variant="fl" 
-                    isActive={activeCategory === 'fl'}
-                    onClick={() => setActiveCategory('fl')}
-                />
+        <div className="flex flex-col md:h-full gap-4 animate-fade-in pb-24 md:pb-safe pt-2 md:overflow-y-auto custom-scrollbar pr-1">
+            
+            {/* DESKTOP: Superlative Cards Grid */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mx-1">
+                {categories.map(cat => (
+                    <SuperlativeCard 
+                        key={cat.key}
+                        title={cat.fullTitle} 
+                        icon={cat.icon} 
+                        data={superlatives?.[cat.key] || null} 
+                        variant={cat.key} 
+                        isActive={activeCategory === cat.key}
+                        onClick={() => setActiveCategory(cat.key)}
+                    />
+                ))}
+            </div>
+
+            {/* MOBILE: Sticky Scrollable Pills */}
+            <div className="md:hidden sticky top-0 z-20 bg-carbon-black/90 backdrop-blur-sm -mx-4 px-4 py-3 border-b border-pure-white/10">
+                <div className="flex overflow-x-auto gap-2 no-scrollbar snap-x snap-mandatory">
+                    {categories.map(cat => {
+                        const theme = getVariantTheme(cat.key);
+                        const leaderData = superlatives?.[cat.key];
+                        const isActive = activeCategory === cat.key;
+                        return (
+                            <button
+                                key={cat.key}
+                                onClick={() => setActiveCategory(cat.key)}
+                                className={`flex-none snap-start flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm uppercase tracking-wider transition-all duration-200 ${
+                                    isActive 
+                                    ? `${theme.bg} text-pure-white ring-2 ${theme.ring} shadow-lg` 
+                                    : 'bg-carbon-black/60 text-highlight-silver ring-1 ring-pure-white/10 hover:bg-pure-white/5'
+                                }`}
+                            >
+                                <cat.icon className="w-4 h-4" />
+                                <span>{cat.shortLabel}</span>
+                                {leaderData && leaderData.score > 0 && (
+                                    <span className="text-[10px] font-mono opacity-80">· {leaderData.score}</span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Dynamic Leaderboard Section */}
-            <div className="md:flex-1 mb-8 pb-4">
-                <div className={`bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300`}>
-                    
-                    {/* Header */}
+            <div key={activeCategory} className="md:flex-1 mb-8 pb-4 animate-fade-in">
+                <div className="bg-carbon-fiber rounded-xl p-4 md:p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300">
                     <div className="flex justify-between items-center mb-6 relative z-10 border-b border-pure-white/5 pb-4">
                         <div>
-                            <h3 className="text-xl font-bold text-pure-white leading-tight uppercase italic tracking-wider">{getCategoryTitle()}</h3>
+                            <h3 className="text-lg md:text-xl font-bold text-pure-white leading-tight uppercase italic tracking-wider">
+                                {activeCategoryData?.listTitle}
+                            </h3>
                             <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${activeTheme.color} opacity-80`}>Performance Breakdown</p>
                         </div>
                     </div>
 
-                    {/* Top 10 Grid */}
                     <div className="w-full relative z-10">
                         {top10List.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                                {/* Column 1: Ranks 1-5 */}
                                 <div className="space-y-3">
                                     {top10List.slice(0, 5).map((user, idx) => {
                                         const rank = idx + 1;
@@ -720,7 +710,7 @@ const InsightsView: React.FC<{
                                         const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
                                         const percent = (score / maxScore) * 100;
                                         return (
-                                            <div key={user.id} className="group/row flex items-center gap-3 p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
                                                 <div className={`w-8 h-8 flex items-center justify-center font-black text-sm rounded-md ${rank <= 3 ? `${activeTheme.bg} text-carbon-black shadow-lg` : 'bg-pure-white/10 text-highlight-silver'}`}>
                                                     {rank}
                                                 </div>
@@ -737,7 +727,6 @@ const InsightsView: React.FC<{
                                         );
                                     })}
                                 </div>
-                                {/* Column 2: Ranks 6-10 */}
                                 <div className="space-y-3">
                                     {top10List.slice(5, 10).map((user, idx) => {
                                         const rank = idx + 6;
@@ -745,7 +734,7 @@ const InsightsView: React.FC<{
                                         const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
                                         const percent = (score / maxScore) * 100;
                                         return (
-                                            <div key={user.id} className="group/row flex items-center gap-3 p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
                                                 <div className="w-8 h-8 flex items-center justify-center font-black text-sm rounded-md bg-pure-white/10 text-highlight-silver">
                                                     {rank}
                                                 </div>

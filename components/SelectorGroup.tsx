@@ -112,7 +112,7 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                           'grid-cols-1 md:grid-cols-3';
 
   return (
-    <div className="bg-carbon-fiber rounded-lg p-3 ring-1 ring-pure-white/10 border border-pure-white/5">
+    <div className={`bg-carbon-fiber rounded-lg p-3 ring-1 ring-pure-white/10 border border-pure-white/5 transition-opacity duration-200 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2">
         <Icon className={`w-5 h-5 ${entityClass === EntityClass.A ? 'text-primary-red' : 'text-highlight-silver'}`} />
         {title} <span className="text-highlight-silver font-normal text-sm">({slots} required)</span>
