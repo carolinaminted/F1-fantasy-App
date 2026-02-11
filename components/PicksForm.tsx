@@ -65,17 +65,14 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   const isSubmitted = !!initialPicksForEvent;
   
-  // Combine manual admin lock and automatic time lock
+  // Unified lock variables
   const isEffectiveLocked = formLocks[event.id] || isTimeLocked;
-  
-  // Admin Bypass: Admins can edit even if locked by time or manual toggle
-  const isLockedByAdmin = isEffectiveLocked && !user.isAdmin;
+  const isFormDisabled = isEffectiveLocked && !user.isAdmin;
 
   // Handle expiration from the Timer component
   const handleTimerExpire = useCallback(() => {
       if (!isTimeLocked) {
           setIsTimeLocked(true);
-          // Only show toast if user is currently editing and not an admin (admins aren't affected)
           if (isEditing && !user.isAdmin) {
               showToast("Time's up! Picks for this event are now locked.", 'error');
           }
@@ -90,32 +87,30 @@ const PicksForm: React.FC<PicksFormProps> = ({
     setIsTimeLocked(event.lockAtUtc ? new Date(event.lockAtUtc).getTime() <= Date.now() : false);
   }, [event.id, initialPicksForEvent, event.lockAtUtc]);
 
-  // Sort drivers by constructor RANK (based on constants/2025 Standings) 
-  // to pair teammates together in the grid in correct team order (McLaren -> Cadillac)
+  // Force-exit editing mode if form becomes locked mid-session
+  useEffect(() => {
+    if (isFormDisabled && isEditing) {
+        setIsEditing(false);
+        showToast("This event has been locked by the administrator.", 'warning');
+    }
+  }, [isFormDisabled, isEditing, showToast]);
+
+  // Sort drivers by constructor RANK to pair teammates together
   const sortedDrivers = useMemo(() => {
     return [...allDrivers].sort((a, b) => {
-        const getRank = (id: string) => {
-            const idx = CONSTRUCTORS.findIndex(c => c.id === id);
-            return idx === -1 ? 999 : idx;
-        };
-
+        const getRank = (id: string) => CONSTRUCTORS.findIndex(c => c.id === id) ?? 999;
         const teamAIndex = getRank(a.constructorId);
         const teamBIndex = getRank(b.constructorId);
-        
-        // Sort by team rank 
-        if (teamAIndex !== teamBIndex) {
-            return teamAIndex - teamBIndex;
-        }
-        // Then by driver name
+        if (teamAIndex !== teamBIndex) return teamAIndex - teamBIndex;
         return a.name.localeCompare(b.name);
     });
   }, [allDrivers]);
 
   const handleSelect = useCallback((category: keyof PickSelection, value: string | null, index?: number) => {
+    if (isFormDisabled) return; // HARD STOP
     setPicks(prev => {
       const newPicks = { ...prev };
       const field = newPicks[category];
-
       if (Array.isArray(field) && typeof index === 'number') {
         const newArray = [...field];
         newArray[index] = value;
@@ -123,10 +118,9 @@ const PicksForm: React.FC<PicksFormProps> = ({
       } else {
         (newPicks as any)[category] = value;
       }
-      
       return newPicks;
     });
-  }, []);
+  }, [isFormDisabled]);
   
   const isSelectionComplete = () => {
       return picks.aTeams.every(p => p) &&
@@ -138,23 +132,16 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Security: Client-side time validation
-    const lockTime = new Date(event.lockAtUtc).getTime();
-    if (Date.now() >= lockTime) {
-        if (!user.isAdmin) {
-            showToast("Submissions for this event are closed.", 'error');
-            setIsTimeLocked(true);
+    if (isFormDisabled) {
+        showToast("This event is locked. Picks cannot be submitted.", 'error');
+        return;
+    }
+    if (user.isAdmin && isTimeLocked) {
+        if (!confirm("Admin Override: This event is time-locked. Submit anyway?")) {
             return;
-        } else {
-             // Optional: Warn admin
-             if (!confirm("Event is technically locked. Submit anyway (Admin Override)?")) {
-                 return;
-             }
         }
     }
-
-    if(isSelectionComplete()) {
+    if (isSelectionComplete()) {
         onPicksSubmit(event.id, picks);
         setIsEditing(false);
     } else {
@@ -162,30 +149,38 @@ const PicksForm: React.FC<PicksFormProps> = ({
     }
   };
   
-  if (isLockedByAdmin && !isEditing) {
+  // PRIMARY LOCK GATE: If locked for a non-admin, show the lock screen immediately.
+  if (isFormDisabled) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
-            <div className="max-w-4xl w-full text-center bg-accent-gray/50 backdrop-blur-sm rounded-lg p-8 ring-1 ring-primary-red/50 shadow-2xl">
-                <LockIcon className="w-12 h-12 text-primary-red mx-auto mb-4" />
-                <h2 className="text-3xl font-bold text-ghost-white mb-2">Picks Are Locked</h2>
-                <p className="text-ghost-white">Your submitted picks for this event cannot be edited.</p>
+            <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-primary-red/30 shadow-2xl ring-1 ring-primary-red/50 relative overflow-hidden">
+                <div className="absolute inset-0 bg-checkered-flag opacity-[0.02] pointer-events-none"></div>
+                <LockIcon className="w-16 h-16 text-primary-red mx-auto mb-4 relative z-10" />
+                <h2 className="text-3xl font-bold text-ghost-white mb-2 relative z-10">Picks Are Locked</h2>
+                <p className="text-highlight-silver relative z-10">
+                    {isSubmitted 
+                        ? "Your submitted picks for this event are final and cannot be edited."
+                        : "This event has been locked. Picks can no longer be submitted."
+                    }
+                </p>
+                {isSubmitted && (
+                    <p className="text-xs text-highlight-silver/60 mt-4 relative z-10">
+                        Your picks were submitted before the lock. Good luck!
+                    </p>
+                )}
             </div>
         </div>
     );
   }
-
-  // Determine if user can edit despite lock
-  const canEdit = !isEffectiveLocked || user.isAdmin;
   
-  if(!isEditing) {
+  // Confirmation Screen (if not editing and not locked)
+  if (!isEditing) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
-            {/* Updated container with bg-carbon-fiber */}
             <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up relative overflow-hidden">
                 <h2 className="text-3xl font-bold text-ghost-white mb-4 relative z-10">Picks Submitted Successfully!</h2>
                 <p className="text-ghost-white relative z-10">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
                 
-                {/* Show countdown even in confirmation state so user knows edit window */}
                 {!isEffectiveLocked && (
                     <div className="mt-6 p-4 bg-carbon-black/40 rounded-lg inline-block border border-pure-white/5 backdrop-blur-sm relative z-10">
                         <p className="text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-2">Time Remaining to Edit</p>
@@ -196,10 +191,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 <div className="mt-8 relative z-10">
                     <button 
                         onClick={() => setIsEditing(true)} 
-                        disabled={!canEdit}
+                        disabled={isFormDisabled}
                         className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed transition-transform hover:scale-105 shadow-lg shadow-primary-red/20"
                     >
-                        {!canEdit ? 'Editing Locked' : 'Edit Picks'}
+                        {isFormDisabled ? 'Editing Locked' : 'Edit Picks'}
                     </button>
                 </div>
             </div>
@@ -216,9 +211,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }
 
   const openFastestLapModal = () => {
-      // Logic: Show colors for all if nothing is selected. If something is selected, only color that one.
+      if(isFormDisabled) return;
       const isAnyFastestLapSelected = !!picks.fastestLap;
-
       const modalBody = (
           <div className="p-6">
               <div className="text-center mb-6">
@@ -226,12 +220,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                    {sortedDrivers.map(driver => {
-                       let constructor = allConstructors.find(c => c.id === driver.constructorId);
-                       if (!constructor?.color) {
-                           constructor = CONSTRUCTORS.find(c => c.id === driver.constructorId);
-                       }
+                       let constructor = allConstructors.find(c => c.id === driver.constructorId) || CONSTRUCTORS.find(c => c.id === driver.constructorId);
                        const color = constructor?.color;
-
                        return (
                            <SelectorCard
                                key={driver.id}
@@ -239,7 +229,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                                isSelected={picks.fastestLap === driver.id}
                                onClick={() => { handleSelect('fastestLap', driver.id); setModalContent(null); }}
                                placeholder="Driver"
-                               disabled={isLockedByAdmin}
+                               disabled={isFormDisabled}
                                color={color}
                                forceColor={!isAnyFastestLapSelected}
                            />
@@ -254,7 +244,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
   return (
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
-        {/* Compact Event Header for Mobile */}
         <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none border border-pure-white/5 relative overflow-hidden">
           <div className="flex-grow text-center md:text-left z-10">
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
@@ -267,14 +256,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 </span>
             </p>
           </div>
-
-          {/* Countdown Timer - Centered on mobile, Middle on Desktop */}
           <div className="flex flex-col items-center justify-center py-2 md:py-0 md:px-6 z-10 border-y md:border-y-0 md:border-x border-pure-white/5 bg-black/10 md:bg-transparent rounded-lg md:rounded-none">
               <p className="text-[9px] md:text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-1 opacity-80">Time Remaining</p>
               <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
           </div>
-
-          {/* Status Badge */}
           <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px] z-10">
               <div>
                   <p className="hidden md:block text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
@@ -295,76 +280,37 @@ const PicksForm: React.FC<PicksFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Left Column: Teams */}
             <div className="space-y-4">
                  <SelectorGroup
-                    title="Class A Teams"
-                    slots={2}
-                    options={aTeams}
-                    selected={picks.aTeams}
+                    title="Class A Teams" slots={2} options={aTeams} selected={picks.aTeams}
                     onSelect={(value, index) => handleSelect('aTeams', value, index)}
-                    getUsage={getUsage}
-                    getLimit={getLimit}
-                    hasRemaining={hasRemaining}
-                    entityType="teams"
-                    setModalContent={setModalContent}
-                    disabled={isLockedByAdmin}
-                    allConstructors={allConstructors}
+                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                    entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
                 />
-
                 <SelectorGroup
-                    title="Class B Team"
-                    slots={1}
-                    options={bTeams}
-                    selected={[picks.bTeam]}
+                    title="Class B Team" slots={1} options={bTeams} selected={[picks.bTeam]}
                     onSelect={(value) => handleSelect('bTeam', value, 0)}
-                    getUsage={getUsage}
-                    getLimit={getLimit}
-                    hasRemaining={hasRemaining}
-                    entityType="teams"
-                    setModalContent={setModalContent}
-                    disabled={isLockedByAdmin}
-                    allConstructors={allConstructors}
+                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                    entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
                 />
             </div>
-
-            {/* Right Column: Drivers */}
             <div className="space-y-4 flex flex-col">
                  <SelectorGroup
-                    title="Class A Drivers"
-                    slots={3}
-                    options={aDrivers}
-                    selected={picks.aDrivers}
+                    title="Class A Drivers" slots={3} options={aDrivers} selected={picks.aDrivers}
                     onSelect={(value, index) => handleSelect('aDrivers', value, index)}
-                    getUsage={getUsage}
-                    getLimit={getLimit}
-                    hasRemaining={hasRemaining}
-                    entityType="drivers"
-                    setModalContent={setModalContent}
-                    disabled={isLockedByAdmin}
-                    allConstructors={allConstructors}
+                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                    entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
                 />
-                
                 <SelectorGroup
-                    title="Class B Drivers"
-                    slots={2}
-                    options={bDrivers}
-                    selected={picks.bDrivers}
+                    title="Class B Drivers" slots={2} options={bDrivers} selected={picks.bDrivers}
                     onSelect={(value, index) => handleSelect('bDrivers', value, index)}
-                    getUsage={getUsage}
-                    getLimit={getLimit}
-                    hasRemaining={hasRemaining}
-                    entityType="drivers"
-                    setModalContent={setModalContent}
-                    disabled={isLockedByAdmin}
-                    allConstructors={allConstructors}
+                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                    entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
                 />
             </div>
         </div>
 
-        {/* Bottom Actions: Fastest Lap & Submit */}
         <div className="bg-carbon-fiber rounded-lg p-4 md:p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row items-end gap-4 md:gap-8 border border-pure-white/5">
-             {/* Left: Fastest Lap */}
              <div className="w-full md:flex-1 space-y-2">
                 <div className="flex items-center gap-2">
                     <FastestLapIcon className="w-5 h-5 text-primary-red" />
@@ -372,32 +318,25 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 </div>
                 <div className="h-14">
                     <SelectorCard 
-                        option={selectedFLDriver}
-                        isSelected={!!selectedFLDriver}
-                        onClick={openFastestLapModal}
-                        placeholder="Select Driver"
-                        disabled={isLockedByAdmin}
-                        color={flColor}
-                        forceColor={!!selectedFLDriver}
+                        option={selectedFLDriver} isSelected={!!selectedFLDriver}
+                        onClick={openFastestLapModal} placeholder="Select Driver"
+                        disabled={isFormDisabled} color={flColor} forceColor={!!selectedFLDriver}
                     />
                 </div>
             </div>
-
-            {/* Right: Submit Button */}
             <div className="w-full md:flex-1">
                 <button
                     type="submit"
-                    disabled={!isSelectionComplete() || isLockedByAdmin}
+                    disabled={!isSelectionComplete() || isFormDisabled}
                     className="w-full h-14 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
                 >
-                    {isLockedByAdmin ? <LockIcon className="w-6 h-6" /> : <SubmitIcon className="w-6 h-6" />}
-                    {isLockedByAdmin ? 'Event Locked' : 'Lock In Picks'}
+                    {isFormDisabled ? <LockIcon className="w-6 h-6" /> : <SubmitIcon className="w-6 h-6" />}
+                    {isFormDisabled ? 'Event Locked' : 'Lock In Picks'}
                 </button>
             </div>
         </div>
       </form>
       
-      {/* Bottom Sheet / Modal */}
       {modalContent && (
         <div 
           className="fixed inset-0 bg-carbon-black/80 flex items-end md:items-center justify-center z-[999] md:p-4 pb-safe md:pb-4" 
@@ -407,7 +346,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
             className="bg-carbon-fiber rounded-t-2xl md:rounded-lg w-full md:max-w-3xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto animate-slide-up shadow-2xl ring-1 ring-pure-white/10 border border-pure-white/10" 
             onClick={(e) => e.stopPropagation()}
           >
-              {/* Drag Handle for Mobile */}
               <div className="md:hidden w-full flex justify-center pt-3 pb-1" onClick={() => setModalContent(null)}>
                   <div className="w-12 h-1.5 bg-pure-white/20 rounded-full"></div>
               </div>
@@ -444,13 +382,13 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
 
     const showColor = (isSelected || forceColor) && color;
 
-    const cardStyle: React.CSSProperties = showColor ? {
+    const cardStyle: React.CSSProperties = showColor && !disabled ? {
         borderColor: color,
         backgroundColor: hexToRgba(color, isSelected ? 0.25 : 0.1),
         boxShadow: isSelected ? `0 10px 15px -3px ${hexToRgba(color, 0.2)}` : undefined
     } : {};
     
-    if (isDropdown && options && onSelect) {
+    if (isDropdown && options && onSelect) { // This path is not currently used but kept for potential future UI variants
         return (
             <div className="relative">
                 <select
@@ -481,9 +419,9 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
             className={`
                 p-1.5 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
                 transition-all duration-200 min-h-[3.5rem]
-                ${isSelected && !color ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : ''}
-                ${!showColor && !isSelected ? 'bg-carbon-black/50 border-accent-gray hover:border-highlight-silver' : ''}
-                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none grayscale' : ''}
+                ${isSelected && !color && !disabled ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : ''}
+                ${!showColor && !isSelected && !disabled ? 'border-accent-gray bg-carbon-black/50 hover:border-highlight-silver cursor-pointer' : ''}
             `}
         >
             <p className={`font-bold text-sm md:text-base leading-tight ${isSelected || forceColor ? 'text-pure-white' : 'text-ghost-white'}`}>

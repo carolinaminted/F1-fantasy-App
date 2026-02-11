@@ -14,13 +14,11 @@ interface ErrorBoundaryState {
 
 // Fix: Change React.Component to Component to resolve typing issues.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+  // Fix: Initialize state as a class property instead of in the constructor. This is a more modern syntax and avoids potential issues with 'this' context in some environments, resolving the typing errors.
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
