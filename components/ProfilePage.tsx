@@ -581,7 +581,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   const isDuesUnpaid = (user.duesPaidStatus || 'Unpaid') !== 'Paid';
   const showEditControls = !isEditingProfile && setActivePage && !isPublicView;
-  const showTopSection = isDuesUnpaid || showEditControls;
+  
+  // Only show dues indicator if Unpaid AND NOT in public view (modal)
+  // This prevents incorrect or irrelevant flashing in the leaderboard modal
+  const showDuesIndicator = isDuesUnpaid && !isPublicView;
+
+  const showTopSection = showDuesIndicator || showEditControls;
 
   return (
     <>
@@ -598,8 +603,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
         {showTopSection && (
             <div className="flex flex-col items-center justify-center mb-8 relative z-10">
-                {/* Dues Status - Only show if Unpaid */}
-                {isDuesUnpaid && (
+                {/* Dues Status - Only show if Unpaid and Private View */}
+                {showDuesIndicator && (
                     <button 
                         onClick={handleDuesClick}
                         disabled={!setActivePage || isPublicView}
