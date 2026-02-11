@@ -75,7 +75,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
     );
 
     return (
-        <div className="flex flex-col h-full w-full max-w-7xl mx-auto pb-safe">
+        <div className="flex flex-col md:h-full w-full max-w-7xl mx-auto md:pb-safe">
             <div className="flex-none">
                 <PageHeader 
                     title="SCORING RULES" 
@@ -84,9 +84,12 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
                 />
             </div>
 
-            {/* Dashboard Grid - Using h-full context to align columns */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-1">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-auto md:min-h-full content-start">
+            {/* Dashboard Grid - Using h-full context to align columns on desktop, auto on mobile */}
+            <div 
+                className="md:flex-1 md:overflow-y-auto custom-scrollbar md:min-h-0 px-1"
+                style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
+            >
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-auto md:min-h-full content-start pb-24 md:pb-0">
                     
                     {/* LEFT COLUMN: RACE EVENTS */}
                     <div className="md:col-span-8 flex flex-col gap-4">
