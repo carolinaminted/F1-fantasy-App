@@ -1,5 +1,4 @@
 
-
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -48,6 +47,9 @@ import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 import { useToast } from './contexts/ToastContext.tsx';
+import { useMaintenanceMode } from './hooks/useMaintenanceMode.ts';
+import RedFlagScreen from './components/RedFlagScreen.tsx';
+import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
 export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
@@ -215,6 +217,9 @@ const App: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const { showToast } = useToast();
+  
+  // Maintenance Hook
+  const { maintenance, loading: maintenanceLoading } = useMaintenanceMode();
 
   const lockedDesktopPages: Page[] = [
       'donate', 
@@ -674,8 +679,13 @@ const App: React.FC = () => {
     }
   };
   
-   if (isLoading && !isTransitioning) {
+   if ((isLoading || maintenanceLoading) && !isTransitioning) {
     return <AppSkeleton />;
+  }
+
+  // Maintenance Mode Check
+  if (maintenance?.enabled && user && !user.isAdmin) {
+      return <RedFlagScreen message={maintenance.message} />;
   }
 
   const appContent = (
@@ -683,6 +693,14 @@ const App: React.FC = () => {
       <SideNav user={user} activePage={activePage} navigateToPage={navigateToPage} handleLogout={handleLogout} livePoints={currentTotalPoints} />
       
       <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        
+        {/* Admin Maintenance Banner */}
+        {maintenance?.enabled && user?.isAdmin && (
+            <div className="sticky top-0 z-[100]">
+                <AdminMaintenanceBanner adminId={user.id} />
+            </div>
+        )}
+
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
          {user ? (
            <>
