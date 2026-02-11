@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -697,7 +697,7 @@ const InsightsView: React.FC<{
             </div>
 
             {/* Dynamic Leaderboard Section */}
-            <div className="flex-1 mb-8 pb-4">
+            <div className="md:flex-1 mb-8 pb-4">
                 <div className={`bg-carbon-fiber rounded-xl p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300`}>
                     
                     {/* Header */}
@@ -946,12 +946,31 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   const [selectedUserProfile, setSelectedUserProfile] = useState<ProcessedUser | null>(null);
   const [modalPicks, setModalPicks] = useState<any>(null);
   const [isLoadingPicks, setIsLoadingPicks] = useState(false);
+  
+  const pageRef = useRef<HTMLDivElement>(null);
 
   // Initialize from storage or default
   const [refreshPolicy, setRefreshPolicy] = useState<RefreshPolicy>(() => {
         const saved = localStorage.getItem('lb_refresh_policy');
         return saved ? JSON.parse(saved) : { count: 0, lastRefresh: 0, dayStart: Date.now(), lockedUntil: 0 };
   });
+
+    // Fix: When the view changes, find the main scrolling container and scroll it to the top.
+    useEffect(() => {
+        if (view !== 'menu' && pageRef.current) {
+            let scrollParent = pageRef.current.parentElement;
+            while (scrollParent) {
+                const { overflowY } = window.getComputedStyle(scrollParent);
+                if (overflowY === 'auto' || overflowY === 'scroll') {
+                    scrollParent.scrollTop = 0;
+                    return;
+                }
+                scrollParent = scrollParent.parentElement;
+            }
+            // Fallback for body/window scrolling
+            window.scrollTo(0, 0);
+        }
+    }, [view]);
 
   // Calculate initial cooldown/lockout time
   const calculateRemainingTime = useCallback(() => {
@@ -1222,7 +1241,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
     : selectedUserProfile;
 
   return (
-      <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto">
+      <div ref={pageRef} className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto">
           <div className="flex-none pb-4 md:pb-6">
               <div className="flex flex-col items-center md:flex-row justify-between px-2 md:px-0 gap-4">
                   <div className="hidden md:flex items-center justify-between w-full md:w-auto">
