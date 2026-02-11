@@ -240,49 +240,56 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                 {editForm ? (
                     <div className={`space-y-6 animate-fade-in ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
                         
-                        {/* Profile Name Field */}
-                        <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
-                            <div className="flex justify-between items-start mb-3">
-                                <label className="block text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Profile Name</label>
-                                {!isActiveProfile && (
-                                    <button
-                                        onClick={handleDelete}
-                                        disabled={isSaving}
-                                        className="text-highlight-silver/50 hover:text-primary-red transition-colors -mt-1 -mr-1 p-2 rounded-full hover:bg-pure-white/5"
-                                        title="Delete this profile"
-                                    >
-                                        <TrashIcon className="w-5 h-5" />
-                                    </button>
-                                )}
-                            </div>
-                            <input 
-                                type="text" 
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                className="w-full bg-transparent border-b border-pure-white/10 focus:border-primary-red text-4xl font-black text-pure-white placeholder-pure-white/10 focus:outline-none transition-colors py-2 italic uppercase tracking-tighter"
-                                placeholder="Season 2026"
-                                disabled={isSaving}
-                            />
-                        </div>
-
-                        {/* Fastest Lap Field */}
-                        <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl">
-                            <label className="block text-[10px] font-black uppercase text-highlight-silver mb-4 tracking-[0.2em]">Fastest Lap Bonus</label>
-                            <div className="flex items-center gap-4 max-w-sm">
-                                <div className="bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner">
-                                    <FastestLapIcon className="w-7 h-7 text-purple-500" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Profile Name Field */}
+                            <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl flex flex-col h-full">
+                                <div className="flex justify-between items-start mb-3">
+                                    <label className="block text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Profile Name</label>
+                                    {!isActiveProfile && (
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={isSaving}
+                                            className="text-highlight-silver/50 hover:text-primary-red transition-colors -mt-1 -mr-1 p-2 rounded-full hover:bg-pure-white/5"
+                                            title="Delete this profile"
+                                        >
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </div>
-                                <div className="flex-1 flex items-center justify-between bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner group focus-within:border-primary-red/50 transition-colors">
-                                     <ScoringInput 
-                                        value={editForm.config.fastestLap}
-                                        onChange={handleScalarChange}
-                                        className="w-full bg-transparent text-2xl font-black text-pure-white focus:outline-none text-right pr-2"
+                                <div className="flex-grow flex items-center">
+                                    <input 
+                                        type="text" 
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                        className="w-full bg-transparent border-b border-pure-white/10 focus:border-primary-red text-4xl font-black text-pure-white placeholder-pure-white/10 focus:outline-none transition-colors py-2 italic uppercase tracking-tighter"
+                                        placeholder="Season 2026"
                                         disabled={isSaving}
                                     />
-                                    <span className="text-[10px] font-black text-highlight-silver uppercase tracking-widest ml-1">pts</span>
+                                </div>
+                            </div>
+
+                            {/* Fastest Lap Field */}
+                            <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl flex flex-col h-full">
+                                <label className="block text-[10px] font-black uppercase text-highlight-silver mb-4 tracking-[0.2em]">Fastest Lap Bonus</label>
+                                <div className="flex-grow flex items-center">
+                                    <div className="flex items-center gap-4 max-w-sm w-full">
+                                        <div className="bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner">
+                                            <FastestLapIcon className="w-7 h-7 text-purple-500" />
+                                        </div>
+                                        <div className="flex-1 flex items-center justify-between bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner group focus-within:border-primary-red/50 transition-colors">
+                                            <ScoringInput 
+                                                value={editForm.config.fastestLap}
+                                                onChange={handleScalarChange}
+                                                className="w-full bg-transparent text-2xl font-black text-pure-white focus:outline-none text-right pr-2"
+                                                disabled={isSaving}
+                                            />
+                                            <span className="text-[10px] font-black text-highlight-silver uppercase tracking-widest ml-1">pts</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
 
                         {/* Points Grid Sections */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
