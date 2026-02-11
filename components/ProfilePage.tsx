@@ -579,6 +579,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   const hasHistory = events.some(event => seasonPicks[event.id]);
 
+  const isDuesUnpaid = (user.duesPaidStatus || 'Unpaid') !== 'Paid';
+  const showEditControls = !isEditingProfile && setActivePage && !isPublicView;
+  const showTopSection = isDuesUnpaid || showEditControls;
+
   return (
     <>
     <div className="max-w-7xl mx-auto text-pure-white space-y-8">
@@ -592,44 +596,44 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
       {/* Profile Info Section */}
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
-        <div className="flex flex-col items-center justify-center mb-8 relative z-10">
-            {/* Dues Status - Disable click in public view */}
-            <button 
-                onClick={handleDuesClick}
-                disabled={!setActivePage || isPublicView}
-                className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 ${
-                    (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                    ? 'bg-green-600 text-pure-white'
-                    : 'bg-primary-red text-pure-white animate-pulse-red-limited'
-                } ${setActivePage && !isPublicView ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
-            >
-                Dues: {user.duesPaidStatus || 'Unpaid'}
-            </button>
+        {showTopSection && (
+            <div className="flex flex-col items-center justify-center mb-8 relative z-10">
+                {/* Dues Status - Only show if Unpaid */}
+                {isDuesUnpaid && (
+                    <button 
+                        onClick={handleDuesClick}
+                        disabled={!setActivePage || isPublicView}
+                        className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 bg-primary-red text-pure-white animate-pulse-red-limited ${setActivePage && !isPublicView ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+                    >
+                        Dues: Unpaid
+                    </button>
+                )}
 
-            {/* Edit Details Button - Hide in Public View */}
-            {!isEditingProfile && setActivePage && !isPublicView && (
-                <div className="flex flex-col items-center gap-3">
-                    <button 
-                        onClick={() => setIsEditingProfile(true)}
-                        className="text-sm font-bold text-pure-white hover:text-pure-white transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
-                    >
-                        Edit Details
-                    </button>
-                    <button 
-                        onClick={handlePasswordReset}
-                        disabled={resetCooldown}
-                        className="text-xs font-semibold text-highlight-silver hover:text-pure-white transition-all px-5 py-1.5 rounded-full border border-accent-gray hover:border-highlight-silver disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        {resetCooldown ? 'Reset Link Sent ✓' : 'Reset Password'}
-                    </button>
-                    {resetStatus && (
-                        <p className={`text-xs text-center ${resetStatus.type === 'success' ? 'text-green-500' : 'text-primary-red'}`}>
-                            {resetStatus.message}
-                        </p>
-                    )}
-                </div>
-            )}
-        </div>
+                {/* Edit Details Button - Hide in Public View */}
+                {showEditControls && (
+                    <div className="flex flex-col items-center gap-3">
+                        <button 
+                            onClick={() => setIsEditingProfile(true)}
+                            className="text-sm font-bold text-pure-white hover:text-pure-white transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
+                        >
+                            Edit Details
+                        </button>
+                        <button 
+                            onClick={handlePasswordReset}
+                            disabled={resetCooldown}
+                            className="text-xs font-semibold text-highlight-silver hover:text-pure-white transition-all px-5 py-1.5 rounded-full border border-accent-gray hover:border-highlight-silver disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            {resetCooldown ? 'Reset Link Sent ✓' : 'Reset Password'}
+                        </button>
+                        {resetStatus && (
+                            <p className={`text-xs text-center ${resetStatus.type === 'success' ? 'text-green-500' : 'text-primary-red'}`}>
+                                {resetStatus.message}
+                            </p>
+                        )}
+                    </div>
+                )}
+            </div>
+        )}
         
         {isEditingProfile ? (
             <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg mx-auto bg-carbon-black/50 border border-pure-white/10 shadow-2xl p-6 rounded-lg">
