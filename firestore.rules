@@ -119,6 +119,12 @@ service cloud.firestore {
        allow write: if isAdmin();
     }
     
+    // --- Maintenance Mode ---
+    match /app_state/maintenance {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
     // --- Dues Payments ---
     match /dues_payments/{paymentId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);

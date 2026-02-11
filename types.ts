@@ -158,3 +158,10 @@ export interface LeaderboardCache {
 export interface LeagueConfig {
     duesAmount: number;
 }
+
+export interface MaintenanceState {
+    enabled: boolean;
+    message?: string;
+    enabled_by?: string;
+    enabled_at?: any;
+}
