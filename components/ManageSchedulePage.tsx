@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { EVENTS } from '../constants.ts';
@@ -108,7 +109,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
     );
 
     return (
-        <div className="flex flex-col h-full overflow-hidden w-full max-w-7xl mx-auto text-pure-white">
+        <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto text-pure-white">
             <div className="flex-none">
                 <PageHeader 
                     title="SCHEDULE MANAGER" 
@@ -119,7 +120,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                 />
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-0 pb-8 min-h-0">
+            <div className="flex-1 md:overflow-y-auto custom-scrollbar px-4 md:px-0 pb-24 md:pb-8 md:min-h-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {EVENTS.map(event => (
                         <EventSummaryTile 

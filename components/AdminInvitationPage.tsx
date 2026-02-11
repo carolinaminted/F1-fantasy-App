@@ -265,10 +265,10 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-carbon-black/80 sticky top-0 z-10 backdrop-blur-md border-b border-pure-white/10">
                                     <tr>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest">Code</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest hidden md:table-cell">Code</th>
                                         <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Status</th>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Created</th>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Used By / Reserved</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center hidden md:table-cell">Created</th>
+                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-left md:text-center">Used By / Reserved</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-pure-white/5">
@@ -278,21 +278,21 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                                             className="hover:bg-pure-white/5 transition-colors cursor-pointer group"
                                             onClick={() => setSelectedCodeObj(code)}
                                         >
-                                            <td className="p-4 font-mono font-bold text-pure-white tracking-widest group-hover:text-primary-red transition-colors min-w-[200px]">{code.code}</td>
+                                            <td className="p-4 font-mono font-bold text-pure-white tracking-widest group-hover:text-primary-red transition-colors min-w-[200px] hidden md:table-cell">{code.code}</td>
                                             <td className="p-4 text-center">
                                                 <span className={`inline-block px-3 py-1 text-[10px] font-black uppercase rounded-lg ${getStatusColor(code)}`}>
                                                     {getStatusLabel(code)}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-sm text-highlight-silver font-medium text-center">{formatDate(code.createdAt)}</td>
-                                            <td className="p-4 text-center">
+                                            <td className="p-4 text-sm text-highlight-silver font-medium text-center hidden md:table-cell">{formatDate(code.createdAt)}</td>
+                                            <td className="p-4 text-left md:text-center">
                                                 {code.usedByEmail ? (
-                                                    <div className="inline-flex flex-col items-center">
-                                                        <span className="text-pure-white block font-bold text-xs">{code.usedByEmail}</span>
+                                                    <div className="inline-flex flex-col items-start md:items-center">
+                                                        <span className="text-pure-white block font-bold text-xs truncate max-w-[150px] md:max-w-none">{code.usedByEmail}</span>
                                                         <span className="text-[10px] text-highlight-silver block opacity-50 uppercase tracking-tighter">{formatDateTimeEST(code.usedAt)}</span>
                                                     </div>
                                                 ) : code.reservedFor ? (
-                                                    <div className="inline-flex flex-col items-center">
+                                                    <div className="inline-flex flex-col items-start md:items-center">
                                                         <span className="text-blue-400 block font-bold text-xs">{code.reservedFor}</span>
                                                         <span className="text-[10px] text-highlight-silver block opacity-50 uppercase tracking-tighter">Manually Reserved</span>
                                                     </div>
