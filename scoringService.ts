@@ -1,3 +1,4 @@
+
 import { EVENTS } from '../constants.ts';
 import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
 
@@ -260,24 +261,15 @@ export const processLeaderboardStats = async (
 
     // Assign ranks using "1224" standard competition ranking
     if (processed.length > 0) {
-        // Handle first item
+        let currentRank = 1;
         processed[0].displayRank = 1;
-        processed[0].rank = 1;
-
         for (let i = 1; i < processed.length; i++) {
-            const prev = processed[i - 1];
-            const curr = processed[i];
-            
             // Check points against previous user in the sorted list
-            if ((curr.totalPoints || 0) === (prev.totalPoints || 0)) {
-                // Same rank as previous
-                curr.displayRank = prev.displayRank;
-                curr.rank = prev.rank;
+            if ((processed[i].totalPoints || 0) === (processed[i - 1].totalPoints || 0)) {
+                processed[i].displayRank = currentRank;
             } else {
-                // New rank matches array position
-                const newRank = i + 1;
-                curr.displayRank = newRank;
-                curr.rank = newRank;
+                currentRank = i + 1;
+                processed[i].displayRank = currentRank;
             }
         }
     }
