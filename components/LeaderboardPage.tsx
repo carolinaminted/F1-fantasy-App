@@ -1203,6 +1203,29 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   if (isLoading) return <ListSkeleton rows={10} />;
 
+  const backToMenuAction = (
+      <button 
+          onClick={() => setView('menu')}
+          className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+      >
+          <BackIcon className="w-4 h-4" /> 
+          <span className="text-sm font-bold">Back</span>
+      </button>
+  );
+
+  const getHeaderProps = () => {
+      switch (view) {
+          case 'standings': return { title: "LEAGUE STANDINGS", icon: LeaderboardIcon };
+          case 'popular': return { title: "POPULAR PICKS", icon: TrendingUpIcon };
+          case 'entities': return { title: "DRIVER & TEAM POINTS", icon: TeamIcon };
+          case 'insights': return { title: "PERFORMANCE INSIGHTS", icon: LightbulbIcon };
+          case 'p22': return { title: "P22 TRACKER", icon: TrashIcon };
+          default: return { title: "LEADERBOARDS", icon: LeaderboardIcon };
+      }
+  };
+
+  const headerProps = getHeaderProps();
+
   if (view === 'menu') {
       return (
           <div className="w-full max-w-7xl mx-auto animate-fade-in">
@@ -1231,29 +1254,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
   return (
       <div ref={pageRef} className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto">
-          <div className="flex-none pb-4 md:pb-6">
-              <div className="flex flex-col items-center md:flex-row justify-between px-2 md:px-0 gap-4">
-                  <div className="hidden md:flex items-center justify-between w-full md:w-auto">
-                      <button onClick={() => setView('menu')} className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors font-bold py-2 group">
-                          <BackIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Hub
-                      </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2 gap-2 md:gap-3">
-                        <div className="p-1.5 md:p-2 bg-primary-red/10 rounded-full border border-primary-red/20 shadow-[0_0_15px_rgba(218,41,28,0.2)] flex">
-                            {view === 'standings' && <LeaderboardIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'entities' && <TeamIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'popular' && <TrendingUpIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'insights' && <LightbulbIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
-                            {view === 'p22' && <TrashIcon className="w-4 h-4 md:w-6 md:h-6 text-primary-red" />}
-                        </div>
-                        <h1 className="text-base md:text-2xl font-bold text-pure-white uppercase italic tracking-wider whitespace-nowrap text-center">
-                            {view === 'standings' ? 'League Standings' : view === 'entities' ? 'Driver & Team Points' : view === 'popular' ? 'Popular Picks Analysis' : view === 'p22' ? 'P22 Tracker' : 'Performance Insights'}
-                        </h1>
-                  </div>
-                  
-                  <RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count} />
-              </div>
+          <div className="flex-none">
+              <PageHeader 
+                  title={headerProps.title} 
+                  icon={headerProps.icon} 
+                  leftAction={backToMenuAction}
+                  rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
+              />
           </div>
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
