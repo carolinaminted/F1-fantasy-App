@@ -274,7 +274,7 @@ Points flow **from drivers to their constructors**. When a driver finishes P1, t
 | Class | Team Picks | Driver Picks |
 |-------|-----------|-------------|
 | **Class A** (top 5 constructors) | 10 uses | 8 uses |
-| **Class B** (remaining constructors) | 5 uses | 5 uses |
+| **Class B** (remaining constructors) | 4 uses | 4 uses |
 
 ### Historical Accuracy
 
