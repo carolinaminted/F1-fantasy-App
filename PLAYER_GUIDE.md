@@ -181,7 +181,7 @@ A: On the login screen, tap **"Forgot Password?"** to receive a reset link via e
 A: Payments require Admin approval. If it's been more than 24 hours, contact the League Administrator.
 
 **Q: Can I change my Team Name?**
-A: Contact the League Administrator — this can be updated on the backend.
+A: Yes, you can vhange your team name at any time on the profile page.
 
 ### Technical Issues
 
