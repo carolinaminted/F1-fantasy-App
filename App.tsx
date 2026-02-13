@@ -1,4 +1,5 @@
 
+
 // Fix: Implement the main App component to provide structure, state management, and navigation.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -49,6 +50,8 @@ import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 import { useToast } from './contexts/ToastContext.tsx';
 import { useMaintenanceMode } from './hooks/useMaintenanceMode.ts';
 import RedFlagScreen from './components/RedFlagScreen.tsx';
+import { useResultsAnnouncement } from './hooks/useResultsAnnouncement.ts';
+import ResultsAnnouncementBanner from './components/ResultsAnnouncementBanner.tsx';
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
@@ -220,6 +223,9 @@ const App: React.FC = () => {
   
   // Maintenance Hook
   const { maintenance, loading: maintenanceLoading } = useMaintenanceMode();
+
+  // Announcement Hook
+  const { announcement, shouldShow: showResultsBanner } = useResultsAnnouncement(user);
 
   const lockedDesktopPages: Page[] = [
       'donate', 
@@ -644,7 +650,7 @@ const App: React.FC = () => {
         }
         switch (adminSubPage) {
             case 'dashboard':
-                return <AdminPage setAdminSubPage={setAdminSubPage} />;
+                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
             case 'results':
                 return <ResultsManagerPage 
                           raceResults={raceResults} 
@@ -672,7 +678,7 @@ const App: React.FC = () => {
             case 'database':
                 return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
             default:
-                return <AdminPage setAdminSubPage={setAdminSubPage} />;
+                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
         }
       default:
         return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
@@ -698,6 +704,16 @@ const App: React.FC = () => {
         {maintenance?.enabled && user?.isAdmin && (
             <div className="sticky top-0 z-[100]">
                 <AdminMaintenanceBanner adminId={user.id} />
+            </div>
+        )}
+
+        {showResultsBanner && announcement && user && (
+            <div className="sticky top-0 z-[99]">
+                <ResultsAnnouncementBanner 
+                    announcement={announcement} 
+                    userId={user.id}
+                    setActivePage={navigateToPage as any} // Cast to allow specific page type
+                />
             </div>
         )}
 
