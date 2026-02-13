@@ -1,4 +1,5 @@
 
+
 export enum EntityClass {
   A = 'A',
   B = 'B'
@@ -50,6 +51,7 @@ export interface User {
       p22: number;
   };
   displayRank?: number; // Client-side calc
+  dismissedAnnouncements?: string[];
 }
 
 export interface PickSelection {
@@ -157,6 +159,17 @@ export interface LeaderboardCache {
 
 export interface LeagueConfig {
     duesAmount: number;
+}
+
+export interface ResultsAnnouncementState {
+   active: boolean;
+   announcementId: string;
+   eventId: string;
+   eventName: string;
+   message?: string;
+   triggeredAt: any; // Firestore Timestamp
+   triggeredBy: string;
+   expiresAt: any; // Firestore Timestamp
 }
 
 export interface MaintenanceState {

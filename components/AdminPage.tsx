@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
@@ -11,17 +12,23 @@ import { SyncIcon } from './icons/SyncIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { DatabaseIcon } from './icons/DatabaseIcon.tsx';
+import { SpeakerphoneIcon } from './icons/SpeakerphoneIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { triggerManualLeaderboardSync, getLeagueConfig, saveLeagueConfig, setMaintenanceMode } from '../services/firestoreService.ts';
+import { triggerManualLeaderboardSync, getLeagueConfig, saveLeagueConfig, setMaintenanceMode, triggerResultsAnnouncement, clearResultsAnnouncement } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useMaintenanceMode } from '../hooks/useMaintenanceMode.ts';
+import { useResultsAnnouncement } from '../hooks/useResultsAnnouncement.ts';
 import { auth } from '../services/firebase.ts';
+import { EVENTS } from '../constants.ts';
+import CountdownTimer from './CountdownTimer.tsx';
+import { User } from '../types.ts';
 
 interface AdminPageProps {
     setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database') => void;
+    user: User | null;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
+const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage, user }) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const { showToast } = useToast();
@@ -34,6 +41,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
 
     // Maintenance State
     const [maintenanceMsg, setMaintenanceMsg] = useState('');
+
+    // Announcement State
+    const { announcement } = useResultsAnnouncement(user);
+    const [announcementEventId, setAnnouncementEventId] = useState<string>(EVENTS[0]?.id || '');
+    const [announcementMessage, setAnnouncementMessage] = useState('');
+    const [isAnnouncing, setIsAnnouncing] = useState(false);
     
     useEffect(() => {
         if (maintenance) {
@@ -111,6 +124,39 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
         }
     };
 
+    const handleAnnounce = async () => {
+        if (!user || !announcementEventId) return;
+        const event = EVENTS.find(e => e.id === announcementEventId);
+        if (!event) return;
+
+        setIsAnnouncing(true);
+        try {
+            await triggerResultsAnnouncement(user.id, event.id, event.name, announcementMessage.trim());
+            showToast(`Results announcement for ${event.name} is now LIVE!`, 'success');
+            setAnnouncementMessage('');
+        } catch (error) {
+            console.error("Failed to trigger announcement:", error);
+            showToast("Error: Could not trigger announcement.", 'error');
+        } finally {
+            setIsAnnouncing(false);
+        }
+    };
+
+    const handleClearAnnouncement = async () => {
+        if (!user) return;
+
+        setIsAnnouncing(true);
+        try {
+            await clearResultsAnnouncement(user.id);
+            showToast(`Announcement cleared successfully.`, 'success');
+        } catch (error) {
+            console.error("Failed to clear announcement:", error);
+            showToast("Error: Could not clear announcement.", 'error');
+        } finally {
+            setIsAnnouncing(false);
+        }
+    };
+
     const HeaderActions = (
         <div className="flex items-center gap-3">
             <button
@@ -147,45 +193,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
             />
             
             <div className="pb-20 md:pb-12 px-2">
-                {/* Race Control Panel (Maintenance) */}
-                <div className={`mb-6 p-4 rounded-xl border ${maintenance?.enabled ? 'bg-red-900/10 border-primary-red/50' : 'bg-carbon-fiber border-pure-white/10'} shadow-lg transition-colors`}>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-full ${maintenance?.enabled ? 'bg-primary-red text-white animate-pulse' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                            </div>
-                            <div>
-                                <h3 className={`font-bold uppercase tracking-wider ${maintenance?.enabled ? 'text-primary-red' : 'text-pure-white'}`}>
-                                    {maintenance?.enabled ? 'RED FLAG ACTIVE' : 'RACE CONTROL: GREEN FLAG'}
-                                </h3>
-                                <p className="text-xs text-highlight-silver opacity-80">
-                                    {maintenance?.enabled ? 'App is locked for non-admins.' : 'App is accessible to all users.'}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            <input 
-                                type="text" 
-                                placeholder="Public Message (Optional)"
-                                value={maintenanceMsg}
-                                onChange={(e) => setMaintenanceMsg(e.target.value)}
-                                className="bg-carbon-black border border-accent-gray rounded-lg px-3 py-2 text-sm text-pure-white focus:border-primary-red outline-none flex-1 md:w-64"
-                            />
-                            <button 
-                                onClick={toggleMaintenance}
-                                className={`px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-lg ${
-                                    maintenance?.enabled 
-                                    ? 'bg-green-600 hover:bg-green-500 text-white' 
-                                    : 'bg-primary-red hover:bg-red-600 text-white'
-                                }`}
-                            >
-                                {maintenance?.enabled ? 'Resume Session' : 'Red Flag'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <AdminTile
                         icon={ProfileIcon}
@@ -235,6 +242,108 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage }) => {
                         onClick={() => setAdminSubPage('invitations')}
                         delay="500ms"
                     />
+                </div>
+
+                {/* Race Control Panel (Maintenance) */}
+                <div className={`mt-6 p-4 rounded-xl border ${maintenance?.enabled ? 'bg-red-900/10 border-primary-red/50' : 'bg-carbon-fiber border-pure-white/10'} shadow-lg transition-colors`}>
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className={`p-3 rounded-full ${maintenance?.enabled ? 'bg-primary-red text-white animate-pulse' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                            <div>
+                                <h3 className={`font-bold uppercase tracking-wider ${maintenance?.enabled ? 'text-primary-red' : 'text-pure-white'}`}>
+                                    {maintenance?.enabled ? 'RED FLAG ACTIVE' : 'RACE CONTROL: GREEN FLAG'}
+                                </h3>
+                                <p className="text-xs text-highlight-silver opacity-80">
+                                    {maintenance?.enabled ? 'App is locked for non-admins.' : 'App is accessible to all users.'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <input 
+                                type="text" 
+                                placeholder="Public Message (Optional)"
+                                value={maintenanceMsg}
+                                onChange={(e) => setMaintenanceMsg(e.target.value)}
+                                className="bg-carbon-black border border-accent-gray rounded-lg px-3 py-2 text-sm text-pure-white focus:border-primary-red outline-none flex-1 md:w-64"
+                            />
+                            <button 
+                                onClick={toggleMaintenance}
+                                className={`px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-lg ${
+                                    maintenance?.enabled 
+                                    ? 'bg-green-600 hover:bg-green-500 text-white' 
+                                    : 'bg-primary-red hover:bg-red-600 text-white'
+                                }`}
+                            >
+                                {maintenance?.enabled ? 'Resume Session' : 'Red Flag'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Results Announcement Panel */}
+                <div className={`mt-6 p-4 rounded-xl border ${announcement?.active ? 'bg-green-900/10 border-green-500/50' : 'bg-carbon-fiber border-pure-white/10'} shadow-lg transition-colors`}>
+                    {announcement?.active ? (
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-full bg-green-500 text-white animate-pulse">
+                                    <SpeakerphoneIcon className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold uppercase tracking-wider text-green-500">ANNOUNCEMENT LIVE</h3>
+                                    <p className="text-xs text-highlight-silver opacity-80">
+                                        Results for <span className="font-bold text-pure-white">{announcement.eventName}</span> are visible.
+                                    </p>
+                                    {announcement.expiresAt?.toDate && (
+                                        <div className="text-xs flex items-center gap-1.5 text-highlight-silver/70 mt-1">
+                                            <span>Expires in:</span>
+                                            <CountdownTimer targetDate={announcement.expiresAt.toDate().toISOString()} />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <button 
+                                onClick={handleClearAnnouncement}
+                                disabled={isAnnouncing}
+                                className="bg-red-600/20 hover:bg-red-600/40 text-red-400 font-bold py-2 px-4 rounded-lg text-xs uppercase tracking-widest transition-colors w-full md:w-auto"
+                            >
+                                {isAnnouncing ? 'Clearing...' : 'Clear Early'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-full bg-carbon-black text-highlight-silver border border-pure-white/10">
+                                    <SpeakerphoneIcon className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold uppercase tracking-wider text-pure-white">RESULTS ANNOUNCEMENT</h3>
+                                    <p className="text-xs text-highlight-silver opacity-80">Notify league when results are posted.</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <select value={announcementEventId} onChange={e => setAnnouncementEventId(e.target.value)} className="bg-carbon-black border border-accent-gray rounded-lg px-3 py-2 text-sm text-pure-white focus:border-green-500 outline-none flex-1">
+                                    {EVENTS.map(e => <option key={e.id} value={e.id}>R{e.round}: {e.name}</option>)}
+                                </select>
+                                <input 
+                                    type="text" 
+                                    placeholder="Optional Message"
+                                    value={announcementMessage}
+                                    onChange={(e) => setAnnouncementMessage(e.target.value)}
+                                    className="hidden lg:block bg-carbon-black border border-accent-gray rounded-lg px-3 py-2 text-sm text-pure-white focus:border-green-500 outline-none flex-1"
+                                />
+                                <button 
+                                    onClick={handleAnnounce}
+                                    disabled={isAnnouncing}
+                                    className="px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-lg bg-green-600 hover:bg-green-500 text-white"
+                                >
+                                    Announce
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

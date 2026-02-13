@@ -1,7 +1,8 @@
+
 import { db, functions } from './firebase.ts';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 
@@ -414,4 +415,59 @@ export const setMaintenanceMode = async (enabled: boolean, adminUid: string, mes
         enabled_by: adminUid,
         enabled_at: serverTimestamp()
     }, { merge: true });
+};
+
+// --- Results Announcement ---
+
+export const onResultsAnnouncement = (callback: (state: ResultsAnnouncementState | null) => void) => {
+    const ref = doc(db, 'app_state', 'results_announcement');
+    return onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+            const data = snap.data() as ResultsAnnouncementState;
+            // Client-side TTL check
+            if (data.active && data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
+                callback(data);
+            } else {
+                callback(null);
+            }
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("Results announcement listener error:", error);
+        callback(null);
+    });
+};
+
+export const triggerResultsAnnouncement = async (adminUid: string, eventId: string, eventName: string, customMessage?: string) => {
+    const ref = doc(db, 'app_state', 'results_announcement');
+    const announcementId = `${eventId}_${Date.now()}`;
+    const expiresAt = Timestamp.fromMillis(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days from now
+
+    const data: ResultsAnnouncementState = {
+        active: true,
+        announcementId,
+        eventId,
+        eventName,
+        triggeredAt: serverTimestamp(),
+        triggeredBy: adminUid,
+        expiresAt,
+    };
+    if (customMessage) {
+        data.message = customMessage;
+    }
+
+    await setDoc(ref, data);
+};
+
+export const clearResultsAnnouncement = async (adminUid: string) => {
+    const ref = doc(db, 'app_state', 'results_announcement');
+    await setDoc(ref, { active: false }, { merge: true });
+};
+
+export const dismissAnnouncementForUser = async (uid: string, announcementId: string) => {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+        dismissedAnnouncements: arrayUnion(announcementId)
+    });
 };

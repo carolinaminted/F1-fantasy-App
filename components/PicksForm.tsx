@@ -91,7 +91,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   useEffect(() => {
     if (isFormDisabled && isEditing) {
         setIsEditing(false);
-        showToast("This event has been locked by the administrator.", 'warning');
+        // FIX: Changed toast type from 'warning' to 'info' as 'warning' is not a valid type.
+        showToast("This event has been locked by the administrator.", 'info');
     }
   }, [isFormDisabled, isEditing, showToast]);
 

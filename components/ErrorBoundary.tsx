@@ -12,12 +12,16 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
+// FIX: Rewrote as a standard React class component with a constructor to ensure 'this.props' and 'this.setState' are correctly bound and resolved.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly declare state property to satisfy TypeScript in strict mode
-  public state: ErrorBoundaryState = {
-    hasError: false,
-    error: null,
-  };
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+    this.handleReload = this.handleReload.bind(this);
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -27,23 +31,20 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  handleReload = () => {
-    // Fix: Ensure destructuring from props is safe
-    const { onReset } = this.props;
-    if (onReset) {
+  handleReload(): void {
+    if (this.props.onReset) {
       this.setState({ hasError: false, error: null });
-      onReset();
+      this.props.onReset();
     } else {
       window.location.reload();
     }
   }
 
   render(): ReactNode {
-    const { hasError, error } = this.state;
-    const { children, fallback } = this.props;
-
-    if (hasError) {
-      if (fallback) return fallback;
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
 
       return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center animate-fade-in">
@@ -62,7 +63,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <div className="bg-carbon-black/80 p-4 rounded-lg border border-red-500/20 max-w-lg w-full mb-8 overflow-hidden text-left shadow-inner">
              <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider mb-1">Telemetry Data:</p>
              <p className="text-xs font-mono text-red-400 break-words">
-                {error?.toString() || "Unknown Critical Failure"}
+                {this.state.error?.toString() || "Unknown Critical Failure"}
              </p>
           </div>
 
@@ -79,7 +80,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       );
     }
 
-    return children;
+    return this.props.children;
   }
 }
 
