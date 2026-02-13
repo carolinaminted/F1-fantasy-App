@@ -238,11 +238,11 @@ const App: React.FC = () => {
       'schedule'
   ];
   
-  // Updated: Include Admin Dashboard and data-heavy tables in locked layout logic for desktop view
-  // 'scoring' and 'results' (ResultsForm) remain scrollable pages for now as they are long forms
+  // FIX: Removed 'dashboard' from the locked layout logic to ensure the Admin Dashboard is scrollable.
+  // Other data-heavy tables remain locked as they have internal scroll mechanisms.
   const isLockedLayout = lockedDesktopPages.includes(activePage) || (
       activePage === 'admin' && 
-      ['dashboard', 'invitations', 'entities', 'manage-users', 'schedule', 'database'].includes(adminSubPage)
+      ['invitations', 'entities', 'manage-users', 'schedule', 'database'].includes(adminSubPage)
   );
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
