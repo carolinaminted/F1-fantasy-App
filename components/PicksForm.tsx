@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import SelectorGroup from './SelectorGroup.tsx';
@@ -91,7 +89,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   useEffect(() => {
     if (isFormDisabled && isEditing) {
         setIsEditing(false);
-        showToast("This event has been locked by the administrator.", 'warning');
+        showToast("This event has been locked by the administrator.", 'error');
     }
   }, [isFormDisabled, isEditing, showToast]);
 
