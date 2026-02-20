@@ -26,6 +26,8 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
     const [lastVisible, setLastVisible] = useState<any>(null);
     const [hasMore, setHasMore] = useState(true);
     const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'admin'>('all');
+    const [sortField, setSortField] = useState<'displayName' | 'email' | 'createdAt' | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     const fetchUsers = async (isMore = false) => {
         if (isMore) setIsPaging(true);
@@ -70,6 +72,44 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
             (user.email || '').toLowerCase().includes(lowercasedTerm)
         );
     }, [searchTerm, allUsers, filterType]);
+
+    const handleSort = (field: 'displayName' | 'email' | 'createdAt') => {
+        if (sortField === field) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
+
+    const sortedUsers = useMemo(() => {
+        if (!sortField) return filteredUsers;
+
+        return [...filteredUsers].sort((a, b) => {
+            let valA = sortField === 'createdAt' ? (a as any).createdAt : a[sortField];
+            let valB = sortField === 'createdAt' ? (b as any).createdAt : b[sortField];
+
+            // Handle Firestore Timestamp
+            if (valA && typeof valA === 'object' && 'seconds' in valA) {
+                valA = valA.seconds;
+            }
+            if (valB && typeof valB === 'object' && 'seconds' in valB) {
+                valB = valB.seconds;
+            }
+
+            if (valA === valB) return 0;
+            // Push nulls to bottom
+            if (!valA) return 1;
+            if (!valB) return -1;
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [filteredUsers, sortField, sortDirection]);
 
     const handleUserUpdate = (updatedUser: User) => {
         setAllUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -172,14 +212,30 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
                                         <tr>
-                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Name</th>
-                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] hidden md:table-cell">Email</th>
+                                            <th 
+                                                className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] cursor-pointer hover:text-primary-red transition-colors select-none"
+                                                onClick={() => handleSort('displayName')}
+                                            >
+                                                Name {sortField === 'displayName' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                            </th>
+                                            <th 
+                                                className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] hidden md:table-cell cursor-pointer hover:text-primary-red transition-colors select-none"
+                                                onClick={() => handleSort('email')}
+                                            >
+                                                Email {sortField === 'email' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                            </th>
+                                            <th 
+                                                className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] hidden md:table-cell cursor-pointer hover:text-primary-red transition-colors select-none"
+                                                onClick={() => handleSort('createdAt')}
+                                            >
+                                                Created On {sortField === 'createdAt' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                            </th>
                                             <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Status</th>
                                             <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Role</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredUsers.map(user => (
+                                        {sortedUsers.map(user => (
                                             <tr 
                                                 key={user.id} 
                                                 className="border-t border-pure-white/5 hover:bg-pure-white/5 transition-colors cursor-pointer group"
@@ -192,6 +248,13 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                                 </td>
                                                 <td className="p-4 align-middle hidden md:table-cell">
                                                     <span className="text-sm text-highlight-silver font-mono">{user.email?.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
+                                                </td>
+                                                <td className="p-4 align-middle hidden md:table-cell">
+                                                    <span className="text-xs text-highlight-silver font-mono">
+                                                        {(user as any).createdAt?.seconds 
+                                                            ? new Date((user as any).createdAt.seconds * 1000).toLocaleDateString() 
+                                                            : '-'}
+                                                    </span>
                                                 </td>
                                                 <td className="p-4 text-center align-middle">
                                                      <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full border ${
@@ -211,9 +274,9 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                                 </td>
                                             </tr>
                                         ))}
-                                        {filteredUsers.length === 0 && (
+                                        {sortedUsers.length === 0 && (
                                             <tr>
-                                                <td colSpan={4} className="p-8 text-center text-highlight-silver italic opacity-50">No users found matching criteria.</td>
+                                                <td colSpan={5} className="p-8 text-center text-highlight-silver italic opacity-50">No users found matching criteria.</td>
                                             </tr>
                                         )}
                                     </tbody>

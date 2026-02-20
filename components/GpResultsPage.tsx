@@ -214,7 +214,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`
-                            flex items-center gap-2 px-3 py-2.5 text-xs font-bold transition-all relative whitespace-nowrap
+                            flex-shrink-0 flex items-center gap-2 px-3 py-2.5 text-xs font-bold transition-all relative whitespace-nowrap
                             ${
                                 activeTab === tab.id
                                     ? 'text-pure-white'
@@ -222,7 +222,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event, results, allDrivers,
                             }
                         `}
                     >
-                        <tab.icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-primary-red' : 'text-current'}`}/> 
+                        <tab.icon className={`w-3.5 h-3.5 flex-shrink-0 ${activeTab === tab.id ? 'text-primary-red' : 'text-current'}`}/> 
                         <span>{tab.label}</span>
                         {activeTab === tab.id && (
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-red shadow-[0_0_8px_rgba(218,41,28,0.8)]"></div>

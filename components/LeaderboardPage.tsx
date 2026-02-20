@@ -551,22 +551,24 @@ const SuperlativeCard: React.FC<{
         <button 
             onClick={onClick}
             className={`
-                group relative overflow-hidden rounded-xl p-5 shadow-lg h-full text-left transition-all duration-300 w-full flex flex-col justify-between
+                group relative rounded-xl p-5 shadow-lg h-full text-left transition-all duration-300 w-full flex flex-col justify-between
                 ${isActive 
                     ? `bg-carbon-fiber ring-2 ${theme.ring} scale-[1.02] opacity-100 z-10 border border-transparent` 
                     : 'bg-carbon-fiber ring-1 ring-pure-white/10 opacity-70 hover:opacity-100 hover:scale-[1.01] border border-pure-white/5'
                 }
             `}
         >
-            {/* Background Gradient & Pattern */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isActive ? 'opacity-100' : ''}`}></div>
-            <div className="absolute inset-0 bg-checkered-flag opacity-[0.03] pointer-events-none"></div>
+            {/* Background Gradient & Pattern - Wrapped to clip only background */}
+            <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isActive ? 'opacity-100' : ''}`}></div>
+                <div className="absolute inset-0 bg-checkered-flag opacity-[0.03]"></div>
+            </div>
             
             <div className="relative z-10 flex items-start justify-between w-full">
                 <div className="min-w-0 flex-1 mr-2">
                     <div className="flex items-center gap-2 mb-3">
-                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${theme.color} shadow-inner`}>
-                            <Icon className="w-5 h-5" />
+                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${theme.color} shadow-inner flex-shrink-0`}>
+                            <Icon className="w-5 h-5 flex-shrink-0" />
                         </div>
                         <span className={`text-[10px] font-black uppercase tracking-widest ${theme.color} opacity-80 truncate`}>{title}</span>
                     </div>
@@ -661,8 +663,8 @@ const InsightsView: React.FC<{
             </div>
 
             {/* MOBILE: Sticky Scrollable Pills */}
-            <div className="md:hidden sticky top-0 z-20 bg-carbon-black/90 backdrop-blur-sm -mx-4 px-4 py-3 border-b border-pure-white/10">
-                <div className="flex overflow-x-auto gap-2 no-scrollbar snap-x snap-mandatory">
+            <div className="md:hidden sticky top-0 z-20 bg-carbon-black/90 backdrop-blur-sm -mx-4 py-3 border-b border-pure-white/10">
+                <div className="flex overflow-x-auto gap-2 no-scrollbar snap-x snap-mandatory px-4">
                     {categories.map(cat => {
                         const theme = getVariantTheme(cat.key);
                         const leaderData = superlatives?.[cat.key];
@@ -677,7 +679,7 @@ const InsightsView: React.FC<{
                                     : 'bg-carbon-black/60 text-highlight-silver ring-1 ring-pure-white/10 hover:bg-pure-white/5'
                                 }`}
                             >
-                                <cat.icon className="w-4 h-4" />
+                                <cat.icon className="w-4 h-4 flex-shrink-0" />
                                 <span>{cat.shortLabel}</span>
                                 {leaderData && leaderData.score > 0 && (
                                     <span className="text-[10px] font-mono opacity-80">· {leaderData.score}</span>
