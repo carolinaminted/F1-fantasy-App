@@ -354,72 +354,85 @@ exports.sendPasswordResetLink = onCall({ cors: true, memory: "512MiB" }, async (
     const clientIp = getClientIp(request);
     await checkRateLimit(clientIp, 'password_reset', 3, 600);
 
-    let gmailEmail = process.env.EMAIL_USER || "your-email@gmail.com";
-    let gmailPassword = process.env.EMAIL_PASS || "your-app-password";
+    const gmailEmail = process.env.EMAIL_USER;
+    const gmailPassword = process.env.EMAIL_PASS;
 
-    if (gmailEmail === "your-email@gmail.com" || gmailPassword === "your-app-password") {
+    logger.info(`Password reset requested for ${email.substring(0, 3)}***. Config status: EMAIL_USER=${!!gmailEmail}, EMAIL_PASS=${!!gmailPassword}`);
+
+    if (!gmailEmail || gmailEmail === "your-email@gmail.com" || !gmailPassword || gmailPassword === "your-app-password") {
         throw new HttpsError("failed-precondition", "Email service not configured.");
     }
 
+    let resetLink;
     try {
-        // Generate the password reset link via Firebase Admin SDK
-        const resetLink = await admin.auth().generatePasswordResetLink(email);
+        logger.info("Attempting Firebase Admin generatePasswordResetLink...");
+        resetLink = await admin.auth().generatePasswordResetLink(email);
+        logger.info("Reset link generated successfully");
+    } catch (err) {
+        logger.error("STEP 1 FAILED - Firebase Admin SDK:", {
+            code: err.code,
+            message: err.message,
+            errorInfo: err.errorInfo,
+            fullError: JSON.stringify(err),
+        });
+        // Always return success to prevent email enumeration
+        return { success: true };
+    }
 
-        const htmlContent = `
-          <div style="background-color: #0A0A0A; color: #F5F5F5; font-family: 'Arial', sans-serif; padding: 40px; text-align: center; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #2C2C2C;">
-            <div style="margin-bottom: 40px;">
-              <div style="font-size: 36px; font-weight: 900; font-style: italic; line-height: 1; letter-spacing: -1px; margin-bottom: 5px;">
-                <span style="color: #DA291C;">LIGHTS</span> <span style="color: #FFFFFF;">OUT</span>
-              </div>
-              <div style="font-size: 14px; font-weight: 400; letter-spacing: 0.4em; color: #FFFFFF;">
-                LEAGUE
-              </div>
-            </div>
-            
-            <div style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #FFFFFF;">
-              Password Reset Request
-            </div>
-            
-            <div style="margin-bottom: 25px; font-size: 14px; color: #C0C0C0;">
-              We received a request to reset the password for<br/>
-              <span style="color: #FFFFFF; font-weight: bold;">${email}</span>
-            </div>
-            
-            <div style="margin-bottom: 30px;">
-              <a href="${resetLink}" 
-                 style="background-color: #DA291C; color: #FFFFFF; font-size: 16px; font-weight: bold; text-decoration: none; padding: 14px 40px; border-radius: 8px; display: inline-block; letter-spacing: 1px; box-shadow: 0 0 15px rgba(218, 41, 28, 0.3);">
-                RESET PASSWORD
-              </a>
-            </div>
-            
-            <div style="font-size: 12px; color: #666666; margin-bottom: 15px;">
-              This link expires in 1 hour.
-            </div>
-            
-            <div style="font-size: 12px; color: #666666; border-top: 1px solid #333333; padding-top: 20px;">
-              If you didn't request a password reset, you can safely ignore this email.<br/>
-              Your password will remain unchanged.
-            </div>
+    const htmlContent = `
+      <div style="background-color: #0A0A0A; color: #F5F5F5; font-family: 'Arial', sans-serif; padding: 40px; text-align: center; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #2C2C2C;">
+        <div style="margin-bottom: 40px;">
+          <div style="font-size: 36px; font-weight: 900; font-style: italic; line-height: 1; letter-spacing: -1px; margin-bottom: 5px;">
+            <span style="color: #DA291C;">LIGHTS</span> <span style="color: #FFFFFF;">OUT</span>
           </div>
-        `;
+          <div style="font-size: 14px; font-weight: 400; letter-spacing: 0.4em; color: #FFFFFF;">
+            LEAGUE
+          </div>
+        </div>
+        <div style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #FFFFFF;">
+          Password Reset Request
+        </div>
+        <div style="margin-bottom: 25px; font-size: 14px; color: #C0C0C0;">
+          We received a request to reset the password for<br/>
+          <span style="color: #FFFFFF; font-weight: bold;">${email}</span>
+        </div>
+        <div style="margin-bottom: 30px;">
+          <a href="${resetLink}" 
+             style="background-color: #DA291C; color: #FFFFFF; font-size: 16px; font-weight: bold; text-decoration: none; padding: 14px 40px; border-radius: 8px; display: inline-block; letter-spacing: 1px; box-shadow: 0 0 15px rgba(218, 41, 28, 0.3);">
+            RESET PASSWORD
+          </a>
+        </div>
+        <div style="font-size: 12px; color: #666666; margin-bottom: 15px;">
+          This link expires in 1 hour.
+        </div>
+        <div style="font-size: 12px; color: #666666; border-top: 1px solid #333333; padding-top: 20px;">
+          If you didn't request a password reset, you can safely ignore this email.<br/>
+          Your password will remain unchanged.
+        </div>
+      </div>
+    `;
 
+    try {
         const transporter = nodemailer.createTransport({ 
             service: "gmail", 
             auth: { user: gmailEmail, pass: gmailPassword } 
         });
 
+        logger.info("Attempting nodemailer sendMail...");
         await transporter.sendMail({
             from: `"Lights Out League" <${gmailEmail}>`,
             to: email,
             subject: "Reset Your Password — Lights Out League",
             html: htmlContent
         });
-
+        logger.info("Email sent successfully");
     } catch (err) {
-        // CRITICAL: Do NOT expose whether the email exists in the system.
-        // auth/user-not-found should be caught silently.
-        // Log for debugging but return generic success.
-        logger.warn("Password reset attempt error (masked):", err.code || err.message);
+        logger.error("STEP 2 FAILED - Nodemailer SMTP:", {
+            code: err.code,
+            message: err.message,
+            responseCode: err.responseCode,
+            command: err.command,
+        });
     }
 
     // Always return success to prevent email enumeration
