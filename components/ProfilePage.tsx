@@ -192,6 +192,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   // Password Reset State
   const [resetCooldown, setResetCooldown] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     // Update local state if user prop changes (e.g. external update)
@@ -306,8 +307,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   };
 
   const handlePasswordReset = async () => {
-      if (resetCooldown) return;
+      if (resetCooldown || isResettingPassword) return;
       setResetStatus(null);
+      setIsResettingPassword(true);
       
       try {
           const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
@@ -322,6 +324,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
           } else {
               setResetStatus({ type: 'error', message: 'Failed to send reset email. Please try again later.' });
           }
+      } finally {
+          setIsResettingPassword(false);
       }
   };
   
@@ -623,15 +627,34 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
                         >
                             Edit Details
                         </button>
-                        <button 
-                            onClick={handlePasswordReset}
-                            disabled={resetCooldown}
-                            className="text-xs font-semibold text-highlight-silver hover:text-pure-white transition-all px-5 py-1.5 rounded-full border border-accent-gray hover:border-highlight-silver disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            {resetCooldown ? 'Reset Link Sent ✓' : 'Reset Password'}
-                        </button>
+                        {isResettingPassword ? (
+                            <button 
+                                disabled
+                                className="text-xs font-semibold text-primary-red border-primary-red/40 bg-primary-red/10 animate-pulse cursor-wait transition-all px-5 py-1.5 rounded-full border flex items-center gap-2"
+                            >
+                                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                </svg>
+                                Sending Reset Link…
+                            </button>
+                        ) : resetCooldown ? (
+                            <button 
+                                disabled
+                                className="text-xs font-semibold text-green-400 border-green-500/30 bg-green-500/10 opacity-80 cursor-default transition-all px-5 py-1.5 rounded-full border"
+                            >
+                                ✓ Reset Link Sent
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={handlePasswordReset}
+                                className="text-xs font-semibold text-highlight-silver hover:text-pure-white transition-all px-5 py-1.5 rounded-full border border-accent-gray hover:border-highlight-silver"
+                            >
+                                Reset Password
+                            </button>
+                        )}
                         {resetStatus && (
-                            <p className={`text-xs text-center ${resetStatus.type === 'success' ? 'text-green-500' : 'text-primary-red'}`}>
+                            <p className={`text-xs text-center ${resetStatus.type === 'success' ? 'text-green-400' : 'text-primary-red'}`}>
                                 {resetStatus.message}
                             </p>
                         )}
