@@ -420,9 +420,9 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
             className={`
                 p-1.5 rounded-lg border-2 flex flex-col justify-center items-center h-full text-center
                 transition-all duration-200 min-h-[3.5rem]
-                ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none grayscale' : ''}
+                ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none grayscale' : 'cursor-pointer'}
                 ${isSelected && !color && !disabled ? 'bg-primary-red/20 border-primary-red shadow-lg shadow-primary-red/20' : ''}
-                ${!showColor && !isSelected && !disabled ? 'border-accent-gray bg-carbon-black/50 hover:border-highlight-silver cursor-pointer' : ''}
+                ${!showColor && !isSelected && !disabled ? 'border-accent-gray bg-carbon-black/50 hover:border-highlight-silver' : ''}
             `}
         >
             <p className={`font-bold text-sm md:text-base leading-tight ${isSelected || forceColor ? 'text-pure-white' : 'text-ghost-white'}`}>

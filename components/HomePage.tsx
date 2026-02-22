@@ -1,6 +1,6 @@
 
 // Fix: Implement the HomePage component to act as the main screen for making picks.
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import PicksForm from './PicksForm.tsx';
 import { RACE_RESULTS, CURRENT_SEASON } from '../constants.ts';
 import { Event, PickSelection, User, PointsSystem, Driver, Constructor } from '../types.ts';
@@ -59,24 +59,81 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   
   const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
 
+  // Identify the next immediate race (for status logic)
+  const nextRace = useMemo(() => {
+      const now = Date.now();
+      return events.find(event => {
+          const lockTime = new Date(event.lockAtUtc).getTime();
+          const isTimeLocked = now >= lockTime;
+          const isManualLocked = !!formLocks[event.id];
+          return !isTimeLocked && !isManualLocked;
+      });
+  }, [events, formLocks]);
+
   // Check dues status
   const isDuesPaid = user.duesPaidStatus === 'Paid';
 
   // Filter Logic for Dropdown
   const handleEventFilter = (event: Event, filter: string) => {
       const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+      
       if (filter === 'active') return !isLocked;
       if (filter === 'locked') return isLocked;
+      
+      if (filter === 'needs_picks') {
+          const userPicks = seasonPicks[event.id];
+          const isPicksComplete = userPicks && 
+              userPicks.aTeams?.every(t => t) &&
+              userPicks.bTeam &&
+              userPicks.aDrivers?.every(d => d) &&
+              userPicks.bDrivers?.every(d => d) &&
+              userPicks.fastestLap;
+          
+          return !isLocked && !isPicksComplete;
+      }
+      
       return true;
   };
 
   // Status Indicator Render
   const renderEventStatus = (event: Event) => {
       const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
-      if (isLocked) {
-          return <span className="text-[10px] font-bold text-primary-red uppercase border border-primary-red/30 px-1.5 py-0.5 rounded">Locked</span>;
+      const userPicks = seasonPicks[event.id];
+      
+      // Check if picks are complete (all required fields filled)
+      const isPicksComplete = userPicks && 
+          userPicks.aTeams?.every(t => t) &&
+          userPicks.bTeam &&
+          userPicks.aDrivers?.every(d => d) &&
+          userPicks.bDrivers?.every(d => d) &&
+          userPicks.fastestLap;
+
+      if (isLocked && isPicksComplete) {
+          // ✅ Locked with complete picks — Green
+          return <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"></span>;
       }
-      return <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>;
+      if (isLocked && !isPicksComplete) {
+          // 🔴 Locked WITHOUT picks — Red + MISSED badge
+          return (
+              <div className="flex items-center gap-1.5">
+                  <span className="text-[8px] font-bold text-primary-red uppercase tracking-wider">MISSED</span>
+                  <span className="w-2 h-2 rounded-full bg-primary-red shadow-[0_0_5px_rgba(218,41,28,0.5)]"></span>
+              </div>
+          );
+      }
+      if (!isLocked && isPicksComplete) {
+          // ✅ Open but picks already submitted — Green (editable)
+          return <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"></span>;
+      }
+      
+      // Check if this is a future race (not the immediate next one)
+      if (nextRace && new Date(event.lockAtUtc).getTime() > new Date(nextRace.lockAtUtc).getTime()) {
+          // ⚪ Future / Not Yet Open — Gray (dimmed, no glow)
+          return <span className="w-2.5 h-2.5 rounded-full bg-highlight-silver/50"></span>;
+      }
+
+      // ⚠️ Open (Immediate Next) — Amber
+      return <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]"></span>;
   };
 
   return (
@@ -93,7 +150,8 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                   filters={[
                       { label: 'All', value: 'all' },
                       { label: 'Active', value: 'active' },
-                      { label: 'Locked', value: 'locked' }
+                      { label: 'Locked', value: 'locked' },
+                      { label: 'Needs Picks', value: 'needs_picks' }
                   ]}
                   filterPredicate={handleEventFilter}
                   renderStatus={renderEventStatus}
