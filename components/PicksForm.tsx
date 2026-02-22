@@ -107,6 +107,49 @@ const PicksForm: React.FC<PicksFormProps> = ({
     });
   }, [allDrivers]);
 
+  // === EXHAUSTION DETECTION ===
+  const exhaustionReport = useMemo(() => {
+    const check = (
+      options: { id: string; class: EntityClass }[],
+      selectedInSlots: (string | null)[],
+      entityType: 'teams' | 'drivers'
+    ) => {
+      // Calculate distinct fillable options:
+      // 1. Options that are available to be picked (hasRemaining = true)
+      // 2. Options that are ALREADY picked in this form (even if they have reached limit in global state, e.g. editing)
+      const availableIds = options.filter(o => hasRemaining(o.id, entityType)).map(o => o.id);
+      const selectedIds = selectedInSlots.filter((id): id is string => !!id);
+      
+      const distinctFillableCount = new Set([...availableIds, ...selectedIds]).size;
+      const slotsNeeded = selectedInSlots.length;
+
+      // Maximum slots we can actually fill
+      const fillable = Math.min(distinctFillableCount, slotsNeeded);
+      const isExhausted = fillable < slotsNeeded;
+      const emptySlots = slotsNeeded - fillable;
+
+      // uniqueAvailable for display purposes (just the pool)
+      const uniqueAvailable = availableIds.length;
+
+      return { isExhausted, fillable, slotsNeeded, emptySlots, uniqueAvailable };
+    };
+
+    return {
+      aTeams: check(aTeams, picks.aTeams, 'teams'),
+      bTeam: check(bTeams, [picks.bTeam], 'teams'),
+      aDrivers: check(aDrivers, picks.aDrivers, 'drivers'),
+      bDrivers: check(bDrivers, picks.bDrivers, 'drivers'),
+    };
+  }, [aTeams, bTeams, aDrivers, bDrivers, picks, hasRemaining]);
+
+  const hasExhaustedCategory = Object.values(exhaustionReport).some(r => r.isExhausted);
+
+  // Helper for submit confirmation check
+  const hasEmptySlots = () => {
+    return picks.aTeams.some(p => !p) || !picks.bTeam ||
+           picks.aDrivers.some(p => !p) || picks.bDrivers.some(p => !p);
+  };
+
   const handleSelect = useCallback((category: keyof PickSelection, value: string | null, index?: number) => {
     if (isFormDisabled) return; // HARD STOP
     setPicks(prev => {
@@ -124,11 +167,26 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }, [isFormDisabled]);
   
   const isSelectionComplete = () => {
-      return picks.aTeams.every(p => p) &&
-             picks.bTeam &&
-             picks.aDrivers.every(p => p) &&
-             picks.bDrivers.every(p => p) &&
-             picks.fastestLap;
+      // Fastest Lap has no usage limit — always required
+      if (!picks.fastestLap) return false;
+
+      const checkCategory = (
+        selected: (string | null)[],
+        report: { fillable: number; isExhausted: boolean }
+      ) => {
+        const filledCount = selected.filter(Boolean).length;
+        if (report.isExhausted) {
+          // Accept partial — user filled as many as physically possible
+          return filledCount >= report.fillable;
+        }
+        // Normal — all slots must be filled
+        return selected.every(p => p);
+      };
+
+      return checkCategory(picks.aTeams, exhaustionReport.aTeams) &&
+             checkCategory([picks.bTeam], exhaustionReport.bTeam) &&
+             checkCategory(picks.aDrivers, exhaustionReport.aDrivers) &&
+             checkCategory(picks.bDrivers, exhaustionReport.bDrivers);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -142,11 +200,71 @@ const PicksForm: React.FC<PicksFormProps> = ({
             return;
         }
     }
+    
     if (isSelectionComplete()) {
+        // Partial lineup confirmation
+        if (hasEmptySlots() && hasExhaustedCategory) {
+            const exhaustedCategoryNames = Object.entries(exhaustionReport)
+                .filter(([_, r]) => r.isExhausted)
+                .map(([key, r]) => {
+                    const labels: Record<string, string> = {
+                        aTeams: 'Class A Teams', bTeam: 'Class B Team',
+                        aDrivers: 'Class A Drivers', bDrivers: 'Class B Drivers',
+                    };
+                    return `${labels[key]} (${r.emptySlots} empty slot${r.emptySlots > 1 ? 's' : ''})`;
+                });
+
+            const modalBody = (
+                <div className="p-6 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-900/30 border-2 border-amber-500/50 flex items-center justify-center">
+                        <span className="text-2xl">⚠️</span>
+                    </div>
+                    <h4 className="text-2xl font-bold text-pure-white mb-4">Partial Lineup Submission</h4>
+                    <p className="text-highlight-silver text-sm mb-4">
+                        You are submitting a partial lineup due to pick limits exhaustion.
+                    </p>
+                    <div className="bg-carbon-black/50 border border-pure-white/10 rounded-lg p-4 mb-6 text-left">
+                        <p className="text-pure-white font-semibold mb-2">Exhausted Categories:</p>
+                        <ul className="list-disc list-inside text-amber-400/90 text-sm space-y-1">
+                            {exhaustedCategoryNames.map((reason, idx) => (
+                                <li key={idx}>{reason}</li>
+                            ))}
+                        </ul>
+                    </div>
+                    <p className="text-amber-500/80 text-xs mb-6 font-bold uppercase tracking-wider">
+                        Empty slots will score 0 points for this race.
+                    </p>
+                    <div className="flex gap-4 justify-center">
+                        <button 
+                            type="button"
+                            onClick={() => setModalContent(null)}
+                            className="bg-accent-gray hover:bg-accent-gray/80 text-pure-white font-bold py-3 px-6 rounded-lg transition-colors flex-1"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setModalContent(null);
+                                onPicksSubmit(event.id, picks);
+                                setIsEditing(false);
+                            }}
+                            className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-6 rounded-lg transition-colors flex-1 shadow-lg shadow-primary-red/20"
+                        >
+                            Confirm & Submit
+                        </button>
+                    </div>
+                </div>
+            );
+            
+            setModalContent(modalBody);
+            return;
+        }
+
         onPicksSubmit(event.id, picks);
         setIsEditing(false);
     } else {
-        showToast("Please complete all selections before submitting.", 'error');
+        showToast("Please complete all available selections before submitting.", 'error');
     }
   };
   
@@ -281,18 +399,35 @@ const PicksForm: React.FC<PicksFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {hasExhaustedCategory && (
+              <div className="lg:col-span-2 bg-amber-900/30 border border-amber-500/50 rounded-lg p-4 flex items-start gap-3 animate-fade-in-up">
+                 <span className="text-amber-400 text-xl flex-shrink-0 mt-0.5">⚠️</span>
+                 <div>
+                     <p className="text-amber-200 font-bold text-sm">Usage Limits Reached</p>
+                     <p className="text-amber-300/80 text-xs mt-1">
+                         You've used all available picks for: {Object.entries(exhaustionReport).filter(([_, r]) => r.isExhausted).map(([key]) => {
+                            const labels: Record<string, string> = { aTeams: 'Class A Teams', bTeam: 'Class B Team', aDrivers: 'Class A Drivers', bDrivers: 'Class B Drivers' };
+                            return labels[key];
+                         }).join(', ')}.
+                         Empty slots are allowed and will score 0 points.
+                     </p>
+                 </div>
+              </div>
+            )}
             <div className="space-y-4">
                  <SelectorGroup
                     title="Class A Teams" slots={2} options={aTeams} selected={picks.aTeams}
                     onSelect={(value, index) => handleSelect('aTeams', value, index)}
                     getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
                     entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                    isExhausted={exhaustionReport.aTeams.isExhausted}
                 />
                 <SelectorGroup
                     title="Class B Team" slots={1} options={bTeams} selected={[picks.bTeam]}
                     onSelect={(value) => handleSelect('bTeam', value, 0)}
                     getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
                     entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                    isExhausted={exhaustionReport.bTeam.isExhausted}
                 />
             </div>
             <div className="space-y-4 flex flex-col">
@@ -301,12 +436,14 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     onSelect={(value, index) => handleSelect('aDrivers', value, index)}
                     getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
                     entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                    isExhausted={exhaustionReport.aDrivers.isExhausted}
                 />
                 <SelectorGroup
                     title="Class B Drivers" slots={2} options={bDrivers} selected={picks.bDrivers}
                     onSelect={(value, index) => handleSelect('bDrivers', value, index)}
                     getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
                     entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                    isExhausted={exhaustionReport.bDrivers.isExhausted}
                 />
             </div>
         </div>
@@ -332,7 +469,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     className="w-full h-14 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
                 >
                     {isFormDisabled ? <LockIcon className="w-6 h-6" /> : <SubmitIcon className="w-6 h-6" />}
-                    {isFormDisabled ? 'Event Locked' : 'Lock In Picks'}
+                    {isFormDisabled ? 'Event Locked' : (hasEmptySlots() && hasExhaustedCategory ? 'Lock In Partial Lineup' : 'Lock In Picks')}
                 </button>
             </div>
         </div>

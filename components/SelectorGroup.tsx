@@ -19,6 +19,7 @@ interface SelectorGroupProps {
   setModalContent: (content: React.ReactNode | null) => void;
   disabled?: boolean;
   allConstructors: Constructor[];
+  isExhausted?: boolean; // NEW: True when ALL options have hit their usage limit
 }
 
 // Helper to add alpha to hex for background
@@ -30,7 +31,7 @@ const hexToRgba = (hex: string, alpha: number) => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, selected, onSelect, getUsage, getLimit, hasRemaining, entityType, setModalContent, disabled, allConstructors }) => {
+const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, selected, onSelect, getUsage, getLimit, hasRemaining, entityType, setModalContent, disabled, allConstructors, isExhausted }) => {
   
   const entityClass = options[0]?.class || EntityClass.A;
   const limit = getLimit(entityClass, entityType);
@@ -60,6 +61,38 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
     
     // Drivers get 4 columns, Teams get 3 columns on desktop
     const gridCols = entityType === 'drivers' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3';
+
+    // NEW: Check if ANY option is still selectable
+    const hasAnyAvailable = options.some(o => 
+      !selected.includes(o.id) && hasRemaining(o.id, entityType)
+    );
+
+    if (!hasAnyAvailable) {
+      // Show informational modal explaining why the slot is empty
+      const modalBody = (
+        <div className="p-6 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-900/30 border-2 border-amber-500/50 flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h4 className="text-xl font-bold text-pure-white mb-2">No {placeholderText}s Available</h4>
+          <p className="text-highlight-silver text-sm max-w-md mx-auto">
+            You've reached the usage limit for all {title.toLowerCase()}. 
+            This slot will remain empty and score 0 points for this race.
+          </p>
+          <p className="text-amber-400/80 text-xs mt-4">
+            Tip: Check your Selection Counts on your Profile to plan future picks.
+          </p>
+          <button 
+            onClick={() => setModalContent(null)}
+            className="mt-6 bg-accent-gray hover:bg-accent-gray/80 text-pure-white font-bold py-2 px-6 rounded-lg transition-colors"
+          >
+            Got It
+          </button>
+        </div>
+      );
+      setModalContent(modalBody);
+      return;
+    }
 
     const modalBody = (
       <div className="p-6">
@@ -124,6 +157,24 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
           const usage = selectedOption ? `${getUsage(selectedOption.id, entityType)} / ${limit} used` : '';
           const placeholderText = entityType === 'teams' ? 'Team' : 'Driver';
           const color = selectedOption ? getColor(selectedOption.id) : undefined;
+          
+          // NEW: Check if this specific empty slot cannot be filled
+          const isSlotExhausted = !selectedOption && isExhausted;
+
+          if (isSlotExhausted) {
+            return (
+              <div 
+                key={index}
+                onClick={() => openModal(index)}
+                className="p-1.5 rounded-lg border-2 border-dashed border-amber-500/40 flex flex-col justify-center items-center h-full text-center min-h-[3.5rem] bg-amber-900/10 cursor-pointer hover:border-amber-500/60 transition-colors"
+              >
+                <p className="text-amber-400/80 font-bold text-xs uppercase tracking-wider">
+                  No {placeholderText}s Left
+                </p>
+                <p className="text-amber-500/50 text-[10px] mt-0.5">0 pts</p>
+              </div>
+            );
+          }
           
           return (
             <SelectorCard
