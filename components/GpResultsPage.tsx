@@ -279,13 +279,13 @@ const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConst
                     const { driver, constructor } = getEntity(driverId);
                     
                     return (
-                        <tr key={index} className="hover:bg-pure-white/5 transition-colors group">
+                        <tr key={index} className="md:hover:bg-pure-white/5 transition-colors group">
                             <td className="py-3 px-4 text-center">
                                 <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs ${
                                     index === 0 ? 'bg-yellow-500 text-black shadow-yellow-500/20' : 
                                     index === 1 ? 'bg-gray-300 text-black' : 
                                     index === 2 ? 'bg-orange-700 text-white' : 
-                                    'text-highlight-silver group-hover:text-pure-white'
+                                    'text-highlight-silver md:group-hover:text-pure-white'
                                 }`}>
                                     {index + 1}
                                 </span>
