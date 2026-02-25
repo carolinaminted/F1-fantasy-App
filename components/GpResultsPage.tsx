@@ -249,6 +249,78 @@ interface ResultTableProps {
     allConstructors: Constructor[];
 }
 
+const Podium: React.FC<{ data: { label: string; subLabel?: string; color?: string }[] }> = ({ data }) => {
+    if (data.length === 0) return null;
+
+    return (
+        <div className="flex flex-col gap-8 mb-8 mt-4">
+            <div className="flex justify-center items-end gap-2 md:gap-6 h-48 md:h-64 pt-4 pb-0 relative">
+                 {data[1] && (
+                    <div className="flex flex-col items-center w-1/3 max-w-[120px] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                        <div className="mb-2 text-center">
+                            <span className="block text-xs md:text-sm font-bold text-pure-white truncate w-full">{data[1].label}</span>
+                            {data[1].subLabel && <span className="block text-[10px] md:text-xs font-bold uppercase tracking-wider mt-0.5" style={{ color: data[1].color }}>{data[1].subLabel}</span>}
+                        </div>
+                        <div 
+                            className="w-full h-24 md:h-32 rounded-t-lg relative shadow-lg" 
+                            style={{ 
+                                backgroundColor: `${data[1].color || '#333'}80`, 
+                                borderTop: `4px solid ${data[1].color || '#555'}`,
+                                boxShadow: `0 0 15px ${data[1].color}20`
+                            }}
+                        >
+                             <div className="absolute bottom-3 w-full text-center text-xs font-bold text-pure-white/60 uppercase tracking-widest">2nd</div>
+                        </div>
+                    </div>
+                 )}
+                 
+                 {data[0] && (
+                    <div className="flex flex-col items-center w-1/3 max-w-[140px] z-10 -mx-1 animate-fade-in-up">
+                        <div className="mb-3 text-center">
+                            <div className="text-yellow-400 mb-1 drop-shadow-md">
+                                <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <span className="block text-sm md:text-base font-bold text-pure-white truncate w-full">{data[0].label}</span>
+                            {data[0].subLabel && <span className="block text-[10px] md:text-xs font-bold uppercase tracking-wider mt-0.5" style={{ color: data[0].color }}>{data[0].subLabel}</span>}
+                        </div>
+                        <div 
+                            className="w-full h-32 md:h-44 rounded-t-lg relative shadow-2xl" 
+                            style={{ 
+                                backgroundColor: `${data[0].color || '#333'}`, 
+                                borderTop: `4px solid ${data[0].color || '#555'}`,
+                                boxShadow: `0 0 30px ${data[0].color}40`
+                            }}
+                        >
+                             <div className="absolute bottom-4 w-full text-center text-sm font-black text-pure-white uppercase tracking-widest">1st</div>
+                        </div>
+                    </div>
+                 )}
+                 
+                 {data[2] && (
+                    <div className="flex flex-col items-center w-1/3 max-w-[120px] animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                        <div className="mb-2 text-center">
+                            <span className="block text-xs md:text-sm font-bold text-pure-white truncate w-full">{data[2].label}</span>
+                            {data[2].subLabel && <span className="block text-[10px] md:text-xs font-bold uppercase tracking-wider mt-0.5" style={{ color: data[2].color }}>{data[2].subLabel}</span>}
+                        </div>
+                        <div 
+                            className="w-full h-16 md:h-24 rounded-t-lg relative shadow-lg" 
+                            style={{ 
+                                backgroundColor: `${data[2].color || '#333'}80`, 
+                                borderTop: `4px solid ${data[2].color || '#555'}`,
+                                boxShadow: `0 0 15px ${data[2].color}20`
+                            }}
+                        >
+                             <div className="absolute bottom-3 w-full text-center text-xs font-bold text-pure-white/60 uppercase tracking-widest">3rd</div>
+                        </div>
+                    </div>
+                 )}
+            </div>
+        </div>
+    );
+};
+
 const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConstructors }) => {
     if (!results || results.length === 0 || results.every(r => r === null)) {
         return (
@@ -264,52 +336,66 @@ const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConst
         return { driver, constructor };
     };
 
+    const podiumData = results.slice(0, 3).map(driverId => {
+        if (!driverId) return { label: 'Unknown' };
+        const { driver, constructor } = getEntity(driverId);
+        return {
+            label: driver?.name || 'Unknown',
+            subLabel: constructor?.name,
+            color: constructor?.color
+        };
+    });
+
+    const restResults = results.slice(3);
+
     return (
-        <table className="w-full text-left border-collapse">
-            <thead className="bg-carbon-black/95 sticky top-0 z-10 backdrop-blur-md shadow-sm text-xs font-bold uppercase text-highlight-silver">
-                <tr>
-                    <th className="py-3 px-4 w-12 text-center">Pos</th>
-                    <th className="py-3 px-4">Driver</th>
-                    <th className="py-3 px-4 hidden sm:table-cell">Team</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-pure-white/5">
-                {results.map((driverId, index) => {
-                    if (!driverId) return null;
-                    const { driver, constructor } = getEntity(driverId);
-                    
-                    return (
-                        <tr key={index} className="md:hover:bg-pure-white/5 transition-colors group">
-                            <td className="py-3 px-4 text-center">
-                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs ${
-                                    index === 0 ? 'bg-yellow-500 text-black shadow-yellow-500/20' : 
-                                    index === 1 ? 'bg-gray-300 text-black' : 
-                                    index === 2 ? 'bg-orange-700 text-white' : 
-                                    'text-highlight-silver md:group-hover:text-pure-white'
-                                }`}>
-                                    {index + 1}
-                                </span>
-                            </td>
-                            <td className="py-3 px-4">
-                                <div className="font-bold text-base md:text-lg text-pure-white">{driver?.name || 'Unknown Driver'}</div>
-                                {/* Mobile Team Name */}
-                                <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
-                                    {constructor?.name || 'Unknown Team'}
-                                </div>
-                            </td>
-                            <td className="py-3 px-4 hidden sm:table-cell">
-                                {constructor && (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 rounded-full" style={{ backgroundColor: constructor.color }}></div>
-                                        <span className="text-sm font-semibold text-highlight-silver">{constructor.name}</span>
-                                    </div>
-                                )}
-                            </td>
+        <div className="flex flex-col">
+            <Podium data={podiumData} />
+            
+            {restResults.length > 0 && (
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-carbon-black/95 sticky top-0 z-10 backdrop-blur-md shadow-sm text-xs font-bold uppercase text-highlight-silver">
+                        <tr>
+                            <th className="py-3 px-4 w-12 text-center">Pos</th>
+                            <th className="py-3 px-4">Driver</th>
+                            <th className="py-3 px-4 hidden sm:table-cell">Team</th>
                         </tr>
-                    );
-                })}
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody className="divide-y divide-pure-white/5">
+                        {restResults.map((driverId, index) => {
+                            if (!driverId) return null;
+                            const { driver, constructor } = getEntity(driverId);
+                            const pos = index + 4; // Since we sliced the first 3
+                            
+                            return (
+                                <tr key={index} className="md:hover:bg-pure-white/5 transition-colors group">
+                                    <td className="py-3 px-4 text-center">
+                                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs text-highlight-silver md:group-hover:text-pure-white`}>
+                                            {pos}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <div className="font-bold text-base md:text-lg text-pure-white">{driver?.name || 'Unknown Driver'}</div>
+                                        {/* Mobile Team Name */}
+                                        <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
+                                            {constructor?.name || 'Unknown Team'}
+                                        </div>
+                                    </td>
+                                    <td className="py-3 px-4 hidden sm:table-cell">
+                                        {constructor && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: constructor.color }}></div>
+                                                <span className="text-sm font-semibold text-highlight-silver">{constructor.name}</span>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            )}
+        </div>
     );
 };
 
