@@ -127,6 +127,11 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                 `}
               >
                 <span className="option-label font-bold text-sm md:text-base leading-tight">{option.name}</span>
+                {entityType === 'drivers' && option.constructorId && (
+                  <span className="text-[10px] text-highlight-silver uppercase tracking-wider opacity-80 leading-none">
+                    {allConstructors.find(c => c.id === option.constructorId)?.name || CONSTRUCTORS.find(c => c.id === option.constructorId)?.name}
+                  </span>
+                )}
                 <span className="option-usage text-xs opacity-70 leading-none mt-1">{usageCount} / {limit} used</span>
                 {!canSelect && <span className="text-xs text-primary-red font-bold mt-1">Limit Reached</span>}
               </div>
@@ -145,18 +150,23 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
                           'grid-cols-1 md:grid-cols-3';
 
   return (
-    <div className={`bg-carbon-fiber rounded-lg p-3 ring-1 ring-pure-white/10 border border-pure-white/5 transition-opacity duration-200 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-      <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2">
+    <div className={`h-full flex flex-col bg-carbon-fiber rounded-lg p-3 ring-1 ring-pure-white/10 border border-pure-white/5 transition-opacity duration-200 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <h3 className="text-lg font-bold text-pure-white mb-2 flex items-center gap-2 flex-shrink-0">
         <Icon className={`w-5 h-5 ${entityClass === EntityClass.A ? 'text-primary-red' : 'text-highlight-silver'}`} />
         {title} <span className="text-highlight-silver font-normal text-sm">({slots} required)</span>
       </h3>
-      <div className={`grid ${gridLayoutClass} gap-2`}>
+      <div className={`grid ${gridLayoutClass} gap-2 flex-1`}>
         {Array.from({ length: slots }).map((_, index) => {
           const selectedId = selected[index];
           const selectedOption = options.find(o => o.id === selectedId);
           const usage = selectedOption ? `${getUsage(selectedOption.id, entityType)} / ${limit} used` : '';
           const placeholderText = entityType === 'teams' ? 'Team' : 'Driver';
           const color = selectedOption ? getColor(selectedOption.id) : undefined;
+          
+          let subtitle = undefined;
+          if (entityType === 'drivers' && selectedOption?.constructorId) {
+             subtitle = allConstructors.find(c => c.id === selectedOption.constructorId)?.name || CONSTRUCTORS.find(c => c.id === selectedOption.constructorId)?.name;
+          }
           
           // NEW: Check if this specific empty slot cannot be filled
           const isSlotExhausted = !selectedOption && isExhausted;
@@ -186,6 +196,7 @@ const SelectorGroup: React.FC<SelectorGroupProps> = ({ title, slots, options, se
               usage={usage}
               disabled={disabled}
               color={color}
+              subtitle={subtitle}
             />
           );
         })}

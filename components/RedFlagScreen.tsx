@@ -98,6 +98,16 @@ const RedFlagScreen: React.FC<RedFlagScreenProps> = ({ message }) => {
             <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.2) 51%)', backgroundSize: '100% 4px' }}></div>
             <div className="absolute w-full h-[2px] bg-[#DA291C] opacity-20 pointer-events-none z-10" style={{ animation: 'scanline 6s linear infinite' }}></div>
 
+            {/* Top Right Sign Out Button */}
+            <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
+                <button 
+                    onClick={handleLogout}
+                    className="text-highlight-silver hover:text-pure-white text-xs font-bold uppercase tracking-widest border border-highlight-silver/30 hover:border-pure-white px-4 py-2 rounded transition-all backdrop-blur-sm bg-carbon-black/50"
+                >
+                    Sign Out
+                </button>
+            </div>
+
             {/* Main Content Card */}
             <div className="relative z-20 bg-carbon-black border border-[#DA291C]/30 p-8 md:p-12 rounded-2xl max-w-2xl w-[90%] flex flex-col items-center text-center shadow-[0_0_40px_rgba(218,41,28,0.2)]" style={{ animation: 'pulseGlow 4s ease-in-out infinite' }}>
                 
@@ -179,16 +189,6 @@ const RedFlagScreen: React.FC<RedFlagScreenProps> = ({ message }) => {
                 <div className="mt-8 font-mono text-xs text-highlight-silver/30 uppercase tracking-widest">
                     LOCAL TIME: {time.toLocaleTimeString()}
                 </div>
-            </div>
-
-            {/* Sign Out Button */}
-            <div className="relative z-30 mt-4 mb-20">
-                <button 
-                    onClick={handleLogout}
-                    className="text-highlight-silver hover:text-pure-white text-xs font-bold uppercase tracking-widest border border-highlight-silver/30 hover:border-pure-white px-4 py-2 rounded transition-all backdrop-blur-sm"
-                >
-                    Sign Out
-                </button>
             </div>
 
             {/* Bottom Ticker */}
