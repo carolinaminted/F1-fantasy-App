@@ -324,9 +324,11 @@ const PicksForm: React.FC<PicksFormProps> = ({
   // Resolve Fastest Lap Selections
   const selectedFLDriver = allDrivers.find(d => d.id === picks.fastestLap) || null;
   let flColor = undefined;
+  let flSubtitle = undefined;
   if (selectedFLDriver) {
       const cId = selectedFLDriver.constructorId;
       flColor = allConstructors.find(c => c.id === cId)?.color || CONSTRUCTORS.find(c => c.id === cId)?.color;
+      flSubtitle = allConstructors.find(c => c.id === cId)?.name || CONSTRUCTORS.find(c => c.id === cId)?.name;
   }
 
   const openFastestLapModal = () => {
@@ -341,6 +343,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                    {sortedDrivers.map(driver => {
                        let constructor = allConstructors.find(c => c.id === driver.constructorId) || CONSTRUCTORS.find(c => c.id === driver.constructorId);
                        const color = constructor?.color;
+                       const subtitle = constructor?.name;
                        return (
                            <SelectorCard
                                key={driver.id}
@@ -351,6 +354,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                                disabled={isFormDisabled}
                                color={color}
                                forceColor={!isAnyFastestLapSelected}
+                               subtitle={subtitle}
                            />
                        );
                    })}
@@ -414,38 +418,34 @@ const PicksForm: React.FC<PicksFormProps> = ({
                  </div>
               </div>
             )}
-            <div className="space-y-4">
-                 <SelectorGroup
-                    title="Class A Teams" slots={2} options={aTeams} selected={picks.aTeams}
-                    onSelect={(value, index) => handleSelect('aTeams', value, index)}
-                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                    entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                    isExhausted={exhaustionReport.aTeams.isExhausted}
-                />
-                <SelectorGroup
-                    title="Class B Team" slots={1} options={bTeams} selected={[picks.bTeam]}
-                    onSelect={(value) => handleSelect('bTeam', value, 0)}
-                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                    entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                    isExhausted={exhaustionReport.bTeam.isExhausted}
-                />
-            </div>
-            <div className="space-y-4 flex flex-col">
-                 <SelectorGroup
-                    title="Class A Drivers" slots={3} options={aDrivers} selected={picks.aDrivers}
-                    onSelect={(value, index) => handleSelect('aDrivers', value, index)}
-                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                    entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                    isExhausted={exhaustionReport.aDrivers.isExhausted}
-                />
-                <SelectorGroup
-                    title="Class B Drivers" slots={2} options={bDrivers} selected={picks.bDrivers}
-                    onSelect={(value, index) => handleSelect('bDrivers', value, index)}
-                    getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                    entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                    isExhausted={exhaustionReport.bDrivers.isExhausted}
-                />
-            </div>
+            <SelectorGroup
+                title="Class A Teams" slots={2} options={aTeams} selected={picks.aTeams}
+                onSelect={(value, index) => handleSelect('aTeams', value, index)}
+                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                isExhausted={exhaustionReport.aTeams.isExhausted}
+            />
+            <SelectorGroup
+                title="Class A Drivers" slots={3} options={aDrivers} selected={picks.aDrivers}
+                onSelect={(value, index) => handleSelect('aDrivers', value, index)}
+                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                isExhausted={exhaustionReport.aDrivers.isExhausted}
+            />
+            <SelectorGroup
+                title="Class B Team" slots={1} options={bTeams} selected={[picks.bTeam]}
+                onSelect={(value) => handleSelect('bTeam', value, 0)}
+                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                isExhausted={exhaustionReport.bTeam.isExhausted}
+            />
+            <SelectorGroup
+                title="Class B Drivers" slots={2} options={bDrivers} selected={picks.bDrivers}
+                onSelect={(value, index) => handleSelect('bDrivers', value, index)}
+                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
+                entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
+                isExhausted={exhaustionReport.bDrivers.isExhausted}
+            />
         </div>
 
         <div className="bg-carbon-fiber rounded-lg p-4 md:p-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row items-end gap-4 md:gap-8 border border-pure-white/5">
@@ -459,6 +459,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                         option={selectedFLDriver} isSelected={!!selectedFLDriver}
                         onClick={openFastestLapModal} placeholder="Select Driver"
                         disabled={isFormDisabled} color={flColor} forceColor={!!selectedFLDriver}
+                        subtitle={flSubtitle}
                     />
                 </div>
             </div>
@@ -507,9 +508,10 @@ interface SelectorCardProps {
     disabled?: boolean;
     color?: string;
     forceColor?: boolean;
+    subtitle?: string;
 }
 
-export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled, color, forceColor }) => {
+export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, onClick, isDropdown, options, onSelect, placeholder, usage, disabled, color, forceColor, subtitle }) => {
     
     const hexToRgba = (hex: string, alpha: number) => {
         const r = parseInt(hex.slice(1, 3), 16);
@@ -565,6 +567,11 @@ export const SelectorCard: React.FC<SelectorCardProps> = ({ option, isSelected, 
             <p className={`font-bold text-sm md:text-base leading-tight ${isSelected || forceColor ? 'text-pure-white' : 'text-ghost-white'}`}>
                 {option ? option.name : placeholder}
             </p>
+            {subtitle && option && (
+                <p className="text-[10px] text-highlight-silver uppercase tracking-wider opacity-80 leading-none mt-0.5">
+                    {subtitle}
+                </p>
+            )}
             {usage && <p className={`text-[10px] md:text-xs mt-0.5 ${isSelected ? (color ? 'text-pure-white' : 'text-primary-red') : 'text-highlight-silver'}`}>{usage}</p>}
         </div>
     );
