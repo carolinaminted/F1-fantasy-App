@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
-import { getAllUsers, DEFAULT_PAGE_SIZE } from '../services/firestoreService.ts';
+import { getAllUsers, getTotalUserCount, DEFAULT_PAGE_SIZE } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
@@ -19,6 +19,7 @@ interface ManageUsersPageProps {
 
 const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
     const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isPaging, setIsPaging] = useState(false);
@@ -33,19 +34,27 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         if (isMore) setIsPaging(true);
         else setIsLoading(true);
 
-        const { users, lastDoc } = await getAllUsers(DEFAULT_PAGE_SIZE, isMore ? lastVisible : null);
-        
-        if (isMore) {
-            setAllUsers(prev => [...prev, ...users]);
-        } else {
-            setAllUsers(users);
-        }
+        try {
+            const [{ users, lastDoc }, count] = await Promise.all([
+                getAllUsers(DEFAULT_PAGE_SIZE, isMore ? lastVisible : null),
+                !isMore ? getTotalUserCount() : Promise.resolve(totalUserCount)
+            ]);
+            
+            if (isMore) {
+                setAllUsers(prev => [...prev, ...users]);
+            } else {
+                setAllUsers(users);
+                setTotalUserCount(count);
+            }
 
-        setLastVisible(lastDoc);
-        setHasMore(users.length === DEFAULT_PAGE_SIZE);
-        
-        setIsLoading(false);
-        setIsPaging(false);
+            setLastVisible(lastDoc);
+            setHasMore(users.length === DEFAULT_PAGE_SIZE);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+        } finally {
+            setIsLoading(false);
+            setIsPaging(false);
+        }
     };
 
     useEffect(() => {
@@ -158,15 +167,25 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                         
                         {/* Card Header with Search and Toggles */}
                         <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
-                            {/* Search Input */}
-                            <div className="w-full md:w-auto flex-1 max-w-md relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search users..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-carbon-black border border-accent-gray rounded-lg px-4 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
-                                />
+                            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto flex-1">
+                                {/* Search Input */}
+                                <div className="w-full md:w-auto flex-1 max-w-md relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search users..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full bg-carbon-black border border-accent-gray rounded-lg px-4 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
+                                    />
+                                </div>
+                                
+                                {/* Total Users Count */}
+                                {totalUserCount !== null && (
+                                    <div className="flex items-center gap-2 text-sm text-highlight-silver bg-carbon-black/80 px-3 py-2 rounded-lg border border-pure-white/5 whitespace-nowrap">
+                                        <ProfileIcon className="w-4 h-4" />
+                                        <span className="font-bold text-pure-white">{totalUserCount}</span> Registered Users
+                                    </div>
+                                )}
                             </div>
 
                             {/* Filter Toggles */}

@@ -1,6 +1,6 @@
 
 import { db, functions } from './firebase.ts';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion } from '@firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
@@ -201,6 +201,12 @@ export const getAllUsers = async (pageSize = 50, lastDoc: any = null) => {
     const snap = await getDocs(q);
     const users = snap.docs.map(d => sanitizeUser(d.id, d.data()));
     return { users, lastDoc: snap.docs[snap.docs.length - 1] };
+};
+
+export const getTotalUserCount = async (): Promise<number> => {
+    const coll = collection(db, 'users');
+    const snapshot = await getCountFromServer(coll);
+    return snapshot.data().count;
 };
 
 export const getAllUsersAndPicks = async (pageSize = 50, lastDoc: any = null) => {
