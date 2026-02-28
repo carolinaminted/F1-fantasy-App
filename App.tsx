@@ -18,6 +18,7 @@ import AdminInvitationPage from './components/AdminInvitationPage.tsx';
 import DatabaseManagerPage from './components/DatabaseManagerPage.tsx'; // Import
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
+import SupportPage from './components/SupportPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
@@ -55,7 +56,7 @@ import ResultsAnnouncementBanner from './components/ResultsAnnouncementBanner.ts
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
+export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'support' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -184,6 +185,18 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                     activePage={activePage} 
                     setActivePage={navigateToPage} 
                     isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
+                />
+
+                <SideNavItem 
+                    icon={() => (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.82 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.496 1.508 1.333 1.508 2.316v.192m6 3a46.236 46.236 0 0 1-1.5 0m-3 0a46.236 46.236 0 0 0-1.5 0" />
+                        </svg>
+                    )} 
+                    label="Support" 
+                    page="support" 
+                    activePage={activePage} 
+                    setActivePage={navigateToPage} 
                 />
 
                 {isUserAdmin(user) && (
@@ -636,6 +649,8 @@ const App: React.FC = () => {
         return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} raceResults={raceResults} setActivePage={navigateToPage} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
+      case 'support':
+        return <SupportPage user={user} setActivePage={navigateToPage} />;
       case 'duesPayment':
         if(user) {
             if (user.duesPaidStatus === 'Paid') {
