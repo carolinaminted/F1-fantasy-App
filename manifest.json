@@ -1,0 +1,21 @@
+{
+  "name": "Lights Out League",
+  "short_name": "Lights Out",
+  "description": "F1 Fantasy League",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#DA291C",
+  "icons": [
+    {
+      "src": "https://bronze-generous-halibut-259.mypinata.cloud/ipfs/bafkreigo3gghqdbn2lkbmicr3xslsag7rfgfbkr5lesnujkyw3sicd4y7m",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://bronze-generous-halibut-259.mypinata.cloud/ipfs/bafkreigo3gghqdbn2lkbmicr3xslsag7rfgfbkr5lesnujkyw3sicd4y7m",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
