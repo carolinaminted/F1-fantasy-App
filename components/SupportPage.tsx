@@ -51,9 +51,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ user, setActivePage }) => {
                         
                         <h2 className="text-xl font-black text-pure-white uppercase italic tracking-wide">Site Feedback & Feature Requests</h2>
                         <ul className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto flex-grow leading-relaxed text-center space-y-2">
-                            <li>General site feedback</li>
-                            <li>Quick questionnaire responses</li>
-                            <li>New enhancement or feature requests</li>
+                            <li>General site feedback and request New enhancements or features</li>
                         </ul>
                         
                         <div className="pt-8 pb-2">
@@ -63,7 +61,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ user, setActivePage }) => {
                                 rel="noopener noreferrer"
                                 className="inline-block w-full md:w-auto bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(218,41,28,0.3)] uppercase tracking-wider text-sm"
                             >
-                                Google Form
+                                Feedback Form
                             </a>
                         </div>
                     </div>
