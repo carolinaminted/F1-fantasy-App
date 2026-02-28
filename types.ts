@@ -178,3 +178,12 @@ export interface MaintenanceState {
     enabled_by?: string;
     enabled_at?: any;
 }
+
+export interface GeneralAnnouncementState {
+    active: boolean;
+    announcementId: string;
+    message: string;
+    triggeredAt: any; // Firestore Timestamp
+    triggeredBy: string;
+    expiresAt: any; // Firestore Timestamp
+}

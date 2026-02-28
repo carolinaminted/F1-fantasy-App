@@ -53,7 +53,9 @@ import { useToast } from './contexts/ToastContext.tsx';
 import { useMaintenanceMode } from './hooks/useMaintenanceMode.ts';
 import RedFlagScreen from './components/RedFlagScreen.tsx';
 import { useResultsAnnouncement } from './hooks/useResultsAnnouncement.ts';
+import { useGeneralAnnouncement } from './hooks/useGeneralAnnouncement.ts';
 import ResultsAnnouncementBanner from './components/ResultsAnnouncementBanner.tsx';
+import GeneralAnnouncementBanner from './components/GeneralAnnouncementBanner.tsx';
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
@@ -238,8 +240,9 @@ const App: React.FC = () => {
   // Maintenance Hook
   const { maintenance, loading: maintenanceLoading } = useMaintenanceMode();
 
-  // Announcement Hook
-  const { announcement, shouldShow: showResultsBanner } = useResultsAnnouncement(user);
+  // Announcement Hooks
+  const { announcement: resultsAnnouncement, shouldShow: showResultsBanner } = useResultsAnnouncement(user);
+  const { announcement: generalAnnouncement, shouldShow: showGeneralBanner } = useGeneralAnnouncement(user);
 
   const lockedDesktopPages: Page[] = [
       'donate', 
@@ -725,12 +728,21 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {showResultsBanner && announcement && user && (
+        {showResultsBanner && resultsAnnouncement && user && (
             <div className="sticky top-0 z-[99]">
                 <ResultsAnnouncementBanner 
-                    announcement={announcement} 
+                    announcement={resultsAnnouncement} 
                     userId={user.id}
                     setActivePage={navigateToPage as any} // Cast to allow specific page type
+                />
+            </div>
+        )}
+
+        {showGeneralBanner && generalAnnouncement && user && (
+            <div className="sticky top-0 z-[98]">
+                <GeneralAnnouncementBanner 
+                    announcement={generalAnnouncement} 
+                    userId={user.id}
                 />
             </div>
         )}

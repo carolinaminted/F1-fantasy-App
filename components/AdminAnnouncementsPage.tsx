@@ -7,7 +7,8 @@ import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { useMaintenanceMode } from '../hooks/useMaintenanceMode.ts';
 import { useResultsAnnouncement } from '../hooks/useResultsAnnouncement.ts';
-import { setMaintenanceMode, triggerResultsAnnouncement, clearResultsAnnouncement } from '../services/firestoreService.ts';
+import { useGeneralAnnouncement } from '../hooks/useGeneralAnnouncement.ts';
+import { setMaintenanceMode, triggerResultsAnnouncement, clearResultsAnnouncement, triggerGeneralAnnouncement, clearGeneralAnnouncement } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
 import { EVENTS } from '../constants.ts';
@@ -34,8 +35,10 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
     const [announcementMessage, setAnnouncementMessage] = useState('');
     const [isAnnouncing, setIsAnnouncing] = useState(false);
 
-    // General Announcement State (Placeholder for future implementation)
+    // General Announcement State
+    const { announcement: generalAnnouncement } = useGeneralAnnouncement(user);
     const [generalMessage, setGeneralMessage] = useState('');
+    const [isGeneralAnnouncing, setIsGeneralAnnouncing] = useState(false);
 
     useEffect(() => {
         if (maintenance) {
@@ -94,9 +97,35 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
         }
     };
 
-    const handleGeneralAnnounce = () => {
-        // Placeholder for general announcement logic
-        showToast("General announcements coming soon!", 'info');
+    const handleGeneralAnnounce = async () => {
+        if (!user || !generalMessage.trim()) return;
+
+        setIsGeneralAnnouncing(true);
+        try {
+            await triggerGeneralAnnouncement(user.id, generalMessage.trim());
+            showToast(`General announcement is now LIVE!`, 'success');
+            setGeneralMessage('');
+        } catch (error) {
+            console.error("Failed to trigger general announcement:", error);
+            showToast("Error: Could not trigger announcement.", 'error');
+        } finally {
+            setIsGeneralAnnouncing(false);
+        }
+    };
+
+    const handleClearGeneralAnnouncement = async () => {
+        if (!user) return;
+
+        setIsGeneralAnnouncing(true);
+        try {
+            await clearGeneralAnnouncement(user.id);
+            showToast(`General announcement cleared.`, 'success');
+        } catch (error) {
+            console.error("Failed to clear general announcement:", error);
+            showToast("Error: Could not clear announcement.", 'error');
+        } finally {
+            setIsGeneralAnnouncing(false);
+        }
     };
 
     const DashboardAction = (
@@ -287,37 +316,61 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                         {/* General Form */}
                         <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
                             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
-                                <div className="p-4 rounded-full bg-carbon-black text-highlight-silver border border-pure-white/10">
+                                <div className={`p-4 rounded-full ${generalAnnouncement?.active ? 'bg-blue-500 text-white animate-pulse shadow-[0_0_30px_rgba(37,99,235,0.4)]' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
                                     <SpeakerphoneIcon className="w-8 h-8" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-black uppercase tracking-wider text-pure-white">
-                                        LEAGUE ANNOUNCEMENT
+                                    <h2 className={`text-2xl font-black uppercase tracking-wider ${generalAnnouncement?.active ? 'text-blue-500' : 'text-pure-white'}`}>
+                                        {generalAnnouncement?.active ? 'GENERAL ANNOUNCEMENT LIVE' : 'LEAGUE ANNOUNCEMENT'}
                                     </h2>
                                     <p className="text-sm text-highlight-silver opacity-80 mt-1">
-                                        Post an official message to the league as a notification
+                                        {generalAnnouncement?.active ? 'Currently notifying users with a general message.' : 'Post an official message to the league as a notification.'}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 text-center md:text-left">Announcement Text</label>
-                                    <textarea 
-                                        placeholder="Enter your official league announcement here..."
-                                        value={generalMessage}
-                                        onChange={(e) => setGeneralMessage(e.target.value)}
-                                        className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-blue-500 outline-none min-h-[120px] resize-none"
-                                    />
+                            {generalAnnouncement?.active ? (
+                                <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6 mb-6 text-center md:text-left">
+                                    <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+                                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Active Message</span>
+                                        {generalAnnouncement.expiresAt?.toDate && (
+                                            <div className="text-xs flex items-center gap-1.5 text-highlight-silver/70">
+                                                <span>Expires in:</span>
+                                                <CountdownTimer targetDate={generalAnnouncement.expiresAt.toDate().toISOString()} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="text-lg font-bold text-pure-white mb-2 italic">"{generalAnnouncement.message}"</p>
+                                    
+                                    <button 
+                                        onClick={handleClearGeneralAnnouncement}
+                                        disabled={isGeneralAnnouncing}
+                                        className="mt-6 w-full bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-widest transition-colors"
+                                    >
+                                        {isGeneralAnnouncing ? 'Clearing...' : 'Clear Announcement Early'}
+                                    </button>
                                 </div>
-                                
-                                <button 
-                                    onClick={handleGeneralAnnounce}
-                                    className="w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-                                >
-                                    Post Announcement
-                                </button>
-                            </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 text-center md:text-left">Announcement Text</label>
+                                        <textarea 
+                                            placeholder="Enter your official league announcement here..."
+                                            value={generalMessage}
+                                            onChange={(e) => setGeneralMessage(e.target.value)}
+                                            className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-blue-500 outline-none min-h-[120px] resize-none"
+                                        />
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={handleGeneralAnnounce}
+                                        disabled={isGeneralAnnouncing}
+                                        className="w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                                    >
+                                        {isGeneralAnnouncing ? 'Posting...' : 'Post Announcement'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

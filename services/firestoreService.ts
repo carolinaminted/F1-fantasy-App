@@ -2,7 +2,7 @@
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 
@@ -476,4 +476,47 @@ export const dismissAnnouncementForUser = async (uid: string, announcementId: st
     await updateDoc(userRef, {
         dismissedAnnouncements: arrayUnion(announcementId)
     });
+};
+
+// --- General Announcement ---
+
+export const onGeneralAnnouncement = (callback: (state: GeneralAnnouncementState | null) => void) => {
+    const ref = doc(db, 'app_state', 'general_announcement');
+    return onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+            const data = snap.data() as GeneralAnnouncementState;
+            if (data.active && data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
+                callback(data);
+            } else {
+                callback(null);
+            }
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("General announcement listener error:", error);
+        callback(null);
+    });
+};
+
+export const triggerGeneralAnnouncement = async (adminUid: string, message: string) => {
+    const ref = doc(db, 'app_state', 'general_announcement');
+    const announcementId = `gen_${Date.now()}`;
+    const expiresAt = Timestamp.fromMillis(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
+
+    const data: GeneralAnnouncementState = {
+        active: true,
+        announcementId,
+        message,
+        triggeredAt: serverTimestamp(),
+        triggeredBy: adminUid,
+        expiresAt,
+    };
+
+    await setDoc(ref, data);
+};
+
+export const clearGeneralAnnouncement = async (adminUid: string) => {
+    const ref = doc(db, 'app_state', 'general_announcement');
+    await setDoc(ref, { active: false }, { merge: true });
 };
