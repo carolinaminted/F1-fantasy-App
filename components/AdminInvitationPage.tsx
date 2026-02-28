@@ -143,6 +143,13 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         }
     };
 
+    const stats = useMemo(() => {
+        const used = codes.filter(c => c.status === 'used').length;
+        const reserved = codes.filter(c => c.status === 'active' && c.reservedFor).length;
+        const active = codes.filter(c => c.status === 'active' && !c.reservedFor).length;
+        return { used, reserved, active };
+    }, [codes]);
+
     const filteredCodes = useMemo(() => {
         const filtered = codes.filter(code => {
             if (filter === 'all') return true;
@@ -235,6 +242,22 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                                 {f}
                             </button>
                         ))}
+                    </div>
+
+                    {/* Stats Display */}
+                    <div className="flex items-center gap-8 md:gap-12 border-y md:border-y-0 md:border-x border-pure-white/5 py-3 md:py-0 px-6 md:px-12 w-full md:w-auto justify-center bg-black/20 md:bg-transparent rounded-lg md:rounded-none">
+                        <div className="flex flex-col items-center">
+                            <span className="text-[9px] font-black text-highlight-silver uppercase tracking-widest opacity-70 mb-1">Reserved</span>
+                            <span className="text-lg md:text-2xl font-black text-blue-400 leading-none">{stats.reserved}</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <span className="text-[9px] font-black text-highlight-silver uppercase tracking-widest opacity-70 mb-1">Active</span>
+                            <span className="text-lg md:text-2xl font-black text-green-500 leading-none">{stats.active}</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <span className="text-[9px] font-black text-highlight-silver uppercase tracking-widest opacity-70 mb-1">Used</span>
+                            <span className="text-lg md:text-2xl font-black text-pure-white leading-none">{stats.used}</span>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2 bg-carbon-black/50 p-2 rounded-lg border border-pure-white/10">
