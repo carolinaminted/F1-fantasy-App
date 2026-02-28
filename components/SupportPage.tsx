@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from '../types.ts';
 import { Page } from '../App.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
@@ -10,6 +10,14 @@ interface SupportPageProps {
 }
 
 const SupportPage: React.FC<SupportPageProps> = ({ user, setActivePage }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyEmail = () => {
+        navigator.clipboard.writeText('lightsoutleague2026@gmail.com');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     const hubAction = (
         <button 
             onClick={() => setActivePage('league-hub')}
@@ -71,17 +79,20 @@ const SupportPage: React.FC<SupportPageProps> = ({ user, setActivePage }) => {
                     
                     {/* Questions & Concerns Tile */}
                     <div className="bg-carbon-fiber p-6 rounded-xl border border-pure-white/10 shadow-2xl text-center flex flex-col h-full relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-primary-red/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
                         <h2 className="text-xl font-black text-pure-white uppercase italic tracking-wide">Questions & Concerns</h2>
-                        <ul className="text-highlight-silver text-sm mt-4 mb-4 flex-grow leading-relaxed text-center list-none">
+                        <ul className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto flex-grow leading-relaxed text-center space-y-2 list-none">
                             <li>For any direct questions, account issues, or concerns</li>
                         </ul>
                         
-                        <div className="pt-4 pb-2">
-                             <span className="text-lg md:text-xl font-bold text-pure-white tracking-wide select-all">
-                                lightsoutleague2026@gmail.com
-                             </span>
+                        <div className="pt-8 pb-2">
+                             <button
+                                onClick={handleCopyEmail}
+                                className="inline-block w-full md:w-auto bg-carbon-black hover:bg-accent-gray text-pure-white font-bold py-3 px-4 md:px-6 rounded-lg transition-all transform hover:scale-105 border border-primary-red shadow-[0_0_15px_rgba(218,41,28,0.2)] uppercase tracking-normal md:tracking-wider text-xs md:text-sm whitespace-normal break-all"
+                             >
+                                {copied ? 'Copied!' : 'lightsoutleague2026@gmail.com'}
+                             </button>
                         </div>
                     </div>
                 </div>
