@@ -169,10 +169,10 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                         }
                     }
                 `}</style>
-                <div className="relative md:overflow-hidden md:bg-carbon-fiber md:rounded-2xl md:border md:border-pure-white/10 md:shadow-2xl">
-                    <div className="flex flex-col md:flex-row md:transition-transform md:duration-500 md:ease-in-out items-start desktop-slider gap-6 md:gap-0">
+                <div className="relative md:overflow-hidden bg-carbon-fiber md:rounded-2xl md:border md:border-pure-white/10 md:shadow-2xl">
+                    <div className="flex flex-col md:flex-row md:transition-transform md:duration-500 md:ease-in-out items-stretch desktop-slider gap-6 md:gap-0">
                         {/* Maintenance Form */}
-                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-transparent md:rounded-none md:border-none md:shadow-none">
+                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
                             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
                                 <div className={`p-4 rounded-full ${maintenance?.enabled ? 'bg-primary-red text-white animate-pulse shadow-[0_0_30px_rgba(218,41,28,0.4)]' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
                                     <AdminIcon className="w-8 h-8" />
@@ -212,7 +212,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                         </div>
 
                         {/* Results Form */}
-                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-transparent md:rounded-none md:border-none md:shadow-none">
+                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
                             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
                                 <div className={`p-4 rounded-full ${announcement?.active ? 'bg-green-500 text-white animate-pulse shadow-[0_0_30px_rgba(34,197,94,0.4)]' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
                                     <TrophyIcon className="w-8 h-8" />
@@ -285,7 +285,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                         </div>
 
                         {/* General Form */}
-                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-transparent md:rounded-none md:border-none md:shadow-none">
+                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
                             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
                                 <div className="p-4 rounded-full bg-carbon-black text-highlight-silver border border-pure-white/10">
                                     <SpeakerphoneIcon className="w-8 h-8" />
