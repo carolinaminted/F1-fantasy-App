@@ -362,14 +362,14 @@ export const getAdminLogs = async (eventId?: string): Promise<AdminLogEntry[]> =
 
 // --- Generic Database Manager Functions ---
 
-export const getGenericDocuments = async (collectionName: string, pageSize = 20, lastDoc: any = null) => {
+export const getGenericDocuments = async (collectionName: string, pageSize = 10, lastDoc: any = null) => {
     const colRef = collection(db, collectionName);
     // Note: We don't know the fields, so we can't reliably sort by 'createdAt' unless we know it exists.
     // Defaulting to simple limit or sorting by document ID if possible, but Firestore auto-sorts by ID.
     // For pagination to work, we need an orderBy.
-    let q = query(colRef, limit(pageSize));
+    let q = query(colRef, orderBy('__name__'), limit(pageSize));
     if (lastDoc) {
-        q = query(colRef, startAfter(lastDoc), limit(pageSize));
+        q = query(colRef, orderBy('__name__'), startAfter(lastDoc), limit(pageSize));
     }
     
     const snap = await getDocs(q);

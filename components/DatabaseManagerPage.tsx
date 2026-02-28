@@ -80,7 +80,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         try {
             // Artificial delay for smoother transition (min 600ms)
             const [result] = await Promise.all([
-                getGenericDocuments(collectionName, 20, isMore ? lastDoc : null),
+                getGenericDocuments(collectionName, 10, isMore ? lastDoc : null),
                 !isMore ? new Promise(resolve => setTimeout(resolve, 600)) : Promise.resolve()
             ]);
             
@@ -285,7 +285,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                 <span>No documents found in {selectedCollection}.</span>
                             </div>
                         ) : (
-                            <div className="flex flex-col h-full">
+                            <div className="flex flex-col">
                                 {/* Desktop Table Header */}
                                 <div className="hidden md:grid grid-cols-12 gap-4 bg-carbon-black/30 sticky top-0 z-10 p-3 border-b border-pure-white/10 text-[10px] font-black uppercase text-highlight-silver tracking-widest backdrop-blur-sm">
                                     <div className="col-span-3">ID</div>
