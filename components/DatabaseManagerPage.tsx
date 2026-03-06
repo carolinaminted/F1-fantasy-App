@@ -28,6 +28,45 @@ const COLLECTIONS = [
     'rate_limits_ip'
 ];
 
+const COLLECTION_CONFIG: Record<string, { headers: string[], getFields: (doc: any) => any[] }> = {
+    'users': {
+        headers: ['First Name', 'Last Name', 'Team Name', 'Email'],
+        getFields: (doc) => [doc.firstName || '-', doc.lastName || '-', doc.displayName || '-', doc.email || '-']
+    },
+    'public_users': {
+        headers: ['Team Name', 'Total Points', 'Rank', 'Status'],
+        getFields: (doc) => [doc.displayName || '-', doc.totalPoints || 0, doc.rank || '-', doc.duesPaidStatus || '-']
+    },
+    'userPicks': {
+        headers: ['User ID', 'Event ID', 'Fastest Lap', 'A Teams'],
+        getFields: (doc) => [doc.id.substring(0, 8), doc.eventId || '-', doc.fastestLap || '-', (doc.aTeams || []).length]
+    },
+    'app_state': {
+        headers: ['Key', 'Last Updated', 'Status', 'Value Preview'],
+        getFields: (doc) => [doc.id, doc.lastUpdated ? new Date(doc.lastUpdated.seconds * 1000).toLocaleDateString() : '-', doc.status || '-', JSON.stringify(doc).substring(0, 20) + '...']
+    },
+    'admin_logs': {
+        headers: ['Action', 'Admin UID', 'Timestamp', 'Details'],
+        getFields: (doc) => [doc.action || '-', doc.adminUid || '-', doc.timestamp ? new Date(doc.timestamp.seconds * 1000).toLocaleString() : '-', doc.details ? JSON.stringify(doc.details).substring(0, 20) + '...' : '-']
+    },
+    'invitation_codes': {
+        headers: ['Code', 'Created By', 'Created At', 'Used'],
+        getFields: (doc) => [doc.code || '-', doc.createdBy || '-', doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : '-', doc.used ? 'Yes' : 'No']
+    },
+    'dues_payments': {
+        headers: ['User ID', 'Amount', 'Status', 'Created At'],
+        getFields: (doc) => [doc.uid || '-', `$${doc.amount || 0}`, doc.status || '-', doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : '-']
+    },
+    'email_verifications': {
+        headers: ['Email', 'Status', 'Created At', 'Verified'],
+        getFields: (doc) => [doc.email || '-', doc.status || '-', doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : '-', doc.verified ? 'Yes' : 'No']
+    },
+    'rate_limits_ip': {
+        headers: ['IP', 'Count', 'Last Updated', 'Status'],
+        getFields: (doc) => [doc.id || '-', doc.count || 0, doc.lastUpdated ? new Date(doc.lastUpdated.seconds * 1000).toLocaleString() : '-', doc.status || '-']
+    }
+};
+
 const DatabaseLoader = () => (
     <div className="flex flex-col items-center justify-center h-full min-h-[400px] w-full bg-carbon-black/20 animate-fade-in gap-6">
         <div className="relative w-20 h-20">
@@ -107,46 +146,13 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         fetchDocs(selectedCollection);
     }, [selectedCollection]);
 
-    // Formatters
-    const getPreviewField = (doc: any) => {
-        if (doc.displayName) return doc.displayName;
-        if (doc.email) return doc.email;
-        if (doc.name) return doc.name;
-        if (doc.code) return doc.code;
-        if (doc.action) return doc.action; // Admin logs
-        // App State specifics
-        if (selectedCollection === 'app_state') {
-            return 'Configuration Document';
-        }
-        // Fallback for public_users without display name
-        if (selectedCollection === 'public_users') {
-             return <span className="text-highlight-silver italic opacity-70">ID: {doc.id}</span>;
-        }
-        return <span className="text-highlight-silver italic">No Label</span>;
-    };
-
-    const getSecondField = (doc: any) => {
-        if (doc.lastUpdated) {
-             const date = doc.lastUpdated.toDate ? doc.lastUpdated.toDate() : new Date(doc.lastUpdated);
-             return date.toLocaleString();
-        }
-        if (doc.createdAt) {
-            const date = doc.createdAt.toDate ? doc.createdAt.toDate() : new Date(doc.createdAt);
-            return date.toLocaleString();
-        }
-        if (doc.timestamp) {
-             const date = doc.timestamp.toDate ? doc.timestamp.toDate() : new Date(doc.timestamp);
-             return date.toLocaleString();
-        }
-        if (doc.status) return doc.status.toUpperCase();
-        if (doc.rank) return `Rank #${doc.rank}`;
-        return null;
-    };
-
+    const [isFormView, setIsFormView] = useState(false);
+    
     // Editor Handlers
     const openEditor = (doc: any) => {
         setSelectedDoc(doc);
         setConfirmDelete(false); // Reset confirmation state
+        setIsFormView(false); // Default to JSON view
         // Exclude ID from the editable JSON body to prevent confusion
         const { id, ...data } = doc;
         setJsonContent(JSON.stringify(data, null, 2));
@@ -159,6 +165,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         setJsonError(null);
         setConfirmDelete(false);
         setIsSaving(false);
+        setIsFormView(false);
     };
 
     const handleSave = async () => {
@@ -288,9 +295,9 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                             <div className="flex flex-col">
                                 {/* Desktop Table Header */}
                                 <div className="hidden md:grid grid-cols-12 gap-4 bg-carbon-black/30 sticky top-0 z-10 p-3 border-b border-pure-white/10 text-[10px] font-black uppercase text-highlight-silver tracking-widest backdrop-blur-sm">
-                                    <div className="col-span-3">ID</div>
-                                    <div className="col-span-6">Preview</div>
-                                    <div className="col-span-3 text-right">Meta</div>
+                                    {COLLECTION_CONFIG[selectedCollection].headers.map((header, i) => (
+                                        <div key={i} className={i === 0 ? "col-span-2" : "col-span-3"}>{header}</div>
+                                    ))}
                                 </div>
 
                                 {/* List Items (Responsive: Cards on Mobile, Grid Rows on Desktop) */}
@@ -301,27 +308,14 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                             onClick={() => openEditor(doc)}
                                             className="group relative flex flex-col md:grid md:grid-cols-12 md:gap-4 p-4 md:p-3 rounded-lg md:rounded-none md:border-b border-pure-white/10 bg-carbon-fiber md:bg-transparent hover:bg-pure-white/5 transition-all cursor-pointer border border-pure-white/5 md:border-x-0 md:border-t-0 shadow-md md:shadow-none animate-fade-in"
                                         >
-                                            {/* ID Column */}
-                                            <div className="md:col-span-3 flex items-center justify-between md:block mb-2 md:mb-0">
-                                                <span className="font-mono text-xs text-highlight-silver group-hover:text-primary-red transition-colors truncate block max-w-[200px] md:max-w-full" title={doc.id}>
-                                                    <span className="md:hidden text-[9px] uppercase tracking-widest opacity-50 mr-2 font-sans font-bold">ID:</span>
-                                                    {doc.id}
-                                                </span>
-                                                {/* Mobile Meta (Top Right) */}
-                                                <span className="md:hidden text-[9px] text-highlight-silver font-mono bg-pure-white/5 px-2 py-0.5 rounded border border-pure-white/5">
-                                                    {getSecondField(doc)}
-                                                </span>
-                                            </div>
-
-                                            {/* Preview Column */}
-                                            <div className="md:col-span-6 text-sm font-bold text-pure-white truncate w-full mb-1 md:mb-0">
-                                                {getPreviewField(doc)}
-                                            </div>
-
-                                            {/* Desktop Meta Column */}
-                                            <div className="hidden md:block col-span-3 text-xs text-highlight-silver text-right font-mono truncate">
-                                                {getSecondField(doc)}
-                                            </div>
+                                            {COLLECTION_CONFIG[selectedCollection].getFields(doc).map((field, i) => (
+                                                <div key={i} className={`${i === 0 ? "col-span-2 font-bold" : "col-span-3"} text-xs text-pure-white truncate`}>
+                                                    <span className="md:hidden text-[9px] uppercase tracking-widest opacity-50 mr-2 font-sans font-bold">
+                                                        {COLLECTION_CONFIG[selectedCollection].headers[i]}:
+                                                    </span>
+                                                    {field}
+                                                </div>
+                                            ))}
                                             
                                             {/* Mobile tap indicator */}
                                             <div className="md:hidden absolute right-3 bottom-3 opacity-20">
@@ -371,23 +365,49 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
 
                         {/* Editor Area */}
                         <div className="flex-1 bg-[#1e1e1e] p-0 relative overflow-hidden flex flex-col">
-                            <div className="absolute top-2 right-2 z-10">
+                            <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                <button 
+                                    onClick={() => setIsFormView(!isFormView)} 
+                                    className="px-3 py-1.5 bg-carbon-black/80 rounded hover:bg-pure-white/10 text-highlight-silver transition-colors border border-pure-white/5 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    {isFormView ? 'JSON View' : 'Form View'}
+                                </button>
                                 <button onClick={handleCopyToClipboard} className="p-2 bg-carbon-black/80 rounded hover:bg-pure-white/10 text-highlight-silver transition-colors border border-pure-white/5" title="Copy JSON">
                                     <CopyIcon className="w-4 h-4" />
                                 </button>
                             </div>
-                            <textarea
-                                value={jsonContent}
-                                onChange={(e) => {
-                                    setJsonContent(e.target.value);
-                                    setJsonError(null);
-                                }}
-                                className="w-full h-full bg-transparent text-green-400 font-mono text-xs md:text-base leading-relaxed p-4 md:p-6 outline-none resize-none"
-                                spellCheck={false}
-                                autoCapitalize="off"
-                                autoComplete="off"
-                                autoCorrect="off"
-                            />
+                            {isFormView ? (
+                                <div className="w-full h-full overflow-y-auto p-6 space-y-4">
+                                    {Object.entries(JSON.parse(jsonContent)).map(([key, value]) => (
+                                        <div key={key} className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-bold uppercase tracking-wider text-highlight-silver">{key}</label>
+                                            <input
+                                                type="text"
+                                                value={typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(jsonContent);
+                                                    updated[key] = e.target.value;
+                                                    setJsonContent(JSON.stringify(updated, null, 2));
+                                                }}
+                                                className="w-full bg-carbon-black border border-accent-gray rounded-lg px-4 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <textarea
+                                    value={jsonContent}
+                                    onChange={(e) => {
+                                        setJsonContent(e.target.value);
+                                        setJsonError(null);
+                                    }}
+                                    className="w-full h-full bg-transparent text-green-400 font-mono text-xs md:text-base leading-relaxed p-4 md:p-6 outline-none resize-none"
+                                    spellCheck={false}
+                                    autoCapitalize="off"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                />
+                            )}
                         </div>
 
                         {/* Footer / Error Bar */}
