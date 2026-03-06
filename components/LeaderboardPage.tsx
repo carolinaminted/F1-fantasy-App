@@ -704,7 +704,7 @@ const InsightsView: React.FC<{
 
                     <div className="w-full relative z-10">
                         {top10List.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-8">
                                 <div className="space-y-3">
                                     {top10List.slice(0, 5).map((user, idx) => {
                                         const rank = idx + 1;
@@ -712,7 +712,7 @@ const InsightsView: React.FC<{
                                         const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
                                         const percent = (score / maxScore) * 100;
                                         return (
-                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg md:hover:bg-pure-white/5 transition-colors border border-transparent md:hover:border-pure-white/10">
                                                 <div className={`w-8 h-8 flex items-center justify-center font-black text-sm rounded-md ${rank <= 3 ? `${activeTheme.bg} text-carbon-black shadow-lg` : 'bg-pure-white/10 text-highlight-silver'}`}>
                                                     {rank}
                                                 </div>
@@ -736,7 +736,7 @@ const InsightsView: React.FC<{
                                         const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
                                         const percent = (score / maxScore) * 100;
                                         return (
-                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg hover:bg-pure-white/5 transition-colors border border-transparent hover:border-pure-white/10">
+                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg md:hover:bg-pure-white/5 transition-colors border border-transparent md:hover:border-pure-white/10">
                                                 <div className="w-8 h-8 flex items-center justify-center font-black text-sm rounded-md bg-pure-white/10 text-highlight-silver">
                                                     {rank}
                                                 </div>
