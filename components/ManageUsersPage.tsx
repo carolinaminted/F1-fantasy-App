@@ -249,7 +249,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                             >
                                                 Created On {sortField === 'createdAt' && (sortDirection === 'asc' ? '▲' : '▼')}
                                             </th>
-                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Status</th>
+                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center hidden md:table-cell">Status</th>
                                             <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Role</th>
                                         </tr>
                                     </thead>
@@ -262,11 +262,12 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                             >
                                                 <td className="p-4 align-middle">
                                                     <span className="font-bold text-base md:text-lg text-pure-white group-hover:text-primary-red transition-colors block">{user.displayName}</span>
-                                                    {/* Mobile email fallback */}
-                                                    <span className="md:hidden text-xs text-highlight-silver font-mono opacity-70">{user.email?.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
+                                                    <span className="text-xs text-highlight-silver font-mono opacity-70 block">
+                                                        {user.firstName || ''} {user.lastName || ''}
+                                                    </span>
                                                 </td>
                                                 <td className="p-4 align-middle hidden md:table-cell">
-                                                    <span className="text-sm text-highlight-silver font-mono">{user.email?.replace(/^(.).+(@.+)$/, '$1****$2')}</span>
+                                                    <span className="text-sm text-highlight-silver font-mono">{user.email}</span>
                                                 </td>
                                                 <td className="p-4 align-middle hidden md:table-cell">
                                                     <span className="text-xs text-highlight-silver font-mono">
@@ -275,7 +276,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                                                             : '-'}
                                                     </span>
                                                 </td>
-                                                <td className="p-4 text-center align-middle">
+                                                <td className="p-4 text-center align-middle hidden md:table-cell">
                                                      <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full border ${
                                                         (user.duesPaidStatus || 'Unpaid') === 'Paid'
                                                         ? 'bg-green-600/20 text-green-400 border-green-500/30'
