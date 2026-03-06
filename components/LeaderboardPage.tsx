@@ -310,11 +310,11 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                         const shortName = displayName.length > 12 ? `${displayName.substring(0, 12)}...` : displayName;
 
                         return (
-                            <div key={user.id} className="flex items-center gap-2 md:gap-3 h-10 md:h-12 group hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors">
+                            <div key={user.id} className="flex items-center gap-2 md:gap-3 h-10 md:h-12 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors">
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
-                                <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver group-hover:text-pure-white transition-colors shrink-0">
+                                <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver md:group-hover:text-pure-white transition-colors shrink-0">
                                     <span className="md:hidden">
                                         {shortName}
                                     </span>

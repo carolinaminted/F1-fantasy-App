@@ -158,7 +158,7 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
             </div>
 
             {/* Scrollable area - removed md:overflow-hidden to allow natural flow if containers are shorter than viewport */}
-            <div className="flex-1 md:overflow-y-auto md:custom-scrollbar md:min-h-0 px-2 md:px-0 pb-24 md:pb-8 pb-safe overscroll-contain">
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-2 md:px-0 pb-24 md:pb-8 pb-safe overscroll-contain">
                 {/* Changed h-full to auto on grid and columns to recapture vertical dead space */}
                 <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 items-start">
                     
