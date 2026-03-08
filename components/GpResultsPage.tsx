@@ -10,6 +10,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { EventSelector } from './ui/EventSelector.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { Page } from '../App.tsx';
+import { parseUtcDate } from '../dateUtils.ts';
 
 interface GpResultsPageProps {
   raceResults: RaceResults;
@@ -60,7 +61,7 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
     const eventDate = useMemo(() => {
         if (!selectedEvent?.lockAtUtc) return null;
         try {
-            const date = new Date(selectedEvent.lockAtUtc);
+            const date = parseUtcDate(selectedEvent.lockAtUtc);
             if (isNaN(date.getTime())) return null;
             return date.toLocaleDateString('en-US', { 
                 month: 'short', 

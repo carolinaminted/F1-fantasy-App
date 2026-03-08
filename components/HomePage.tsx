@@ -9,6 +9,7 @@ import { PicksIcon } from './icons/PicksIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { EventSelector } from './ui/EventSelector.tsx';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
 
 interface HomePageProps {
   user: User;
@@ -35,7 +36,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     
     // 1. Priority: Find the first event that is TRULY Open (not time-locked AND not manually locked)
     const firstOpenEvent = events.find(event => {
-        const lockTime = new Date(event.lockAtUtc).getTime();
+        const lockTime = parseLeagueDate(event.lockAtUtc)?.getTime() || 0;
         const isTimeLocked = now >= lockTime;
         const isManualLocked = !!formLocks[event.id]; // Strict boolean check
         return !isTimeLocked && !isManualLocked;
@@ -47,7 +48,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     // find the next event based on TIME only. This ensures we show the relevant "Upcoming" race
     // (even if it says LOCKED) rather than an old race from months ago.
     const nextEventByTime = events.find(event => {
-        const lockTime = new Date(event.lockAtUtc).getTime();
+        const lockTime = parseLeagueDate(event.lockAtUtc)?.getTime() || 0;
         return now < lockTime;
     });
 
@@ -63,7 +64,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
   const nextRace = useMemo(() => {
       const now = Date.now();
       return events.find(event => {
-          const lockTime = new Date(event.lockAtUtc).getTime();
+          const lockTime = parseLeagueDate(event.lockAtUtc)?.getTime() || 0;
           const isTimeLocked = now >= lockTime;
           const isManualLocked = !!formLocks[event.id];
           return !isTimeLocked && !isManualLocked;
@@ -75,7 +76,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
 
   // Filter Logic for Dropdown
   const handleEventFilter = (event: Event, filter: string) => {
-      const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+      const isLocked = formLocks[event.id] || Date.now() >= (parseLeagueDate(event.lockAtUtc)?.getTime() || 0);
       
       if (filter === 'active') return !isLocked;
       if (filter === 'locked') return isLocked;
@@ -97,7 +98,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
 
   // Status Indicator Render
   const renderEventStatus = (event: Event) => {
-      const isLocked = formLocks[event.id] || Date.now() >= new Date(event.lockAtUtc).getTime();
+      const isLocked = formLocks[event.id] || Date.now() >= (parseLeagueDate(event.lockAtUtc)?.getTime() || 0);
       const userPicks = seasonPicks[event.id];
       
       // Check if picks are complete (all required fields filled)
@@ -127,7 +128,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
       }
       
       // Check if this is a future race (not the immediate next one)
-      if (nextRace && new Date(event.lockAtUtc).getTime() > new Date(nextRace.lockAtUtc).getTime()) {
+      if (nextRace && (parseLeagueDate(event.lockAtUtc)?.getTime() || 0) > (parseLeagueDate(nextRace.lockAtUtc)?.getTime() || 0)) {
           // ⚪ Future / Not Yet Open — Gray (dimmed, no glow)
           return <span className="w-2.5 h-2.5 rounded-full bg-highlight-silver/50"></span>;
       }
