@@ -13,6 +13,7 @@ import { getAllUsersAndPicks } from '../services/firestoreService.ts';
 import { calculateScoreRollup } from '../services/scoringService.ts';
 import CountdownTimer from './CountdownTimer.tsx';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
 
 interface DashboardProps {
   user: User | null;
@@ -78,8 +79,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Find next event for countdown
   const nextEvent = useMemo(() => {
-      const now = new Date();
-      return events?.find(e => new Date(e.lockAtUtc) > now);
+      const now = Date.now();
+      return events?.find(e => {
+          const lockTime = parseLeagueDate(e.lockAtUtc)?.getTime();
+          return lockTime && lockTime > now;
+      });
   }, [events]);
 
   return (

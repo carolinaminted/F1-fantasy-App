@@ -60,7 +60,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   
   // Time-based locking logic
   const [isTimeLocked, setIsTimeLocked] = useState(() => {
-      return event.lockAtUtc ? new Date(event.lockAtUtc).getTime() <= Date.now() : false;
+      return event.lockAtUtc ? parseLeagueDate(event.lockAtUtc).getTime() <= Date.now() : false;
   });
 
   const { showToast } = useToast();
@@ -86,7 +86,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     const savedPicks = initialPicksForEvent;
     setPicks(savedPicks || getInitialPicks());
     setIsEditing(!savedPicks);
-    setIsTimeLocked(event.lockAtUtc ? new Date(event.lockAtUtc).getTime() <= Date.now() : false);
+    setIsTimeLocked(event.lockAtUtc ? parseLeagueDate(event.lockAtUtc).getTime() <= Date.now() : false);
   }, [event.id, initialPicksForEvent, event.lockAtUtc]);
 
   // Force-exit editing mode if form becomes locked mid-session

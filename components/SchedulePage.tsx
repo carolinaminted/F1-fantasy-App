@@ -7,6 +7,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
+import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
@@ -17,46 +18,11 @@ interface SchedulePageProps {
 }
 
 /**
- * LEAGUE TIMEZONE CONFIGURATION
- * All session dates and times are interpreted and displayed in America/New_York.
- */
-const LEAGUE_TIMEZONE = 'America/New_York';
-
-/**
- * Robust parsing helper.
- * If the string lacks a timezone suffix (typical for datetime-local strings from Admin),
- * we parse it while forcing it into the League's context (America/New_York).
- */
-const parseToDate = (isoString?: string) => {
-    if (!isoString) return null;
-    
-    // 1. If it's already an absolute ISO string from constants (ends with Z)
-    if (isoString.endsWith('Z')) return new Date(isoString);
-
-    // 2. If it's a local string from Admin (e.g. 2026-03-29T14:00)
-    // We must parse this as being in the context of the LEAGUE_TIMEZONE (EST/EDT)
-    try {
-        const normalized = isoString.replace(' ', 'T');
-        // Simple but effective: treat the string as browser local, then adjust for the TZ difference
-        const tempDate = new Date(normalized);
-        const leagueString = tempDate.toLocaleString('en-US', { timeZone: LEAGUE_TIMEZONE });
-        const leagueDate = new Date(leagueString);
-        const diff = tempDate.getTime() - leagueDate.getTime();
-        const finalDate = new Date(tempDate.getTime() + diff);
-        
-        return isNaN(finalDate.getTime()) ? null : finalDate;
-    } catch (e) {
-        const fallback = new Date(isoString);
-        return isNaN(fallback.getTime()) ? null : fallback;
-    }
-};
-
-/**
  * Robust formatting helpers to ensure the day and time are calculated 
  * strictly in the league timezone (EST/EDT).
  */
 const formatSessionDate = (isoString?: string) => {
-    const date = parseToDate(isoString);
+    const date = parseLeagueDate(isoString);
     if (!date) return 'TBA';
     
     return new Intl.DateTimeFormat('en-US', { 
@@ -68,7 +34,7 @@ const formatSessionDate = (isoString?: string) => {
 };
 
 const formatSessionTime = (isoString?: string) => {
-    const date = parseToDate(isoString);
+    const date = parseLeagueDate(isoString);
     if (!date) return '-';
     
     return new Intl.DateTimeFormat('en-US', { 
@@ -107,7 +73,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
             const sched = schedules[e.id];
             // Priority: admin scheduled time, else static constant
             const raceRaw = sched?.race || e.lockAtUtc;
-            const raceTime = parseToDate(raceRaw);
+            const raceTime = parseLeagueDate(raceRaw);
             if (!raceTime) return false;
             
             const raceEndTime = new Date(raceTime.getTime() + 2 * 60 * 60 * 1000); 

@@ -1,5 +1,6 @@
 import { Constructor, Driver, EntityClass, Event, PointsSystem, RaceResults } from './types.ts';
 
+export const LEAGUE_TIMEZONE = 'America/New_York';
 export const LEAGUE_DUES_AMOUNT = 25; // in USD
 export const VENMO_PROFILE_URL = 'https://venmo.com/u/John-Mckenna-4';
 export const DONATION_VENMO_URL = 'https://venmo.com/u/nexuslife42';

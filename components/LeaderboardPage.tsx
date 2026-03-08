@@ -269,7 +269,7 @@ const ConstructorPodium: React.FC<{ data: { label: string; value: number; color?
     );
 };
 
-const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMore: () => void, isPaging: boolean, onSelectUser?: (user: ProcessedUser) => void }> = ({ users, hasMore, onFetchMore, isPaging, onSelectUser }) => {
+const RaceChart: React.FC<{ users: ProcessedUser[], currentUser: User | null, hasMore: boolean, onFetchMore: () => void, isPaging: boolean, onSelectUser?: (user: ProcessedUser) => void }> = ({ users, currentUser, hasMore, onFetchMore, isPaging, onSelectUser }) => {
     // Safety check: ensure users is defined
     if (!users || users.length === 0) return null;
 
@@ -310,7 +310,7 @@ const RaceChart: React.FC<{ users: ProcessedUser[], hasMore: boolean, onFetchMor
                         const shortName = displayName.length > 12 ? `${displayName.substring(0, 12)}...` : displayName;
 
                         return (
-                            <div key={user.id} className="flex items-center gap-2 md:gap-3 h-10 md:h-12 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors">
+                            <div key={user.id} className={`flex items-center gap-2 md:gap-3 h-10 md:h-12 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors ${user.id === currentUser?.id ? 'bg-primary-red/10 border border-primary-red/30' : ''}`}>
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
@@ -383,7 +383,7 @@ const StandingsView: React.FC<{
         <div className="flex flex-col md:h-full animate-fade-in pb-safe overflow-hidden">
             <div className="flex flex-col md:h-full bg-carbon-fiber border border-pure-white/10 rounded-xl overflow-hidden shadow-2xl">
                 <div className="md:flex-1 md:overflow-y-auto custom-scrollbar p-4 md:min-h-0 pb-24 md:pb-4">
-                    <RaceChart users={users} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} onSelectUser={onSelectUser} />
+                    <RaceChart users={users} currentUser={currentUser} hasMore={hasMore} onFetchMore={onFetchMore} isPaging={isPaging} onSelectUser={onSelectUser} />
                 </div>
             </div>
         </div>

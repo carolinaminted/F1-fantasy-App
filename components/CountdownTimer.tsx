@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { LockIcon } from './icons/LockIcon.tsx';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
 
 interface CountdownTimerProps {
   targetDate: string;
@@ -12,7 +13,10 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate, onExpire, c
   const calculateTimeLeft = useCallback(() => {
     if (!targetDate) return {};
     
-    const difference = +new Date(targetDate.endsWith('Z') ? targetDate : targetDate + 'Z') - Date.now();
+    const target = parseLeagueDate(targetDate);
+    if (!target) return {};
+
+    const difference = target.getTime() - Date.now();
     let timeLeft = {};
 
     if (difference > 0) {
