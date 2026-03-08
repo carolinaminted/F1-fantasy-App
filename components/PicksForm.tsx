@@ -11,6 +11,8 @@ import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import CountdownTimer from './CountdownTimer.tsx';
 
+const LEAGUE_TIMEZONE = 'America/New_York';
+
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
   bTeam: null,
@@ -372,10 +374,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
             <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
             <p className="text-pure-white/80 font-semibold text-sm md:text-base mt-1 flex items-center justify-center md:justify-start gap-2">
-                <span>{new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                <span>{new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: LEAGUE_TIMEZONE })}</span>
                 <span className="text-highlight-silver">•</span>
                 <span className="font-mono text-primary-red">
-                    {new Date(event.lockAtUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(event.lockAtUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: LEAGUE_TIMEZONE })} ET
                 </span>
             </p>
           </div>

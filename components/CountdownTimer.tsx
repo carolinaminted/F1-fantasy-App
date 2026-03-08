@@ -12,7 +12,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate, onExpire, c
   const calculateTimeLeft = useCallback(() => {
     if (!targetDate) return {};
     
-    const difference = +new Date(targetDate) - +new Date();
+    const difference = +new Date(targetDate.endsWith('Z') ? targetDate : targetDate + 'Z') - Date.now();
     let timeLeft = {};
 
     if (difference > 0) {
