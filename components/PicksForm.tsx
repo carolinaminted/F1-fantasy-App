@@ -10,8 +10,7 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import CountdownTimer from './CountdownTimer.tsx';
-
-const LEAGUE_TIMEZONE = 'America/New_York';
+import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
