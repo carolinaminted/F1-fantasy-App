@@ -38,8 +38,11 @@ const COLLECTION_CONFIG: Record<string, { headers: string[], getFields: (doc: an
         getFields: (doc) => [doc.displayName || '-', doc.totalPoints || 0, doc.rank || '-', doc.duesPaidStatus || '-']
     },
     'userPicks': {
-        headers: ['User ID', 'Event ID', 'Fastest Lap', 'A Teams'],
-        getFields: (doc) => [doc.id.substring(0, 8), doc.eventId || '-', doc.fastestLap || '-', (doc.aTeams || []).length]
+        headers: ['User ID', 'Events Picked'],
+        getFields: (doc) => {
+            const eventIds = Object.keys(doc).filter(k => k !== 'id');
+            return [doc.id.substring(0, 8), eventIds.length];
+        }
     },
     'app_state': {
         headers: ['Key', 'Last Updated', 'Status', 'Value Preview'],
@@ -140,9 +143,32 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         }
     };
 
+    const [sortConfig, setSortConfig] = useState<{ key: number, direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (key: number) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedDocuments = React.useMemo(() => {
+        if (!sortConfig) return documents;
+        return [...documents].sort((a, b) => {
+            const aVal = COLLECTION_CONFIG[selectedCollection].getFields(a)[sortConfig.key];
+            const bVal = COLLECTION_CONFIG[selectedCollection].getFields(b)[sortConfig.key];
+            
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [documents, sortConfig, selectedCollection]);
+
     useEffect(() => {
         setDocuments([]);
         setLastDoc(null);
+        setSortConfig(null);
         fetchDocs(selectedCollection);
     }, [selectedCollection]);
 
@@ -296,13 +322,20 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                 {/* Desktop Table Header */}
                                 <div className="hidden md:grid grid-cols-12 gap-4 bg-carbon-black/30 sticky top-0 z-10 p-3 border-b border-pure-white/10 text-[10px] font-black uppercase text-highlight-silver tracking-widest backdrop-blur-sm">
                                     {COLLECTION_CONFIG[selectedCollection].headers.map((header, i) => (
-                                        <div key={i} className={i === 0 ? "col-span-2" : "col-span-3"}>{header}</div>
+                                        <div 
+                                            key={i} 
+                                            className={`${i === 0 ? "col-span-2" : "col-span-3"} cursor-pointer hover:text-pure-white flex items-center gap-1`}
+                                            onClick={() => handleSort(i)}
+                                        >
+                                            {header}
+                                            {sortConfig?.key === i && (sortConfig.direction === 'asc' ? '▲' : '▼')}
+                                        </div>
                                     ))}
                                 </div>
 
                                 {/* List Items (Responsive: Cards on Mobile, Grid Rows on Desktop) */}
                                 <div className="p-2 md:p-0 space-y-2 md:space-y-0">
-                                    {documents.map(doc => (
+                                    {sortedDocuments.map(doc => (
                                         <div 
                                             key={doc.id}
                                             onClick={() => openEditor(doc)}
