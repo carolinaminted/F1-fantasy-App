@@ -15,6 +15,7 @@ interface SchedulePageProps {
     onRefresh?: () => Promise<void>;
     raceResults?: RaceResults;
     setActivePage: (page: Page) => void;
+    cancelledEventIds: Set<string>;
 }
 
 /**
@@ -52,7 +53,7 @@ const hexToRgba = (hex: string, alpha: number) => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh, raceResults, setActivePage }) => {
+const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefresh, raceResults, setActivePage, cancelledEventIds }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -191,6 +192,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                                                     event={event} 
                                                     schedule={schedules[event.id]} 
                                                     isNext={nextRace?.id === event.id} 
+                                                    isCancelled={cancelledEventIds.has(event.id)}
                                                     onClick={() => setSelectedEvent(event)}
                                                 />
                                             </div>
@@ -231,16 +233,22 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ schedules, events, onRefres
                     event={selectedEvent} 
                     schedule={schedules[selectedEvent.id]} 
                     onClose={() => setSelectedEvent(null)} 
+                    isCancelled={cancelledEventIds.has(selectedEvent.id)}
                 />
             )}
         </>
     );
 };
 
-const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ event, schedule }) => {
+const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule; isCancelled?: boolean }> = ({ event, schedule, isCancelled }) => {
     const raceRaw = schedule?.race || event.lockAtUtc;
     return (
-        <div className="relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl">
+        <div className={`relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl ${isCancelled ? 'opacity-60' : ''}`}>
+            {isCancelled && (
+                <div className="absolute top-4 right-4 bg-red-600 text-pure-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20">
+                    Cancelled
+                </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-r from-primary-red/20 to-transparent pointer-events-none"></div>
             <div className="relative z-10 p-6 flex flex-col md:flex-row gap-8">
                 <div className="flex-1">
@@ -289,12 +297,12 @@ const NextRaceHero: React.FC<{ event: Event; schedule?: EventSchedule }> = ({ ev
     );
 };
 
-const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onClose: () => void }> = ({ event, schedule, onClose }) => {
+const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onClose: () => void; isCancelled?: boolean }> = ({ event, schedule, onClose, isCancelled }) => {
     const raceRaw = schedule?.race || event.lockAtUtc;
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
             {/* Added max-h-[85vh] and overflow-y-auto to handle small screens better */}
-            <div className="w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border border-pure-white/10 shadow-2xl animate-scale-in flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <div className={`w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border ${isCancelled ? 'border-red-500/30' : 'border-pure-white/10'} shadow-2xl animate-scale-in flex flex-col max-h-[85vh] ${isCancelled ? 'opacity-90' : ''}`} onClick={e => e.stopPropagation()}>
                 
                 {/* Scrollable Container */}
                 <div className="overflow-y-auto custom-scrollbar relative w-full h-full">
@@ -310,6 +318,7 @@ const EventDetailsModal: React.FC<{ event: Event; schedule?: EventSchedule; onCl
                         <div className="flex-1 flex flex-col justify-center">
                             <div className="flex items-center gap-2 mb-3">
                                 <span className="text-[10px] md:text-xs font-bold text-highlight-silver bg-carbon-black/50 border border-pure-white/10 px-3 py-1 rounded-full uppercase tracking-wider">Round {event.round}</span>
+                                {isCancelled && <span className="text-[10px] md:text-xs font-bold text-red-500 bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-full uppercase tracking-wider">Cancelled</span>}
                             </div>
                             
                             {/* Smaller Title on Mobile */}
@@ -384,13 +393,19 @@ const SessionRow: React.FC<{ label: string; time?: string; highlight?: boolean; 
     );
 };
 
-const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; onClick: () => void }> = ({ event, schedule, isNext, onClick }) => {
+const CompactEventCard: React.FC<{ event: Event; schedule?: EventSchedule; isNext?: boolean; isCancelled?: boolean; onClick: () => void }> = ({ event, schedule, isNext, isCancelled, onClick }) => {
     const raceRaw = schedule?.race || event.lockAtUtc;
     return (
-        <button onClick={onClick} className={`w-full text-left flex flex-col p-4 rounded-xl border transition-all h-full justify-between group hover:scale-[1.02] ${isNext ? 'bg-carbon-black border-primary-red shadow-lg' : 'bg-carbon-fiber border-pure-white/10 shadow-lg'}`}>
+        <button 
+            onClick={onClick} 
+            className={`w-full text-left flex flex-col p-4 rounded-xl border transition-all h-full justify-between group hover:scale-[1.02] ${isCancelled ? 'border-red-500/30 opacity-60' : isNext ? 'bg-carbon-black border-primary-red shadow-lg' : 'bg-carbon-fiber border-pure-white/10 shadow-lg'}`}
+        >
             <div className="w-full">
                 <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-highlight-silver uppercase">R{event.round}</span>
+                        {isCancelled && <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Cancelled</span>}
+                    </div>
                     {event.hasSprint && <SprintIcon className="w-4 h-4 text-yellow-500" />}
                 </div>
                 <h4 className="font-bold text-pure-white text-lg leading-tight mb-1 truncate">{event.country}</h4>

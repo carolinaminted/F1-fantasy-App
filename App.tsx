@@ -680,7 +680,7 @@ const App: React.FC = () => {
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'schedule':
-        return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} raceResults={raceResults} setActivePage={navigateToPage} />;
+        return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} raceResults={raceResults} setActivePage={navigateToPage} cancelledEventIds={cancelledEventIds} />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'support':
