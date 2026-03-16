@@ -27,7 +27,7 @@ import SchedulePage from './components/SchedulePage.tsx';
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
-import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule, LeaderboardCache } from './types.ts';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule, LeaderboardCache, CancelledEventsState } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -45,7 +45,7 @@ import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } fr
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
@@ -232,6 +232,7 @@ const App: React.FC = () => {
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
+  const [cancelledEvents, setCancelledEvents] = useState<CancelledEventsState | null>(null);
   const [leaderboardResetToken, setLeaderboardResetToken] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -292,6 +293,11 @@ const App: React.FC = () => {
       return profile ? profile.config : DEFAULT_POINTS_SYSTEM;
   }, [scoringSettings]);
 
+  const cancelledEventIds = useMemo(() => {
+      if (!cancelledEvents?.events) return new Set<string>();
+      return new Set(Object.keys(cancelledEvents.events));
+  }, [cancelledEvents]);
+
   // Dynamic Entities State
   const [allDrivers, setAllDrivers] = useState<Driver[]>(DRIVERS);
   const [allConstructors, setAllConstructors] = useState<Constructor[]>(CONSTRUCTORS);
@@ -322,8 +328,8 @@ const App: React.FC = () => {
   // Calculate live points for the current user to ensure SideNav is always up to date
   const currentTotalPoints = useMemo(() => {
       if (!user) return 0;
-      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers).totalPoints;
-  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user]);
+      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers, cancelledEventIds).totalPoints;
+  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user, cancelledEventIds]);
 
   // Centralized Data Fetch for Leaderboard (Standard Batch)
   const fetchLeaderboardData = useCallback(async () => {
@@ -389,6 +395,7 @@ const App: React.FC = () => {
     let unsubscribePoints = () => {};
     let unsubscribeSchedules = () => {};
     let unsubscribePublicProfile = () => {};
+    let unsubscribeCancelled = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       unsubscribeResults();
@@ -398,6 +405,7 @@ const App: React.FC = () => {
       unsubscribePoints();
       unsubscribeSchedules();
       unsubscribePublicProfile();
+      unsubscribeCancelled();
 
       if (firebaseUser) {
         // If we have a user but aren't authenticated yet, we are transitioning (logging in)
@@ -476,6 +484,15 @@ const App: React.FC = () => {
             }
         });
 
+        const cancelledRef = doc(db, 'app_state', 'cancelled_events');
+        unsubscribeCancelled = onSnapshot(cancelledRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setCancelledEvents(docSnap.data() as CancelledEventsState);
+            } else {
+                setCancelledEvents(null);
+            }
+        }, (error) => console.error("Firestore listener error (cancelled_events):", error));
+
         // Listener 1: User Profile (Details)
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
@@ -514,6 +531,7 @@ const App: React.FC = () => {
         setLeaderboardCache(null);
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
+        setCancelledEvents(null);
         setIsAuthenticated(false);
         setIsLoading(false);
         setIsTransitioning(false);
@@ -529,6 +547,7 @@ const App: React.FC = () => {
       unsubscribePoints();
       unsubscribeSchedules();
       unsubscribePublicProfile();
+      unsubscribeCancelled();
     };
   }, []); 
 
@@ -612,7 +631,16 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'home':
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+        return <Dashboard 
+            user={user} 
+            setActivePage={navigateToPage} 
+            raceResults={raceResults} 
+            pointsSystem={activePointsSystem} 
+            allDrivers={allDrivers} 
+            allConstructors={allConstructors} 
+            events={mergedEvents} 
+            cancelledEventIds={cancelledEventIds}
+        />;
       case 'picks':
         if (user) return <HomePage 
             user={user} 
@@ -624,6 +652,7 @@ const App: React.FC = () => {
             allConstructors={allConstructors} 
             events={mergedEvents} 
             initialEventId={targetEventId}
+            cancelledEventIds={cancelledEventIds}
         />;
         return null;
       case 'leaderboard':
@@ -637,13 +666,14 @@ const App: React.FC = () => {
             leaderboardCache={leaderboardCache}
             refreshLeaderboard={fetchLeaderboardData}
             resetToken={leaderboardResetToken}
+            cancelledEventIds={cancelledEventIds}
         />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':
-        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} setActivePage={navigateToPage} />;
+        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} setActivePage={navigateToPage} cancelledEventIds={cancelledEventIds} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         return null;
       case 'points':
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
@@ -658,14 +688,14 @@ const App: React.FC = () => {
       case 'duesPayment':
         if(user) {
             if (user.duesPaidStatus === 'Paid') {
-                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
             }
             return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
         }
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
@@ -683,9 +713,10 @@ const App: React.FC = () => {
                           events={mergedEvents}
                           adminId={user?.id || ''}
                           adminName={user?.displayName || 'Admin'}
+                          cancelledEventIds={cancelledEventIds}
                        />;
             case 'manage-users':
-                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+                return <ManageUsersPage setAdminSubPage={setAdminSubPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
             case 'scoring':
                 return <ScoringSettingsPage settings={scoringSettings} setAdminSubPage={setAdminSubPage} />;
             case 'entities':
@@ -702,7 +733,7 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
     }
   };
   

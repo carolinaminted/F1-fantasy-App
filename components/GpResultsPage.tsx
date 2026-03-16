@@ -18,9 +18,10 @@ interface GpResultsPageProps {
   allConstructors: Constructor[];
   events: Event[];
   setActivePage: (page: Page) => void;
+  cancelledEventIds: Set<string>;
 }
 
-const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors, events, setActivePage }) => {
+const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, allConstructors, events, setActivePage, cancelledEventIds }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
     // Auto-select the last completed event on load if none selected
@@ -81,6 +82,10 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
     };
 
     const renderEventStatus = (event: Event) => {
+        const isCancelled = cancelledEventIds.has(event.id);
+        if (isCancelled) {
+            return <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span>;
+        }
         const resultsIn = hasResults(event.id);
         return resultsIn ? (
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
@@ -131,6 +136,11 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                             <div>
                                 <div className="flex items-baseline gap-3">
                                     <h2 className="text-xl md:text-2xl font-black text-pure-white leading-tight">{selectedEvent.name}</h2>
+                                    {cancelledEventIds.has(selectedEvent.id) && (
+                                        <span className="bg-red-500 text-pure-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                                            Cancelled
+                                        </span>
+                                    )}
                                     {eventDate && (
                                         <span className="text-sm md:text-base font-bold text-highlight-silver/50 uppercase tracking-widest">
                                             {eventDate}
@@ -143,7 +153,11 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
                                 </p>
                             </div>
                             <div>
-                                {hasResults(selectedEvent.id) ? (
+                                {cancelledEventIds.has(selectedEvent.id) ? (
+                                    <div className="flex items-center gap-2 text-primary-red bg-primary-red/10 px-4 py-2 rounded-lg border border-primary-red/20">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">Event Cancelled</span>
+                                    </div>
+                                ) : hasResults(selectedEvent.id) ? (
                                      <div className="flex items-center gap-1.5 text-green-400 bg-green-400/10 px-2 py-1 rounded-lg border border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.1)]">
                                         <CheckeredFlagIcon className="w-3 h-3" />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Results In</span>
@@ -158,12 +172,24 @@ const GpResultsPage: React.FC<GpResultsPageProps> = ({ raceResults, allDrivers, 
 
                         {/* Details Component - Takes remaining space */}
                         <div className="flex-1 md:min-h-0 md:overflow-hidden relative">
-                            <EventDetails 
-                                event={selectedEvent} 
-                                results={raceResults[selectedEvent.id]} 
-                                allDrivers={allDrivers} 
-                                allConstructors={allConstructors} 
-                            />
+                            {cancelledEventIds.has(selectedEvent.id) ? (
+                                <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-black/20">
+                                    <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
+                                        <span className="text-red-500 text-4xl font-black italic">!</span>
+                                    </div>
+                                    <h3 className="text-3xl md:text-4xl font-black text-pure-white uppercase tracking-tighter italic mb-4">Event Cancelled</h3>
+                                    <p className="text-highlight-silver text-lg max-w-md leading-relaxed">
+                                        This Grand Prix session was officially cancelled and removed from the championship calendar. No points were awarded for this event.
+                                    </p>
+                                </div>
+                            ) : (
+                                <EventDetails 
+                                    event={selectedEvent} 
+                                    results={raceResults[selectedEvent.id]} 
+                                    allDrivers={allDrivers} 
+                                    allConstructors={allConstructors} 
+                                />
+                            )}
                         </div>
                     </div>
                 ) : (

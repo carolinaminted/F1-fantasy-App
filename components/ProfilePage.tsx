@@ -35,6 +35,7 @@ interface ProfilePageProps {
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
   events: Event[];
   isPublicView?: boolean;
+  cancelledEventIds: Set<string>;
 }
 
 const getDriverPoints = (driverId: string | null, results: (string | null)[] | undefined, points: number[]) => {
@@ -172,8 +173,20 @@ const PenaltyManager: React.FC<{
     );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, setActivePage, onUpdatePenalty, events, isPublicView = false }) => {
-  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors);
+const ProfilePage: React.FC<ProfilePageProps> = ({ 
+  user, 
+  seasonPicks, 
+  raceResults, 
+  pointsSystem, 
+  allDrivers, 
+  allConstructors, 
+  setActivePage, 
+  onUpdatePenalty, 
+  events, 
+  isPublicView = false,
+  cancelledEventIds
+}) => {
+  const { scoreRollup, usageRollup, getLimit } = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, cancelledEventIds);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [globalRank, setGlobalRank] = useState<number | null>(null);
@@ -390,7 +403,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
     let title = '';
     const detailsContent: React.ReactNode[] = [];
 
-    const relevantEvents = events.filter(e => seasonPicks[e.id] && raceResults[e.id]);
+    const relevantEvents = events.filter(e => seasonPicks[e.id] && raceResults[e.id] && !cancelledEventIds.has(e.id));
 
     if (relevantEvents.length === 0) {
         detailsContent.push(<p key="no-picks" className="text-highlight-silver text-center">No picks submitted for completed events yet.</p>);
@@ -472,6 +485,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
   };
 
   const handleEventScoringDetailClick = (eventId: string, category: 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali') => {
+    if (cancelledEventIds.has(eventId)) return;
     const event = events.find(e => e.id === eventId);
     const picks = seasonPicks[eventId];
     const results = raceResults[eventId];
@@ -545,6 +559,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, seasonPicks, raceResult
 
   const handleUsageDetailClick = (entityId: string, entityName: string) => {
     const usageEvents = events.filter(event => {
+        if (cancelledEventIds.has(event.id)) return false;
         const picks = seasonPicks[event.id];
         if (!picks) return false;
         

@@ -11,6 +11,7 @@ import { LockIcon } from './icons/LockIcon.tsx';
 import { UnlockIcon } from './icons/UnlockIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
+import { XCircleIcon } from './icons/XCircleIcon.tsx';
 
 interface ResultsFormProps {
     event: Event;
@@ -20,6 +21,7 @@ interface ResultsFormProps {
     allConstructors: Constructor[];
     isLocked: boolean;
     onToggleLock: () => void;
+    isCancelled?: boolean;
 }
 
 const emptyResults = (event: Event): EventResult => ({
@@ -33,9 +35,10 @@ const emptyResults = (event: Event): EventResult => ({
     }),
 });
 
-const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers, allConstructors, isLocked, onToggleLock }) => {
+const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave, allDrivers, allConstructors, isLocked, onToggleLock, isCancelled = false }) => {
     const [results, setResults] = useState<EventResult>(currentResults || emptyResults(event));
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success'>('idle');
+    const [showP22Confirm, setShowP22Confirm] = useState(false);
     // Set 'gp' as default so the Grand Prix section is expanded on load for sprint weekends
     const [activeSession, setActiveSession] = useState<'gp' | 'sprint' | null>('gp');
     const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
@@ -78,6 +81,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     }
 
     const handleSelect = (category: keyof EventResult, value: string | null, index: number) => {
+        if (isCancelled) return;
         setResults(prev => {
             const newResults = { ...prev };
             const field = newResults[category];
@@ -91,11 +95,13 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
     };
 
     const handleSingleSelect = (category: 'fastestLap' | 'p22Driver', value: string | null) => {
+        if (isCancelled) return;
         setResults(prev => ({ ...prev, [category]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isCancelled) return;
 
         // Validation: Grand Prix
         if (results.grandPrixFinish.some(d => !d)) {
@@ -115,11 +121,15 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
         // Validation: P22 Driver (Optional but recommended to warn)
         if (!results.p22Driver) {
-             if (!confirm("P22 (Last Place) driver is not selected. Proceed?")) {
-                 return;
-             }
+             setShowP22Confirm(true);
+             return;
         }
 
+        proceedWithSave();
+    };
+
+    const proceedWithSave = async () => {
+        setShowP22Confirm(false);
         // Validation: Sprint (if applicable)
         if (event.hasSprint) {
             if (results.sprintFinish?.some(d => !d)) {
@@ -144,6 +154,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
 
     const openDriverModal = (category: keyof EventResult, index: number, title: string, disabledIds: (string | null)[] = []) => {
         const handleSelection = (driverId: string | null) => {
+            if (isCancelled) return;
             if (category === 'fastestLap' || category === 'p22Driver') {
                 handleSingleSelect(category as 'fastestLap' | 'p22Driver', driverId);
             } else {
@@ -208,7 +219,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 <SelectorCard
                                     option={selectedFLDriver}
                                     isSelected={!!selectedFLDriver}
-                                    onClick={() => openDriverModal('fastestLap', 0, 'Select Fastest Lap')}
+                                    onClick={() => !isCancelled && openDriverModal('fastestLap', 0, 'Select Fastest Lap')}
                                     placeholder="Select FL..."
                                     disabled={false}
                                     color={flColor}
@@ -233,7 +244,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 <SelectorCard
                                     option={selectedP22Driver}
                                     isSelected={!!selectedP22Driver}
-                                    onClick={() => openDriverModal('p22Driver', 0, 'Select P22 (Last Place)')}
+                                    onClick={() => !isCancelled && openDriverModal('p22Driver', 0, 'Select P22 (Last Place)')}
                                     placeholder="Select P22..."
                                     disabled={false}
                                     color={p22Color}
@@ -250,7 +261,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         <ResultGroup
                             positions={3}
                             selected={results.gpQualifying}
-                            onTrigger={(idx) => openDriverModal('gpQualifying', idx, `Qualifying P${idx + 1}`, results.gpQualifying)}
+                            onTrigger={(idx) => !isCancelled && openDriverModal('gpQualifying', idx, `Qualifying P${idx + 1}`, results.gpQualifying)}
                             allDrivers={allDrivers}
                             allConstructors={allConstructors}
                             cols={1}
@@ -264,7 +275,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     <ResultGroup
                         positions={10}
                         selected={results.grandPrixFinish}
-                        onTrigger={(idx) => openDriverModal('grandPrixFinish', idx, `Grand Prix P${idx + 1}`, results.grandPrixFinish)}
+                        onTrigger={(idx) => !isCancelled && openDriverModal('grandPrixFinish', idx, `Grand Prix P${idx + 1}`, results.grandPrixFinish)}
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         cols={2}
@@ -282,7 +293,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     <ResultGroup
                         positions={3}
                         selected={results.sprintQualifying || []}
-                        onTrigger={(idx) => openDriverModal('sprintQualifying', idx, `Sprint Quali P${idx + 1}`, results.sprintQualifying || [])}
+                        onTrigger={(idx) => !isCancelled && openDriverModal('sprintQualifying', idx, `Sprint Quali P${idx + 1}`, results.sprintQualifying || [])}
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         cols={1}
@@ -295,7 +306,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     <ResultGroup
                         positions={8}
                         selected={results.sprintFinish || []}
-                        onTrigger={(idx) => openDriverModal('sprintFinish', idx, `Sprint P${idx + 1}`, results.sprintFinish || [])}
+                        onTrigger={(idx) => !isCancelled && openDriverModal('sprintFinish', idx, `Sprint P${idx + 1}`, results.sprintFinish || [])}
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         cols={2}
@@ -336,7 +347,12 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                     <div className="flex flex-col min-w-0 mr-4">
                         <div className="flex items-center gap-2">
                             <h2 className="text-lg md:text-xl font-bold truncate">{event.name}</h2>
-                            {isLocked && (
+                            {isCancelled && (
+                                <span className="bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-red-500/20">
+                                    Cancelled
+                                </span>
+                            )}
+                            {isLocked && !isCancelled && (
                                 <span className="bg-primary-red/20 text-primary-red px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-primary-red/20">
                                     Locked
                                 </span>
@@ -349,25 +365,28 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         <button
                             type="button"
                             onClick={onToggleLock}
+                            disabled={isCancelled}
                             className={`h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-xl border transition-all ${
+                                isCancelled ? 'bg-accent-gray/20 border-accent-gray/30 text-accent-gray cursor-not-allowed' :
                                 isLocked 
                                 ? 'bg-red-900/20 border-primary-red text-primary-red hover:bg-primary-red hover:text-white' 
                                 : 'bg-green-900/20 border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
                             }`}
-                            title={isLocked ? 'Unlock Picks' : 'Lock Picks'}
+                            title={isCancelled ? 'Event Cancelled' : isLocked ? 'Unlock Picks' : 'Lock Picks'}
                         >
                             {isLocked ? <LockIcon className="w-5 h-5" /> : <UnlockIcon className="w-5 h-5" />}
                         </button>
 
                         <button
                             type="submit"
-                            disabled={saveState !== 'idle'}
+                            disabled={saveState !== 'idle' || isCancelled}
                             className={`h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-xl border transition-all ${
+                                isCancelled ? 'bg-accent-gray/20 border-accent-gray/30 text-accent-gray cursor-not-allowed' :
                                 saveState === 'success'
                                 ? 'bg-green-600 border-green-500 text-white'
                                 : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-white hover:border-pure-white'
                             }`}
-                            title="Save Results"
+                            title={isCancelled ? 'Event Cancelled' : "Save Results"}
                         >
                             {saveState === 'saving' ? (
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -436,6 +455,37 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                             <div className="w-12 h-1.5 bg-pure-white/20 rounded-full"></div>
                         </div>
                         {modalContent}
+                    </div>
+                </div>
+            )}
+            
+            {/* P22 Confirmation Modal */}
+            {showP22Confirm && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowP22Confirm(false)}>
+                    <div className="bg-carbon-fiber border border-yellow-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-yellow-900/50 ring-1 ring-yellow-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-yellow-500/50">
+                            <XCircleIcon className="w-8 h-8 text-yellow-500" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-pure-white mb-2">Missing P22 Driver</h2>
+                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
+                            P22 (Last Place) driver is not selected. Are you sure you want to proceed without it?
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={proceedWithSave}
+                                className="w-full bg-yellow-600 hover:bg-yellow-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-yellow-600/20 uppercase tracking-widest text-xs"
+                            >
+                                Yes, Proceed Anyway
+                            </button>
+                            <button
+                                onClick={() => setShowP22Confirm(false)}
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

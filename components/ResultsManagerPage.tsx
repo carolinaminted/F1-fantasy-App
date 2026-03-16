@@ -8,8 +8,10 @@ import { HistoryIcon } from './icons/HistoryIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
-import { logAdminAction, getAdminLogs } from '../services/firestoreService.ts';
+import { logAdminAction, getAdminLogs, cancelEvent, uncancelEvent } from '../services/firestoreService.ts';
 import { EventSelector } from './ui/EventSelector.tsx';
+import { XCircleIcon } from './icons/XCircleIcon.tsx';
+import { RotateCcwIcon } from './icons/RotateCcwIcon.tsx';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
@@ -23,9 +25,10 @@ interface ResultsManagerPageProps {
     events: Event[];
     adminId: string;
     adminName: string;
+    cancelledEventIds: Set<string>;
 }
 
-const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, allConstructors, formLocks, onToggleLock, activePointsSystem, events, adminId, adminName }) => {
+const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, onResultsUpdate, setAdminSubPage, allDrivers, allConstructors, formLocks, onToggleLock, activePointsSystem, events, adminId, adminName, cancelledEventIds }) => {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const { showToast } = useToast();
     
@@ -36,6 +39,14 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
     // Reset Confirmation State
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Cancel Confirmation State
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+
+    // Restore Confirmation State
+    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
     const checkHasResults = (event: Event): boolean => {
         const results = raceResults[event.id];
@@ -177,6 +188,70 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
     const selectedEvent = useMemo(() => events.find(event => event.id === selectedEventId), [selectedEventId, events]);
 
+    const isCancelled = selectedEvent ? cancelledEventIds.has(selectedEvent.id) : false;
+
+    const handleCancelEvent = () => {
+        console.log("handleCancelEvent called");
+        if (!selectedEvent) return;
+        setCancelReason('');
+        setShowCancelConfirm(true);
+    };
+
+    const confirmCancelEvent = async () => {
+        if (!selectedEvent) return;
+        
+        setShowCancelConfirm(false);
+        console.log("confirmCancelEvent called for:", selectedEvent.id, "adminId:", adminId);
+        
+        try {
+            setIsSaving(true);
+            await cancelEvent(selectedEvent.id, adminId, cancelReason);
+            await logAdminAction({
+                adminId: adminId,
+                adminName: adminName,
+                action: 'CANCEL_EVENT',
+                eventId: selectedEvent.id,
+                eventName: selectedEvent.name,
+                changes: `Event cancelled. Reason: ${cancelReason || 'No reason provided'}`
+            });
+            showToast('Event cancelled successfully', 'success');
+        } catch (error) {
+            console.error("Error cancelling event:", error);
+            showToast('Failed to cancel event', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleRestoreEvent = () => {
+        if (!selectedEvent) return;
+        setShowRestoreConfirm(true);
+    };
+
+    const confirmRestoreEvent = async () => {
+        if (!selectedEvent) return;
+        setShowRestoreConfirm(false);
+
+        try {
+            setIsSaving(true);
+            await uncancelEvent(selectedEvent.id);
+            await logAdminAction({
+                adminId: adminId,
+                adminName: adminName,
+                action: 'RESTORE_EVENT',
+                eventId: selectedEvent.id,
+                eventName: selectedEvent.name,
+                changes: 'Event restored from cancelled state'
+            });
+            showToast('Event restored successfully', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Failed to restore event', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const DashboardAction = (
         <button 
             onClick={() => setAdminSubPage('dashboard')}
@@ -209,10 +284,12 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     const renderEventStatus = (event: Event) => {
         const hasResults = checkHasResults(event);
         const isLocked = formLocks[event.id];
+        const isEventCancelled = cancelledEventIds.has(event.id);
         
         return (
             <div className="flex items-center gap-2">
-                {isLocked && <span className="text-[9px] text-primary-red border border-primary-red/50 rounded px-1 font-bold uppercase">Locked</span>}
+                {isEventCancelled && <span className="text-[9px] text-red-500 border border-red-500/50 rounded px-1 font-bold uppercase">Cancelled</span>}
+                {isLocked && !isEventCancelled && <span className="text-[9px] text-primary-red border border-primary-red/50 rounded px-1 font-bold uppercase">Locked</span>}
                 {hasResults && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>}
             </div>
         );
@@ -262,7 +339,38 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                 allConstructors={allConstructors}
                                 isLocked={!!formLocks[selectedEvent.id]}
                                 onToggleLock={() => onToggleLock(selectedEvent.id)}
+                                isCancelled={isCancelled}
                             />
+
+                            {/* Cancellation Controls */}
+                            <div className="mt-8 pt-6 border-t border-pure-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div className="flex flex-col gap-1 text-center md:text-left">
+                                    <h4 className="text-xs font-bold text-pure-white uppercase tracking-widest">Event Status Control</h4>
+                                    <p className="text-[10px] text-highlight-silver opacity-60 max-w-xs">
+                                        Cancelling an event removes it from all scoring and usage calculations. This is reversible.
+                                    </p>
+                                </div>
+
+                                {isCancelled ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleRestoreEvent}
+                                        disabled={isSaving}
+                                        className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-pure-white text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-lg transition-all shadow-lg shadow-green-900/20"
+                                    >
+                                        <RotateCcwIcon className="w-4 h-4" /> Restore Event
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelEvent}
+                                        disabled={isSaving}
+                                        className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-pure-white disabled:opacity-50 border border-red-500/30 text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-lg transition-all"
+                                    >
+                                        <XCircleIcon className="w-4 h-4" /> Cancel Event
+                                    </button>
+                                )}
+                            </div>
                             
                             <div className="mt-6 pt-4 border-t border-pure-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-highlight-silver opacity-50 text-center md:text-left">
@@ -352,6 +460,77 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                             </button>
                             <button
                                 onClick={() => setShowResetConfirm(false)}
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Cancel Confirmation Modal */}
+            {showCancelConfirm && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowCancelConfirm(false)}>
+                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
+                            <XCircleIcon className="w-8 h-8 text-red-500" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-pure-white mb-2">Cancel Event?</h2>
+                        <p className="text-highlight-silver mb-4 text-sm leading-relaxed">
+                            Are you sure you want to CANCEL the <span className="text-pure-white font-bold">{selectedEvent?.name}</span>? This will exclude it from all scoring and usage limits.
+                        </p>
+                        
+                        <div className="mb-6 text-left">
+                            <label className="block text-xs font-bold text-highlight-silver uppercase tracking-wider mb-2">Reason (Optional)</label>
+                            <input
+                                type="text"
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                placeholder="e.g., Extreme weather conditions"
+                                className="w-full bg-carbon-black border border-pure-white/10 rounded-lg px-4 py-3 text-pure-white focus:outline-none focus:border-primary-red transition-colors"
+                            />
+                        </div>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={confirmCancelEvent}
+                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
+                            >
+                                Yes, Cancel Event
+                            </button>
+                            <button
+                                onClick={() => setShowCancelConfirm(false)}
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
+                            >
+                                Go Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Restore Confirmation Modal */}
+            {showRestoreConfirm && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRestoreConfirm(false)}>
+                    <div className="bg-carbon-fiber border border-green-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-green-900/50 ring-1 ring-green-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/50">
+                            <RotateCcwIcon className="w-8 h-8 text-green-500" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-pure-white mb-2">Restore Event?</h2>
+                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
+                            Are you sure you want to RESTORE the <span className="text-pure-white font-bold">{selectedEvent?.name}</span>? This will re-enable scoring and usage counting for this event.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={confirmRestoreEvent}
+                                className="w-full bg-green-600 hover:bg-green-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-green-600/20 uppercase tracking-widest text-xs"
+                            >
+                                Yes, Restore Event
+                            </button>
+                            <button
+                                onClick={() => setShowRestoreConfirm(false)}
                                 className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
                             >
                                 Cancel

@@ -21,6 +21,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const [localSettings, setLocalSettings] = useState<ScoringSettingsDoc>(settings);
     const [editForm, setEditForm] = useState<ScoringProfile | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const { showToast } = useToast();
     
     useEffect(() => {
@@ -57,13 +58,18 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
         setEditForm(newProfile);
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!editForm || isSaving) return;
         if (editForm.id === localSettings.activeProfileId) {
             showToast("Cannot delete the active profile.", 'error');
             return;
         }
-        if (!window.confirm(`Are you sure you want to delete "${editForm.name}"?`)) return;
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!editForm || isSaving) return;
+        setShowDeleteConfirm(false);
 
         const updatedProfiles = localSettings.profiles.filter(p => p.id !== editForm.id);
         const newSettings = { ...localSettings, profiles: updatedProfiles };
@@ -334,6 +340,37 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                     </div>
                 )}
             </div>
+            
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowDeleteConfirm(false)}>
+                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
+                            <TrashIcon className="w-8 h-8 text-red-500" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-pure-white mb-2">Delete Profile?</h2>
+                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
+                            Are you sure you want to delete "<span className="text-pure-white font-bold">{editForm?.name}</span>"?
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={confirmDelete}
+                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
+                            >
+                                Yes, Delete Profile
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

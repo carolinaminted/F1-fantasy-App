@@ -21,9 +21,10 @@ interface HomePageProps {
   allConstructors: Constructor[];
   events: Event[];
   initialEventId?: string | null;
+  cancelledEventIds: Set<string>;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events, initialEventId }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events, initialEventId, cancelledEventIds }) => {
   // Default to the first upcoming (open) event.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
     // 0. Pre-selection from navigation
@@ -58,7 +59,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     return events[events.length - 1] || events[0];
   });
   
-  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors);
+  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors, cancelledEventIds);
 
   // Identify the next immediate race (for status logic)
   const nextRace = useMemo(() => {
@@ -98,6 +99,10 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
 
   // Status Indicator Render
   const renderEventStatus = (event: Event) => {
+      const isCancelled = cancelledEventIds.has(event.id);
+      if (isCancelled) {
+          return <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]"></span>;
+      }
       const isLocked = formLocks[event.id] || Date.now() >= (parseLeagueDate(event.lockAtUtc)?.getTime() || 0);
       const userPicks = seasonPicks[event.id];
       
@@ -203,6 +208,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                 formLocks={formLocks}
                 allConstructors={allConstructors}
                 {...fantasyData}
+                cancelledEventIds={cancelledEventIds}
               />
           </div>
       </div>

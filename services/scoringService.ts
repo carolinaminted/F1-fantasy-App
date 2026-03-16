@@ -3,13 +3,15 @@ import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Dri
 
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
-export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelection }): UsageRollup => {
+export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelection }, cancelledEventIds: Set<string> = new Set()): UsageRollup => {
     const teams: { [id: string]: number } = {};
     const drivers: { [id: string]: number } = {};
 
     Object.entries(seasonPicks).forEach(([eventId, p]) => {
         // Ignore picks from previous seasons
         if (!CURRENT_EVENT_IDS.has(eventId)) return;
+        // Skip cancelled events — picks don't count against quotas
+        if (cancelledEventIds.has(eventId)) return;
 
         p.aTeams.forEach(id => { if(id) teams[id] = (teams[id] || 0) + 1; });
         if (p.bTeam) teams[p.bTeam] = (teams[p.bTeam] || 0) + 1;
@@ -159,7 +161,8 @@ export const calculateScoreRollup = (
   seasonPicks: { [eventId: string]: PickSelection },
   raceResults: RaceResults,
   pointsSystem: PointsSystem,
-  driversList: Driver[]
+  driversList: Driver[],
+  cancelledEventIds: Set<string> = new Set()
 ) => {
     let grandPrixPoints = 0;
     let sprintPoints = 0;
@@ -173,6 +176,8 @@ export const calculateScoreRollup = (
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
       // Filter: Only include events that are in the current season configuration
       if (!CURRENT_EVENT_IDS.has(eventId)) return;
+      // Skip cancelled events — no points awarded
+      if (cancelledEventIds.has(eventId)) return;
 
       const results: EventResult | undefined = raceResults[eventId];
       if (!results) return; // No results for this event yet
@@ -204,7 +209,8 @@ export const processLeaderboardStats = async (
     raceResults: RaceResults,
     pointsSystem: PointsSystem,
     allDrivers: Driver[],
-    currentUser: User | null
+    currentUser: User | null,
+    cancelledEventIds: Set<string> = new Set()
 ): Promise<User[]> => {
     // Non-blocking yield to allow UI rendering before heavy processing
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -229,7 +235,7 @@ export const processLeaderboardStats = async (
 
         // SLOW PATH: Calculate from raw picks (Fallback / Private Collection Data)
         const userPicks = allPicks[user.id] || {};
-        const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers);
+        const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds);
         
         const safeNum = (val: any) => Number.isNaN(Number(val)) ? 0 : Number(val);
 

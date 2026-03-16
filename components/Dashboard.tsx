@@ -23,6 +23,7 @@ interface DashboardProps {
   allDrivers?: Driver[];
   allConstructors?: Constructor[];
   events: Event[];
+  cancelledEventIds: Set<string>;
 }
 
 // Helper for scroll animations and flare triggering
@@ -67,7 +68,8 @@ const FadeInSection: React.FC<{ children: React.ReactNode; delay?: string; class
 const Dashboard: React.FC<DashboardProps> = ({ 
     user, 
     setActivePage,
-    events 
+    events,
+    cancelledEventIds
 }) => {
   const isAdmin = user && !!user.isAdmin;
   

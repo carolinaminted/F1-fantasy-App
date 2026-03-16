@@ -10,18 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^19.2.0",
-    "react": "^19.2.0",
-    "firebase": "^12.5.0",
+    "@firebase/analytics": "^0.10.19",
     "@firebase/app": "^0.14.5",
     "@firebase/auth": "^1.11.1",
     "@firebase/firestore": "^4.9.2",
     "@firebase/functions": "^0.11.0",
-    "@firebase/analytics": "^0.10.19",
-    "canvas-confetti": "1.9.2"
+    "canvas-confetti": "1.9.2",
+    "firebase": "^12.5.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

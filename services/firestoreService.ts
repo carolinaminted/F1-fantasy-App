@@ -2,7 +2,7 @@
 import { db, functions } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 
@@ -519,4 +519,41 @@ export const triggerGeneralAnnouncement = async (adminUid: string, message: stri
 export const clearGeneralAnnouncement = async (adminUid: string) => {
     const ref = doc(db, 'app_state', 'general_announcement');
     await setDoc(ref, { active: false }, { merge: true });
+};
+
+// --- Event Cancellation ---
+
+export const onCancelledEvents = (callback: (state: CancelledEventsState | null) => void) => {
+    const ref = doc(db, 'app_state', 'cancelled_events');
+    return onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+            callback(snap.data() as CancelledEventsState);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("Cancelled events listener error:", error);
+        callback(null);
+    });
+};
+
+export const cancelEvent = async (eventId: string, adminUid: string, reason?: string) => {
+    console.log("cancelEvent called:", eventId, adminUid, reason);
+    const ref = doc(db, 'app_state', 'cancelled_events');
+    await setDoc(ref, {
+        events: {
+            [eventId]: {
+                cancelledAt: serverTimestamp(),
+                cancelledBy: adminUid,
+                reason: reason || null
+            }
+        }
+    }, { merge: true });
+};
+
+export const uncancelEvent = async (eventId: string) => {
+    const ref = doc(db, 'app_state', 'cancelled_events');
+    await updateDoc(ref, {
+        [`events.${eventId}`]: deleteField()
+    });
 };

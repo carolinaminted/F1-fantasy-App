@@ -18,9 +18,10 @@ interface AdminUserProfileViewProps {
     allDrivers: Driver[];
     allConstructors: Constructor[];
     events: Event[];
+    cancelledEventIds: Set<string>;
 }
 
-const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults, pointsSystem, onUpdateUser, onDeleteUser, allDrivers, allConstructors, events }) => {
+const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults, pointsSystem, onUpdateUser, onDeleteUser, allDrivers, allConstructors, events, cancelledEventIds }) => {
     const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
     const [isLoading, setIsLoading] = useState(true);
     
@@ -229,6 +230,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 allConstructors={allConstructors}
                 onUpdatePenalty={handlePenaltyUpdate}
                 events={events}
+                cancelledEventIds={cancelledEventIds}
             />
 
             {/* Danger Zone */}

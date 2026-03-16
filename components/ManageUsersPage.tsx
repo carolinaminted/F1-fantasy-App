@@ -15,9 +15,10 @@ interface ManageUsersPageProps {
     allDrivers: Driver[];
     allConstructors: Constructor[];
     events: Event[];
+    cancelledEventIds: Set<string>;
 }
 
-const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem, allDrivers, allConstructors, events }) => {
+const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem, allDrivers, allConstructors, events, cancelledEventIds }) => {
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -159,6 +160,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         events={events}
+                        cancelledEventIds={cancelledEventIds}
                     />
                 </div>
             ) : (

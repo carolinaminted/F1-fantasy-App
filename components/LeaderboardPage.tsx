@@ -52,6 +52,7 @@ interface LeaderboardPageProps {
   leaderboardCache: LeaderboardCache | null;
   refreshLeaderboard: () => Promise<void>;
   resetToken?: number; // New prop to trigger menu reset
+  cancelledEventIds: Set<string>;
 }
 
 const getEntityName = (id: string, allDrivers: Driver[], allConstructors: Constructor[]) => {
@@ -396,7 +397,8 @@ const PopularityView: React.FC<{
     allConstructors: Constructor[]; 
     events: Event[];
     isLoading?: boolean;
-}> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading }) => {
+    cancelledEventIds: Set<string>;
+}> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading, cancelledEventIds }) => {
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all');
 
     const stats = useMemo(() => {
@@ -412,7 +414,7 @@ const PopularityView: React.FC<{
             Object.keys(userPicks).forEach(eid => eventIdsWithPicks.add(eid));
         });
 
-        const completedEvents = events.filter(e => eventIdsWithPicks.has(e.id)).sort((a, b) => new Date(a.lockAtUtc).getTime() - new Date(b.lockAtUtc).getTime());
+        const completedEvents = events.filter(e => eventIdsWithPicks.has(e.id) && !cancelledEventIds.has(e.id)).sort((a, b) => new Date(a.lockAtUtc).getTime() - new Date(b.lockAtUtc).getTime());
         
         let relevantEvents: Event[] = completedEvents;
         if (timeRange === '30' && completedEvents.length > 0) relevantEvents = completedEvents.slice(-3); 
@@ -424,6 +426,7 @@ const PopularityView: React.FC<{
         Object.values(allLeaguePicks).forEach(userPicks => {
             Object.entries(userPicks).forEach(([eventId, picks]) => {
                 if (!relevantEventIds.has(eventId)) return;
+                if (cancelledEventIds.has(eventId)) return; // Skip cancelled
                 const teams = [...(picks.aTeams || []), picks.bTeam].filter(Boolean) as string[];
                 const drivers = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean) as string[];
                 teams.forEach(t => { if(teamCounts[t] !== undefined) teamCounts[t]++ });
@@ -920,7 +923,18 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
 // --- Main Page ---
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResults, pointsSystem, allDrivers, allConstructors, events, leaderboardCache, refreshLeaderboard, resetToken }) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ 
+    currentUser, 
+    raceResults, 
+    pointsSystem, 
+    allDrivers, 
+    allConstructors, 
+    events, 
+    leaderboardCache, 
+    refreshLeaderboard,
+    resetToken,
+    cancelledEventIds
+}) => {
   const [view, setView] = useState<ViewState>('menu');
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1040,7 +1054,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
   // [S1A-03] Extract scoring transformations out of React Effects
   const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
       // Logic extracted to service module processLeaderboardStats
-      const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser);
+      const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser, cancelledEventIds);
       if (isMore) {
           setProcessedUsers(prev => [...prev, ...processedBatch]);
       } else {
@@ -1267,7 +1281,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
-            {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} />}
+            {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} cancelledEventIds={cancelledEventIds} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}
             {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'p22' && <P22View users={processedUsers} />}
@@ -1309,6 +1323,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ currentUser, raceResu
                                 allConstructors={allConstructors}
                                 events={events}
                                 isPublicView={true}
+                                cancelledEventIds={cancelledEventIds}
                             />
                         )}
                     </div>

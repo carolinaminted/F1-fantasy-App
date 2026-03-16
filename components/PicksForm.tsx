@@ -7,6 +7,7 @@ import { SubmitIcon } from './icons/SubmitIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
+import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import CountdownTimer from './CountdownTimer.tsx';
@@ -35,6 +36,15 @@ interface PicksFormProps {
   getUsage: (id: string, type: 'teams' | 'drivers') => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
   hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
+  cancelledEventIds: Set<string>;
+}
+
+interface ExhaustionStatus {
+  isExhausted: boolean;
+  fillable: number;
+  slotsNeeded: number;
+  emptySlots: number;
+  uniqueAvailable: number;
 }
 
 const PicksForm: React.FC<PicksFormProps> = ({
@@ -51,7 +61,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   allConstructors,
   getUsage,
   getLimit,
-  hasRemaining
+  hasRemaining,
+  cancelledEventIds
 }) => {
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
@@ -65,9 +76,10 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const { showToast } = useToast();
 
   const isSubmitted = !!initialPicksForEvent;
+  const isEventCancelled = cancelledEventIds.has(event.id);
   
   // Unified lock variables
-  const isEffectiveLocked = formLocks[event.id] || isTimeLocked;
+  const isEffectiveLocked = formLocks[event.id] || isTimeLocked || isEventCancelled;
   const isFormDisabled = isEffectiveLocked && !user.isAdmin;
 
   // Handle expiration from the Timer component
@@ -109,12 +121,12 @@ const PicksForm: React.FC<PicksFormProps> = ({
   }, [allDrivers]);
 
   // === EXHAUSTION DETECTION ===
-  const exhaustionReport = useMemo(() => {
+  const exhaustionReport = useMemo((): Record<string, ExhaustionStatus> => {
     const check = (
       options: { id: string; class: EntityClass }[],
       selectedInSlots: (string | null)[],
       entityType: 'teams' | 'drivers'
-    ) => {
+    ): ExhaustionStatus => {
       // Calculate distinct fillable options:
       // 1. Options that are available to be picked (hasRemaining = true)
       // 2. Options that are ALREADY picked in this form (even if they have reached limit in global state, e.g. editing)
@@ -143,7 +155,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     };
   }, [aTeams, bTeams, aDrivers, bDrivers, picks, hasRemaining]);
 
-  const hasExhaustedCategory = Object.values(exhaustionReport).some(r => r.isExhausted);
+  const hasExhaustedCategory = Object.values(exhaustionReport).some((r: any) => r.isExhausted);
 
   // Helper for submit confirmation check
   const hasEmptySlots = () => {
@@ -206,8 +218,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
         // Partial lineup confirmation
         if (hasEmptySlots() && hasExhaustedCategory) {
             const exhaustedCategoryNames = Object.entries(exhaustionReport)
-                .filter(([_, r]) => r.isExhausted)
-                .map(([key, r]) => {
+                .filter(([_, r]: [string, any]) => r.isExhausted)
+                .map(([key, r]: [string, any]) => {
                     const labels: Record<string, string> = {
                         aTeams: 'Class A Teams', bTeam: 'Class B Team',
                         aDrivers: 'Class A Drivers', bDrivers: 'Class B Drivers',
@@ -269,6 +281,35 @@ const PicksForm: React.FC<PicksFormProps> = ({
     }
   };
   
+  // CANCELLED GATE
+  if (isEventCancelled) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
+        <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-primary-red/30 shadow-2xl animate-fade-in-up relative overflow-hidden">
+          {/* Diagonal CANCELLED watermark */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+            <span className="text-9xl font-black text-primary-red -rotate-12 select-none whitespace-nowrap">
+              CANCELLED
+            </span>
+          </div>
+          <div className="relative z-10">
+            <div className="inline-block p-4 rounded-full bg-primary-red/10 border border-primary-red/30 mb-6">
+              <svg className="w-16 h-16 text-primary-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-black text-primary-red mb-2 uppercase tracking-wider">Event Cancelled</h2>
+            <p className="text-ghost-white text-lg mb-2">{event.name} has been cancelled.</p>
+            <p className="text-highlight-silver text-sm">
+              Picks for this event do not count against your selection limits.<br/>
+              No points will be scored for this event.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // PRIMARY LOCK GATE: If locked for a non-admin, show the lock screen immediately.
   if (isFormDisabled) {
     return (
@@ -369,8 +410,22 @@ const PicksForm: React.FC<PicksFormProps> = ({
     <>
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-4">
         <div className="bg-carbon-fiber rounded-lg p-4 ring-1 ring-pure-white/10 flex flex-col md:flex-row justify-between md:items-center gap-4 flex-none border border-pure-white/5 relative overflow-hidden">
+          {/* CANCELLED WATERMARK */}
+          {isEventCancelled && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none overflow-hidden z-0">
+                  <span className="text-[15vw] font-black uppercase tracking-tighter -rotate-12 whitespace-nowrap">CANCELLED</span>
+              </div>
+          )}
+          
           <div className="flex-grow text-center md:text-left z-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
+            <div className="flex items-center justify-center md:justify-start gap-3">
+                <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
+                {isEventCancelled && (
+                    <span className="bg-red-500 text-pure-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                        Cancelled
+                    </span>
+                )}
+            </div>
             <p className="text-highlight-silver text-sm md:text-base mt-1">Round {event.round} - {event.country} ({event.location})</p>
             <p className="text-pure-white/80 font-semibold text-sm md:text-base mt-1 flex items-center justify-center md:justify-start gap-2">
                 <span>{new Date(event.lockAtUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: LEAGUE_TIMEZONE })}</span>
@@ -382,15 +437,19 @@ const PicksForm: React.FC<PicksFormProps> = ({
           </div>
           <div className="flex flex-col items-center justify-center py-2 md:py-0 md:px-6 z-10 border-y md:border-y-0 md:border-x border-pure-white/5 bg-black/10 md:bg-transparent rounded-lg md:rounded-none">
               <p className="text-[9px] md:text-[10px] text-highlight-silver uppercase tracking-[0.2em] font-bold mb-1 opacity-80">Time Remaining</p>
-              <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+              {isEventCancelled ? (
+                  <span className="text-red-500 font-black text-xl md:text-2xl italic tracking-tighter">N/A</span>
+              ) : (
+                  <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+              )}
           </div>
           <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px] z-10">
               <div>
                   <p className="hidden md:block text-[10px] md:text-sm uppercase tracking-wider font-semibold text-highlight-silver">
-                      {isEffectiveLocked ? "Picks Locked" : "Picks Open"}
+                      {isEventCancelled ? "Event Status" : isEffectiveLocked ? "Picks Locked" : "Picks Open"}
                   </p>
-                  <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isEffectiveLocked ? "text-primary-red" : "text-pure-white"}`}>
-                      {isEffectiveLocked ? "LOCKED" : "OPEN"}
+                  <p className={`text-xl md:text-3xl font-bold tracking-tighter ${isEventCancelled || isEffectiveLocked ? "text-primary-red" : "text-pure-white"}`}>
+                      {isEventCancelled ? "CANCELLED" : isEffectiveLocked ? "LOCKED" : "OPEN"}
                   </p>
               </div>
               <div>
@@ -403,14 +462,38 @@ const PicksForm: React.FC<PicksFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* CANCELLED STAMP PANEL */}
+        {isEventCancelled && (
+            <div className="bg-red-950/10 border border-red-500/30 rounded-xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 animate-fade-in">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center flex-shrink-0">
+                    <XCircleIcon className="w-8 h-8 text-red-500" />
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-xl md:text-2xl font-black text-pure-white uppercase tracking-tighter italic mb-1">Session Officially Cancelled</h3>
+                    <p className="text-highlight-silver text-sm leading-relaxed max-w-2xl">
+                        This Grand Prix has been removed from the 2026 championship calendar. 
+                        Picks for this event will <span className="text-red-500 font-bold">not count</span> towards usage limits or seasonal scoring.
+                    </p>
+                </div>
+                <div className="flex flex-col gap-2 min-w-[140px]">
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-highlight-silver bg-carbon-black/40 px-3 py-1.5 rounded border border-pure-white/5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> Scoring: Disabled
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-highlight-silver bg-carbon-black/40 px-3 py-1.5 rounded border border-pure-white/5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> Usage: Exempt
+                    </div>
+                </div>
+            </div>
+        )}
+
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${isEventCancelled ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
             {hasExhaustedCategory && (
               <div className="lg:col-span-2 bg-amber-900/30 border border-amber-500/50 rounded-lg p-4 flex items-start gap-3 animate-fade-in-up">
                  <span className="text-amber-400 text-xl flex-shrink-0 mt-0.5">⚠️</span>
                  <div>
                      <p className="text-amber-200 font-bold text-sm">Usage Limits Reached</p>
                      <p className="text-amber-300/80 text-xs mt-1">
-                         You've used all available picks for: {Object.entries(exhaustionReport).filter(([_, r]) => r.isExhausted).map(([key]) => {
+                         You've used all available picks for: {Object.entries(exhaustionReport).filter(([_, r]: [string, any]) => r.isExhausted).map(([key]) => {
                             const labels: Record<string, string> = { aTeams: 'Class A Teams', bTeam: 'Class B Team', aDrivers: 'Class A Drivers', bDrivers: 'Class B Drivers' };
                             return labels[key];
                          }).join(', ')}.

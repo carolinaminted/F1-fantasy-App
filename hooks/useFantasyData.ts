@@ -8,7 +8,8 @@ const useFantasyData = (
     raceResults: RaceResults,
     pointsSystem: PointsSystem,
     allDrivers: Driver[],
-    allConstructors: Constructor[]
+    allConstructors: Constructor[],
+    cancelledEventIds: Set<string> = new Set()
 ) => {
   const data = useMemo(() => {
     // Only show Active entities in selection forms
@@ -47,8 +48,8 @@ const useFantasyData = (
     return { aTeams, bTeams, aDrivers, bDrivers };
   }, [allDrivers, allConstructors]);
 
-  const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks), [seasonPicks]);
-  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers), [seasonPicks, raceResults, pointsSystem, allDrivers]);
+  const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks, cancelledEventIds), [seasonPicks, cancelledEventIds]);
+  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds), [seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds]);
 
   const getUsage = useCallback((id: string, type: 'teams' | 'drivers'): number => {
     return usageRollup[type][id] || 0;

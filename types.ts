@@ -179,6 +179,10 @@ export interface MaintenanceState {
     enabled_at?: any;
 }
 
+export interface CancelledEventsState {
+    events: { [eventId: string]: { cancelledAt: any; cancelledBy: string; reason?: string } };
+}
+
 export interface GeneralAnnouncementState {
     active: boolean;
     announcementId: string;
