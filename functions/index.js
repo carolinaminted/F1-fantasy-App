@@ -89,13 +89,14 @@ const calculateEventScore = (picks, results, system, drivers) => {
 const recalculateEntireLeague = async () => {
     logger.info("Starting recalculateEntireLeague...");
     
-    // Fetch picks, results, config, AND user profiles to sync display names
-    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap] = await Promise.all([
+    // Fetch picks, results, config, user profiles, AND cancelled events
+    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap, cancelledSnap] = await Promise.all([
         db.collection('app_state').doc('race_results').get(),
         db.collection('userPicks').get(),
         db.collection('app_state').doc('scoring_config').get(),
         db.collection('app_state').doc('entities').get(),
-        db.collection('users').get() // Fetch profiles to repair missing public_users names
+        db.collection('users').get(),
+        db.collection('app_state').doc('cancelled_events').get()
     ]);
 
     if (!resultsSnap.exists) {
@@ -123,6 +124,16 @@ const recalculateEntireLeague = async () => {
         }
     }
 
+    // Build set of cancelled event IDs
+    const cancelledEventIds = new Set(
+        cancelledSnap.exists && cancelledSnap.data().events
+            ? Object.keys(cancelledSnap.data().events)
+            : []
+    );
+    if (cancelledEventIds.size > 0) {
+        logger.info(`Excluding ${cancelledEventIds.size} cancelled event(s): ${[...cancelledEventIds].join(', ')}`);
+    }
+
     const leaderboardScores = [];
 
     picksSnap.forEach(pickDoc => {
@@ -133,6 +144,8 @@ const recalculateEntireLeague = async () => {
         let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 
         Object.keys(allUserPicks).forEach(eventId => {
+            // Skip cancelled events — no points awarded
+            if (cancelledEventIds.has(eventId)) return;
             const result = raceResults[eventId];
             if (result) {
                 const systemToUse = result.scoringSnapshot || pointsSystem;
@@ -213,6 +226,14 @@ exports.updateLeaderboardOnResults = onDocumentWritten(
     async (event) => {
         if (!event.data || !event.data.after.exists) return;
         logger.info("Auto-sync triggered by results update.");
+        await recalculateEntireLeague();
+    }
+);
+
+exports.updateLeaderboardOnCancellation = onDocumentWritten(
+    { document: 'app_state/cancelled_events', memory: "512MiB", timeoutSeconds: 300 },
+    async (event) => {
+        logger.info("Auto-sync triggered by event cancellation/restoration.");
         await recalculateEntireLeague();
     }
 );
