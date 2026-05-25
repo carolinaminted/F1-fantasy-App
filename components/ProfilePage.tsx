@@ -440,6 +440,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
     let title = '';
     const eventEntries: React.ReactNode[] = [];
+    let hasNonZeroPoints = false;
     let pointSource: (string | null)[] | undefined;
     let pointSystemArr: number[] | undefined;
 
@@ -472,6 +473,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     if (category === 'fl') {
         if (picks.fastestLap) {
             const points = (picks.fastestLap === results.fastestLap) ? pointsSystem.fastestLap : 0;
+            if (points !== 0) hasNonZeroPoints = true;
             eventEntries.push(<li key={`fl-${picks.fastestLap}`}>{getEntityName(picks.fastestLap)}: <span className="font-semibold">{points} pts</span></li>);
         }
     } else if (pointSource && pointSystemArr) {
@@ -485,16 +487,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     teamPoints += getDriverPoints(driver.id, pointSource, pointSystemArr!);
                 }
             });
+            if (teamPoints !== 0) hasNonZeroPoints = true;
             eventEntries.push(<li key={`team-${teamId}`}>{getEntityName(teamId)}: <span className="font-semibold">{teamPoints} pts</span></li>);
         });
 
         allPickedDrivers.forEach(driverId => {
             const driverPoints = getDriverPoints(driverId, pointSource, pointSystemArr!);
+            if (driverPoints !== 0) hasNonZeroPoints = true;
             eventEntries.push(<li key={`driver-${driverId}`}>{getEntityName(driverId)}: <span className="font-semibold">{driverPoints} pts</span></li>);
         });
     }
 
-    if (eventEntries.length === 0 || eventEntries.every(e => (e as any).props.children[2].props.children[0] === 0)) {
+    if (eventEntries.length === 0 || !hasNonZeroPoints) {
        eventEntries.push(<li key="no-points" className="text-highlight-silver">No points scored in this category.</li>);
     }
     
