@@ -235,6 +235,25 @@ export const getAllUsersAndPicks = async (pageSize = 50, lastDoc: any = null) =>
     };
 };
 
+/**
+ * Reads the current user's pre-calculated championship rank from public_users.
+ * Rank is authored exclusively by the recalculateEntireLeague Cloud Function.
+ * Returns null when the user has no real rank yet: missing doc, missing field,
+ * or the 999 initialization sentinel for not-yet-synced users.
+ */
+export const getPublicProfileRank = async (uid: string): Promise<number | null> => {
+    try {
+        const snap = await getDoc(doc(db, 'public_users', uid));
+        if (!snap.exists()) return null;
+        const rank = snap.data().rank;
+        if (typeof rank !== 'number' || rank === 999) return null;
+        return rank;
+    } catch (e) {
+        console.warn(`getPublicProfileRank failed for ${uid}`, e);
+        return null;
+    }
+};
+
 export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
     const ref = doc(db, 'users', uid);
     await updateDoc(ref, { isAdmin });
