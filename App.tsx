@@ -347,45 +347,7 @@ const App: React.FC = () => {
       }
   }, []);
 
-  // Fallback to fetch global rank if missing [S1C-01 Updated for Batching]
-  useEffect(() => {
-      const fetchRankFallback = async () => {
-          if (user && !user.rank && user.id && currentTotalPoints > 0) {
-              try {
-                  let usersList = leaderboardCache?.users;
-                  let allPicks = leaderboardCache?.allPicks;
 
-                  if (!usersList || !allPicks) {
-                      // Fetch first batch to see if user is in it
-                      const data = await getAllUsersAndPicks();
-                      usersList = data.users;
-                      allPicks = data.allPicks;
-                      setLeaderboardCache({ ...data, lastUpdated: Date.now() } as any);
-                  }
-
-                  const validUsers = usersList.filter(u => u.displayName !== 'Admin Principal');
-                  
-                  const scores = validUsers.map(u => {
-                      if (u.totalPoints !== undefined) return { uid: u.id, points: u.totalPoints, rank: u.rank };
-                      const picks = allPicks[u.id] || {};
-                      const score = calculateScoreRollup(picks, raceResults, activePointsSystem, allDrivers);
-                      return { uid: u.id, points: score.totalPoints };
-                  });
-                  
-                  // Rank is derived from sorted points
-                  scores.sort((a, b) => b.points - a.points);
-                  const index = scores.findIndex(s => s.uid === user.id);
-                  if (index !== -1) {
-                      setUser(prev => prev ? { ...prev, rank: scores[index].rank || index + 1 } : prev);
-                  }
-              } catch (e) { /* silent fail */ }
-          }
-      };
-      
-      if (user && !user.rank) {
-          fetchRankFallback();
-      }
-  }, [user?.id, user?.rank, raceResults, activePointsSystem, allDrivers, currentTotalPoints, leaderboardCache]);
 
   useEffect(() => {
     let unsubscribeResults = () => {};
@@ -477,7 +439,10 @@ const App: React.FC = () => {
                 const data = snap.data();
                 setUser(prev => {
                     if (prev && prev.id === firebaseUser.uid) {
-                        return { ...prev, rank: data.rank, totalPoints: data.totalPoints };
+                        const safeRank = (typeof data.rank === 'number' && data.rank !== 999)
+                            ? data.rank
+                            : undefined;
+                        return { ...prev, rank: safeRank, totalPoints: data.totalPoints };
                     }
                     return prev;
                 });

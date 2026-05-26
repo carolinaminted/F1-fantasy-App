@@ -9,8 +9,6 @@ import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
-import { getAllUsersAndPicks } from '../services/firestoreService.ts';
-import { calculateScoreRollup } from '../services/scoringService.ts';
 import CountdownTimer from './CountdownTimer.tsx';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
