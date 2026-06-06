@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
-import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus, updatePickPenalty, purgeUserData } from '../services/firestoreService.ts';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, Event, EntityClass } from '../types.ts';
+import { getUserPicks, updateUserAdminStatus, updateUserDuesStatus, updatePickPenalty, purgeUserData, saveUserPicks, logAdminAction } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { auth } from '../services/firebase.ts';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -37,7 +38,95 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     const [isPurging, setIsPurging] = useState(false);
     const [showPurgeModal, setShowPurgeModal] = useState(false);
 
+    // Pick overrides features
+    const [selectedEventId, setSelectedEventId] = useState<string>('');
+    const [adminPicks, setAdminPicks] = useState<PickSelection>({
+        aTeams: [null, null],
+        bTeam: null,
+        aDrivers: [null, null, null],
+        bDrivers: [null, null],
+        fastestLap: null
+    });
+    const [isSubmittingPicks, setIsSubmittingPicks] = useState(false);
+
     const { showToast } = useToast();
+
+    useEffect(() => {
+        if (selectedEventId) {
+            const existingPicks = seasonPicks[selectedEventId];
+            if (existingPicks) {
+                setAdminPicks({
+                    aTeams: Array.isArray(existingPicks.aTeams) ? [...existingPicks.aTeams] : [null, null],
+                    bTeam: existingPicks.bTeam || null,
+                    aDrivers: Array.isArray(existingPicks.aDrivers) ? [...existingPicks.aDrivers] : [null, null, null],
+                    bDrivers: Array.isArray(existingPicks.bDrivers) ? [...existingPicks.bDrivers] : [null, null],
+                    fastestLap: existingPicks.fastestLap || null,
+                    penalty: existingPicks.penalty || 0,
+                    penaltyReason: existingPicks.penaltyReason || ''
+                });
+            } else {
+                setAdminPicks({
+                    aTeams: [null, null],
+                    bTeam: null,
+                    aDrivers: [null, null, null],
+                    bDrivers: [null, null],
+                    fastestLap: null
+                });
+            }
+        }
+    }, [selectedEventId, seasonPicks]);
+
+    const handleAdminSubmitPicks = async () => {
+        if (!selectedEventId) {
+            showToast("Please select an event first.", 'error');
+            return;
+        }
+
+        const hasDuplicates = (arr: (string | null)[]) => {
+            const filtered = arr.filter(Boolean);
+            return filtered.length !== new Set(filtered).size;
+        };
+
+        if (hasDuplicates(adminPicks.aTeams)) {
+            showToast("Duplicate Class A Teams selected.", 'error');
+            return;
+        }
+        if (hasDuplicates(adminPicks.aDrivers)) {
+            showToast("Duplicate Class A Drivers selected.", 'error');
+            return;
+        }
+        if (hasDuplicates(adminPicks.bDrivers)) {
+            showToast("Duplicate Class B Drivers selected.", 'error');
+            return;
+        }
+
+        setIsSubmittingPicks(true);
+        try {
+            await saveUserPicks(targetUser.id, selectedEventId, adminPicks, true);
+
+            const adminUser = auth.currentUser;
+            await logAdminAction({
+                adminId: adminUser?.uid || 'unknown_admin',
+                adminName: adminUser?.displayName || adminUser?.email || 'Admin',
+                eventId: selectedEventId,
+                eventName: events.find(e => e.id === selectedEventId)?.name || selectedEventId,
+                action: 'admin_pick_override',
+                changes: `Administrative pick submitted on behalf of user ${targetUser.displayName} (${targetUser.email || 'No email'})`
+            });
+
+            setSeasonPicks(prev => ({
+                ...prev,
+                [selectedEventId]: adminPicks
+            }));
+
+            showToast(`Picks successfully submitted on behalf of ${targetUser.displayName} for event ${selectedEventId}.`, 'success');
+        } catch (error) {
+            console.error("Failed to submit picks on behalf:", error);
+            showToast("Failed to save picks on behalf of user.", 'error');
+        } finally {
+            setIsSubmittingPicks(false);
+        }
+    };
 
     useEffect(() => {
         const fetchPicks = async () => {
@@ -121,6 +210,11 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     if (isLoading) {
         return <ProfileSkeleton />;
     }
+
+    const aDriversList = allDrivers.filter(d => d.class === EntityClass.A && d.isActive);
+    const bDriversList = allDrivers.filter(d => d.class === EntityClass.B && d.isActive);
+    const aTeamsList = allConstructors.filter(c => c.class === EntityClass.A && c.isActive);
+    const bTeamsList = allConstructors.filter(c => c.class === EntityClass.B && c.isActive);
 
     return (
         <div>
@@ -213,6 +307,200 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                             )}
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Submit Picks on Behalf of User */}
+            <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl p-6 mb-6 space-y-6 shadow-xl">
+                <h3 className="font-bold text-pure-white text-xl border-b border-pure-white/10 pb-4 flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                        <span className="text-primary-red font-black">⚙</span> Submit / Edit Picks on Behalf of User
+                    </span>
+                    <span className="text-xs text-highlight-silver bg-primary-red/10 border border-primary-red/20 px-2.5 py-1 rounded-full uppercase tracking-wider font-semibold">Admin Override Mode</span>
+                </h3>
+
+                <div className="space-y-4">
+                    {/* Event Selector */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-highlight-silver">Select Event</label>
+                        <select
+                            value={selectedEventId}
+                            onChange={(e) => setSelectedEventId(e.target.value)}
+                            className="bg-carbon-black border border-accent-gray rounded px-3 py-2 text-pure-white text-sm focus:border-primary-red focus:outline-none w-full"
+                        >
+                            <option value="">-- Choose Event --</option>
+                            {events.map(ev => {
+                                const hasPicks = !!seasonPicks[ev.id];
+                                return (
+                                    <option key={ev.id} value={ev.id}>
+                                        Round {ev.round}: {ev.name} ({ev.location}) {hasPicks ? '✓ (Picks Exist)' : '(No Picks)'}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
+
+                    {selectedEventId && (
+                        <div className="space-y-6 pt-4 border-t border-pure-white/5 animate-fade-in-up">
+                            {/* Teams Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Class A Teams */}
+                                <div className="p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary-red">Class A Teams (Select 2)</h4>
+                                    <div className="space-y-2">
+                                        <select
+                                            value={adminPicks.aTeams[0] || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value || null;
+                                                setAdminPicks(prev => ({
+                                                    ...prev,
+                                                    aTeams: [val, prev.aTeams[1]]
+                                                }));
+                                            }}
+                                            className="bg-carbon-black border border-accent-gray rounded px-3 py-1.5 text-pure-white text-xs focus:border-primary-red focus:outline-none w-full"
+                                        >
+                                            <option value="">-- Class A Team 1 --</option>
+                                            {aTeamsList.map(team => (
+                                                <option key={team.id} value={team.id}>{team.name}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={adminPicks.aTeams[1] || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value || null;
+                                                setAdminPicks(prev => ({
+                                                    ...prev,
+                                                    aTeams: [prev.aTeams[0], val]
+                                                }));
+                                            }}
+                                            className="bg-carbon-black border border-accent-gray rounded px-3 py-1.5 text-pure-white text-xs focus:border-primary-red focus:outline-none w-full"
+                                        >
+                                            <option value="">-- Class A Team 2 --</option>
+                                            {aTeamsList.map(team => (
+                                                <option key={team.id} value={team.id}>{team.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Class B Team */}
+                                <div className="p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-green-500">Class B Team (Select 1)</h4>
+                                    <select
+                                        value={adminPicks.bTeam || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value || null;
+                                            setAdminPicks(prev => ({
+                                                ...prev,
+                                                bTeam: val
+                                            }));
+                                        }}
+                                        className="bg-carbon-black border border-accent-gray rounded px-3 py-1.5 text-pure-white text-xs focus:border-primary-red focus:outline-none w-full"
+                                    >
+                                        <option value="">-- Class B Team --</option>
+                                        {bTeamsList.map(team => (
+                                            <option key={team.id} value={team.id}>{team.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Fastest Lap Extra */}
+                                <div className="p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400">Fastest Lap Driver</h4>
+                                    <select
+                                        value={adminPicks.fastestLap || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value || null;
+                                            setAdminPicks(prev => ({
+                                                ...prev,
+                                                fastestLap: val
+                                            }));
+                                        }}
+                                        className="bg-carbon-black border border-accent-gray rounded px-3 py-1.5 text-pure-white text-xs focus:border-primary-red focus:outline-none w-full"
+                                    >
+                                        <option value="">-- Select Driver --</option>
+                                        {allDrivers.filter(d => d.isActive).map(driver => (
+                                            <option key={driver.id} value={driver.id}>{driver.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Drivers Rows */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Class A Drivers */}
+                                <div className="p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary-red">Class A Drivers (Select 3)</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        {[0, 1, 2].map(idx => (
+                                            <select
+                                                key={idx}
+                                                value={adminPicks.aDrivers[idx] || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value || null;
+                                                    setAdminPicks(prev => {
+                                                        const arr = [...prev.aDrivers];
+                                                        arr[idx] = val;
+                                                        return { ...prev, aDrivers: arr };
+                                                    });
+                                                }}
+                                                className="bg-carbon-black border border-accent-gray rounded px-3 py-1.5 text-pure-white text-xs focus:border-primary-red focus:outline-none w-full"
+                                            >
+                                                <option value="">-- Driver {idx + 1} --</option>
+                                                {aDriversList.map(driver => (
+                                                    <option key={driver.id} value={driver.id}>{driver.name}</option>
+                                                ))}
+                                            </select>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Class B Drivers */}
+                                <div className="p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-green-500">Class B Drivers (Select 2)</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {[0, 1].map(idx => (
+                                            <select
+                                                key={idx}
+                                                value={adminPicks.bDrivers[idx] || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value || null;
+                                                    setAdminPicks(prev => {
+                                                        const arr = [...prev.bDrivers];
+                                                        arr[idx] = val;
+                                                        return { ...prev, bDrivers: arr };
+                                                    });
+                                                }}
+                                                className="bg-carbon-black border border-accent-gray rounded px-3 py-1.5 text-pure-white text-xs focus:border-primary-red focus:outline-none w-full"
+                                            >
+                                                <option value="">-- Driver {idx + 1} --</option>
+                                                {bDriversList.map(driver => (
+                                                    <option key={driver.id} value={driver.id}>{driver.name}</option>
+                                                ))}
+                                            </select>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="flex justify-end pt-2">
+                                <button
+                                    onClick={handleAdminSubmitPicks}
+                                    disabled={isSubmittingPicks}
+                                    className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-2.5 px-6 rounded-lg text-sm disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20 uppercase tracking-wide cursor-pointer flex items-center gap-2"
+                                >
+                                    {isSubmittingPicks && (
+                                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                    )}
+                                    <span>{isSubmittingPicks ? 'Saving Override Picks...' : 'Submit Override Picks'}</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
