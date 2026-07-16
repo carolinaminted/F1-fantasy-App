@@ -266,6 +266,10 @@ const App: React.FC = () => {
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
   const [leaderboardCache, setLeaderboardCache] = useState<LeaderboardCache | null>(null);
 
+  // Caches for the user profile snapshots to avoid race conditions and stale closures
+  const publicProfileDataRef = useRef<{ rank?: number; totalPoints?: number } | null>(null);
+  const userProfileDataRef = useRef<User | null>(null);
+
   // Implement Session Security
   const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
   
@@ -369,6 +373,10 @@ const App: React.FC = () => {
       unsubscribePublicProfile();
       unsubscribeCancelled();
 
+      // Clear caches on auth change
+      publicProfileDataRef.current = null;
+      userProfileDataRef.current = null;
+
       if (firebaseUser) {
         // If we have a user but aren't authenticated yet, we are transitioning (logging in)
         if (!isAuthenticated) {
@@ -437,12 +445,19 @@ const App: React.FC = () => {
         unsubscribePublicProfile = onSnapshot(publicProfileRef, (snap) => {
             if (snap.exists()) {
                 const data = snap.data();
+                const safeRank = (typeof data.rank === 'number' && data.rank !== 999)
+                    ? data.rank
+                    : undefined;
+                publicProfileDataRef.current = { rank: safeRank, totalPoints: data.totalPoints };
+                
                 setUser(prev => {
-                    if (prev && prev.id === firebaseUser.uid) {
-                        const safeRank = (typeof data.rank === 'number' && data.rank !== 999)
-                            ? data.rank
-                            : undefined;
-                        return { ...prev, rank: safeRank, totalPoints: data.totalPoints };
+                    const currentProfile = userProfileDataRef.current || prev;
+                    if (currentProfile && currentProfile.id === firebaseUser.uid) {
+                        return {
+                            ...currentProfile,
+                            rank: safeRank,
+                            totalPoints: data.totalPoints
+                        };
                     }
                     return prev;
                 });
@@ -463,11 +478,14 @@ const App: React.FC = () => {
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
           if (profileSnap.exists()) {
             const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
-            setUser(prev => ({
+            userProfileDataRef.current = userProfile;
+            
+            const publicData = publicProfileDataRef.current;
+            setUser({
                 ...userProfile,
-                rank: prev?.rank,
-                totalPoints: prev?.totalPoints
-            }));
+                rank: publicData ? publicData.rank : undefined,
+                totalPoints: publicData ? publicData.totalPoints : undefined
+            });
             
             // Only set authenticated once profile is loaded
             setIsAuthenticated(true);

@@ -23,6 +23,7 @@ import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks, getUserPicks } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
 
 // --- Configuration ---
 const REFRESH_COOLDOWN_SECONDS = 60;
@@ -414,7 +415,11 @@ const PopularityView: React.FC<{
             Object.keys(userPicks).forEach(eid => eventIdsWithPicks.add(eid));
         });
 
-        const completedEvents = events.filter(e => eventIdsWithPicks.has(e.id) && !cancelledEventIds.has(e.id)).sort((a, b) => new Date(a.lockAtUtc).getTime() - new Date(b.lockAtUtc).getTime());
+        const completedEvents = events.filter(e => eventIdsWithPicks.has(e.id) && !cancelledEventIds.has(e.id)).sort((a, b) => {
+            const timeA = parseLeagueDate(a.lockAtUtc)?.getTime() || 0;
+            const timeB = parseLeagueDate(b.lockAtUtc)?.getTime() || 0;
+            return timeA - timeB;
+        });
         
         let relevantEvents: Event[] = completedEvents;
         if (timeRange === '30' && completedEvents.length > 0) relevantEvents = completedEvents.slice(-3); 

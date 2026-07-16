@@ -13,6 +13,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { db } from '../services/firebase.ts';
 import { doc, setDoc } from '@firebase/firestore';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
 
 const LEAGUE_TIMEZONE = 'America/New_York';
 
@@ -193,8 +194,8 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
         const rawDate = schedule?.race;
         if (!rawDate) return 'TBA';
         
-        const date = new Date(rawDate);
-        if (isNaN(date.getTime())) return 'TBA';
+        const date = parseLeagueDate(rawDate);
+        if (!date || isNaN(date.getTime())) return 'TBA';
         
         return new Intl.DateTimeFormat('en-US', { 
             month: 'short', 
