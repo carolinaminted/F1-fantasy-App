@@ -155,8 +155,7 @@ const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: stri
         </div>
         
         {/* Footer Action */}
-        <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
-            <span>Access</span>
+        <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-end text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
             <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
         </div>
     </button>
@@ -1379,13 +1378,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
   if (view === 'menu') {
       return (
-          <div className="w-full max-w-7xl mx-auto animate-fade-in">
+          <div className="w-full max-w-5xl mx-auto px-2 md:px-0 animate-fade-in">
               <PageHeader 
                 title="LEADERBOARDS" 
                 icon={LeaderboardIcon} 
                 rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
               />
-              <div className="pb-20 md:pb-12 px-4 md:px-0">
+              <div className="pb-20 md:pb-12 px-2">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <NavTile icon={TrophyIcon} title="Executive Dashboard" subtitle="VIP Showcase" desc="High-octane F1 showcase featuring Top 10 principals & live grid telemetry." onClick={() => setView('executive')} delay="0ms" />
                       <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} delay="100ms" />

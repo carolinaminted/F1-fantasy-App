@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, EventResult, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { calculatePointsForEvent } from '../services/scoringService.ts';
@@ -205,6 +205,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [resetCooldown, setResetCooldown] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  // Manage Account Dropdown State
+  const [isManageAccountOpen, setIsManageAccountOpen] = useState(false);
+  const manageAccountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (manageAccountRef.current && !manageAccountRef.current.contains(event.target as Node)) {
+        setIsManageAccountOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     // Update local state if user prop changes (e.g. external update)
@@ -555,7 +569,67 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   // This prevents incorrect or irrelevant flashing in the leaderboard modal
   const showDuesIndicator = isDuesUnpaid && !isPublicView;
 
-  const showTopSection = showDuesIndicator || showEditControls;
+  // Manage Account Dropdown for PageHeader
+  const manageAccountAction = showEditControls ? (
+    <div className="relative" ref={manageAccountRef}>
+      <button
+        onClick={() => setIsManageAccountOpen(prev => !prev)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs md:text-sm bg-carbon-black/80 border border-pure-white/20 text-pure-white hover:border-primary-red/50 hover:bg-carbon-black transition-all shadow-lg backdrop-blur-md cursor-pointer active:scale-95"
+      >
+        <span>Manage Account</span>
+        <ChevronDownIcon className={`w-4 h-4 text-highlight-silver transition-transform duration-200 ${isManageAccountOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isManageAccountOpen && (
+        <div className="absolute right-0 top-full mt-2 w-56 bg-carbon-fiber border border-pure-white/20 rounded-xl shadow-2xl overflow-hidden z-50 py-1.5 backdrop-blur-md animate-fade-in-down">
+          <button
+            onClick={() => {
+              setIsEditingProfile(true);
+              setIsManageAccountOpen(false);
+            }}
+            className="w-full px-4 py-2.5 text-left text-xs font-bold text-pure-white hover:bg-pure-white/10 transition-colors flex items-center gap-2.5 cursor-pointer"
+          >
+            <ProfileIcon className="w-4 h-4 text-primary-red" />
+            <span>Edit Details</span>
+          </button>
+
+          <div className="h-px bg-pure-white/10 my-1" />
+
+          {isResettingPassword ? (
+            <div className="px-4 py-2.5 text-xs font-semibold text-primary-red flex items-center gap-2">
+              <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+              <span>Sending Reset Link…</span>
+            </div>
+          ) : resetCooldown ? (
+            <div className="px-4 py-2.5 text-xs font-semibold text-green-400">
+              ✓ Reset Link Sent
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                handlePasswordReset();
+              }}
+              className="w-full px-4 py-2.5 text-left text-xs font-bold text-highlight-silver hover:text-pure-white hover:bg-pure-white/10 transition-colors flex items-center gap-2.5 cursor-pointer"
+            >
+              <span className="w-4 h-4 text-highlight-silver text-center font-mono">🔑</span>
+              <span>Reset Password</span>
+            </button>
+          )}
+
+          {resetStatus && (
+            <div className="px-4 py-2 text-[10px] border-t border-pure-white/10 mt-1">
+              <p className={resetStatus.type === 'success' ? 'text-green-400 font-semibold' : 'text-primary-red font-semibold'}>
+                {resetStatus.message}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  ) : undefined;
 
   return (
     <>
@@ -565,66 +639,22 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           <PageHeader 
               title="PROFILE" 
               icon={ProfileIcon} 
+              rightAction={manageAccountAction}
           />
       )}
 
       {/* Profile Info Section */}
       <div className="bg-carbon-fiber rounded-lg p-6 ring-1 ring-pure-white/10 relative shadow-2xl">
-        {showTopSection && (
-            <div className="flex flex-col items-center justify-center mb-8 relative z-10">
+        {showDuesIndicator && (
+            <div className="flex justify-center mb-6 relative z-10">
                 {/* Dues Status - Only show if Unpaid and Private View */}
-                {showDuesIndicator && (
-                    <button 
-                        onClick={handleDuesClick}
-                        disabled={!setActivePage || isPublicView}
-                        className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md mb-3 bg-primary-red text-pure-white animate-pulse-red-limited ${setActivePage && !isPublicView ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
-                    >
-                        Dues: Unpaid
-                    </button>
-                )}
-
-                {/* Edit Details Button - Hide in Public View */}
-                {showEditControls && (
-                    <div className="flex flex-col items-center gap-3">
-                        <button 
-                            onClick={() => setIsEditingProfile(true)}
-                            className="text-sm font-bold text-pure-white hover:text-pure-white transition-all bg-carbon-black/90 px-6 py-2 rounded-full border border-pure-white/20 hover:border-primary-red/50 shadow-lg hover:shadow-primary-red/20 uppercase tracking-wide backdrop-blur-sm"
-                        >
-                            Edit Details
-                        </button>
-                        {isResettingPassword ? (
-                            <button 
-                                disabled
-                                className="text-xs font-semibold text-primary-red border-primary-red/40 bg-primary-red/10 animate-pulse cursor-wait transition-all px-5 py-1.5 rounded-full border flex items-center gap-2"
-                            >
-                                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                                </svg>
-                                Sending Reset Link…
-                            </button>
-                        ) : resetCooldown ? (
-                            <button 
-                                disabled
-                                className="text-xs font-semibold text-green-400 border-green-500/30 bg-green-500/10 opacity-80 cursor-default transition-all px-5 py-1.5 rounded-full border"
-                            >
-                                ✓ Reset Link Sent
-                            </button>
-                        ) : (
-                            <button 
-                                onClick={handlePasswordReset}
-                                className="text-xs font-semibold text-highlight-silver hover:text-pure-white transition-all px-5 py-1.5 rounded-full border border-accent-gray hover:border-highlight-silver"
-                            >
-                                Reset Password
-                            </button>
-                        )}
-                        {resetStatus && (
-                            <p className={`text-xs text-center ${resetStatus.type === 'success' ? 'text-green-400' : 'text-primary-red'}`}>
-                                {resetStatus.message}
-                            </p>
-                        )}
-                    </div>
-                )}
+                <button 
+                    onClick={handleDuesClick}
+                    disabled={!setActivePage || isPublicView}
+                    className={`px-4 py-1.5 text-xs font-extrabold uppercase rounded-full transition-all hover:scale-105 border border-black/20 shadow-md bg-primary-red text-pure-white animate-pulse-red-limited ${setActivePage && !isPublicView ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+                >
+                    Dues: Unpaid
+                </button>
             </div>
         )}
         
