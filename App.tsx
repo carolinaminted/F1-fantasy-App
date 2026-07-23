@@ -654,7 +654,18 @@ const App: React.FC = () => {
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
       case 'gp-results':
-        return <GpResultsPage raceResults={raceResults} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} setActivePage={navigateToPage} cancelledEventIds={cancelledEventIds} />;
+        return <SchedulePage 
+          schedules={eventSchedules} 
+          events={mergedEvents} 
+          onRefresh={handleScheduleUpdate} 
+          raceResults={raceResults} 
+          setActivePage={navigateToPage} 
+          cancelledEventIds={cancelledEventIds}
+          allDrivers={allDrivers}
+          allConstructors={allConstructors}
+          initialEventId={targetEventId}
+          initialViewResults={true}
+        />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         return null;
@@ -663,7 +674,17 @@ const App: React.FC = () => {
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'schedule':
-        return <SchedulePage schedules={eventSchedules} events={mergedEvents} onRefresh={handleScheduleUpdate} raceResults={raceResults} setActivePage={navigateToPage} cancelledEventIds={cancelledEventIds} />;
+        return <SchedulePage 
+          schedules={eventSchedules} 
+          events={mergedEvents} 
+          onRefresh={handleScheduleUpdate} 
+          raceResults={raceResults} 
+          setActivePage={navigateToPage} 
+          cancelledEventIds={cancelledEventIds}
+          allDrivers={allDrivers}
+          allConstructors={allConstructors}
+          initialEventId={targetEventId}
+        />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'support':

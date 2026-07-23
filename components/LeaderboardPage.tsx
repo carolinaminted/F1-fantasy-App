@@ -24,6 +24,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks, getUserPicks } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
+import ExecutiveDashboardView from './ExecutiveDashboardView.tsx';
 
 // --- Configuration ---
 const REFRESH_COOLDOWN_SECONDS = 60;
@@ -32,7 +33,7 @@ const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
 // --- Shared Types & Helpers ---
 
-type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities' | 'p22';
+type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities' | 'p22' | 'executive';
 
 type ProcessedUser = User;
 
@@ -327,18 +328,25 @@ const RaceChart: React.FC<{ users: ProcessedUser[], currentUser: User | null, ha
                         const displayName = user.displayName || "Unknown Team";
                         const shortName = displayName.length > 12 ? `${displayName.substring(0, 12)}...` : displayName;
 
+                        const isCurrentUser = user.id === currentUser?.id || (currentUser?.displayName && user.displayName?.toLowerCase() === currentUser.displayName.toLowerCase());
+
                         return (
-                            <div key={user.id} className={`flex items-center gap-2 md:gap-3 h-10 md:h-12 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors ${user.id === currentUser?.id ? 'bg-primary-red/10 border border-primary-red/30' : ''}`}>
+                            <div key={user.id} className={`flex items-center gap-2 md:gap-3 h-10 md:h-12 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors ${isCurrentUser ? 'bg-purple-900/30 border border-purple-500/50 shadow-md ring-1 ring-purple-500/30' : ''}`}>
                                 <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
-                                <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver md:group-hover:text-pure-white transition-colors shrink-0">
-                                    <span className="md:hidden">
+                                <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver md:group-hover:text-pure-white transition-colors shrink-0 flex items-center gap-1.5">
+                                    <span className="md:hidden truncate">
                                         {shortName}
                                     </span>
                                     <span className="hidden md:inline truncate">
                                         {displayName}
                                     </span>
+                                    {isCurrentUser && (
+                                        <span className="text-[8px] font-mono font-bold bg-purple-600 text-pure-white px-1.5 py-0.2 rounded border border-purple-400/50 shrink-0">
+                                            YOU
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex-1 relative h-full flex items-center ml-4 md:ml-6 mr-1 md:mr-2">
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
@@ -1357,6 +1365,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
   const getHeaderProps = () => {
       switch (view) {
+          case 'executive': return { title: "EXECUTIVE DASHBOARD", icon: TrophyIcon };
           case 'standings': return { title: "LEAGUE STANDINGS", icon: LeaderboardIcon };
           case 'popular': return { title: "POPULAR PICKS", icon: TrendingUpIcon };
           case 'entities': return { title: "DRIVER & TEAM POINTS", icon: TeamIcon };
@@ -1378,11 +1387,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
               />
               <div className="pb-20 md:pb-12 px-4 md:px-0">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                      <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} />
-                      <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="100ms" />
-                      <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="200ms" />
-                      <NavTile icon={LightbulbIcon} title="Insights" subtitle="Deep Dive" desc="Deep dive into performance breakdowns and superlatives." onClick={() => setView('insights')} delay="300ms" />
-                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the driver finishing P22 (Last Place) the most often." onClick={() => setView('p22')} delay="400ms" />
+                      <NavTile icon={TrophyIcon} title="Executive Dashboard" subtitle="VIP Showcase" desc="High-octane F1 showcase featuring Top 10 principals & live grid telemetry." onClick={() => setView('executive')} delay="0ms" />
+                      <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} delay="100ms" />
+                      <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="200ms" />
+                      <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="300ms" />
+                      <NavTile icon={LightbulbIcon} title="Insights" subtitle="Deep Dive" desc="Deep dive into performance breakdowns and superlatives." onClick={() => setView('insights')} delay="400ms" />
+                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the driver finishing P22 (Last Place) the most often." onClick={() => setView('p22')} delay="500ms" />
                   </div>
               </div>
           </div>
@@ -1406,6 +1416,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
           </div>
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
+            {view === 'executive' && <ExecutiveDashboardView users={processedUsers} currentUser={currentUser} allDrivers={allDrivers} allConstructors={allConstructors} events={events} onSelectUser={setSelectedUserProfile} />}
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} cancelledEventIds={cancelledEventIds} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}

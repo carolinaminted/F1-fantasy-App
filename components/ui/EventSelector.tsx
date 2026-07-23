@@ -13,9 +13,9 @@ interface EventSelectorProps {
     selectedEventId: string | null;
     onSelect: (event: Event) => void;
     placeholder?: string;
-    filters: FilterOption[];
+    filters?: FilterOption[];
     // Returns true if event matches the filter
-    filterPredicate: (event: Event, filterValue: string) => boolean;
+    filterPredicate?: (event: Event, filterValue: string) => boolean;
     // Returns a React Node to display on the right side of the list item (e.g. status dot)
     renderStatus?: (event: Event) => React.ReactNode;
     disabled?: boolean;
@@ -26,8 +26,8 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
     selectedEventId,
     onSelect,
     placeholder = "Select Event...",
-    filters,
-    filterPredicate,
+    filters = [{ label: 'All', value: 'all' }],
+    filterPredicate = () => true,
     renderStatus,
     disabled
 }) => {

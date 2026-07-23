@@ -3,7 +3,6 @@ import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DonationIcon } from './icons/DonationIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
-import { TrackIcon } from './icons/TrackIcon.tsx';
 import { GarageIcon } from './icons/GarageIcon.tsx';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
@@ -37,20 +36,12 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
                         delay="0ms"
                     />
                     <HubTile 
-                        icon={TrackIcon}
-                        title="GP Results"
-                        subtitle="Classifications"
-                        description="Official finishing orders & points."
-                        onClick={() => setActivePage('gp-results')}
-                        delay="100ms"
-                    />
-                    <HubTile 
                         icon={TrophyIcon}
                         title="Scoring System"
                         subtitle="Rules"
                         description="Points breakdown for race results."
                         onClick={() => setActivePage('points')}
-                        delay="200ms"
+                        delay="100ms"
                     />
                     <HubTile 
                         icon={GarageIcon}
@@ -58,7 +49,7 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
                         subtitle="The Grid"
                         description="Constructor rosters & driver line-ups."
                         onClick={() => setActivePage('drivers-teams')}
-                        delay="300ms"
+                        delay="200ms"
                     />
 
                     {/* --- League Administration Section --- */}
@@ -68,7 +59,7 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
                         subtitle="Support"
                         description="Victory Junction & League Ops."
                         onClick={() => setActivePage('donate')}
-                        delay="400ms"
+                        delay="300ms"
                     />
                     
                     <HubTile 
@@ -81,7 +72,7 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
                         subtitle="Help"
                         description="Feedback, questions, & feature requests."
                         onClick={() => setActivePage('support')}
-                        delay="450ms"
+                        delay="400ms"
                     />
 
                     <HubTile 
