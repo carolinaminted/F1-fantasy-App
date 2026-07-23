@@ -1547,13 +1547,13 @@ const F1BattleTelemetryVisualizer: React.FC<{
     Math.round(activePoints * 0.95),
     activePoints
   ];
-  const p1Trajectory = [
+  const p1Trajectory = p1Leader ? [
     Math.round(p1Points * 0.70),
     Math.round(p1Points * 0.79),
     Math.round(p1Points * 0.88),
     Math.round(p1Points * 0.94),
     p1Points
-  ];
+  ] : [];
   const aheadTrajectory = targetAhead ? [
     Math.round(aheadPoints * 0.71),
     Math.round(aheadPoints * 0.80),
@@ -1561,31 +1561,63 @@ const F1BattleTelemetryVisualizer: React.FC<{
     Math.round(aheadPoints * 0.94),
     aheadPoints
   ] : [];
+  const behindTrajectory = targetBehind ? [
+    Math.round(behindPoints * 0.69),
+    Math.round(behindPoints * 0.78),
+    Math.round(behindPoints * 0.86),
+    Math.round(behindPoints * 0.93),
+    behindPoints
+  ] : [];
+
+  // Relative Zoomed Y-Axis Scale
+  const allPlotPoints = [
+    ...activeTrajectory,
+    ...(p1Leader ? p1Trajectory : []),
+    ...(targetAhead ? aheadTrajectory : []),
+    ...(targetBehind ? behindTrajectory : [])
+  ];
+
+  const minPlotVal = Math.min(...allPlotPoints);
+  const maxPlotVal = Math.max(...allPlotPoints);
+  const rawSpan = Math.max(maxPlotVal - minPlotVal, 30);
+
+  // Buffer above & below so lines don't hit SVG boundaries
+  const yMinScale = Math.max(0, Math.floor(minPlotVal - rawSpan * 0.12));
+  const yMaxScale = Math.ceil(maxPlotVal + rawSpan * 0.15);
+  const ySpan = Math.max(yMaxScale - yMinScale, 40);
 
   // SVG Line chart dimensions
-  const lineW = 340;
-  const lineH = 120;
-  const maxPlotPoints = Math.max(p1Points, activePoints, aheadPoints, 100);
+  const lineW = 460;
+  const lineH = 170;
+  const marginL = 50;
+  const marginR = 30;
+  const marginTop = 25;
+  const marginBottom = 25;
+  const plotW = lineW - marginL - marginR;
+  const plotH = lineH - marginTop - marginBottom;
 
   const getLinePath = (data: number[]) => {
     return data.map((val, idx) => {
-      const x = (idx / (data.length - 1)) * (lineW - 40) + 20;
-      const y = lineH - 20 - (val / maxPlotPoints) * (lineH - 35);
-      return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+      const x = marginL + (idx / (data.length - 1)) * plotW;
+      const norm = (val - yMinScale) / ySpan;
+      const y = marginTop + plotH * (1 - norm);
+      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
     }).join(' ');
   };
 
   const getPointCoords = (data: number[]) => {
-    return data.map((val, idx) => ({
-      x: (idx / (data.length - 1)) * (lineW - 40) + 20,
-      y: lineH - 20 - (val / maxPlotPoints) * (lineH - 35),
-      val
-    }));
+    return data.map((val, idx) => {
+      const x = marginL + (idx / (data.length - 1)) * plotW;
+      const norm = (val - yMinScale) / ySpan;
+      const y = marginTop + plotH * (1 - norm);
+      return { x, y, val };
+    });
   };
 
   const activePointsCoords = getPointCoords(activeTrajectory);
-  const p1PointsCoords = getPointCoords(p1Trajectory);
+  const p1PointsCoords = p1Leader ? getPointCoords(p1Trajectory) : [];
   const aheadPointsCoords = targetAhead ? getPointCoords(aheadTrajectory) : [];
+  const behindPointsCoords = targetBehind ? getPointCoords(behindTrajectory) : [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -1929,16 +1961,22 @@ const F1BattleTelemetryVisualizer: React.FC<{
         <div className="w-full overflow-x-auto custom-scrollbar py-2">
           <div className="min-w-[340px] flex flex-col items-center">
             <svg width={lineW} height={lineH} viewBox={`0 0 ${lineW} ${lineH}`} className="overflow-visible">
-              {/* Horizontal Grid lines */}
-              {[0.25, 0.5, 0.75, 1.0].map((grid, i) => {
-                const y = lineH - 20 - grid * (lineH - 35);
+              {/* Horizontal Grid lines with Y-Axis Score Scale Ticks */}
+              {[0, 0.5, 1.0].map((gridRatio, i) => {
+                const tickScore = Math.round(yMinScale + gridRatio * ySpan);
+                const y = marginTop + plotH * (1 - gridRatio);
                 return (
-                  <line key={i} x1="20" y1={y} x2={lineW - 20} y2={y} stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
+                  <g key={i}>
+                    <line x1={marginL} y1={y} x2={lineW - marginR} y2={y} stroke="rgba(255, 255, 255, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
+                    <text x={marginL - 8} y={y + 3} fill="#a3a3a3" fontSize="8" fontWeight="bold" textAnchor="end" className="font-mono">
+                      {tickScore}
+                    </text>
+                  </g>
                 );
               })}
 
               {/* P1 Leader Line */}
-              {p1Leader && (
+              {p1Leader && p1Trajectory.length > 0 && (
                 <>
                   <path d={getLinePath(p1Trajectory)} fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="3 3" />
                   {p1PointsCoords.map((pt, i) => (
@@ -1948,21 +1986,36 @@ const F1BattleTelemetryVisualizer: React.FC<{
               )}
 
               {/* Target Ahead Line */}
-              {targetAhead && (
+              {targetAhead && aheadTrajectory.length > 0 && (
                 <>
-                  <path d={getLinePath(aheadTrajectory)} fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+                  <path d={getLinePath(aheadTrajectory)} fill="none" stroke="#38bdf8" strokeWidth="2" />
                   {aheadPointsCoords.map((pt, i) => (
-                    <circle key={i} cx={pt.x} cy={pt.y} r="2.5" fill="#38bdf8" />
+                    <g key={i}>
+                      <circle cx={pt.x} cy={pt.y} r="3.5" fill="#38bdf8" />
+                      <text x={pt.x} y={pt.y - 6} fill="#7dd3fc" fontSize="7.5" fontWeight="bold" textAnchor="middle" className="font-mono">
+                        {pt.val}
+                      </text>
+                    </g>
                   ))}
                 </>
               )}
 
-              {/* Active User Line */}
-              <path d={getLinePath(activeTrajectory)} fill="none" stroke={isSelf ? "#c084fc" : "#f87171"} strokeWidth="3" />
+              {/* Target Behind Line */}
+              {targetBehind && behindTrajectory.length > 0 && (
+                <>
+                  <path d={getLinePath(behindTrajectory)} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="2 2" />
+                  {behindPointsCoords.map((pt, i) => (
+                    <circle key={i} cx={pt.x} cy={pt.y} r="3" fill="#f59e0b" />
+                  ))}
+                </>
+              )}
+
+              {/* Active User Line (Hero Line) */}
+              <path d={getLinePath(activeTrajectory)} fill="none" stroke={isSelf ? "#c084fc" : "#f87171"} strokeWidth="3.5" />
               {activePointsCoords.map((pt, i) => (
                 <g key={i}>
-                  <circle cx={pt.x} cy={pt.y} r="5" fill={isSelf ? "#a855f7" : "#ef4444"} stroke="#ffffff" strokeWidth="1.5" />
-                  <text x={pt.x} y={pt.y - 9} fill={isSelf ? "#e9d5ff" : "#fca5a5"} fontSize="8" fontWeight="bold" textAnchor="middle" className="font-mono">
+                  <circle cx={pt.x} cy={pt.y} r="5.5" fill={isSelf ? "#a855f7" : "#ef4444"} stroke="#ffffff" strokeWidth="2" />
+                  <text x={pt.x} y={pt.y - 9} fill={isSelf ? "#e9d5ff" : "#fca5a5"} fontSize="8.5" fontWeight="black" textAnchor="middle" className="font-mono">
                     {pt.val}
                   </text>
                 </g>
@@ -1970,9 +2023,9 @@ const F1BattleTelemetryVisualizer: React.FC<{
 
               {/* X-Axis Round Labels */}
               {rounds.map((rName, idx) => {
-                const x = (idx / (rounds.length - 1)) * (lineW - 40) + 20;
+                const x = marginL + (idx / (rounds.length - 1)) * plotW;
                 return (
-                  <text key={idx} x={x} y={lineH - 4} fill="#a3a3a3" fontSize="8" fontWeight="bold" textAnchor="middle" className="font-mono">
+                  <text key={idx} x={x} y={lineH - 4} fill="#d4d4d4" fontSize="9" fontWeight="bold" textAnchor="middle" className="font-mono">
                     {rName}
                   </text>
                 );
@@ -1980,20 +2033,26 @@ const F1BattleTelemetryVisualizer: React.FC<{
             </svg>
 
             {/* Line Chart Legend */}
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-2 font-mono text-[10px]">
-              <div className="flex items-center gap-1.5">
-                <span className={`w-3 h-0.5 ${isSelf ? 'bg-purple-400' : 'bg-red-400'}`} />
-                <span className="text-pure-white font-bold">{activeUser.displayName}</span>
+            <div className="flex flex-wrap items-center justify-center gap-4 mt-3 font-mono text-[10px]">
+              <div className="flex items-center gap-1.5 bg-carbon-black/80 px-2 py-1 rounded border border-pure-white/10">
+                <span className={`w-3 h-1 rounded ${isSelf ? 'bg-purple-400' : 'bg-red-400'}`} />
+                <span className="text-pure-white font-bold">{activeUser.displayName} (Active)</span>
               </div>
               {targetAhead && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-0.5 bg-sky-400" />
+                <div className="flex items-center gap-1.5 bg-carbon-black/80 px-2 py-1 rounded border border-sky-500/30">
+                  <span className="w-3 h-1 rounded bg-sky-400" />
                   <span className="text-sky-300 font-bold">P{targetAhead.rank} {targetAhead.displayName}</span>
                 </div>
               )}
+              {targetBehind && (
+                <div className="flex items-center gap-1.5 bg-carbon-black/80 px-2 py-1 rounded border border-amber-500/30">
+                  <span className="w-3 h-1 rounded bg-amber-400" />
+                  <span className="text-amber-300 font-bold">P{targetBehind.rank} {targetBehind.displayName}</span>
+                </div>
+              )}
               {p1Leader && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-0.5 bg-emerald-400" />
+                <div className="flex items-center gap-1.5 bg-carbon-black/80 px-2 py-1 rounded border border-emerald-500/30">
+                  <span className="w-3 h-1 rounded bg-emerald-400" />
                   <span className="text-emerald-400 font-bold">P1 {p1Leader.displayName}</span>
                 </div>
               )}
