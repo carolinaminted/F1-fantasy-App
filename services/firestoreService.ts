@@ -381,26 +381,72 @@ export const getAdminLogs = async (eventId?: string): Promise<AdminLogEntry[]> =
 
 // --- Generic Database Manager Functions ---
 
-export const getGenericDocuments = async (collectionName: string, pageSize = 10, lastDoc: any = null) => {
+export const getGenericDocuments = async (
+    collectionName: string, 
+    pageSize = 10, 
+    lastDoc: any = null,
+    orderByField?: string,
+    orderDirection: 'asc' | 'desc' = 'desc'
+) => {
     const colRef = collection(db, collectionName);
-    // Note: We don't know the fields, so we can't reliably sort by 'createdAt' unless we know it exists.
-    // Defaulting to simple limit or sorting by document ID if possible, but Firestore auto-sorts by ID.
-    // For pagination to work, we need an orderBy.
-    let q = query(colRef, orderBy('__name__'), limit(pageSize));
-    if (lastDoc) {
-        q = query(colRef, orderBy('__name__'), startAfter(lastDoc), limit(pageSize));
+    let sortField = orderByField;
+    let sortDir = orderDirection;
+
+    if (!sortField) {
+        if (collectionName === 'admin_logs') {
+            sortField = 'timestamp';
+            sortDir = 'desc';
+        } else if (collectionName === 'dues_payments') {
+            sortField = 'timestamp';
+            sortDir = 'desc';
+        } else if (collectionName === 'invitation_codes' || collectionName === 'email_verifications') {
+            sortField = 'createdAt';
+            sortDir = 'desc';
+        }
     }
-    
-    const snap = await getDocs(q);
-    const docs = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-    }));
-    
-    return { 
-        docs, 
-        lastDoc: snap.docs[snap.docs.length - 1] 
-    };
+
+    try {
+        let q;
+        if (sortField) {
+            if (lastDoc) {
+                q = query(colRef, orderBy(sortField, sortDir), startAfter(lastDoc), limit(pageSize));
+            } else {
+                q = query(colRef, orderBy(sortField, sortDir), limit(pageSize));
+            }
+        } else {
+            if (lastDoc) {
+                q = query(colRef, orderBy('__name__'), startAfter(lastDoc), limit(pageSize));
+            } else {
+                q = query(colRef, orderBy('__name__'), limit(pageSize));
+            }
+        }
+
+        const snap = await getDocs(q);
+        const docs = snap.docs.map(d => ({
+            id: d.id,
+            ...(d.data() as Record<string, any>)
+        }));
+
+        return { 
+            docs, 
+            lastDoc: snap.docs[snap.docs.length - 1] 
+        };
+    } catch (err) {
+        console.warn(`Query with orderBy('${sortField}') failed for ${collectionName}, falling back to document ID order:`, err);
+        let fallbackQ = query(colRef, orderBy('__name__'), limit(pageSize));
+        if (lastDoc) {
+            fallbackQ = query(colRef, orderBy('__name__'), startAfter(lastDoc), limit(pageSize));
+        }
+        const snap = await getDocs(fallbackQ);
+        const docs = snap.docs.map(d => ({
+            id: d.id,
+            ...(d.data() as Record<string, any>)
+        }));
+        return {
+            docs,
+            lastDoc: snap.docs[snap.docs.length - 1]
+        };
+    }
 };
 
 export const saveGenericDocument = async (collectionName: string, docId: string, data: any) => {

@@ -573,10 +573,10 @@ const PopularityView: React.FC<{
 type InsightVariant = 'gp' | 'quali' | 'sprint' | 'fl';
 
 const categories = [
-    { key: 'gp' as const, shortLabel: 'Race', icon: CheckeredFlagIcon, fullTitle: 'Race Day Dominator', listTitle: 'Sunday Specialists (Top 10 GP Points)' },
-    { key: 'quali' as const, shortLabel: 'Quali', icon: PolePositionIcon, fullTitle: 'Qualifying King', listTitle: 'Qualifying Masters (Top 10 Quali Points)' },
-    { key: 'sprint' as const, shortLabel: 'Sprint', icon: SprintIcon, fullTitle: 'Sprint Specialist', listTitle: 'Sprint Specialists (Top 10 Sprint Points)' },
-    { key: 'fl' as const, shortLabel: 'FL', icon: FastestLapIcon, fullTitle: 'Fastest Lap Hunter', listTitle: 'Fastest Lap Hunters (Top 10 FL Points)' },
+    { key: 'gp' as const, shortLabel: 'Race', icon: CheckeredFlagIcon, fullTitle: 'Race Day Dominator', listTitle: 'Sunday Specialists' },
+    { key: 'quali' as const, shortLabel: 'Quali', icon: PolePositionIcon, fullTitle: 'Qualifying King', listTitle: 'Qualifying Masters' },
+    { key: 'sprint' as const, shortLabel: 'Sprint', icon: SprintIcon, fullTitle: 'Sprint Specialist', listTitle: 'Sprint Specialists' },
+    { key: 'fl' as const, shortLabel: 'FL', icon: FastestLapIcon, fullTitle: 'Fastest Lap Hunter', listTitle: 'Fastest Lap Hunters' },
 ];
 
 const getVariantTheme = (variant: InsightVariant) => {
@@ -603,55 +603,57 @@ const SuperlativeCard: React.FC<{
         <button 
             onClick={onClick}
             className={`
-                group relative rounded-xl p-5 shadow-lg h-full text-left transition-all duration-300 w-full flex flex-col justify-between
+                group relative rounded-xl p-3 sm:p-3.5 shadow-md h-full text-center transition-all duration-300 w-full flex flex-col items-center justify-between overflow-hidden
                 ${isActive 
-                    ? `bg-carbon-fiber ring-2 ${theme.ring} scale-[1.02] opacity-100 z-10 border border-transparent` 
-                    : 'bg-carbon-fiber ring-1 ring-pure-white/10 opacity-70 hover:opacity-100 hover:scale-[1.01] border border-pure-white/5'
+                    ? `bg-carbon-fiber ring-2 ${theme.ring} scale-[1.01] opacity-100 z-10 border border-transparent shadow-xl` 
+                    : 'bg-carbon-fiber ring-1 ring-pure-white/10 opacity-70 hover:opacity-100 hover:scale-[1.005] border border-pure-white/5'
                 }
             `}
         >
-            {/* Background Gradient & Pattern - Wrapped to clip only background */}
+            {/* Background Gradient & Pattern */}
             <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isActive ? 'opacity-100' : ''}`}></div>
-                <div className="absolute inset-0 bg-checkered-flag opacity-[0.03]"></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isActive ? 'opacity-100' : ''}`} />
+                <div className="absolute inset-0 bg-checkered-flag opacity-[0.03]" />
             </div>
             
-            <div className="relative z-10 flex items-start justify-between w-full">
-                <div className="min-w-0 flex-1 mr-2">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className={`p-2 rounded-lg bg-carbon-black border border-pure-white/10 ${theme.color} shadow-inner flex-shrink-0`}>
-                            <Icon className="w-5 h-5 flex-shrink-0" />
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${theme.color} opacity-80 truncate`}>{title}</span>
+            {/* Rank Badge absolute top-right */}
+            {data && (
+                <div className="absolute top-2 right-2 z-20">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] bg-carbon-black border ${theme.border} ${theme.color} shadow-sm`}>
+                        1
                     </div>
-                    
-                    {data ? (
-                        <div className="mt-1">
-                            <p className="text-lg font-bold text-pure-white truncate leading-tight mb-1">{data.user.displayName}</p>
-                            <p className={`text-3xl font-black font-mono ${theme.color} drop-shadow-sm leading-none`}>
-                                {Number(data.score || 0).toLocaleString()} <span className="text-[10px] font-bold text-highlight-silver uppercase align-top ml-0.5">pts</span>
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="mt-4">
-                            <p className="text-sm text-highlight-silver italic opacity-50">No data available yet</p>
-                        </div>
-                    )}
+                </div>
+            )}
+
+            <div className="relative z-10 flex flex-col items-center justify-center w-full my-auto text-center py-0.5">
+                <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                    <div className={`p-1 rounded-md bg-carbon-black border border-pure-white/10 ${theme.color} shadow-inner shrink-0`}>
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${theme.color} opacity-90 truncate`}>
+                        {title}
+                    </span>
                 </div>
                 
-                {/* Rank Badge */}
-                {data && (
-                    <div className="text-right flex-shrink-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm bg-carbon-black border ${theme.border} ${theme.color} shadow-lg`}>
-                            1
-                        </div>
+                {data ? (
+                    <div className="w-full text-center">
+                        <p className="text-xs sm:text-sm font-bold text-pure-white truncate leading-tight mb-0.5 px-1">
+                            {data.user.displayName}
+                        </p>
+                        <p className={`text-lg sm:text-xl font-black font-mono ${theme.color} drop-shadow-sm leading-none`}>
+                            {Number(data.score || 0).toLocaleString()} <span className="text-[9px] font-bold text-highlight-silver uppercase align-top ml-0.5 font-sans">pts</span>
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-1 text-center">
+                        <p className="text-[11px] text-highlight-silver italic opacity-50">No data available</p>
                     </div>
                 )}
             </div>
             
             {/* Active Indicator */}
             {isActive && (
-                <div className={`absolute bottom-0 left-0 right-0 h-1 ${theme.bg}`}></div>
+                <div className={`absolute bottom-0 left-0 right-0 h-1 ${theme.bg}`} />
             )}
         </button>
     );
@@ -714,91 +716,166 @@ const InsightsView: React.FC<{
                 ))}
             </div>
 
-            {/* MOBILE: Sticky Scrollable Pills */}
-            <div className="md:hidden sticky top-0 z-20 bg-carbon-black/90 backdrop-blur-sm -mx-4 py-3 border-b border-pure-white/10">
-                <div className="flex overflow-x-auto gap-2 no-scrollbar snap-x snap-mandatory px-4">
-                    {categories.map(cat => {
-                        const theme = getVariantTheme(cat.key);
-                        const leaderData = superlatives?.[cat.key];
-                        const isActive = activeCategory === cat.key;
-                        return (
-                            <button
-                                key={cat.key}
-                                onClick={() => setActiveCategory(cat.key)}
-                                className={`flex-none snap-start flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm uppercase tracking-wider transition-all duration-200 ${
-                                    isActive 
-                                    ? `${theme.bg} text-pure-white ring-2 ${theme.ring} shadow-lg` 
-                                    : 'bg-carbon-black/60 text-highlight-silver ring-1 ring-pure-white/10 hover:bg-pure-white/5'
-                                }`}
-                            >
-                                <cat.icon className="w-4 h-4 flex-shrink-0" />
-                                <span>{cat.shortLabel}</span>
-                                {leaderData && leaderData.score > 0 && (
-                                    <span className="text-[10px] font-mono opacity-80">· {leaderData.score}</span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
+            {/* MOBILE: Clean 2x2 Category Cards Selector */}
+            <div className="grid grid-cols-2 gap-2 md:hidden">
+                {categories.map(cat => {
+                    const theme = getVariantTheme(cat.key);
+                    const leaderData = superlatives?.[cat.key];
+                    const isActive = activeCategory === cat.key;
+                    return (
+                        <button
+                            key={cat.key}
+                            onClick={() => setActiveCategory(cat.key)}
+                            className={`
+                                relative p-2.5 rounded-xl text-center transition-all duration-200 overflow-hidden flex flex-col items-center justify-center min-h-[64px]
+                                ${isActive 
+                                    ? `bg-carbon-fiber ring-2 ${theme.ring} shadow-lg border border-pure-white/10` 
+                                    : 'bg-carbon-black/80 ring-1 ring-pure-white/10 hover:bg-pure-white/5 opacity-75'
+                                }
+                            `}
+                        >
+                            {isActive && <div className={`absolute top-0 left-0 right-0 h-1 ${theme.bg}`} />}
+                            
+                            <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
+                                <cat.icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? theme.color : 'text-highlight-silver/70'}`} />
+                                <span className={`font-black text-[11px] uppercase tracking-wider truncate ${isActive ? 'text-pure-white' : 'text-highlight-silver'}`}>
+                                    {cat.fullTitle}
+                                </span>
+                            </div>
+
+                            {leaderData && leaderData.user ? (
+                                <div className="w-full text-center mt-0.5">
+                                    <p className="text-xs font-bold text-pure-white truncate px-1">
+                                        {leaderData.user.displayName}
+                                    </p>
+                                    <p className={`text-sm font-mono font-black ${isActive ? theme.color : 'text-pure-white/90'}`}>
+                                        {leaderData.score.toLocaleString()} <span className="text-[9px] text-highlight-silver/50 font-sans uppercase">pts</span>
+                                    </p>
+                                </div>
+                            ) : (
+                                <span className="text-[10px] text-highlight-silver/40 italic">No data</span>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Dynamic Leaderboard Section */}
             <div key={activeCategory} className="md:flex-1 mb-8 pb-4 animate-fade-in">
-                <div className="bg-carbon-fiber rounded-xl p-4 md:p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300">
-                    <div className="flex justify-between items-center mb-6 relative z-10 border-b border-pure-white/5 pb-4">
-                        <div>
-                            <h3 className="text-lg md:text-xl font-bold text-pure-white leading-tight uppercase italic tracking-wider">
-                                {activeCategoryData?.listTitle}
-                            </h3>
-                            <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${activeTheme.color} opacity-80`}>Performance Breakdown</p>
+                <div className="bg-carbon-fiber rounded-xl p-3.5 sm:p-5 md:p-6 ring-1 ring-pure-white/10 shadow-xl border border-pure-white/5 relative overflow-hidden transition-all duration-300">
+                    <div className="flex flex-col items-center text-center justify-center gap-2.5 mb-4 sm:mb-6 relative z-10 border-b border-pure-white/10 pb-3 sm:pb-4">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="flex items-center justify-center gap-2">
+                                <span className={`p-1.5 rounded-md bg-carbon-black border border-pure-white/10 ${activeTheme.color}`}>
+                                    {activeCategoryData && <activeCategoryData.icon className="w-4 h-4" />}
+                                </span>
+                                <h3 className="text-sm sm:text-base md:text-lg font-black text-pure-white uppercase tracking-wider text-center">
+                                    {activeCategoryData?.listTitle}
+                                </h3>
+                            </div>
+                            <p className="text-[11px] sm:text-xs text-highlight-silver/60 font-medium mt-1 text-center">Rankings and point differentials for this category</p>
                         </div>
+                        {top10List[0] && (
+                            <div className="flex items-center justify-center gap-2 bg-carbon-black/80 px-3 py-1.5 rounded-lg border border-pure-white/10">
+                                <span className="text-xs text-highlight-silver font-medium">Category Leader:</span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold text-pure-white truncate max-w-[150px]">{top10List[0].displayName}</span>
+                                    <span className={`text-xs font-mono font-extrabold ${activeTheme.color}`}>{(top10List[0].breakdown?.[activeCategory] || 0).toLocaleString()} pts</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="w-full relative z-10">
                         {top10List.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-8">
-                                <div className="space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 md:gap-4">
+                                <div className="space-y-2 sm:space-y-2.5">
                                     {top10List.slice(0, 5).map((user, idx) => {
                                         const rank = idx + 1;
                                         const score = user.breakdown?.[activeCategory] || 0;
-                                        const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
-                                        const percent = (score / maxScore) * 100;
+                                        const leaderScore = top10List[0].breakdown?.[activeCategory] || 1;
+                                        const gap = leaderScore - score;
                                         return (
-                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg md:hover:bg-pure-white/5 transition-colors border border-transparent md:hover:border-pure-white/10">
-                                                <div className={`w-8 h-8 flex items-center justify-center font-black text-sm rounded-md ${rank <= 3 ? `${activeTheme.bg} text-carbon-black shadow-lg` : 'bg-pure-white/10 text-highlight-silver'}`}>
-                                                    {rank}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-baseline mb-1">
-                                                        <span className="font-bold text-pure-white truncate text-sm">{user.displayName}</span>
-                                                        <span className={`font-mono font-bold ${activeTheme.color} text-sm`}>{score}</span>
+                                            <div key={user.id} className="group flex items-center justify-between gap-2.5 p-2.5 sm:p-3 bg-carbon-black/60 rounded-xl border border-pure-white/5 hover:border-pure-white/20 hover:bg-carbon-black/90 transition-all duration-200 shadow-sm">
+                                                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                                    <div className={`
+                                                        w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center font-black text-xs sm:text-sm rounded-lg shrink-0 shadow-md font-mono
+                                                        ${rank === 1 ? 'bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 text-carbon-black ring-1 ring-amber-300' : ''}
+                                                        ${rank === 2 ? 'bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 text-carbon-black ring-1 ring-slate-200' : ''}
+                                                        ${rank === 3 ? 'bg-gradient-to-br from-amber-600 via-amber-700 to-amber-800 text-pure-white ring-1 ring-amber-500' : ''}
+                                                        ${rank > 3 ? 'bg-carbon-black text-highlight-silver/70 border border-pure-white/10' : ''}
+                                                    `}>
+                                                        #{rank}
                                                     </div>
-                                                    <div className="w-full bg-carbon-black rounded-full h-1.5 overflow-hidden border border-pure-white/5">
-                                                        <div className={`h-full rounded-full transition-all duration-500 ${activeTheme.bg} opacity-80`} style={{ width: `${percent}%` }} />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-bold text-pure-white truncate text-xs sm:text-base group-hover:text-primary-red transition-colors leading-tight">
+                                                            {user.displayName}
+                                                        </p>
+                                                        <p className="text-[10px] sm:text-[11px] text-highlight-silver/60 font-mono truncate mt-0.5">
+                                                            {user.totalPoints ? `${user.totalPoints.toLocaleString()} Total Pts` : 'Season Manager'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                                    <div className="text-right shrink-0">
+                                                        <span className={`font-mono font-black text-sm sm:text-base md:text-lg ${activeTheme.color}`}>
+                                                            {score.toLocaleString()}
+                                                        </span>
+                                                        <span className="text-[9px] sm:text-[10px] font-bold text-highlight-silver/50 ml-1 uppercase">pts</span>
+                                                    </div>
+
+                                                    <div className="w-[74px] sm:w-[84px] h-6 sm:h-7 shrink-0 flex items-center justify-center">
+                                                        {rank === 1 ? (
+                                                            <span className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs font-extrabold uppercase tracking-wider rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-center">
+                                                                P1 Leader
+                                                            </span>
+                                                        ) : (
+                                                            <span className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs font-mono font-bold rounded bg-red-500/15 text-red-400/90 border border-red-500/30 text-center">
+                                                                -{gap} pts
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
-                                <div className="space-y-3">
+
+                                <div className="space-y-2 sm:space-y-2.5">
                                     {top10List.slice(5, 10).map((user, idx) => {
                                         const rank = idx + 6;
                                         const score = user.breakdown?.[activeCategory] || 0;
-                                        const maxScore = top10List[0].breakdown?.[activeCategory] || 1;
-                                        const percent = (score / maxScore) * 100;
+                                        const leaderScore = top10List[0].breakdown?.[activeCategory] || 1;
+                                        const gap = leaderScore - score;
                                         return (
-                                            <div key={user.id} className="group/row flex items-center gap-3 p-2.5 md:p-3 bg-carbon-black/40 rounded-lg md:hover:bg-pure-white/5 transition-colors border border-transparent md:hover:border-pure-white/10">
-                                                <div className="w-8 h-8 flex items-center justify-center font-black text-sm rounded-md bg-pure-white/10 text-highlight-silver">
-                                                    {rank}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-baseline mb-1">
-                                                        <span className="font-bold text-pure-white truncate text-sm">{user.displayName}</span>
-                                                        <span className={`font-mono font-bold ${activeTheme.color} text-sm`}>{score}</span>
+                                            <div key={user.id} className="group flex items-center justify-between gap-2.5 p-2.5 sm:p-3 bg-carbon-black/60 rounded-xl border border-pure-white/5 hover:border-pure-white/20 hover:bg-carbon-black/90 transition-all duration-200 shadow-sm">
+                                                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                                    <div className="w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center font-black text-xs sm:text-sm rounded-lg shrink-0 shadow-md font-mono bg-carbon-black text-highlight-silver/70 border border-pure-white/10">
+                                                        #{rank}
                                                     </div>
-                                                    <div className="w-full bg-carbon-black rounded-full h-1.5 overflow-hidden border border-pure-white/5">
-                                                        <div className={`h-full rounded-full transition-all duration-500 ${activeTheme.bg} opacity-80`} style={{ width: `${percent}%` }} />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-bold text-pure-white truncate text-xs sm:text-base group-hover:text-primary-red transition-colors leading-tight">
+                                                            {user.displayName}
+                                                        </p>
+                                                        <p className="text-[10px] sm:text-[11px] text-highlight-silver/60 font-mono truncate mt-0.5">
+                                                            {user.totalPoints ? `${user.totalPoints.toLocaleString()} Total Pts` : 'Season Manager'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                                    <div className="text-right shrink-0">
+                                                        <span className={`font-mono font-black text-sm sm:text-base md:text-lg ${activeTheme.color}`}>
+                                                            {score.toLocaleString()}
+                                                        </span>
+                                                        <span className="text-[9px] sm:text-[10px] font-bold text-highlight-silver/50 ml-1 uppercase">pts</span>
+                                                    </div>
+
+                                                    <div className="w-[74px] sm:w-[84px] h-6 sm:h-7 shrink-0 flex items-center justify-center">
+                                                        <span className="w-full h-full flex items-center justify-center text-[10px] sm:text-xs font-mono font-bold rounded bg-red-500/15 text-red-400/90 border border-red-500/30 text-center">
+                                                            -{gap} pts
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>

@@ -28,46 +28,223 @@ const COLLECTIONS = [
     'rate_limits_ip'
 ];
 
-const COLLECTION_CONFIG: Record<string, { headers: string[], getFields: (doc: any) => any[] }> = {
+const formatTimestamp = (ts: any): string => {
+    if (!ts) return '-';
+    if (typeof ts === 'object' && 'seconds' in ts) {
+        return new Date(ts.seconds * 1000).toLocaleString(undefined, {
+            month: 'numeric',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+    if (ts instanceof Date) return ts.toLocaleString();
+    if (typeof ts === 'number') return new Date(ts).toLocaleString();
+    if (typeof ts === 'string') {
+        const parsed = Date.parse(ts);
+        if (!isNaN(parsed)) return new Date(parsed).toLocaleString();
+        return ts;
+    }
+    return '-';
+};
+
+const getTimestampMs = (ts: any): number => {
+    if (!ts) return 0;
+    if (typeof ts === 'object' && 'seconds' in ts) return ts.seconds * 1000;
+    if (ts instanceof Date) return ts.getTime();
+    if (typeof ts === 'number') return ts;
+    if (typeof ts === 'string') {
+        const parsed = Date.parse(ts);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+};
+
+const COLLECTION_CONFIG: Record<string, { 
+    headers: string[], 
+    colSpans?: string[],
+    getFields: (doc: any) => any[] 
+}> = {
     'users': {
-        headers: ['First Name', 'Last Name', 'Team Name', 'Email'],
-        getFields: (doc) => [doc.firstName || '-', doc.lastName || '-', doc.displayName || '-', doc.email || '-']
+        headers: ['First Name', 'Last Name', 'Team Name', 'Email', 'Dues Status'],
+        colSpans: ['col-span-2', 'col-span-2', 'col-span-3', 'col-span-3', 'col-span-2'],
+        getFields: (doc) => [
+            doc.firstName || '-', 
+            doc.lastName || '-', 
+            doc.displayName || '-', 
+            doc.email || '-',
+            doc.duesPaidStatus || 'unpaid'
+        ]
     },
     'public_users': {
-        headers: ['Team Name', 'Total Points', 'Rank', 'Status'],
-        getFields: (doc) => [doc.displayName || '-', doc.totalPoints || 0, doc.rank || '-', doc.duesPaidStatus || '-']
+        headers: ['Team Name', 'Total Points', 'Rank', 'Dues Status', 'Last Updated'],
+        colSpans: ['col-span-3', 'col-span-2', 'col-span-2', 'col-span-2', 'col-span-3'],
+        getFields: (doc) => [
+            doc.displayName || '-', 
+            typeof doc.totalPoints === 'number' ? doc.totalPoints.toLocaleString() : (doc.totalPoints ?? 0), 
+            doc.rank ? `#${doc.rank}` : '-', 
+            doc.duesPaidStatus || 'unpaid',
+            formatTimestamp(doc.updatedAt || doc.lastUpdated)
+        ]
     },
     'userPicks': {
-        headers: ['User ID', 'Events Picked'],
+        headers: ['User / Team ID', 'Events Picked', 'Picks Summary', 'Last Picked'],
+        colSpans: ['col-span-3', 'col-span-2', 'col-span-4', 'col-span-3'],
         getFields: (doc) => {
-            const eventIds = Object.keys(doc).filter(k => k !== 'id');
-            return [doc.id.substring(0, 8), eventIds.length];
+            const eventIds = Object.keys(doc).filter(k => k !== 'id' && k !== 'updatedAt' && k !== 'lastUpdated' && k !== 'displayName');
+            return [
+                doc.displayName || doc.id.substring(0, 12), 
+                `${eventIds.length} events`, 
+                eventIds.join(', ') || 'No picks',
+                formatTimestamp(doc.updatedAt || doc.lastUpdated)
+            ];
         }
     },
     'app_state': {
-        headers: ['Key', 'Last Updated', 'Status', 'Value Preview'],
-        getFields: (doc) => [doc.id, doc.lastUpdated ? new Date(doc.lastUpdated.seconds * 1000).toLocaleDateString() : '-', doc.status || '-', JSON.stringify(doc).substring(0, 20) + '...']
+        headers: ['State Document', 'Status / Mode', 'Last Updated', 'Data Preview'],
+        colSpans: ['col-span-3', 'col-span-2', 'col-span-3', 'col-span-4'],
+        getFields: (doc) => [
+            doc.id, 
+            doc.status || (doc.active ? 'active' : (doc.enabled ? 'enabled' : 'normal')), 
+            formatTimestamp(doc.lastUpdated || doc.updatedAt), 
+            JSON.stringify(doc).substring(0, 45) + '...'
+        ]
     },
     'admin_logs': {
-        headers: ['Action', 'Admin UID', 'Timestamp', 'Details'],
-        getFields: (doc) => [doc.action || '-', doc.adminUid || '-', doc.timestamp ? new Date(doc.timestamp.seconds * 1000).toLocaleString() : '-', doc.details ? JSON.stringify(doc.details).substring(0, 20) + '...' : '-']
+        headers: ['Timestamp', 'Action', 'Admin', 'Scope / Event', 'Changes / Details'],
+        colSpans: ['col-span-2', 'col-span-2', 'col-span-2', 'col-span-2', 'col-span-4'],
+        getFields: (doc) => [
+            formatTimestamp(doc.timestamp || doc.createdAt),
+            doc.action || '-',
+            doc.adminName || doc.adminId || doc.adminUid || '-',
+            doc.eventName || doc.eventId || '-',
+            doc.changes || (doc.details ? (typeof doc.details === 'object' ? JSON.stringify(doc.details) : String(doc.details)) : '-')
+        ]
     },
     'invitation_codes': {
-        headers: ['Code', 'Created By', 'Created At', 'Used'],
-        getFields: (doc) => [doc.code || '-', doc.createdBy || '-', doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : '-', doc.used ? 'Yes' : 'No']
+        headers: ['Invite Code', 'Status', 'Created By', 'Reserved / Used By', 'Created At'],
+        colSpans: ['col-span-3', 'col-span-2', 'col-span-2', 'col-span-3', 'col-span-2'],
+        getFields: (doc) => [
+            doc.code || doc.id, 
+            doc.status || (doc.used ? 'used' : 'active'), 
+            doc.createdBy || '-', 
+            doc.usedByEmail || doc.reservedFor || '-', 
+            formatTimestamp(doc.createdAt)
+        ]
     },
     'dues_payments': {
-        headers: ['User ID', 'Amount', 'Status', 'Created At'],
-        getFields: (doc) => [doc.uid || '-', `$${doc.amount || 0}`, doc.status || '-', doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : '-']
+        headers: ['User / Email', 'Amount', 'Season', 'Status', 'Timestamp'],
+        colSpans: ['col-span-3', 'col-span-2', 'col-span-2', 'col-span-2', 'col-span-3'],
+        getFields: (doc) => [
+            doc.userEmail || doc.uid || '-', 
+            `$${doc.amount ?? 0}`, 
+            doc.season || '2026', 
+            doc.status || 'completed', 
+            formatTimestamp(doc.timestamp || doc.createdAt)
+        ]
     },
     'email_verifications': {
-        headers: ['Email', 'Status', 'Created At', 'Verified'],
-        getFields: (doc) => [doc.email || '-', doc.status || '-', doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : '-', doc.verified ? 'Yes' : 'No']
+        headers: ['Email Address', 'Status', 'Verified', 'Created At'],
+        colSpans: ['col-span-4', 'col-span-2', 'col-span-2', 'col-span-4'],
+        getFields: (doc) => [
+            doc.email || doc.id, 
+            doc.status || 'active', 
+            doc.verified ? 'Yes' : 'No', 
+            formatTimestamp(doc.createdAt)
+        ]
     },
     'rate_limits_ip': {
-        headers: ['IP', 'Count', 'Last Updated', 'Status'],
-        getFields: (doc) => [doc.id || '-', doc.count || 0, doc.lastUpdated ? new Date(doc.lastUpdated.seconds * 1000).toLocaleString() : '-', doc.status || '-']
+        headers: ['IP Address', 'Request Count', 'Status', 'Last Updated'],
+        colSpans: ['col-span-4', 'col-span-2', 'col-span-2', 'col-span-4'],
+        getFields: (doc) => [
+            doc.id, 
+            doc.count ?? 0, 
+            doc.status || (doc.count > 50 ? 'flagged' : 'normal'), 
+            formatTimestamp(doc.lastUpdated || doc.updatedAt)
+        ]
     }
+};
+
+const CellContent: React.FC<{
+    header: string;
+    value: any;
+}> = ({ header, value }) => {
+    const valStr = String(value ?? '-');
+
+    // 1. Status / Verified / Used / Action / Dues Badges
+    if (
+        header.includes('Status') ||
+        header.includes('Verified') ||
+        header.includes('Used') ||
+        header === 'Action'
+    ) {
+        const lower = valStr.toLowerCase();
+        let colorClasses = "bg-pure-white/10 text-highlight-silver border-pure-white/20";
+
+        if (['paid', 'active', 'yes', 'completed', 'enabled', 'normal', 'verified'].includes(lower)) {
+            colorClasses = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+        } else if (['exempt', 'admin'].includes(lower)) {
+            colorClasses = "bg-purple-500/15 text-purple-300 border-purple-500/30";
+        } else if (['pending', 'reserved', 'flagged', 'maintenance'].includes(lower)) {
+            colorClasses = "bg-amber-500/15 text-amber-300 border-amber-500/30";
+        } else if (['unpaid', 'used', 'no', 'disabled', 'failed', 'locked'].includes(lower)) {
+            colorClasses = "bg-red-500/15 text-red-400 border-red-500/30";
+        } else if (header === 'Action') {
+            colorClasses = "bg-primary-red/20 text-primary-red border-primary-red/30 font-black";
+        }
+
+        return (
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shrink-0 ${colorClasses}`}>
+                {valStr}
+            </span>
+        );
+    }
+
+    // 2. Rank badge
+    if (header === 'Rank') {
+        if (valStr === '-' || !valStr) return <span className="text-highlight-silver opacity-50">-</span>;
+        return (
+            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono">
+                {valStr.startsWith('#') ? valStr : `#${valStr}`}
+            </span>
+        );
+    }
+
+    // 3. Currency Amount
+    if (header === 'Amount') {
+        return (
+            <span className="font-mono font-bold text-emerald-400">
+                {valStr.startsWith('$') ? valStr : `$${valStr}`}
+            </span>
+        );
+    }
+
+    // 4. Counts & Pick summary badges
+    if (header === 'Events Picked' || header === 'Request Count') {
+        return (
+            <span className="font-mono font-bold px-2 py-0.5 rounded bg-pure-white/5 border border-pure-white/10 text-highlight-silver text-[11px]">
+                {valStr}
+            </span>
+        );
+    }
+
+    // 5. Code / Identifier fields
+    if (['Code', 'Invite Code', 'IP Address', 'Document Key', 'State Document', 'State Key', 'User ID', 'User / Team ID', 'Email Address', 'Email'].includes(header)) {
+        return (
+            <span className="font-mono text-highlight-silver tracking-tight truncate" title={valStr}>
+                {valStr}
+            </span>
+        );
+    }
+
+    // 6. Default text
+    return (
+        <span className="truncate" title={valStr !== '-' ? valStr : undefined}>
+            {valStr}
+        </span>
+    );
 };
 
 const DatabaseLoader = () => (
@@ -154,10 +331,20 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
     };
 
     const sortedDocuments = React.useMemo(() => {
-        if (!sortConfig) return documents;
+        if (!sortConfig) {
+            if (selectedCollection === 'admin_logs') {
+                return [...documents].sort((a, b) => {
+                    const timeA = getTimestampMs(a.timestamp || a.createdAt);
+                    const timeB = getTimestampMs(b.timestamp || b.createdAt);
+                    return timeB - timeA;
+                });
+            }
+            return documents;
+        }
         return [...documents].sort((a, b) => {
-            const aVal = COLLECTION_CONFIG[selectedCollection].getFields(a)[sortConfig.key];
-            const bVal = COLLECTION_CONFIG[selectedCollection].getFields(b)[sortConfig.key];
+            const config = COLLECTION_CONFIG[selectedCollection];
+            const aVal = config ? config.getFields(a)[sortConfig.key] : '';
+            const bVal = config ? config.getFields(b)[sortConfig.key] : '';
             
             if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
             if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -321,41 +508,55 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                             <div className="flex flex-col">
                                 {/* Desktop Table Header */}
                                 <div className="hidden md:grid grid-cols-12 gap-4 bg-carbon-black/30 sticky top-0 z-10 p-3 border-b border-pure-white/10 text-[10px] font-black uppercase text-highlight-silver tracking-widest backdrop-blur-sm">
-                                    {COLLECTION_CONFIG[selectedCollection].headers.map((header, i) => (
-                                        <div 
-                                            key={i} 
-                                            className={`${i === 0 ? "col-span-2" : "col-span-3"} cursor-pointer hover:text-pure-white flex items-center gap-1`}
-                                            onClick={() => handleSort(i)}
-                                        >
-                                            {header}
-                                            {sortConfig?.key === i && (sortConfig.direction === 'asc' ? '▲' : '▼')}
-                                        </div>
-                                    ))}
+                                    {COLLECTION_CONFIG[selectedCollection]?.headers.map((header, i) => {
+                                        const config = COLLECTION_CONFIG[selectedCollection];
+                                        const spanClass = config?.colSpans?.[i] || (i === 0 ? "col-span-2" : "col-span-3");
+                                        return (
+                                            <div 
+                                                key={i} 
+                                                className={`${spanClass} cursor-pointer hover:text-pure-white flex items-center gap-1 select-none`}
+                                                onClick={() => handleSort(i)}
+                                            >
+                                                {header}
+                                                {sortConfig?.key === i && (
+                                                    <span className="text-primary-red">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* List Items (Responsive: Cards on Mobile, Grid Rows on Desktop) */}
                                 <div className="p-2 md:p-0 space-y-2 md:space-y-0">
-                                    {sortedDocuments.map(doc => (
-                                        <div 
-                                            key={doc.id}
-                                            onClick={() => openEditor(doc)}
-                                            className="group relative flex flex-col md:grid md:grid-cols-12 md:gap-4 p-4 md:p-3 rounded-lg md:rounded-none md:border-b border-pure-white/10 bg-carbon-fiber md:bg-transparent hover:bg-pure-white/5 transition-all cursor-pointer border border-pure-white/5 md:border-x-0 md:border-t-0 shadow-md md:shadow-none animate-fade-in"
-                                        >
-                                            {COLLECTION_CONFIG[selectedCollection].getFields(doc).map((field, i) => (
-                                                <div key={i} className={`${i === 0 ? "col-span-2 font-bold" : "col-span-3"} text-xs text-pure-white truncate`}>
-                                                    <span className="md:hidden text-[9px] uppercase tracking-widest opacity-50 mr-2 font-sans font-bold">
-                                                        {COLLECTION_CONFIG[selectedCollection].headers[i]}:
-                                                    </span>
-                                                    {field}
+                                    {sortedDocuments.map(doc => {
+                                        const config = COLLECTION_CONFIG[selectedCollection];
+                                        const fields = config ? config.getFields(doc) : [];
+                                        return (
+                                            <div 
+                                                key={doc.id}
+                                                onClick={() => openEditor(doc)}
+                                                className="group relative flex flex-col md:grid md:grid-cols-12 md:gap-4 p-4 md:p-3 rounded-lg md:rounded-none md:border-b border-pure-white/10 bg-carbon-fiber md:bg-transparent hover:bg-pure-white/5 transition-all cursor-pointer border border-pure-white/5 md:border-x-0 md:border-t-0 shadow-md md:shadow-none animate-fade-in"
+                                            >
+                                                {fields.map((field, i) => {
+                                                    const spanClass = config?.colSpans?.[i] || (i === 0 ? "col-span-2 font-bold" : "col-span-3");
+                                                    const headerName = config?.headers[i] || '';
+                                                    return (
+                                                        <div key={i} className={`${spanClass} text-xs text-pure-white truncate flex items-center`}>
+                                                            <span className="md:hidden text-[9px] uppercase tracking-widest opacity-50 mr-2 font-sans font-bold shrink-0">
+                                                                {headerName}:
+                                                            </span>
+                                                            <CellContent header={headerName} value={field} />
+                                                        </div>
+                                                    );
+                                                })}
+                                                
+                                                {/* Mobile tap indicator */}
+                                                <div className="md:hidden absolute right-3 bottom-3 opacity-20">
+                                                    <svg className="w-4 h-4 text-highlight-silver" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                                                 </div>
-                                            ))}
-                                            
-                                            {/* Mobile tap indicator */}
-                                            <div className="md:hidden absolute right-3 bottom-3 opacity-20">
-                                                <svg className="w-4 h-4 text-highlight-silver" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
