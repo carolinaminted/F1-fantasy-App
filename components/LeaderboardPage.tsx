@@ -161,25 +161,41 @@ const NavTile: React.FC<{ icon: any; title: string; subtitle: string; desc: stri
     </button>
 );
 
-const SimpleBarChart: React.FC<{ data: { label: string; value: number; color?: string }[]; max?: number }> = ({ data, max }) => {
+const SimpleBarChart: React.FC<{ 
+    data: { label: string; value: number; color?: string }[]; 
+    max?: number;
+    showRank?: boolean;
+    startIndex?: number;
+}> = ({ data, max, showRank = false, startIndex = 1 }) => {
+    if (data.length === 0) {
+        return <p className="text-highlight-silver/50 italic text-xs py-2">No entries found.</p>;
+    }
     const maxValue = max || Math.max(...data.map(d => d.value), 1);
     return (
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
             {data.map((item, idx) => {
+                const rank = startIndex + idx;
                 const isHex = item.color?.startsWith('#');
                 return (
-                    <div key={idx} className="flex items-center gap-3 text-sm">
-                        <span className="w-24 md:w-32 text-left truncate font-semibold text-highlight-silver text-xs md:text-sm">{item.label}</span>
-                        <div className="flex-1 h-3 md:h-4 bg-carbon-black rounded-full overflow-hidden border border-pure-white/5">
+                    <div key={idx} className="flex items-center gap-2 md:gap-3 lg:gap-4 text-sm group hover:bg-pure-white/5 p-1 md:p-1.5 rounded-md transition-colors">
+                        {showRank && (
+                            <span className={`w-6 lg:w-8 font-mono font-black text-xs md:text-sm lg:text-base text-center shrink-0 ${
+                                rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-orange-400' : 'text-highlight-silver/50'
+                            }`}>
+                                #{rank}
+                            </span>
+                        )}
+                        <span className="w-28 md:w-36 lg:w-44 text-left truncate font-bold text-highlight-silver group-hover:text-pure-white text-xs md:text-sm lg:text-base">{item.label}</span>
+                        <div className="flex-1 h-3.5 md:h-4 lg:h-5 bg-carbon-black rounded-full overflow-hidden border border-pure-white/5">
                             <div 
-                                className={`h-full rounded-full ${!item.color ? 'bg-primary-red' : (isHex ? '' : item.color)}`} 
+                                className={`h-full rounded-full transition-all duration-500 ${!item.color ? 'bg-primary-red' : (isHex ? '' : item.color)}`} 
                                 style={{ 
                                     width: `${(item.value / maxValue) * 100}%`,
                                     backgroundColor: isHex ? item.color : undefined 
                                 }} 
                             />
                         </div>
-                        <span className="w-8 md:w-12 font-bold text-pure-white text-right text-xs md:text-sm">{item.value}</span>
+                        <span className="w-8 md:w-12 lg:w-14 font-mono font-extrabold text-pure-white text-right text-xs md:text-sm lg:text-base">{item.value}</span>
                     </div>
                 );
             })}
@@ -401,6 +417,7 @@ const PopularityView: React.FC<{
     cancelledEventIds: Set<string>;
 }> = ({ allLeaguePicks, allDrivers, allConstructors, events, isLoading, cancelledEventIds }) => {
     const [timeRange, setTimeRange] = useState<'all' | '30' | '60' | '90'>('all');
+    const [entityType, setEntityType] = useState<'drivers' | 'teams'>('drivers');
 
     const stats = useMemo(() => {
         const teamCounts: { [id: string]: number } = {};
@@ -408,7 +425,7 @@ const PopularityView: React.FC<{
         const driverCounts: { [id: string]: number } = {};
         allDrivers.forEach(d => driverCounts[d.id] = 0);
 
-        if (Object.keys(allLeaguePicks).length === 0) return { teams: [], leastTeams: [], drivers: [], leastDrivers: [] };
+        if (Object.keys(allLeaguePicks).length === 0) return { teams: [], drivers: [] };
 
         const eventIdsWithPicks = new Set<string>();
         Object.values(allLeaguePicks).forEach(userPicks => {
@@ -451,22 +468,18 @@ const PopularityView: React.FC<{
             }
         };
 
-        const sortAndMap = (counts: { [id: string]: number }, order: 'desc' | 'asc', type: 'team' | 'driver') => 
+        const sortAndMap = (counts: { [id: string]: number }, type: 'team' | 'driver') => 
             Object.entries(counts)
                 .map(([id, val]) => ({ 
                     label: getEntityName(id, allDrivers, allConstructors), 
                     value: val, 
                     color: getColor(id, type)
                 }))
-                .filter(item => item.value > 0 || order === 'asc') 
-                .sort((a, b) => order === 'desc' ? b.value - a.value : a.value - b.value)
-                .slice(0, 5);
+                .sort((a, b) => b.value - a.value);
 
         return {
-            teams: sortAndMap(teamCounts, 'desc', 'team'),
-            leastTeams: sortAndMap(teamCounts, 'asc', 'team'),
-            drivers: sortAndMap(driverCounts, 'desc', 'driver'),
-            leastDrivers: sortAndMap(driverCounts, 'asc', 'driver')
+            teams: sortAndMap(teamCounts, 'team'),
+            drivers: sortAndMap(driverCounts, 'driver')
         };
     }, [allLeaguePicks, timeRange, allDrivers, allConstructors, events]);
 
@@ -482,10 +495,39 @@ const PopularityView: React.FC<{
         );
     }
 
+    const activeList = entityType === 'drivers' ? stats.drivers : stats.teams;
+    const maxVal = activeList[0]?.value || 1;
+    const halfIndex = Math.ceil(activeList.length / 2);
+    const col1 = activeList.slice(0, halfIndex);
+    const col2 = activeList.slice(halfIndex);
+
     return (
         <div className="flex flex-col md:h-full animate-fade-in gap-4 pt-2 pb-4 md:overflow-hidden">
-             <div className="flex-none flex flex-col md:flex-row justify-end items-center gap-4">
-                <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
+             <div className="flex-none flex flex-col sm:flex-row justify-between items-center gap-3">
+                {/* View Toggle: Drivers vs Teams */}
+                <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full sm:w-auto">
+                    <button
+                        onClick={() => setEntityType('drivers')}
+                        className={`flex items-center justify-center gap-2 px-5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-colors flex-1 sm:flex-none ${
+                            entityType === 'drivers' ? 'bg-primary-red text-pure-white shadow-md' : 'text-highlight-silver hover:text-pure-white hover:bg-white/5'
+                        }`}
+                    >
+                        <DriverIcon className="w-4 h-4" />
+                        <span>Drivers ({stats.drivers.length})</span>
+                    </button>
+                    <button
+                        onClick={() => setEntityType('teams')}
+                        className={`flex items-center justify-center gap-2 px-5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-colors flex-1 sm:flex-none ${
+                            entityType === 'teams' ? 'bg-primary-red text-pure-white shadow-md' : 'text-highlight-silver hover:text-pure-white hover:bg-white/5'
+                        }`}
+                    >
+                        <TeamIcon className="w-4 h-4" />
+                        <span>Teams ({stats.teams.length})</span>
+                    </button>
+                </div>
+
+                {/* Time Range Selector */}
+                <div className="flex bg-carbon-fiber border border-pure-white/10 rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
                     {(['all', '30', '60', '90'] as const).map(range => (
                          <button
                             key={range}
@@ -501,22 +543,24 @@ const PopularityView: React.FC<{
             </div>
 
             <div className="md:flex-1 md:overflow-y-auto custom-scrollbar pr-1 pb-24 md:pb-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
-                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Teams</h3>
-                        <SimpleBarChart data={stats.teams} />
+                <div className="bg-carbon-fiber rounded-lg p-5 md:p-6 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
+                    <div className="flex items-center justify-between mb-5 border-b border-pure-white/10 pb-3">
+                        <h3 className="text-sm md:text-base font-bold text-highlight-silver uppercase tracking-wider flex items-center gap-2">
+                            {entityType === 'drivers' ? <DriverIcon className="w-4 md:w-5 h-4 md:h-5 text-primary-red" /> : <TeamIcon className="w-4 md:w-5 h-4 md:h-5 text-primary-red" />}
+                            <span>{entityType === 'drivers' ? 'Driver Popularity Standings' : 'Team Popularity Standings'}</span>
+                        </h3>
+                        <span className="text-xs md:text-sm text-highlight-silver/70 font-mono font-bold bg-carbon-black px-3 py-1 rounded-md border border-pure-white/10">
+                            {activeList.length} Total {entityType === 'drivers' ? 'Drivers' : 'Teams'}
+                        </span>
                     </div>
-                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Most Picked Drivers</h3>
-                        <SimpleBarChart data={stats.drivers} />
-                    </div>
-                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Teams</h3>
-                        <SimpleBarChart data={stats.leastTeams} max={Math.max(...stats.teams.map(t => t.value), 1)} />
-                    </div>
-                    <div className="bg-carbon-fiber rounded-lg p-5 ring-1 ring-pure-white/10 shadow-lg border border-pure-white/5">
-                        <h3 className="text-sm font-bold text-highlight-silver mb-4 uppercase tracking-wider">Least Picked Drivers</h3>
-                        <SimpleBarChart data={stats.leastDrivers} max={Math.max(...stats.drivers.map(d => d.value), 1)} />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-2 md:gap-y-3">
+                        <div>
+                            <SimpleBarChart data={col1} max={maxVal} showRank={true} startIndex={1} />
+                        </div>
+                        <div>
+                            <SimpleBarChart data={col2} max={maxVal} showRank={true} startIndex={halfIndex + 1} />
+                        </div>
                     </div>
                 </div>
             </div>
