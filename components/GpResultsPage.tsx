@@ -377,50 +377,54 @@ const ResultTable: React.FC<ResultTableProps> = ({ results, allDrivers, allConst
 
     return (
         <div className="flex flex-col">
-            <Podium data={podiumData} />
+            <div className="p-4 pb-2">
+                <Podium data={podiumData} />
+            </div>
             
             {restResults.length > 0 && (
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-carbon-black/95 sticky top-0 z-10 backdrop-blur-md shadow-sm text-xs font-bold uppercase text-highlight-silver">
-                        <tr>
-                            <th className="py-3 px-4 w-12 text-center">Pos</th>
-                            <th className="py-3 px-4">Driver</th>
-                            <th className="py-3 px-4 hidden sm:table-cell">Team</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-pure-white/5">
-                        {restResults.map((driverId, index) => {
-                            if (!driverId) return null;
-                            const { driver, constructor } = getEntity(driverId);
-                            const pos = index + 4; // Since we sliced the first 3
-                            
-                            return (
-                                <tr key={index} className="md:hover:bg-pure-white/5 transition-colors group">
-                                    <td className="py-3 px-4 text-center">
-                                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs text-highlight-silver md:group-hover:text-pure-white`}>
-                                            {pos}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <div className="font-bold text-base md:text-lg text-pure-white">{driver?.name || 'Unknown Driver'}</div>
-                                        {/* Mobile Team Name */}
-                                        <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
-                                            {constructor?.name || 'Unknown Team'}
-                                        </div>
-                                    </td>
-                                    <td className="py-3 px-4 hidden sm:table-cell">
-                                        {constructor && (
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: constructor.color }}></div>
-                                                <span className="text-sm font-semibold text-highlight-silver">{constructor.name}</span>
+                <div className="px-4 pb-4">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-20 bg-carbon-black shadow-md">
+                            <tr className="bg-carbon-black">
+                                <th className="sticky top-0 z-20 bg-carbon-black py-3 px-4 w-12 text-center text-xs font-bold uppercase text-highlight-silver border-b border-pure-white/10">Pos</th>
+                                <th className="sticky top-0 z-20 bg-carbon-black py-3 px-4 text-xs font-bold uppercase text-highlight-silver border-b border-pure-white/10">Driver</th>
+                                <th className="sticky top-0 z-20 bg-carbon-black py-3 px-4 hidden sm:table-cell text-xs font-bold uppercase text-highlight-silver border-b border-pure-white/10">Team</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-pure-white/5">
+                            {restResults.map((driverId, index) => {
+                                if (!driverId) return null;
+                                const { driver, constructor } = getEntity(driverId);
+                                const pos = index + 4; // Since we sliced the first 3
+                                
+                                return (
+                                    <tr key={index} className="md:hover:bg-pure-white/5 transition-colors group">
+                                        <td className="py-3 px-4 text-center">
+                                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs text-highlight-silver md:group-hover:text-pure-white`}>
+                                                {pos}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4">
+                                            <div className="font-bold text-base md:text-lg text-pure-white">{driver?.name || 'Unknown Driver'}</div>
+                                            {/* Mobile Team Name */}
+                                            <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
+                                                {constructor?.name || 'Unknown Team'}
                                             </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                        </td>
+                                        <td className="py-3 px-4 hidden sm:table-cell">
+                                            {constructor && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1 h-4 rounded-full" style={{ backgroundColor: constructor.color }}></div>
+                                                    <span className="text-sm font-semibold text-highlight-silver">{constructor.name}</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );

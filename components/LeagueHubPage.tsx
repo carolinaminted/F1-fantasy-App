@@ -29,7 +29,7 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ setActivePage, user }) =>
                     {/* --- Race Information Section --- */}
                     <HubTile 
                         icon={CalendarIcon}
-                        title="Schedule"
+                        title="Schedule & Results"
                         subtitle="Calendar"
                         description="Upcoming race dates and start times."
                         onClick={() => setActivePage('schedule')}

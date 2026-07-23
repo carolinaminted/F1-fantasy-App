@@ -198,7 +198,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
         return (
             <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
                 <div className="flex-none">
-                    <PageHeader title="SEASON CALENDAR" icon={CalendarIcon} leftAction={hubAction} />
+                    <PageHeader title="SCHEDULE & RESULTS" icon={CalendarIcon} leftAction={hubAction} />
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
                     <CalendarIcon className="w-24 h-24 text-accent-gray opacity-20 mb-6" />
@@ -217,7 +217,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto">
                 <div className="flex-none">
                     <PageHeader 
-                        title="SEASON CALENDAR & RESULTS" 
+                        title="SCHEDULE & RESULTS" 
                         icon={CalendarIcon} 
                         subtitle="Race schedules & official GP finishing orders in EST"
                         rightAction={RightAction}
@@ -759,7 +759,7 @@ const EventResultsView: React.FC<{
             </div>
 
             {/* Results Content */}
-            <div className="p-4 bg-black/20 overflow-y-auto max-h-[50vh] custom-scrollbar">
+            <div className="bg-black/20 overflow-y-auto max-h-[50vh] custom-scrollbar relative">
                 {activeTab === 'race' && <ResultTable results={results.grandPrixFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'quali' && <ResultTable results={results.gpQualifying} allDrivers={allDrivers} allConstructors={allConstructors} />}
                 {activeTab === 'sprint' && event.hasSprint && <ResultTable results={results.sprintFinish} allDrivers={allDrivers} allConstructors={allConstructors} />}
@@ -875,49 +875,53 @@ const ResultTable: React.FC<{
 
     return (
         <div className="flex flex-col">
-            <Podium data={podiumData} />
+            <div className="p-4 pb-2">
+                <Podium data={podiumData} />
+            </div>
             
             {restResults.length > 0 && (
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-carbon-black/95 sticky top-0 z-10 backdrop-blur-md shadow-sm text-[11px] font-bold uppercase text-highlight-silver">
-                        <tr>
-                            <th className="py-2.5 px-3 w-12 text-center">Pos</th>
-                            <th className="py-2.5 px-3">Driver</th>
-                            <th className="py-2.5 px-3 hidden sm:table-cell">Team</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-pure-white/5">
-                        {restResults.map((driverId, index) => {
-                            if (!driverId) return null;
-                            const { driver, constructor } = getEntity(driverId);
-                            const pos = index + 4;
-                            
-                            return (
-                                <tr key={index} className="hover:bg-pure-white/5 transition-colors group">
-                                    <td className="py-2.5 px-3 text-center">
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs text-highlight-silver group-hover:text-pure-white">
-                                            {pos}
-                                        </span>
-                                    </td>
-                                    <td className="py-2.5 px-3">
-                                        <div className="font-bold text-sm md:text-base text-pure-white">{driver?.name || 'Unknown Driver'}</div>
-                                        <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
-                                            {constructor?.name || 'Unknown Team'}
-                                        </div>
-                                    </td>
-                                    <td className="py-2.5 px-3 hidden sm:table-cell">
-                                        {constructor && (
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-1 h-3.5 rounded-full" style={{ backgroundColor: constructor.color }}></div>
-                                                <span className="text-xs font-semibold text-highlight-silver">{constructor.name}</span>
+                <div className="px-4 pb-4">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-20 bg-carbon-black shadow-md">
+                            <tr className="bg-carbon-black">
+                                <th className="sticky top-0 z-20 bg-carbon-black py-2.5 px-3 w-12 text-center text-[11px] font-bold uppercase text-highlight-silver border-b border-pure-white/10">Pos</th>
+                                <th className="sticky top-0 z-20 bg-carbon-black py-2.5 px-3 text-[11px] font-bold uppercase text-highlight-silver border-b border-pure-white/10">Driver</th>
+                                <th className="sticky top-0 z-20 bg-carbon-black py-2.5 px-3 hidden sm:table-cell text-[11px] font-bold uppercase text-highlight-silver border-b border-pure-white/10">Team</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-pure-white/5">
+                            {restResults.map((driverId, index) => {
+                                if (!driverId) return null;
+                                const { driver, constructor } = getEntity(driverId);
+                                const pos = index + 4;
+                                
+                                return (
+                                    <tr key={index} className="hover:bg-pure-white/5 transition-colors group">
+                                        <td className="py-2.5 px-3 text-center">
+                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded font-bold text-xs text-highlight-silver group-hover:text-pure-white">
+                                                {pos}
+                                            </span>
+                                        </td>
+                                        <td className="py-2.5 px-3">
+                                            <div className="font-bold text-sm md:text-base text-pure-white">{driver?.name || 'Unknown Driver'}</div>
+                                            <div className="sm:hidden text-[10px] text-highlight-silver uppercase tracking-wider mt-0.5" style={{ color: constructor?.color }}>
+                                                {constructor?.name || 'Unknown Team'}
                                             </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                        </td>
+                                        <td className="py-2.5 px-3 hidden sm:table-cell">
+                                            {constructor && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1 h-3.5 rounded-full" style={{ backgroundColor: constructor.color }}></div>
+                                                    <span className="text-xs font-semibold text-highlight-silver">{constructor.name}</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );
@@ -929,29 +933,31 @@ const FastestLapDisplay: React.FC<{
     allConstructors: Constructor[] 
 }> = ({ driverId, allDrivers, allConstructors }) => {
     if (!driverId) {
-        return <div className="flex items-center justify-center h-36 text-highlight-silver italic text-sm">Fastest lap not recorded.</div>;
+        return <div className="flex items-center justify-center h-36 text-highlight-silver italic text-sm p-4">Fastest lap not recorded.</div>;
     }
     const driver = allDrivers.find(d => d.id === driverId);
     const constructor = allConstructors.find(c => c.id === driver?.constructorId);
 
     return (
-        <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-purple-900/20 to-transparent rounded-xl">
-            <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mb-3 ring-1 ring-purple-500/50 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
-                 <FastestLapIcon className="w-8 h-8 text-purple-400" />
-            </div>
-            
-            <h3 className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-1">Fastest Lap Award</h3>
-            <p className="text-2xl md:text-3xl font-black text-pure-white mb-3">{driver?.name || 'Unknown'}</p>
-            
-            {constructor && (
-                <div 
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-pure-white/10 bg-carbon-black/50"
-                    style={{ borderColor: `${constructor.color}40` }}
-                >
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: constructor.color }}></div>
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: constructor.color }}>{constructor.name}</span>
+        <div className="p-4">
+            <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-purple-900/20 to-transparent rounded-xl border border-purple-500/10">
+                <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mb-3 ring-1 ring-purple-500/50 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
+                     <FastestLapIcon className="w-8 h-8 text-purple-400" />
                 </div>
-            )}
+                
+                <h3 className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-1">Fastest Lap Award</h3>
+                <p className="text-2xl md:text-3xl font-black text-pure-white mb-3">{driver?.name || 'Unknown'}</p>
+                
+                {constructor && (
+                    <div 
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-pure-white/10 bg-carbon-black/50"
+                        style={{ borderColor: `${constructor.color}40` }}
+                    >
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: constructor.color }}></div>
+                        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: constructor.color }}>{constructor.name}</span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
