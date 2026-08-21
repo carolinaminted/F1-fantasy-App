@@ -48,7 +48,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   user, setActivePage, raceResults = {}, pointsSystem, allDrivers = [], allConstructors = [],
   events, cancelledEventIds, seasonPicks = {}, leaderboardCache,
 }) => {
-  const { easterEggState, activeLights, handleTriggerClick } = useRaceStartEasterEgg();
+  const egg = useRaceStartEasterEgg();
+  const { easterEggState, activeLights, handleTriggerClick } = egg;
 
   const nextEvent = useMemo(() => {
     const now = Date.now();
@@ -99,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <PageShell>
-      <EasterEggOverlay state={easterEggState} activeLights={activeLights} />
+      <EasterEggOverlay {...egg} />
 
       {/* ---- Next race ---------------------------------------------------------- */}
       <div className="pt-4 md:pt-6">

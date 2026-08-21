@@ -42,7 +42,8 @@ const AuthScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // Easter Egg Hook
-  const { easterEggState, activeLights, handleTriggerClick } = useRaceStartEasterEgg();
+  const egg = useRaceStartEasterEgg();
+  const { handleTriggerClick } = egg;
 
   // Timer for Countdown (UX Only - Server enforces actual block)
   React.useEffect(() => {
@@ -523,7 +524,7 @@ const AuthScreen: React.FC = () => {
   return (
     <div className="max-w-md mx-auto w-full relative">
       {/* Race Start Easter Egg Overlay */}
-      <EasterEggOverlay state={easterEggState} activeLights={activeLights} />
+      <EasterEggOverlay {...egg} />
 
       <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl relative z-10">
         <div 
