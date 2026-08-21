@@ -834,7 +834,7 @@ const App: React.FC = () => {
 
         <div 
             ref={scrollContainerRef} 
-            className={`relative flex-1 overflow-y-auto pb-[6rem] pb-safe ${isLockedLayout ? 'md:overflow-hidden md:pb-0' : 'md:pb-8'}`}
+            className={`relative flex-1 overflow-y-auto pb-[calc(6rem+env(safe-area-inset-bottom))] ${isLockedLayout ? 'md:overflow-hidden md:pb-0' : 'md:pb-8'}`}
         >
             <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             

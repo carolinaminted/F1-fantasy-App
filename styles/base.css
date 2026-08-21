@@ -27,74 +27,83 @@
   --default-ring-width: 3px;
 }
 
+/*
+ * These classes came out of index.html's <style> block in Gate 1. They MUST stay inside a
+ * cascade layer: unlayered CSS beats every layered rule, so leaving them at top level made
+ * them override Tailwind utilities on the same element. Under the CDN, utilities were
+ * injected after this block and won — `pb-[6rem] pb-safe` resolved to 6rem, not the safe
+ * inset. @layer components restores that precedence, since utilities come after components.
+ */
 @keyframes pulse-red {
   0%, 100% { transform: scale(1);   opacity: 1; }
   50%      { transform: scale(1.5); opacity: 0.7; }
 }
 
-.animate-pulse-red {
-  animation: pulse-red 1.5s infinite;
-}
-.animate-pulse-red-limited {
-  animation: pulse-red 1.5s 3;
-}
+@layer components {
+  .animate-pulse-red {
+    animation: pulse-red 1.5s infinite;
+  }
+  .animate-pulse-red-limited {
+    animation: pulse-red 1.5s 3;
+  }
 
-.option-card { line-height: 1.2; }
-.option-label { text-wrap: balance; }
+  .option-card { line-height: 1.2; }
+  .option-label { text-wrap: balance; }
 
-/* Safe Area Utilities for Mobile */
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-.mb-safe { margin-bottom: env(safe-area-inset-bottom); }
-.pt-safe { padding-top: env(safe-area-inset-top); }
+  /* Safe Area Utilities for Mobile */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
 
-/* Hide scrollbar for cleaner UI in specific containers */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
-}
+  /* Hide scrollbar for cleaner UI in specific containers */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
 
-/* Carbon Fiber Pattern Class - Updated for visibility and size */
-.bg-carbon-fiber {
-  background-color: #111;
-  background-image:
-    linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a),
-    linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a);
-  background-position: 0 0, 10px 10px;
-  background-size: 20px 20px;
-}
+  /* Carbon Fiber Pattern Class - Updated for visibility and size */
+  .bg-carbon-fiber {
+    background-color: #111;
+    background-image:
+      linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a),
+      linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a);
+    background-position: 0 0, 10px 10px;
+    background-size: 20px 20px;
+  }
 
-/* Traditional Checkered Flag Pattern Class */
-.bg-checkered-flag {
-  background-color: #e0e0e0; /* Off-white/Light Grey base */
-  background-image:
-    linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505),
-    linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505);
-  background-position: 0 0, 40px 40px; /* Offset to align checks */
-  background-size: 80px 80px;          /* Much larger checks */
-}
+  /* Traditional Checkered Flag Pattern Class */
+  .bg-checkered-flag {
+    background-color: #e0e0e0; /* Off-white/Light Grey base */
+    background-image:
+      linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505),
+      linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505);
+    background-position: 0 0, 40px 40px; /* Offset to align checks */
+    background-size: 80px 80px;          /* Much larger checks */
+  }
 
-/* Glassy Sheen Sweep */
-.sheen-sweep {
-  position: relative;
-  overflow: hidden;
-}
-.sheen-sweep::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-  transform: skewX(-25deg);
-  transition: left 0.5s;
-  pointer-events: none;
-  z-index: 20;
-}
-.sheen-sweep:hover::after, .sheen-sweep.animate-flare::after {
-  left: 200%;
-  transition: left 1s ease-in-out;
+  /* Glassy Sheen Sweep */
+  .sheen-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .sheen-sweep::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    transform: skewX(-25deg);
+    transition: left 0.5s;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .sheen-sweep:hover::after, .sheen-sweep.animate-flare::after {
+    left: 200%;
+    transition: left 1s ease-in-out;
+  }
 }
