@@ -55,12 +55,10 @@ const UsageMeter: React.FC<{ label: string; used: number; limit: number; color?:
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-1">
-        <div className="flex items-center gap-2">
-            {color && <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style={{ backgroundColor: color }} />}
-            <span className={`text-sm font-semibold transition-all ${isMaxed ? 'text-highlight-silver line-through opacity-70' : 'text-ghost-white'}`}>{label}</span>
-        </div>
-        <span className={`text-sm font-mono ${isMaxed ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{used} / {limit}</span>
+      {/* No color dot: the bar below already carries the team color. */}
+      <div className="flex justify-between items-center gap-3 mb-1">
+        <span className={`text-sm font-semibold transition-all truncate ${isMaxed ? 'text-highlight-silver line-through opacity-70' : 'text-ghost-white'}`}>{label}</span>
+        <span className={`text-sm font-mono shrink-0 ${isMaxed ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>{used} / {limit}</span>
       </div>
       <div className="w-full bg-carbon-black rounded-full h-2.5 ring-1 ring-pure-white/5 overflow-hidden">
         <div 
