@@ -5,9 +5,9 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense, laz
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
-import HomePage from './components/HomePage.tsx';
 const ProfilePage = lazy(() => import('./components/ProfilePage.tsx'));
 const DevUiGallery = lazy(() => import('./components/DevUiGallery.tsx'));
+const RacePage = lazy(() => import('./components/RacePage.tsx'));
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage.tsx'));
 import Dashboard from './components/Dashboard.tsx';
 const AdminPage = lazy(() => import('./components/AdminPage.tsx'));
@@ -24,7 +24,6 @@ import DonationPage from './components/DonationPage.tsx';
 import SupportPage from './components/SupportPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
-const SchedulePage = lazy(() => import('./components/SchedulePage.tsx'));
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -43,7 +42,7 @@ import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
-import { pathForPage, pageForPath, DEV_UI_PATH } from './routes.ts';
+import { pathForPage, pageForPath, DEV_UI_PATH, REDIRECTS } from './routes.ts';
 import { copyright } from './brand.ts';
 import { BrandMark } from './components/ui/BrandMark.tsx';
 import { auth, db } from './services/firebase.ts';
@@ -63,7 +62,7 @@ import GeneralAnnouncementBanner from './components/GeneralAnnouncementBanner.ts
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'support' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
+export type Page = 'home' | 'race' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'support' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -187,19 +186,26 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
 
             <nav className="grow space-y-1">
                 <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
-                <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-                <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-                <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-                
-                {/* Consolidated League Item - Now includes events and league pages */}
+                <SideNavItem
+                    icon={PicksIcon}
+                    label="Race"
+                    page="race"
+                    activePage={activePage}
+                    setActivePage={navigateToPage}
+                    isParentActive={['race', 'picks', 'schedule', 'gp-results'].includes(activePage)}
+                />
+                <SideNavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+
+                {/* League absorbs the remaining league-business pages until Gate 9 folds them in */}
                 <SideNavItem 
                     icon={LeagueIcon} 
                     label="League" 
                     page="league-hub" 
                     activePage={activePage} 
                     setActivePage={navigateToPage} 
-                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
+                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'drivers-teams'].includes(activePage)}
                 />
+                <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
 
                 <SideNavItem 
                     icon={() => (
@@ -267,14 +273,20 @@ const App: React.FC = () => {
       'leaderboard',
       'league-hub',
       'points', 
-      'gp-results', 
-      'drivers-teams', 
-      'schedule'
+      'drivers-teams'
   ];
+
+  /**
+   * The Race surface is only locked on its calendar views. SchedulePage expects a
+   * fixed-height parent and scrolls internally; the Picks view sizes itself and needs
+   * the page to scroll normally, exactly as it did when it was its own destination.
+   */
+  const raceView = new URLSearchParams(location.search).get('view');
+  const isLockedRaceView = activePage === 'race' && (raceView === 'weekend' || raceView === 'results');
   
   // FIX: Removed 'dashboard' from the locked layout logic to ensure the Admin Dashboard is scrollable.
   // Other data-heavy tables remain locked as they have internal scroll mechanisms.
-  const isLockedLayout = lockedDesktopPages.includes(activePage) || (
+  const isLockedLayout = lockedDesktopPages.includes(activePage) || isLockedRaceView || (
       activePage === 'admin' && 
       ['invitations', 'entities', 'manage-users', 'schedule', 'database', 'announcements'].includes(adminSubPage)
   );
@@ -550,6 +562,12 @@ const App: React.FC = () => {
     };
   }, []); 
 
+  // Old links and open tabs land on the surface that absorbed them.
+  useEffect(() => {
+    const target = REDIRECTS[location.pathname];
+    if (target) navigate(target, { replace: true });
+  }, [location.pathname, navigate]);
+
   useEffect(() => {
     if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
@@ -644,20 +662,26 @@ const App: React.FC = () => {
             events={mergedEvents} 
             cancelledEventIds={cancelledEventIds}
         />;
+      case 'race':
       case 'picks':
-        if (user) return <HomePage 
-            user={user} 
-            seasonPicks={seasonPicks} 
-            onPicksSubmit={handlePicksSubmit} 
-            formLocks={formLocks} 
-            pointsSystem={activePointsSystem} 
-            allDrivers={allDrivers} 
-            allConstructors={allConstructors} 
-            events={mergedEvents} 
-            initialEventId={targetEventId}
+      case 'schedule':
+      case 'gp-results':
+        return <RacePage
+            user={user}
+            seasonPicks={seasonPicks}
+            onPicksSubmit={handlePicksSubmit}
+            formLocks={formLocks}
+            pointsSystem={activePointsSystem}
+            allDrivers={allDrivers}
+            allConstructors={allConstructors}
+            events={mergedEvents}
             cancelledEventIds={cancelledEventIds}
+            schedules={eventSchedules}
+            raceResults={raceResults}
+            onRefresh={handleScheduleUpdate}
+            setActivePage={navigateToPage}
+            targetEventId={targetEventId}
         />;
-        return null;
       case 'leaderboard':
         return <LeaderboardPage 
             currentUser={user} 
@@ -673,19 +697,6 @@ const App: React.FC = () => {
         />;
       case 'league-hub':
         return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
-      case 'gp-results':
-        return <SchedulePage 
-          schedules={eventSchedules} 
-          events={mergedEvents} 
-          onRefresh={handleScheduleUpdate} 
-          raceResults={raceResults} 
-          setActivePage={navigateToPage} 
-          cancelledEventIds={cancelledEventIds}
-          allDrivers={allDrivers}
-          allConstructors={allConstructors}
-          initialEventId={targetEventId}
-          initialViewResults={true}
-        />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         return null;
@@ -693,18 +704,6 @@ const App: React.FC = () => {
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'drivers-teams':
         return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
-      case 'schedule':
-        return <SchedulePage 
-          schedules={eventSchedules} 
-          events={mergedEvents} 
-          onRefresh={handleScheduleUpdate} 
-          raceResults={raceResults} 
-          setActivePage={navigateToPage} 
-          cancelledEventIds={cancelledEventIds}
-          allDrivers={allDrivers}
-          allConstructors={allConstructors}
-          initialEventId={targetEventId}
-        />;
       case 'donate':
         return <DonationPage user={user} setActivePage={navigateToPage} />;
       case 'support':
@@ -811,9 +810,20 @@ const App: React.FC = () => {
              <div className="text-center justify-self-center">
                 <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
-             <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors justify-self-end">
-               Log Out
-             </button>
+             <div className="flex items-center gap-3 justify-self-end">
+               {isUserAdmin(user) && (
+                 <button
+                   onClick={() => navigateToPage('admin')}
+                   aria-label="Admin"
+                   className={`transition-colors ${activePage === 'admin' ? 'text-primary-red' : 'text-highlight-silver hover:text-primary-red'}`}
+                 >
+                   <AdminIcon className="w-6 h-6" />
+                 </button>
+               )}
+               <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors">
+                 Log Out
+               </button>
+             </div>
            </>
          ) : (
            <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer col-span-3 justify-center">
@@ -842,15 +852,12 @@ const App: React.FC = () => {
             </main>
         </div>
 
-        <nav className={`absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-6' : 'grid-cols-5'} md:hidden z-50 pb-safe`}>
+        <nav className="absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid grid-cols-5 md:hidden z-50 pb-safe">
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={PicksIcon} label="Race" page="race" activePage={activePage} setActivePage={navigateToPage} isParentActive={['race', 'picks', 'schedule', 'gp-results'].includes(activePage)} />
+            <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'drivers-teams'].includes(activePage)} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            {isUserAdmin(user) && (
-              <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
-            )}
         </nav>
 
         <SessionWarningModal 
@@ -939,10 +946,12 @@ interface NavItemProps {
   page: Page;
   activePage: Page;
   setActivePage: (page: Page) => void;
+  /** Keeps the tab lit for the retired destinations a surface absorbed. */
+  isParentActive?: boolean;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage }) => {
-  const isActive = activePage === page;
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage, isParentActive }) => {
+  const isActive = isParentActive !== undefined ? isParentActive : activePage === page;
   return (
     <button
       onClick={() => setActivePage(page)}

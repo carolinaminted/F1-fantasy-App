@@ -1,32 +1,68 @@
 import type { Page } from './App.tsx';
 
 /**
- * URL <-> Page mapping. Gate 2 gives every existing surface a real URL without changing
- * the information architecture, so this is deliberately a 1:1 translation of the `Page`
- * union that App.tsx has always used. The IA merge in a later gate rewrites this table.
+ * URL <-> Page mapping.
+ *
+ * Gate 2 gave every surface a URL; Gate 5 merged three of them into Race. `picks`,
+ * `schedule`, and `gp-results` remain in the `Page` union so the eleven components that
+ * navigate by page name did not have to change — they now all resolve to /race with the
+ * matching view.
  */
 export const PAGE_PATHS: Record<Page, string> = {
   'home': '/',
-  'picks': '/picks',
-  'leaderboard': '/leaderboard',
+  'race': '/race',
+  'picks': '/race',            // retired destination, folded into Race
+  'leaderboard': '/standings',
   'profile': '/profile',
   'admin': '/admin',
   'points': '/points',
   'donate': '/donate',
   'support': '/support',
-  'gp-results': '/gp-results',
+  'gp-results': '/race',       // retired: was SchedulePage with a flag
   'duesPayment': '/dues',
   'drivers-teams': '/drivers-teams',
-  'schedule': '/schedule',
+  'schedule': '/race',         // retired, folded into Race
   'league-hub': '/league',
 };
 
-const PATH_PAGES = Object.entries(PAGE_PATHS).reduce<Record<string, Page>>(
-  (acc, [page, path]) => { acc[path] = page as Page; return acc; },
+/**
+ * Reverse lookup. Retired destinations share a path with the surface that absorbed them,
+ * so this table is built from the canonical entries only.
+ */
+const CANONICAL: Page[] = [
+  'home', 'race', 'leaderboard', 'profile', 'admin', 'points', 'donate',
+  'support', 'duesPayment', 'drivers-teams', 'league-hub',
+];
+
+const PATH_PAGES = CANONICAL.reduce<Record<string, Page>>(
+  (acc, page) => { acc[PAGE_PATHS[page]] = page; return acc; },
   {}
 );
 
-export const pathForPage = (page: Page): string => PAGE_PATHS[page] ?? '/';
+/**
+ * Paths retired by the IA merge, and where they now live. Anyone with an old link or an
+ * open tab lands in the right place instead of on a dead route.
+ */
+export const REDIRECTS: Record<string, string> = {
+  '/picks': '/race?view=picks',
+  '/schedule': '/race?view=weekend',
+  '/gp-results': '/race?view=results',
+  '/leaderboard': '/standings',
+};
+
+/** Retired destinations map to a view of the Race surface. */
+const RACE_VIEW_FOR_PAGE: Partial<Record<Page, string>> = {
+  'picks': 'picks',
+  'schedule': 'weekend',
+  'gp-results': 'results',
+  'race': 'picks',
+};
+
+export const pathForPage = (page: Page): string => {
+  const base = PAGE_PATHS[page] ?? '/';
+  const view = RACE_VIEW_FOR_PAGE[page];
+  return view ? `${base}?view=${view}` : base;
+};
 
 /** Unknown paths fall back to home, matching the old switch's `default` branch. */
 export const pageForPath = (pathname: string): Page => {
