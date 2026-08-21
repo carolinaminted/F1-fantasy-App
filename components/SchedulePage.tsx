@@ -221,7 +221,11 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             return (
                 <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
                     <div className="flex-none">
-                        <PageHeader title="RACE RESULTS" icon={CalendarIcon} />
+                        <PageHeader
+                            title="RACE RESULTS"
+                            icon={CheckeredFlagIcon}
+                            subtitle="Official GP finishing orders in EST"
+                        />
                     </div>
                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                         <CalendarIcon className="w-20 h-20 text-accent-gray opacity-20 mb-5" />
@@ -245,6 +249,11 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
 
         return (
             <div className="w-full max-w-7xl mx-auto pb-8">
+                <PageHeader
+                    title="RACE RESULTS"
+                    icon={CheckeredFlagIcon}
+                    subtitle="Official GP finishing orders in EST"
+                />
                 <EventDetailsModal
                     inline
                     event={selectedEvent}
