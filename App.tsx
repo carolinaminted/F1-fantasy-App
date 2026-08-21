@@ -21,7 +21,6 @@ import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import SupportPage from './components/SupportPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
-import GpResultsPage from './components/GpResultsPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
 import SchedulePage from './components/SchedulePage.tsx';
 import LeagueHubPage from './components/LeagueHubPage.tsx';
