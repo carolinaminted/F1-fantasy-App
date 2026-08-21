@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -24,7 +24,7 @@ import { PageHeader } from './ui/PageHeader.tsx';
 import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks, getUserPicks } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
-import ExecutiveDashboardView from './ExecutiveDashboardView.tsx';
+const ExecutiveDashboardView = lazy(() => import('./ExecutiveDashboardView.tsx'));
 
 // --- Configuration ---
 const REFRESH_COOLDOWN_SECONDS = 60;
@@ -1056,6 +1056,13 @@ const EntityStatsView: React.FC<{ raceResults: RaceResults; pointsSystem: Points
 
 // --- Main Page ---
 
+/** Shown while the Executive Dashboard chunk loads. */
+const ViewLoadingFallback: React.FC = () => (
+  <div className="w-full min-h-[40vh] flex items-center justify-center">
+    <div className="w-10 h-10 rounded-full border-2 border-accent-gray border-t-primary-red animate-spin" />
+  </div>
+);
+
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ 
     currentUser, 
     raceResults, 
@@ -1415,7 +1422,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
           </div>
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
-            {view === 'executive' && <ExecutiveDashboardView users={processedUsers} currentUser={currentUser} allDrivers={allDrivers} allConstructors={allConstructors} events={events} onSelectUser={setSelectedUserProfile} />}
+            {view === 'executive' && <Suspense fallback={<ViewLoadingFallback />}><ExecutiveDashboardView users={processedUsers} currentUser={currentUser} allDrivers={allDrivers} allConstructors={allConstructors} events={events} onSelectUser={setSelectedUserProfile} /></Suspense>}
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <PopularityView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} cancelledEventIds={cancelledEventIds} />}
             {view === 'insights' && leaderboardCache && <InsightsView users={processedUsers} allPicks={leaderboardCache.allPicks} raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} events={events} />}

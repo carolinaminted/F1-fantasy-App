@@ -1,28 +1,29 @@
 
 
 // Fix: Implement the main App component to provide structure, state management, and navigation.
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
 import HomePage from './components/HomePage.tsx';
-import ProfilePage from './components/ProfilePage.tsx';
-import LeaderboardPage from './components/LeaderboardPage.tsx';
+const ProfilePage = lazy(() => import('./components/ProfilePage.tsx'));
+const LeaderboardPage = lazy(() => import('./components/LeaderboardPage.tsx'));
 import Dashboard from './components/Dashboard.tsx';
-import AdminPage from './components/AdminPage.tsx';
-import ResultsManagerPage from './components/ResultsManagerPage.tsx';
-import ManageUsersPage from './components/ManageUsersPage.tsx';
-import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
-import ManageSchedulePage from './components/ManageSchedulePage.tsx';
-import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
-import AdminInvitationPage from './components/AdminInvitationPage.tsx';
-import DatabaseManagerPage from './components/DatabaseManagerPage.tsx'; // Import
-import AdminAnnouncementsPage from './components/AdminAnnouncementsPage.tsx';
+const AdminPage = lazy(() => import('./components/AdminPage.tsx'));
+const ResultsManagerPage = lazy(() => import('./components/ResultsManagerPage.tsx'));
+const ManageUsersPage = lazy(() => import('./components/ManageUsersPage.tsx'));
+const ManageEntitiesPage = lazy(() => import('./components/ManageEntitiesPage.tsx'));
+const ManageSchedulePage = lazy(() => import('./components/ManageSchedulePage.tsx'));
+const ScoringSettingsPage = lazy(() => import('./components/ScoringSettingsPage.tsx'));
+const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.tsx'));
+const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
+const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
 import PointsTransparency from './components/PointsTransparency.tsx';
 import DonationPage from './components/DonationPage.tsx';
 import SupportPage from './components/SupportPage.tsx';
 import DuesPaymentPage from './components/DuesPaymentPage.tsx';
 import DriversTeamsPage from './components/DriversTeamsPage.tsx';
-import SchedulePage from './components/SchedulePage.tsx';
+const SchedulePage = lazy(() => import('./components/SchedulePage.tsx'));
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -41,6 +42,7 @@ import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
+import { pathForPage, pageForPath } from './routes.ts';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
@@ -87,6 +89,13 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
     </button>
   );
 };
+
+/** Shown while a lazily-loaded surface's chunk is in flight. */
+const PageLoadingFallback: React.FC = () => (
+  <div className="w-full h-full min-h-[50vh] flex items-center justify-center">
+    <div className="w-10 h-10 rounded-full border-2 border-accent-gray border-t-primary-red animate-spin" />
+  </div>
+);
 
 const isUserAdmin = (user: User | null) => {
     return !!user?.isAdmin;
@@ -224,7 +233,12 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionVariant, setTransitionVariant] = useState(1);
-  const [activePage, setActivePage] = useState<Page>('home');
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Gate 2: the URL is the source of truth for which surface is showing. Everything
+  // downstream still receives `navigateToPage` under the old `setActivePage` prop name,
+  // so no child component had to change.
+  const activePage = pageForPath(location.pathname);
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
   const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements'>('dashboard');
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
@@ -538,7 +552,7 @@ const App: React.FC = () => {
         scrollContainerRef.current.scrollTop = 0;
     }
     window.scrollTo(0, 0);
-  }, [activePage, adminSubPage]);
+  }, [location.pathname, adminSubPage]);
 
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
     if (!user) return;
@@ -607,7 +621,7 @@ const App: React.FC = () => {
     } else {
         setTargetEventId(null);
     }
-    setActivePage(page);
+    navigate(pathForPage(page));
   };
 
   const renderPage = () => {
@@ -815,7 +829,9 @@ const App: React.FC = () => {
                     window.location.reload();
                   }}
                 >
-                    {renderPage()}
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      {renderPage()}
+                    </Suspense>
                 </ErrorBoundary>
             </main>
         </div>
