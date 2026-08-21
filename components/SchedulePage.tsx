@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Event, EventSchedule, RaceResults, Driver, Constructor, EventResult } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -94,6 +94,20 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             r.sprintQualifying?.some(pos => !!pos)
         );
     };
+
+    /**
+     * A selected event means two different things in the two detail modes: the page's
+     * subject when inline, an open overlay when modal. Carrying a selection across that
+     * switch would pop the overlay open unbidden, so drop it on the way into modal mode.
+     * Entering inline mode is left alone — the auto-select effect below chooses there.
+     */
+    const previousDetailMode = useRef(detailMode);
+    useEffect(() => {
+        if (previousDetailMode.current !== detailMode) {
+            previousDetailMode.current = detailMode;
+            if (detailMode === 'modal') setSelectedEvent(null);
+        }
+    }, [detailMode]);
 
     // Auto-select initialEventId if passed from props
     useEffect(() => {
