@@ -277,12 +277,12 @@ const App: React.FC = () => {
   ];
 
   /**
-   * The Race surface is only locked on its calendar views. SchedulePage expects a
-   * fixed-height parent and scrolls internally; the Picks view sizes itself and needs
-   * the page to scroll normally, exactly as it did when it was its own destination.
+   * Only the Weekend calendar is locked. SchedulePage's calendar expects a fixed-height
+   * parent and scrolls internally, while Picks sizes itself and Results renders the event
+   * details as an ordinary block — both need the page to scroll normally.
    */
   const raceView = new URLSearchParams(location.search).get('view');
-  const isLockedRaceView = activePage === 'race' && (raceView === 'weekend' || raceView === 'results');
+  const isLockedRaceView = activePage === 'race' && raceView === 'weekend';
   
   // FIX: Removed 'dashboard' from the locked layout logic to ensure the Admin Dashboard is scrollable.
   // Other data-heavy tables remain locked as they have internal scroll mechanisms.

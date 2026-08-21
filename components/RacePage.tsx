@@ -92,6 +92,7 @@ const RacePage: React.FC<RacePageProps> = ({
         allConstructors={allConstructors}
         initialEventId={targetEventId}
         initialViewResults={view === 'results'}
+        detailMode={view === 'results' ? 'inline' : 'modal'}
       />
     );
   }, [

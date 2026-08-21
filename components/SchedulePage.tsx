@@ -23,6 +23,12 @@ interface SchedulePageProps {
     allConstructors?: Constructor[];
     initialEventId?: string | null;
     initialViewResults?: boolean;
+    /**
+     * 'inline' renders the selected event's details as the page itself rather than as an
+     * overlay above the calendar. The Race surface uses it for the Results view so all
+     * three views read as pages, not as a page with a modal on top of it.
+     */
+    detailMode?: 'modal' | 'inline';
 }
 
 /**
@@ -68,7 +74,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
     allDrivers = [],
     allConstructors = [],
     initialEventId,
-    initialViewResults = false
+    initialViewResults = false,
+    detailMode = 'modal'
 }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -193,6 +200,55 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             <span className="text-sm font-bold">League Hub</span>
         </button>
     );
+
+    // Inline detail mode: render the selected event as the page. No calendar, no overlay.
+    if (detailMode === 'inline') {
+        if (!selectedEvent) {
+            return (
+                <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
+                    <div className="flex-none">
+                        <PageHeader title="RACE RESULTS" icon={CalendarIcon} />
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                        <CalendarIcon className="w-20 h-20 text-accent-gray opacity-20 mb-5" />
+                        <h2 className="text-2xl font-black text-pure-white italic uppercase mb-2">No Results Yet</h2>
+                        <p className="text-highlight-silver max-w-md">
+                            Official finishing orders appear here once the first Grand Prix has been scored.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        const isSelectedCancelled = cancelledEventIds.has(selectedEvent.id);
+        const isSelectedNext = nextRace?.id === selectedEvent.id;
+        const isSelectedCompletedResult = hasResults(selectedEvent.id);
+        const qualiTime = selectedEvent.hasSprint
+            ? (schedules[selectedEvent.id]?.sprintQualifying || schedules[selectedEvent.id]?.qualifying)
+            : schedules[selectedEvent.id]?.qualifying;
+        const lockDate = parseLeagueDate(qualiTime || selectedEvent.lockAtUtc);
+        const isSelectedPastPicksDue = lockDate ? new Date() >= lockDate : false;
+
+        return (
+            <div className="w-full max-w-7xl mx-auto pb-8">
+                <EventDetailsModal
+                    inline
+                    event={selectedEvent}
+                    schedule={schedules[selectedEvent.id]}
+                    results={raceResults?.[selectedEvent.id]}
+                    allDrivers={allDrivers}
+                    allConstructors={allConstructors}
+                    events={events}
+                    onClose={() => setSelectedEvent(null)}
+                    onSelectEvent={(evt) => setSelectedEvent(evt)}
+                    isCancelled={isSelectedCancelled}
+                    isCompleted={!isSelectedCancelled && (isSelectedCompletedResult || isSelectedPastPicksDue)}
+                    isNext={isSelectedNext}
+                    initialView={modalInitialView}
+                />
+            </div>
+        );
+    }
 
     if (!events || events.length === 0) {
         return (
@@ -470,6 +526,8 @@ const EventDetailsModal: React.FC<{
     isCompleted?: boolean;
     isNext?: boolean;
     initialView?: 'timetable' | 'results';
+    /** Render as a normal in-page block instead of an overlay. */
+    inline?: boolean;
 }> = ({ 
     event, 
     schedule, 
@@ -482,7 +540,8 @@ const EventDetailsModal: React.FC<{
     isCancelled, 
     isCompleted, 
     isNext,
-    initialView = 'timetable'
+    initialView = 'timetable',
+    inline = false
 }) => {
     const [activeModalView, setActiveModalView] = useState<'timetable' | 'results'>(initialView);
 
@@ -529,13 +588,14 @@ const EventDetailsModal: React.FC<{
                     ? 'from-yellow-600/15'
                     : 'from-pure-white/10';
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-3 sm:p-4 animate-fade-in" onClick={onClose}>
-            <div 
-                className={`w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border ${borderStyle} animate-scale-in flex flex-col max-h-[90vh] ${isCancelled ? 'opacity-95' : ''}`} 
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="overflow-y-auto custom-scrollbar relative w-full h-full p-5 md:p-8">
+    const body = (
+        <div
+            className={`w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border ${borderStyle} flex flex-col ${
+                inline ? 'mx-auto' : 'animate-scale-in max-h-[90vh]'
+            } ${isCancelled ? 'opacity-95' : ''}`}
+            onClick={inline ? undefined : e => e.stopPropagation()}
+        >
+                <div className={`relative w-full p-5 md:p-8 ${inline ? '' : 'overflow-y-auto custom-scrollbar h-full'}`}>
                     {/* Header bar controls: Event Selector + Close */}
                     <div className="flex items-center justify-between gap-3 mb-4 z-30 relative">
                         <div className="max-w-[220px] sm:max-w-xs">
@@ -548,7 +608,7 @@ const EventDetailsModal: React.FC<{
                         </div>
                         <button 
                             onClick={onClose} 
-                            className="bg-carbon-black/80 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/20 shadow-lg transition-transform hover:scale-110 shrink-0"
+                            className={`bg-carbon-black/80 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/20 shadow-lg transition-transform hover:scale-110 shrink-0 ${inline ? 'hidden' : ''}`}
                             aria-label="Close modal"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -687,7 +747,17 @@ const EventDetailsModal: React.FC<{
                         )}
                     </div>
                 </div>
-            </div>
+        </div>
+    );
+
+    if (inline) return body;
+
+    return (
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-3 sm:p-4 animate-fade-in"
+            onClick={onClose}
+        >
+            {body}
         </div>
     );
 };
