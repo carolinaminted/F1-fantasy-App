@@ -46,7 +46,7 @@ const PointsCard: React.FC<{
 }> = ({ title, icon: Icon, subtitle, className, headerColor, children }) => (
     <div className={`bg-carbon-fiber rounded-xl ring-1 ring-pure-white/10 flex flex-col overflow-hidden shadow-lg select-none ${className}`}>
         {/* Header */}
-        <div className={`px-4 py-3.5 flex items-center gap-3 border-b border-pure-white/5 bg-carbon-black/20 flex-shrink-0`}>
+        <div className={`px-4 py-3.5 flex items-center gap-3 border-b border-pure-white/5 bg-carbon-black/20 shrink-0`}>
             <div className={`p-2 rounded-lg ${headerColor || 'bg-pure-white/5 text-pure-white'}`}>
                 <Icon className="w-5 h-5" />
             </div>
@@ -164,14 +164,14 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
                                 <h4 className="text-xs font-black text-highlight-silver uppercase tracking-[0.2em] mb-4">Scoring Mechanics</h4>
                                 <div className="space-y-4">
                                     <div className="flex gap-4">
-                                        <div className="w-1.5 h-auto rounded-full bg-primary-red flex-shrink-0"></div>
+                                        <div className="w-1.5 h-auto rounded-full bg-primary-red shrink-0"></div>
                                         <div className="flex-1">
                                             <span className="block text-primary-red font-black text-[10px] uppercase tracking-wider mb-1">Team Score</span>
                                             <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Sum of <strong className="text-pure-white not-italic">both</strong> drivers' points for the session.</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-4">
-                                        <div className="w-1.5 h-auto rounded-full bg-blue-400 flex-shrink-0"></div>
+                                        <div className="w-1.5 h-auto rounded-full bg-blue-400 shrink-0"></div>
                                         <div className="flex-1">
                                             <span className="block text-blue-400 font-black text-[10px] uppercase tracking-wider mb-1">Driver Score</span>
                                             <p className="text-xs leading-relaxed text-ghost-white opacity-80 italic">Points earned individually by your <strong className="text-pure-white not-italic">selected</strong> drivers.</p>

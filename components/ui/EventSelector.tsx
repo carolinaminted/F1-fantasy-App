@@ -90,7 +90,7 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
 
             {isDropdownOpen && !disabled && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-accent-gray border border-pure-white/10 rounded-xl shadow-2xl max-h-80 overflow-hidden flex flex-col animate-fade-in-down z-50">
-                    <div className="flex-shrink-0 p-2 bg-carbon-black/95 border-b border-pure-white/10 flex gap-1 backdrop-blur-sm sticky top-0 z-50 overflow-x-auto no-scrollbar">
+                    <div className="shrink-0 p-2 bg-carbon-black/95 border-b border-pure-white/10 flex gap-1 backdrop-blur-sm sticky top-0 z-50 overflow-x-auto no-scrollbar">
                         {filters.map(filter => (
                             <button
                                 key={filter.value}

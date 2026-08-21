@@ -203,7 +203,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                         </div>
 
                         {/* Right: Actions */}
-                        <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-shrink-0">
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-end shrink-0">
                             <button
                                 onClick={handleCreateNew}
                                 disabled={isSaving}
@@ -262,7 +262,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                         </button>
                                     )}
                                 </div>
-                                <div className="flex-grow flex items-center">
+                                <div className="grow flex items-center">
                                     <input 
                                         type="text" 
                                         value={editForm.name}
@@ -277,7 +277,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             {/* Fastest Lap Field */}
                             <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl flex flex-col h-full">
                                 <label className="block text-[10px] font-black uppercase text-highlight-silver mb-4 tracking-[0.2em]">Fastest Lap Bonus</label>
-                                <div className="flex-grow flex items-center">
+                                <div className="grow flex items-center">
                                     <div className="flex items-center gap-4 max-w-sm w-full">
                                         <div className="bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner">
                                             <FastestLapIcon className="w-7 h-7 text-purple-500" />

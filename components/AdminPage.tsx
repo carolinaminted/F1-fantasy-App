@@ -299,7 +299,7 @@ const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, subtitle, desc
         </div>
         
         {/* Content Section */}
-        <div className="relative z-10 flex-grow flex flex-col justify-center">
+        <div className="relative z-10 grow flex flex-col justify-center">
             <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
             <p className="text-highlight-silver/70 text-sm leading-snug">{description}</p>
         </div>

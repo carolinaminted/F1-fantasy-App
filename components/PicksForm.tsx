@@ -417,7 +417,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
               </div>
           )}
           
-          <div className="flex-grow text-center md:text-left z-10">
+          <div className="grow text-center md:text-left z-10">
             <div className="flex items-center justify-center md:justify-start gap-3">
                 <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
                 {isEventCancelled && (
@@ -465,7 +465,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         {/* CANCELLED STAMP PANEL */}
         {isEventCancelled && (
             <div className="bg-red-950/10 border border-red-500/30 rounded-xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 animate-fade-in">
-                <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
                     <XCircleIcon className="w-8 h-8 text-red-500" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
@@ -489,7 +489,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${isEventCancelled ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
             {hasExhaustedCategory && (
               <div className="lg:col-span-2 bg-amber-900/30 border border-amber-500/50 rounded-lg p-4 flex items-start gap-3 animate-fade-in-up">
-                 <span className="text-amber-400 text-xl flex-shrink-0 mt-0.5">⚠️</span>
+                 <span className="text-amber-400 text-xl shrink-0 mt-0.5">⚠️</span>
                  <div>
                      <p className="text-amber-200 font-bold text-sm">Usage Limits Reached</p>
                      <p className="text-amber-300/80 text-xs mt-1">

@@ -50,7 +50,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ user, setActivePage }) => {
                         <div className="absolute inset-0 bg-primary-red/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                         
                         <h2 className="text-xl font-black text-pure-white uppercase italic tracking-wide">Site Feedback & Feature Requests</h2>
-                        <ul className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto flex-grow leading-relaxed text-center space-y-2">
+                        <ul className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto grow leading-relaxed text-center space-y-2">
                             <li>General site feedback and request New enhancements or features</li>
                         </ul>
                         
@@ -80,7 +80,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ user, setActivePage }) => {
                         <div className="absolute inset-0 bg-primary-red/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
                         <h2 className="text-xl font-black text-pure-white uppercase italic tracking-wide">Questions & Concerns</h2>
-                        <ul className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto flex-grow leading-relaxed text-center space-y-2 list-none">
+                        <ul className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto grow leading-relaxed text-center space-y-2 list-none">
                             <li>For any direct questions, account issues, or concerns</li>
                         </ul>
                         

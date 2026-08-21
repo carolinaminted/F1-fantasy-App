@@ -1013,7 +1013,7 @@ const CollapsibleUsageList: React.FC<{
         <ChevronDownIcon className={`w-6 h-6 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
-        <div className="mt-3 space-y-3 flex-grow">
+        <div className="mt-3 space-y-3 grow">
           {sortedEntities.map(e => (
             <button
                 key={e.id}

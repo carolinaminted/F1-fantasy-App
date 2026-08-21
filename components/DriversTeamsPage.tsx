@@ -108,17 +108,17 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                 />
 
                 <div className="relative z-10 p-4 md:flex-1 md:flex md:flex-col overflow-hidden">
-                    <div className="flex justify-between items-center mb-2 border-b border-pure-white/10 pb-2 md:flex-shrink-0">
+                    <div className="flex justify-between items-center mb-2 border-b border-pure-white/10 pb-2 md:shrink-0">
                         <div className="flex flex-col justify-center min-w-0 flex-1">
                             <h3 className="text-lg md:text-base font-black text-pure-white leading-none tracking-tight flex items-center gap-1.5 truncate uppercase">
                                 {team.name}
                                 {teamUrl && (
-                                    <svg className="w-3 h-3 text-highlight-silver opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    <svg className="w-3 h-3 text-highlight-silver opacity-0 group-hover:opacity-100 transition-opacity shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                 )}
                             </h3>
                         </div>
                         <div 
-                            className="w-1.5 h-6 md:h-7 rounded-full ml-2 flex-shrink-0" 
+                            className="w-1.5 h-6 md:h-7 rounded-full ml-2 shrink-0" 
                             style={{ backgroundColor: teamColor, boxShadow: `0 0 8px ${teamColor}60` }} 
                         />
                     </div>
@@ -128,7 +128,7 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                             drivers.map(driver => (
                                 <div key={driver.id} className="flex items-center gap-2 min-w-0">
                                     <div 
-                                        className={`w-2 h-2 rounded-full flex-shrink-0 ${driver.isActive ? '' : 'bg-red-500'}`}
+                                        className={`w-2 h-2 rounded-full shrink-0 ${driver.isActive ? '' : 'bg-red-500'}`}
                                         style={{ backgroundColor: driver.isActive ? teamColor : undefined }}
                                     ></div>
                                     <span className={`text-sm md:text-xs font-bold tracking-tight truncate ${driver.isActive ? 'text-ghost-white' : 'text-highlight-silver line-through opacity-60'}`}>
@@ -164,7 +164,7 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
                     
                     {/* Class A Column - Wider (6/11) and 2 columns inner */}
                     <div className="lg:col-span-6 flex flex-col bg-carbon-fiber/30 rounded-xl border border-pure-white/5 overflow-hidden shadow-2xl">
-                        <div className="bg-carbon-black/95 backdrop-blur-md py-3 px-4 border-b border-primary-red/30 flex-shrink-0">
+                        <div className="bg-carbon-black/95 backdrop-blur-md py-3 px-4 border-b border-primary-red/30 shrink-0">
                             <h2 className="text-lg font-black text-pure-white flex items-center gap-2 uppercase tracking-wider">
                                 <span className="w-2.5 h-2.5 rounded-full bg-primary-red shadow-[0_0_8px_rgba(218,41,28,0.6)]"></span>
                                 Class A Constructors
@@ -181,7 +181,7 @@ const DriversTeamsPage: React.FC<DriversTeamsPageProps> = ({ allDrivers, allCons
 
                     {/* Class B Column - Narrower (5/11) and 2 columns inner */}
                     <div className="lg:col-span-5 flex flex-col bg-carbon-fiber/30 rounded-xl border border-pure-white/5 overflow-hidden shadow-2xl">
-                        <div className="bg-carbon-black/95 backdrop-blur-md py-3 px-4 border-b border-blue-500/30 flex-shrink-0">
+                        <div className="bg-carbon-black/95 backdrop-blur-md py-3 px-4 border-b border-blue-500/30 shrink-0">
                             <h2 className="text-lg font-black text-pure-white flex items-center gap-2 uppercase tracking-wider">
                                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
                                 Class B Constructors

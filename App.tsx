@@ -82,7 +82,7 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
           : 'text-highlight-silver hover:bg-accent-gray/50 hover:text-pure-white'
       }`}
     >
-      <Icon className={`w-8 h-8 flex-shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
+      <Icon className={`w-8 h-8 shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
       <span className="text-base font-medium">{label}</span>
     </button>
   );
@@ -117,7 +117,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
     }, []);
 
     return (
-        <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
+        <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 shrink-0 h-screen overflow-y-auto custom-scrollbar">
             {/* Header / User Dropdown */}
             <div className="relative mb-4" ref={dropdownRef}>
                 <button 
@@ -128,7 +128,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                         : 'hover:bg-accent-gray/20 border-transparent'
                     }`}
                 >
-                   <F1CarIcon className="w-10 h-10 text-primary-red flex-shrink-0" />
+                   <F1CarIcon className="w-10 h-10 text-primary-red shrink-0" />
                    <div className="flex flex-col overflow-hidden text-left flex-1">
                        <span className="font-bold text-lg truncate leading-tight text-pure-white group-hover:text-primary-red transition-colors">{getUserRealName(user)}</span>
                        {user && (
@@ -173,7 +173,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 )}
             </div>
 
-            <nav className="flex-grow space-y-1">
+            <nav className="grow space-y-1">
                 <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
                 <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
                 <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
@@ -206,7 +206,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 )}
             </nav>
              
-             <div className="mt-auto flex-shrink-0 pt-4 pb-2">
+             <div className="mt-auto shrink-0 pt-4 pb-2">
                  {/* Copyright Section - Moved Here for Desktop Persistence */}
                  <div className="text-center opacity-30 pb-4">
                     <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
@@ -781,7 +781,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
+        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden shrink-0 z-50">
          {user ? (
            <>
              <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">

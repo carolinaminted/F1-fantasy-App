@@ -1,0 +1,92 @@
+/* Design tokens. Ported verbatim from the inline `tailwind.config` that used to live in
+   index.html, so Gate 1 is a pure plumbing change with no visual delta. */
+
+@theme {
+  /* ---- Brand surfaces & identity ------------------------------------------------ */
+  --color-primary-red: #DA291C;
+  --color-carbon-black: #0A0A0A;
+  --color-ghost-white: #F5F5F5;
+  --color-pure-white: #FFFFFF;
+  --color-accent-gray: #2C2C2C;
+  --color-highlight-silver: #C0C0C0;
+
+  /* ---- Scoring category colors --------------------------------------------------
+     These four already exist in the app: `getVariantTheme` in LeaderboardPage.tsx maps
+     each scoring category to a color, and Scoring Rules, Insights, Schedule, and the
+     admin Scoring Settings page all follow the same mapping independently. Naming them
+     here makes the system explicit; the values match what those surfaces already render.
+     Nothing consumes these tokens yet — adoption happens in later gates.              */
+  --color-category-gp: var(--color-primary-red);
+  --color-category-quali: var(--color-blue-500);
+  --color-category-sprint: var(--color-yellow-500);
+  --color-category-fl: var(--color-purple-500);
+
+  /* ---- Animations --------------------------------------------------------------- */
+  --animate-fade-in-up: fadeInUp 0.8s ease-out forwards;
+  --animate-fade-in-down: fadeInDown 0.5s ease-out forwards;
+  --animate-drive-in: driveIn 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  --animate-peek-up: peekUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-flag-left: flagLeft 0.6s ease-out 1.6s forwards;
+  --animate-flag-right: flagRight 0.6s ease-out 1.6s forwards;
+  --animate-spin-fast: spin 0.5s linear infinite;
+  --animate-spin-1s: spin 1s linear infinite;
+  --animate-flare-sweep: flareSweep 3s ease-in-out infinite;
+  --animate-victory-lap: victoryLap 4s ease-in-out forwards;
+  --animate-wiggle: wiggle 0.5s ease-in-out infinite;
+  --animate-progress-fill: progressFill 2.2s linear forwards;
+
+  @keyframes fadeInUp {
+    0%   { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInDown {
+    0%   { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes driveIn {
+    0%   { opacity: 0; transform: translateY(100vh) scale(0.6); }
+    70%  { opacity: 1; transform: translateY(-60px) scale(1.05); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes peekUp {
+    0%   { opacity: 0; transform: translateY(100px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes flagLeft {
+    0%   { opacity: 0;   transform: translateX(0) translateY(0) rotate(0deg) scale(0.5); }
+    100% { opacity: 0.1; transform: translateX(-80px) translateY(-20px) rotate(-30deg) scale(1.8); }
+  }
+  @keyframes flagRight {
+    0%   { opacity: 0;   transform: translateX(0) translateY(0) rotate(0deg) scale(0.5); }
+    100% { opacity: 0.1; transform: translateX(80px) translateY(-20px) rotate(30deg) scale(1.8); }
+  }
+  /* Defined explicitly rather than relying on Tailwind's built-in: the built-in keyframes
+     are only emitted when `animate-spin` itself is used, and this app only uses the
+     spin-fast / spin-1s aliases. */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes flareSweep {
+    0%   { background-position: -150% 0; }
+    100% { background-position: 250% 0; }
+  }
+  @keyframes victoryLap {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    10%  { transform: translate(0, 30vh) rotate(180deg); }
+    25%  { transform: translate(-40vw, 30vh) rotate(90deg); }
+    40%  { transform: translate(-40vw, -40vh) rotate(0deg); }
+    60%  { transform: translate(40vw, -40vh) rotate(-90deg); }
+    80%  { transform: translate(40vw, 30vh) rotate(-180deg); }
+    90%  { transform: translate(0, 30vh) rotate(-270deg); }
+    100% { transform: translate(0, 0) rotate(-360deg); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-10deg) scale(1.8); }
+    50%      { transform: rotate(10deg) scale(2.2); }
+  }
+  @keyframes progressFill {
+    0%   { width: 0%; }
+    100% { width: 100%; }
+  }
+}

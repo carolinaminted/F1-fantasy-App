@@ -187,7 +187,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
             
             <div className="flex-1 md:overflow-hidden px-4 md:px-1 pb-8 flex flex-col">
                 <div className={`bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1 transition-opacity ${isSaving ? 'opacity-60 cursor-wait' : ''}`}>
-                    <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
+                    <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 shrink-0">
                         <h2 className="text-xl font-bold">{activeTab === 'drivers' ? 'Driver Roster' : 'Constructor List'}</h2>
                         
                         <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1">

@@ -41,7 +41,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                         <div className="absolute inset-0 bg-primary-red/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                         
                         <h2 className="text-xl font-black text-pure-white uppercase italic tracking-wide">Victory Junction</h2>
-                        <p className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto flex-grow leading-relaxed">
+                        <p className="text-highlight-silver text-sm mt-4 max-w-lg mx-auto grow leading-relaxed">
                             Give kids with complex medical needs the chance to experience camp adventures like zip lining, archery, and fishing in a safe, barrier-free environment where they can grow and thrive.
                         </p>
                         
@@ -71,7 +71,7 @@ const DonationPage: React.FC<DonationPageProps> = ({ user, setActivePage }) => {
                         <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
                         <h2 className="text-xl font-black text-pure-white uppercase italic tracking-wide">League Operations</h2>
-                        <p className="text-highlight-silver text-sm mt-4 mb-4 flex-grow leading-relaxed">
+                        <p className="text-highlight-silver text-sm mt-4 mb-4 grow leading-relaxed">
                             Your contribution helps cover cloud hosting fees, domain costs, and keeps the league platform running smoothly for the season.
                         </p>
                         

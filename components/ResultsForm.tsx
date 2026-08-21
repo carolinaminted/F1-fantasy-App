@@ -343,7 +343,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
         <div className="text-pure-white flex flex-col min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
                 {/* Updated Header Layout: Buttons to the right, transparent background to show carbon fiber */}
-                <div className="flex flex-row justify-between items-center mb-4 pb-4 border-b border-white/10 flex-shrink-0 pt-0">
+                <div className="flex flex-row justify-between items-center mb-4 pb-4 border-b border-white/10 shrink-0 pt-0">
                     <div className="flex flex-col min-w-0 mr-4">
                         <div className="flex items-center gap-2">
                             <h2 className="text-lg md:text-xl font-bold truncate">{event.name}</h2>
@@ -361,7 +361,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         <p className="text-xs text-highlight-silver truncate">{event.country} • Round {event.round}</p>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={onToggleLock}
@@ -402,7 +402,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                 <div className="flex-1">
                     {!event.hasSprint ? (
                         <section className="bg-carbon-black/40 rounded-xl p-4 md:p-6 border border-pure-white/5 flex flex-col mb-6">
-                            <div className="flex items-center gap-2 mb-4 md:mb-6 border-b border-accent-gray/30 pb-3 flex-shrink-0">
+                            <div className="flex items-center gap-2 mb-4 md:mb-6 border-b border-accent-gray/30 pb-3 shrink-0">
                                 <CheckeredFlagIcon className="w-5 h-5 text-primary-red" />
                                 <h3 className="font-bold text-sm uppercase tracking-wider text-pure-white">Grand Prix Session</h3>
                             </div>

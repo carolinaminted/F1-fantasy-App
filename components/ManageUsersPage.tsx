@@ -168,7 +168,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1">
                         
                         {/* Card Header with Search and Toggles */}
-                        <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 flex-shrink-0">
+                        <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 shrink-0">
                             <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto flex-1">
                                 {/* Search Input */}
                                 <div className="w-full md:w-auto flex-1 max-w-md relative">

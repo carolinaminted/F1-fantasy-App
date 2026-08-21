@@ -34,10 +34,10 @@ const GeneralAnnouncementBanner: React.FC<GeneralAnnouncementBannerProps> = ({ a
                     </p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto">
+            <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
                 <button
                     onClick={handleDismiss}
-                    className="flex-shrink-0 bg-transparent hover:bg-white/10 text-white rounded-full p-2 transition-colors ml-auto sm:ml-0"
+                    className="shrink-0 bg-transparent hover:bg-white/10 text-white rounded-full p-2 transition-colors ml-auto sm:ml-0"
                     aria-label="Dismiss announcement"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>

@@ -44,7 +44,7 @@ const ResultsAnnouncementBanner: React.FC<ResultsAnnouncementBannerProps> = ({ a
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto">
+            <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
                 <button
                     onClick={handleNavigate}
                     className="flex-1 bg-green-600 hover:bg-green-500 text-pure-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg shadow-md transition-transform hover:scale-105"
@@ -53,7 +53,7 @@ const ResultsAnnouncementBanner: React.FC<ResultsAnnouncementBannerProps> = ({ a
                 </button>
                 <button
                     onClick={handleDismiss}
-                    className="flex-shrink-0 bg-transparent hover:bg-white/10 text-white rounded-full p-2 transition-colors"
+                    className="shrink-0 bg-transparent hover:bg-white/10 text-white rounded-full p-2 transition-colors"
                     aria-label="Dismiss announcement"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
