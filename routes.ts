@@ -33,3 +33,6 @@ export const pageForPath = (pathname: string): Page => {
   const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   return PATH_PAGES[normalized] ?? 'home';
 };
+
+/** Admin-only primitive gallery. Deliberately outside the Page union — it is not a surface. */
+export const DEV_UI_PATH = '/dev/ui';

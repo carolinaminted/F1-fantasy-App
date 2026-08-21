@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
 import HomePage from './components/HomePage.tsx';
 const ProfilePage = lazy(() => import('./components/ProfilePage.tsx'));
+const DevUiGallery = lazy(() => import('./components/DevUiGallery.tsx'));
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage.tsx'));
 import Dashboard from './components/Dashboard.tsx';
 const AdminPage = lazy(() => import('./components/AdminPage.tsx'));
@@ -42,7 +43,7 @@ import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
-import { pathForPage, pageForPath } from './routes.ts';
+import { pathForPage, pageForPath, DEV_UI_PATH } from './routes.ts';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
@@ -625,6 +626,10 @@ const App: React.FC = () => {
   };
 
   const renderPage = () => {
+    // Primitive gallery: admin-only, never linked from the app's navigation.
+    if (location.pathname === DEV_UI_PATH) {
+      return isUserAdmin(user) ? <DevUiGallery /> : null;
+    }
     switch (activePage) {
       case 'home':
         return <Dashboard 
