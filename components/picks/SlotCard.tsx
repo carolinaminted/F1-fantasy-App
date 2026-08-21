@@ -1,4 +1,5 @@
 import React from 'react';
+import { Meter } from '../ui/Meter.tsx';
 import { withAlpha, NUMERIC } from '../ui/tokens.ts';
 
 interface SlotCardProps {
@@ -61,9 +62,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
               </div>
             )}
             {used !== undefined && limit !== undefined && (
-              <div className={`text-[10px] mt-1.5 text-highlight-silver/70 ${NUMERIC}`}>
-                {used} / {limit} used
-              </div>
+              <>
+                {/* Same budget read-out as the option sheet, so a pick looks the same
+                    before and after it lands in a slot. */}
+                <Meter value={used} max={limit} color={color} size="sm" className="mt-2" />
+                <div className={`text-[10px] mt-1 text-highlight-silver/70 ${NUMERIC}`}>
+                  {used} / {limit} used
+                </div>
+              </>
             )}
           </>
         ) : (
