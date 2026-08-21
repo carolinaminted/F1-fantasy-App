@@ -44,6 +44,8 @@ import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
 import { pathForPage, pageForPath, DEV_UI_PATH } from './routes.ts';
+import { copyright } from './brand.ts';
+import { BrandMark } from './components/ui/BrandMark.tsx';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
@@ -220,7 +222,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                  {/* Copyright Section - Moved Here for Desktop Persistence */}
                  <div className="text-center opacity-30 pb-4">
                     <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
-                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Lights Out League © {new Date().getFullYear()}</p>
+                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">{copyright()}</p>
                  </div>
              </div>
         </aside>
@@ -815,8 +817,7 @@ const App: React.FC = () => {
            </>
          ) : (
            <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer col-span-3 justify-center">
-             <F1CarIcon className="w-10 h-10 text-primary-red" />
-             <span className="font-bold text-xl">Lights Out</span>
+             <BrandMark size="md" />
            </div>
          )}
         </header>

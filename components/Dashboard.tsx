@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Page } from '../App.tsx';
+import { BRAND } from '../brand.ts';
 import { User, RaceResults, PointsSystem, Driver, Constructor, Event } from '../types.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
@@ -134,7 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 
                 <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter text-pure-white mb-2 cursor-pointer active:scale-95 transition-transform uppercase">
-                    LIGHTS OUT<br/>LEAGUE
+                    {BRAND.wordmark[0]}<br/>{BRAND.wordmark[1]}
                 </h1>
             </div>
 

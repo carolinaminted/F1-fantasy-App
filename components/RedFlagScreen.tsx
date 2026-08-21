@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { signOut } from '@firebase/auth';
+import { BRAND } from '../brand.ts';
 import { auth } from '../services/firebase.ts';
 
 interface RedFlagScreenProps {
@@ -201,7 +202,7 @@ const RedFlagScreen: React.FC<RedFlagScreenProps> = ({ message }) => {
                     <span>◆</span>
                     <span>STAND BY FOR GREEN FLAG</span>
                     <span>◆</span>
-                    <span>LIGHTS OUT LEAGUE</span>
+                    <span>{BRAND.name.toUpperCase()}</span>
                     <span>◆</span>
                     <span>SESSION SUSPENDED</span>
                     <span>◆</span>
@@ -211,7 +212,7 @@ const RedFlagScreen: React.FC<RedFlagScreenProps> = ({ message }) => {
 
             {/* Watermark */}
             <div className="fixed bottom-12 left-0 right-0 text-center opacity-10 pointer-events-none">
-                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white">LIGHTS OUT LEAGUE</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white">{BRAND.name.toUpperCase()}</span>
             </div>
         </div>
     );
