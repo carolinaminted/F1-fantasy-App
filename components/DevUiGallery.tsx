@@ -51,7 +51,7 @@ const DEMO_ROWS: DemoRow[] = [
 const COLUMNS: Column<DemoRow>[] = [
   { key: 'pos',    header: '#',      render: r => r.pos, numeric: true, width: '3rem' },
   { key: 'team',   header: 'Team',   render: r => (
-      <span className="font-bold">{r.team}{r.you && <Chip label="You" className="ml-2" tone="info" size="xs" />}</span>
+      <span className="font-bold">{r.team}{r.you && <Chip label="You" className="ml-2" tone="neutral" size="xs" />}</span>
   ) },
   { key: 'delta',  header: 'Gap',    render: r => r.delta === 0 ? '—' : r.delta, numeric: true, align: 'right', hideOnMobile: true },
   { key: 'points', header: 'Points', render: r => r.points, numeric: true, align: 'right' },

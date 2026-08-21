@@ -6,6 +6,7 @@ export { Tile } from './Tile.tsx';
 export { StatTile } from './StatTile.tsx';
 export { DataTable, type Column } from './DataTable.tsx';
 export { Sheet } from './Sheet.tsx';
+export { Drawer } from './Drawer.tsx';
 export { Modal } from './Modal.tsx';
 export { SegmentedControl, type Segment } from './SegmentedControl.tsx';
 export { Chip } from './Chip.tsx';

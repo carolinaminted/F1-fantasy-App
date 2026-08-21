@@ -13,18 +13,24 @@ interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void;
   size?: 'sm' | 'md';
   fullWidth?: boolean;
+  /**
+   * Let the bar scroll sideways instead of squeezing labels when there are more segments
+   * than fit a phone. Needed anywhere past about four.
+   */
+  scrollable?: boolean;
   className?: string;
 }
 
 export function SegmentedControl<T extends string>({
-  segments, value, onChange, size = 'md', fullWidth, className = '',
+  segments, value, onChange, size = 'md', fullWidth, scrollable, className = '',
 }: SegmentedControlProps<T>) {
-  return (
+  const bar = (
     <div
       role="tablist"
       className={[
         'inline-flex items-center gap-1 rounded-xl border border-pure-white/10 bg-carbon-black/60 p-1',
         fullWidth ? 'w-full' : '',
+        scrollable ? 'shrink-0' : '',
         className,
       ].filter(Boolean).join(' ')}
     >
@@ -56,6 +62,14 @@ export function SegmentedControl<T extends string>({
           </button>
         );
       })}
+    </div>
+  );
+
+  if (!scrollable) return bar;
+
+  return (
+    <div className="w-full overflow-x-auto no-scrollbar flex justify-start md:justify-center">
+      {bar}
     </div>
   );
 }

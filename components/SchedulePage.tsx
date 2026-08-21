@@ -193,7 +193,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Sprint</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_5px_#A855F7]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-red shadow-[0_0_5px_#DA291C]"></div>
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Next</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -437,21 +437,21 @@ const NextRaceHero: React.FC<{
 }> = ({ event, schedule, isCancelled, hasResults, onOpenModal }) => {
     const raceRaw = schedule?.race || event.lockAtUtc;
     return (
-        <div className={`relative overflow-hidden rounded-2xl bg-carbon-fiber border ${isCancelled ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.2)] opacity-80' : 'border-purple-500/60 shadow-[0_0_25px_rgba(168,85,247,0.25)]'} shadow-2xl transition-all`}>
+        <div className={`relative overflow-hidden rounded-2xl bg-carbon-fiber border ${isCancelled ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.2)] opacity-80' : 'border-primary-red/60 shadow-[0_0_25px_rgba(218,41,28,0.25)]'} shadow-2xl transition-all`}>
             {isCancelled && (
                 <div className="absolute top-4 right-4 bg-red-600 text-pure-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-[0_0_10px_rgba(239,68,68,0.4)]">
                     Cancelled
                 </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-purple-900/10 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-red/20 via-red-950/10 to-transparent pointer-events-none"></div>
             <div className="relative z-10 p-5 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-4 flex-wrap">
                         <span className="bg-carbon-black/60 border border-pure-white/10 text-highlight-silver text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                             Round {event.round}
                         </span>
-                        <div className="inline-flex items-center gap-1.5 bg-purple-500/20 border border-purple-500/60 text-purple-300 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(168,85,247,0.3)]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                        <div className="inline-flex items-center gap-1.5 bg-primary-red/20 border border-primary-red/60 text-red-300 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(218,41,28,0.3)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
                             <span>Next Grand Prix</span>
                         </div>
                         {event.hasSprint && (
@@ -480,10 +480,10 @@ const NextRaceHero: React.FC<{
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="bg-carbon-black/60 p-4 rounded-xl border border-purple-500/30 shadow-lg">
-                            <p className="text-xs text-purple-400 font-black uppercase tracking-widest mb-1">Lights Out</p>
+                        <div className="bg-carbon-black/60 p-4 rounded-xl border border-primary-red/30 shadow-lg">
+                            <p className="text-xs text-red-400 font-black uppercase tracking-widest mb-1">Lights Out</p>
                             <p className="text-xl md:text-2xl font-bold text-pure-white">
-                                {formatSessionDate(raceRaw)} <span className="text-purple-400 mx-1.5">•</span> {formatSessionTime(raceRaw)}
+                                {formatSessionDate(raceRaw)} <span className="text-red-400 mx-1.5">•</span> {formatSessionTime(raceRaw)}
                             </p>
                         </div>
 
@@ -502,12 +502,12 @@ const NextRaceHero: React.FC<{
                 <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-5 border border-pure-white/10">
                     <h3 className="text-xs md:text-sm font-bold text-pure-white uppercase tracking-wider mb-4 border-b border-pure-white/10 pb-2 flex items-center justify-between">
                         <span className="flex items-center gap-2">
-                            <CalendarIcon className="w-4 h-4 text-purple-400" />
+                            <CalendarIcon className="w-4 h-4 text-red-400" />
                             Session Timetable
                         </span>
                         <button
                             onClick={() => onOpenModal('timetable')}
-                            className="text-[10px] text-purple-300 hover:text-pure-white font-bold uppercase tracking-wider underline"
+                            className="text-[10px] text-red-300 hover:text-pure-white font-bold uppercase tracking-wider underline"
                         >
                             View Details
                         </button>
@@ -528,7 +528,7 @@ const NextRaceHero: React.FC<{
                                 <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
                             </>
                         )}
-                        <SessionRow label="Grand Prix" time={raceRaw} isRace accentColor="#A855F7" />
+                        <SessionRow label="Grand Prix" time={raceRaw} isRace accentColor="#DA291C" />
                     </div>
                 </div>
             </div>
@@ -588,7 +588,7 @@ const EventDetailsModal: React.FC<{
         : isCompleted 
             ? '#10B981' 
             : isNext 
-                ? '#A855F7' 
+                ? '#DA291C' 
                 : (event.hasSprint ? '#EAB308' : '#C0C0C0');
 
     const borderStyle = isCancelled
@@ -596,7 +596,7 @@ const EventDetailsModal: React.FC<{
         : isCompleted
             ? 'border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
             : isNext
-                ? 'border-purple-500/60 shadow-[0_0_30px_rgba(168,85,247,0.25)]'
+                ? 'border-primary-red/60 shadow-[0_0_30px_rgba(218,41,28,0.25)]'
                 : event.hasSprint
                     ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.2)]'
                     : 'border-pure-white/15 shadow-2xl';
@@ -606,7 +606,7 @@ const EventDetailsModal: React.FC<{
         : isCompleted
             ? 'from-emerald-600/20'
             : isNext
-                ? 'from-purple-600/20'
+                ? 'from-primary-red/20'
                 : event.hasSprint
                     ? 'from-yellow-600/15'
                     : 'from-pure-white/10';
@@ -670,8 +670,8 @@ const EventDetailsModal: React.FC<{
                                     <span>EVENT COMPLETE</span>
                                 </div>
                             ) : isNext ? (
-                                <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/60 text-purple-300 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                                <div className="px-3 py-1 rounded-full bg-primary-red/20 border border-primary-red/60 text-red-300 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(218,41,28,0.3)]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
                                     <span>NEXT RACE</span>
                                 </div>
                             ) : null}
@@ -1033,9 +1033,9 @@ const FastestLapDisplay: React.FC<{
 
     return (
         <div className="p-4">
-            <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-purple-900/20 to-transparent rounded-xl border border-purple-500/10">
-                <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mb-3 ring-1 ring-purple-500/50 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
-                     <FastestLapIcon className="w-8 h-8 text-purple-400" />
+            <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-red-950/20 to-transparent rounded-xl border border-primary-red/10">
+                <div className="w-16 h-16 bg-primary-red/20 rounded-full flex items-center justify-center mb-3 ring-1 ring-primary-red/50 shadow-[0_0_25px_rgba(218,41,28,0.2)]">
+                     <FastestLapIcon className="w-8 h-8 text-red-400" />
                 </div>
                 
                 <h3 className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-1">Fastest Lap Award</h3>
@@ -1103,7 +1103,7 @@ const CompactEventCard: React.FC<{
                     : isCompleted
                         ? 'border-emerald-500/30 bg-carbon-black'
                         : isNext 
-                            ? 'bg-carbon-black border-purple-500 shadow-lg shadow-purple-500/20' 
+                            ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/20' 
                             : 'bg-carbon-fiber border-pure-white/10 shadow-lg'
             }`}
         >
@@ -1121,7 +1121,7 @@ const CompactEventCard: React.FC<{
                         ) : isCompleted ? (
                             <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Complete</span>
                         ) : isNext ? (
-                            <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Next</span>
+                            <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Next</span>
                         ) : null}
                     </div>
                     {event.hasSprint && (
@@ -1137,7 +1137,7 @@ const CompactEventCard: React.FC<{
             <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
                 <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
                 <p className="font-bold text-base text-pure-white">{formatSessionDate(raceRaw)}</p>
-                <p className={`text-sm font-mono ${isNext ? 'text-purple-400 font-bold' : (isCompleted ? 'text-emerald-400 font-bold' : 'text-highlight-silver')}`}>{formatSessionTime(raceRaw)}</p>
+                <p className={`text-sm font-mono ${isNext ? 'text-red-400 font-bold' : (isCompleted ? 'text-emerald-400 font-bold' : 'text-highlight-silver')}`}>{formatSessionTime(raceRaw)}</p>
             </div>
         </button>
     );
@@ -1158,7 +1158,7 @@ const EventGridCard: React.FC<{
         : isCompleted 
             ? '#10B981' 
             : isNext 
-                ? '#A855F7' 
+                ? '#DA291C' 
                 : (event.hasSprint ? '#EAB308' : '#C0C0C0');
 
     const qualiTime = event.hasSprint ? (schedule?.sprintQualifying || schedule?.qualifying) : schedule?.qualifying;
@@ -1173,7 +1173,7 @@ const EventGridCard: React.FC<{
                     : isCompleted 
                         ? 'bg-carbon-black border-emerald-500/30' 
                         : isNext
-                            ? 'bg-carbon-black border-purple-500/60 shadow-[0_0_20px_rgba(168,85,247,0.2)]'
+                            ? 'bg-carbon-black border-primary-red/60 shadow-[0_0_20px_rgba(218,41,28,0.2)]'
                             : 'bg-carbon-black'
             }`}
             style={{ 
@@ -1218,8 +1218,8 @@ const EventGridCard: React.FC<{
                                 <span>EVENT COMPLETE</span>
                             </div>
                         ) : isNext ? (
-                            <div className="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-500/60 text-purple-300 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-[0_0_8px_rgba(168,85,247,0.2)]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                            <div className="px-2 py-0.5 rounded bg-primary-red/20 border border-primary-red/60 text-red-300 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-[0_0_8px_rgba(218,41,28,0.2)]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
                                 <span>NEXT RACE</span>
                             </div>
                         ) : null}

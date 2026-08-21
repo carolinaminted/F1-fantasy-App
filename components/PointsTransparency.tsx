@@ -15,6 +15,11 @@ interface PointsTransparencyProps {
     allDrivers: Driver[];
     allConstructors: Constructor[];
     setActivePage: (page: Page) => void;
+    /**
+     * Render the rules content alone, without page chrome, for hosting inside the
+     * Standings rules drawer. The drawer supplies its own title and close control.
+     */
+    embedded?: boolean;
 }
 
 const PointTile: React.FC<{ rank: number; points: number; isTop?: boolean }> = ({ rank, points, isTop }) => (
@@ -62,7 +67,7 @@ const PointsCard: React.FC<{
     </div>
 );
 
-const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, setActivePage }) => {
+const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, setActivePage, embedded = false }) => {
     
     const hubAction = (
         <button 
@@ -75,21 +80,23 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
     );
 
     return (
-        <div className="flex flex-col md:h-full w-full max-w-7xl mx-auto md:pb-safe">
-            <div className="flex-none">
-                <PageHeader 
-                    title="SCORING RULES" 
-                    icon={TrophyIcon} 
-                    leftAction={hubAction}
-                />
-            </div>
+        <div className={embedded ? 'w-full' : 'flex flex-col md:h-full w-full max-w-7xl mx-auto md:pb-safe'}>
+            {!embedded && (
+                <div className="flex-none">
+                    <PageHeader 
+                        title="SCORING RULES" 
+                        icon={TrophyIcon} 
+                        leftAction={hubAction}
+                    />
+                </div>
+            )}
 
             {/* Dashboard Grid - Using h-full context to align columns on desktop, auto on mobile */}
             <div 
-                className="md:flex-1 md:overflow-y-auto custom-scrollbar md:min-h-0 px-1"
-                style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
+                className={embedded ? 'px-0' : 'md:flex-1 md:overflow-y-auto custom-scrollbar md:min-h-0 px-1'}
+                style={embedded ? undefined : { overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-auto md:min-h-full content-start pb-24 md:pb-0">
+                <div className={`grid grid-cols-1 gap-4 content-start ${embedded ? '' : 'md:grid-cols-12 h-auto md:min-h-full pb-24 md:pb-0'}`}>
                     
                     {/* LEFT COLUMN: RACE EVENTS */}
                     <div className="md:col-span-8 flex flex-col gap-4">

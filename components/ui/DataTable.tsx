@@ -73,7 +73,7 @@ export function DataTable<Row>({
               className={[
                 'border-b border-pure-white/5 transition-colors',
                 onRowClick ? 'cursor-pointer hover:bg-pure-white/5' : '',
-                isHighlighted?.(row, i) ? 'bg-purple-500/10 ring-1 ring-inset ring-purple-500/40' : '',
+                isHighlighted?.(row, i) ? 'bg-pure-white/[0.07] ring-1 ring-inset ring-pure-white/25' : '',
               ].filter(Boolean).join(' ')}
             >
               {columns.map(col => (

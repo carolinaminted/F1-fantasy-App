@@ -15,7 +15,7 @@ export const PAGE_PATHS: Record<Page, string> = {
   'leaderboard': '/standings',
   'profile': '/profile',
   'admin': '/admin',
-  'points': '/points',
+  'points': '/standings',     // retired: scoring rules are a drawer on Standings
   'donate': '/donate',
   'support': '/support',
   'gp-results': '/race',       // retired: was SchedulePage with a flag
@@ -30,7 +30,7 @@ export const PAGE_PATHS: Record<Page, string> = {
  * so this table is built from the canonical entries only.
  */
 const CANONICAL: Page[] = [
-  'home', 'race', 'leaderboard', 'profile', 'admin', 'points', 'donate',
+  'home', 'race', 'leaderboard', 'profile', 'admin', 'donate',
   'support', 'duesPayment', 'drivers-teams', 'league-hub',
 ];
 
@@ -48,9 +48,14 @@ export const REDIRECTS: Record<string, string> = {
   '/schedule': '/race?view=weekend',
   '/gp-results': '/race?view=results',
   '/leaderboard': '/standings',
+  '/points': '/standings?rules=1',
 };
 
 /** Retired destinations map to a view of the Race surface. */
+const QUERY_FOR_PAGE: Partial<Record<Page, string>> = {
+  'points': 'rules=1',
+};
+
 const RACE_VIEW_FOR_PAGE: Partial<Record<Page, string>> = {
   'picks': 'picks',
   'schedule': 'weekend',
@@ -61,7 +66,9 @@ const RACE_VIEW_FOR_PAGE: Partial<Record<Page, string>> = {
 export const pathForPage = (page: Page): string => {
   const base = PAGE_PATHS[page] ?? '/';
   const view = RACE_VIEW_FOR_PAGE[page];
-  return view ? `${base}?view=${view}` : base;
+  if (view) return `${base}?view=${view}`;
+  const query = QUERY_FOR_PAGE[page];
+  return query ? `${base}?${query}` : base;
 };
 
 /** Unknown paths fall back to home, matching the old switch's `default` branch. */

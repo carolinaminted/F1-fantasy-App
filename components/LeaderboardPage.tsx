@@ -1,5 +1,8 @@
 
 import React, { useMemo, useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { SegmentedControl, Drawer, type Segment } from './ui/index.ts';
+import PointsTransparency from './PointsTransparency.tsx';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -33,7 +36,19 @@ const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
 // --- Shared Types & Helpers ---
 
-type ViewState = 'menu' | 'standings' | 'popular' | 'insights' | 'entities' | 'p22' | 'executive';
+type ViewState = 'standings' | 'popular' | 'insights' | 'entities' | 'p22' | 'executive';
+
+const VIEWS: Segment<ViewState>[] = [
+    { value: 'executive', label: 'Showcase' },
+    { value: 'standings', label: 'Standings' },
+    { value: 'popular',   label: 'Popular' },
+    { value: 'entities',  label: 'Driver & Team Points' },
+    { value: 'insights',  label: 'Insights' },
+    { value: 'p22',       label: 'P22' },
+];
+
+const isViewState = (v: string | null): v is ViewState =>
+    !!v && VIEWS.some(s => s.value === v);
 
 type ProcessedUser = User;
 
@@ -294,14 +309,14 @@ const RaceChart: React.FC<{ users: ProcessedUser[], currentUser: User | null, ha
     const maxPoints = Math.max(...users.map(u => u.totalPoints || 0), 1);
     
     return (
-        <div className="w-full py-2 px-1 md:px-2 md:py-4 pt-12 md:pt-16">
+        <div className="w-full py-2 px-1 md:px-2 md:py-4 lg:py-6 pt-12 md:pt-16">
             <div className="relative">
                 {/* Finish Line Icon */}
-                <div className="absolute -top-10 right-10 md:right-14 transform translate-x-1/2 z-0">
+                <div className="absolute -top-10 right-8 sm:right-10 md:right-14 lg:right-16 transform translate-x-1/2 z-0">
                      <CheckeredFlagIcon className="w-8 h-8 text-pure-white opacity-50" />
                 </div>
 
-                <div className="absolute top-0 bottom-0 right-10 md:right-14 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
+                <div className="absolute top-0 bottom-0 right-8 sm:right-10 md:right-14 lg:right-16 w-px border-r-2 border-dashed border-pure-white/10 z-0"></div>
 
                 <div className="space-y-1 relative z-10 pb-8 pt-4">
                     {users.map((user, idx) => {
@@ -330,11 +345,11 @@ const RaceChart: React.FC<{ users: ProcessedUser[], currentUser: User | null, ha
                         const isCurrentUser = user.id === currentUser?.id || (currentUser?.displayName && user.displayName?.toLowerCase() === currentUser.displayName.toLowerCase());
 
                         return (
-                            <div key={user.id} className={`flex items-center gap-2 md:gap-3 h-10 md:h-12 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors ${isCurrentUser ? 'bg-purple-900/30 border border-purple-500/50 shadow-md ring-1 ring-purple-500/30' : ''}`}>
-                                <div className={`w-6 md:w-8 text-center font-black text-sm md:text-lg ${rankColor} shrink-0`}>
+                            <div key={user.id} className={`flex items-center gap-1.5 sm:gap-2 md:gap-3 h-10 md:h-12 lg:h-14 group md:hover:bg-pure-white/5 rounded-lg px-1 md:px-2 transition-colors ${isCurrentUser ? 'bg-pure-white/[0.07] border border-pure-white/25 shadow-md ring-1 ring-pure-white/20' : ''}`}>
+                                <div className={`w-5 sm:w-6 md:w-8 text-center font-black text-xs sm:text-sm md:text-lg lg:text-xl ${rankColor} shrink-0`}>
                                     {rank}
                                 </div>
-                                <div className="w-24 md:w-60 text-left font-semibold md:font-bold text-[10px] md:text-sm text-highlight-silver md:group-hover:text-pure-white transition-colors shrink-0 flex items-center gap-1.5">
+                                <div className="w-[4.5rem] sm:w-24 md:w-60 lg:w-72 text-left font-semibold md:font-bold text-[10px] md:text-sm lg:text-base text-highlight-silver md:group-hover:text-pure-white transition-colors shrink-0 flex items-center gap-1.5">
                                     <span className="md:hidden truncate">
                                         {shortName}
                                     </span>
@@ -342,20 +357,20 @@ const RaceChart: React.FC<{ users: ProcessedUser[], currentUser: User | null, ha
                                         {displayName}
                                     </span>
                                     {isCurrentUser && (
-                                        <span className="text-[8px] font-mono font-bold bg-purple-600 text-pure-white px-1.5 py-0.2 rounded border border-purple-400/50 shrink-0">
+                                        <span className="text-[8px] font-mono font-bold bg-pure-white/15 text-pure-white px-1.5 py-0.2 rounded border border-pure-white/30 shrink-0">
                                             YOU
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex-1 relative h-full flex items-center ml-4 md:ml-6 mr-1 md:mr-2">
+                                <div className="flex-1 relative h-full flex items-center ml-2 sm:ml-4 md:ml-6 mr-1 md:mr-2">
                                     <div className="absolute left-0 right-0 h-px bg-pure-white/10 w-full rounded-full"></div>
                                     <div 
-                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-6 md:pr-14 cursor-pointer"
+                                        className="relative h-full flex items-center justify-end transition-all duration-1000 ease-out pr-5 sm:pr-6 md:pr-14 lg:pr-16 cursor-pointer"
                                         style={{ width: `${percent}%` }}
                                         onClick={() => onSelectUser?.(user)}
                                     >
                                         <div className="relative group/car">
-                                            <F1CarIcon className={`w-6 h-6 md:w-8 md:h-8 transform -rotate-90 ${carColor} transition-transform group-hover/car:scale-125`} />
+                                            <F1CarIcon className={`w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 transform -rotate-90 ${carColor} transition-transform group-hover/car:scale-125`} />
                                             <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/car:opacity-10 whitespace-nowrap pointer-events-none transition-opacity font-bold uppercase tracking-wider shadow-lg border border-pure-white/10 z-20">
                                                 Inspect
                                             </div>
@@ -1075,7 +1090,17 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
     resetToken,
     cancelledEventIds
 }) => {
-  const [view, setView] = useState<ViewState>('menu');
+  // The view and the rules drawer both live in the URL, so a specific view is linkable.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view: ViewState = isViewState(searchParams.get('view')) ? searchParams.get('view') as ViewState : 'standings';
+  const rulesOpen = searchParams.get('rules') === '1';
+
+  const setParam = (key: string, value: string | null) => {
+      const next = new URLSearchParams(searchParams);
+      if (value === null) next.delete(key); else next.set(key, value);
+      setSearchParams(next, { replace: true });
+  };
+  const setView = (v: ViewState) => setParam('view', v);
   const [processedUsers, setProcessedUsers] = useState<ProcessedUser[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPaging, setIsPaging] = useState(false);
@@ -1102,7 +1127,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
     // Fix: When the view changes, find the main scrolling container and scroll it to the top.
     useEffect(() => {
-        if (view !== 'menu' && pageRef.current) {
+        if (pageRef.current) {
             let scrollParent = pageRef.current.parentElement;
             while (scrollParent) {
                 const { overflowY } = window.getComputedStyle(scrollParent);
@@ -1226,11 +1251,12 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
       return () => clearInterval(timer);
   }, [cooldownTime]);
 
-  // Reset view to menu when resetToken changes
+  // Tapping Standings while already on it returns to the default view.
   useEffect(() => {
-    if (resetToken !== undefined) {
-      setView('menu');
+    if (resetToken) {
+      setView('standings');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken]);
 
   // Initial Data Load
@@ -1359,13 +1385,14 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
   if (isLoading) return <ListSkeleton rows={10} />;
 
-  const backToMenuAction = (
-      <button 
-          onClick={() => setView('menu')}
+  // Scoring rules belong beside the numbers they explain, not on a page of their own.
+  const rulesAction = (
+      <button
+          onClick={() => setParam('rules', '1')}
           className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
       >
-          <BackIcon className="w-4 h-4" /> 
-          <span className="text-sm font-bold">Back</span>
+          <TrophyIcon className="w-4 h-4" />
+          <span className="text-sm font-bold">Scoring rules</span>
       </button>
   );
 
@@ -1383,28 +1410,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
   const headerProps = getHeaderProps();
 
-  if (view === 'menu') {
-      return (
-          <div className="w-full max-w-5xl mx-auto px-2 md:px-0 animate-fade-in">
-              <PageHeader 
-                title="LEADERBOARDS" 
-                icon={LeaderboardIcon} 
-                rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
-              />
-              <div className="pb-20 md:pb-12 px-2">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                      <NavTile icon={TrophyIcon} title="Executive Dashboard" subtitle="VIP Showcase" desc="High-octane F1 showcase featuring Top 10 principals & live grid telemetry." onClick={() => setView('executive')} delay="0ms" />
-                      <NavTile icon={LeaderboardIcon} title="Standings" subtitle="League Table" desc="View the full league table sorted by total points." onClick={() => setView('standings')} delay="100ms" />
-                      <NavTile icon={TrendingUpIcon} title="Popular Picks" subtitle="Trends" desc="See which drivers and teams are trending this season." onClick={() => setView('popular')} delay="200ms" />
-                      <NavTile icon={TeamIcon} title="Teams & Driver Results" subtitle="Breakdown" desc="Real-world performance breakdown with our league scoring system." onClick={() => setView('entities')} delay="300ms" />
-                      <NavTile icon={LightbulbIcon} title="Insights" subtitle="Deep Dive" desc="Deep dive into performance breakdowns and superlatives." onClick={() => setView('insights')} delay="400ms" />
-                      <NavTile icon={TrashIcon} title="P22 Tracker" subtitle="The Wall of Shame" desc="Principals who picked the driver finishing P22 (Last Place) the most often." onClick={() => setView('p22')} delay="500ms" />
-                  </div>
-              </div>
-          </div>
-      );
-  }
-
   // Merge current user data if self-inspecting to show PII
   const userToDisplay = (currentUser && selectedUserProfile && currentUser.id === selectedUserProfile.id) 
     ? { ...selectedUserProfile, ...currentUser } 
@@ -1416,9 +1421,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
               <PageHeader 
                   title={headerProps.title} 
                   icon={headerProps.icon} 
-                  leftAction={backToMenuAction}
+                  leftAction={rulesAction}
                   rightAction={<RefreshControl onClick={handleManualRefresh} isRefreshing={isRefreshing} cooldown={cooldownTime} status={refreshStatus} dailyCount={refreshPolicy.count}/>}
               />
+          </div>
+
+          <div className="flex-none px-2 md:px-0 pb-3">
+              <SegmentedControl segments={VIEWS} value={view} onChange={v => setView(v)} scrollable size="sm" />
           </div>
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
@@ -1429,6 +1438,21 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
             {view === 'entities' && <EntityStatsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'p22' && <P22View users={processedUsers} />}
           </div>
+
+          <Drawer
+            isOpen={rulesOpen}
+            onClose={() => setParam('rules', null)}
+            title="Scoring Rules"
+            subtitle="How every point on this page is earned"
+          >
+            <PointsTransparency
+              embedded
+              pointsSystem={pointsSystem}
+              allDrivers={allDrivers}
+              allConstructors={allConstructors}
+              setActivePage={() => setParam('rules', null)}
+            />
+          </Drawer>
 
           {/* User Profile Modal */}
           {selectedUserProfile && (

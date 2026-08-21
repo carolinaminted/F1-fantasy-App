@@ -221,7 +221,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 return (
                   <div key={u.id}
                     className={`flex items-center gap-3 px-2 py-2.5 rounded-lg ${
-                      isYou ? 'bg-purple-500/10 ring-1 ring-inset ring-purple-500/40' : ''
+                      isYou ? 'bg-pure-white/[0.07] ring-1 ring-inset ring-pure-white/25' : ''
                     } ${i > 0 ? 'mt-0.5' : ''}`}>
                     <span className={`w-6 text-center font-black ${NUMERIC} ${i === 0 ? 'text-yellow-400' : 'text-highlight-silver'}`}>
                       {i + 1}
