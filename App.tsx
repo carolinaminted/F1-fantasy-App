@@ -19,7 +19,6 @@ const ScoringSettingsPage = lazy(() => import('./components/ScoringSettingsPage.
 const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.tsx'));
 const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
 const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
-import PointsTransparency from './components/PointsTransparency.tsx';
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -58,7 +57,7 @@ import GeneralAnnouncementBanner from './components/GeneralAnnouncementBanner.ts
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
-export type Page = 'home' | 'race' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'support' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
+export type Page = 'home' | 'race' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'gp-results' | 'duesPayment' | 'league-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -188,7 +187,6 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                     page="race"
                     activePage={activePage}
                     setActivePage={navigateToPage}
-                    isParentActive={['race', 'picks', 'schedule', 'gp-results'].includes(activePage)}
                 />
                 <SideNavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
 
@@ -255,7 +253,6 @@ const App: React.FC = () => {
   const lockedDesktopPages: Page[] = [
       'leaderboard',
       'league-hub',
-      'points',
   ];
 
   /**
@@ -647,9 +644,6 @@ const App: React.FC = () => {
             leaderboardCache={leaderboardCache}
         />;
       case 'race':
-      case 'picks':
-      case 'schedule':
-      case 'gp-results':
         return <RacePage
             user={user}
             seasonPicks={seasonPicks}
@@ -684,8 +678,6 @@ const App: React.FC = () => {
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         return null;
-      case 'points':
-        return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
       case 'admin':
         if (!isUserAdmin(user)) {
             return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
@@ -824,7 +816,7 @@ const App: React.FC = () => {
 
         <nav className="absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid grid-cols-5 md:hidden z-50 pb-safe">
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={PicksIcon} label="Race" page="race" activePage={activePage} setActivePage={navigateToPage} isParentActive={['race', 'picks', 'schedule', 'gp-results'].includes(activePage)} />
+            <NavItem icon={PicksIcon} label="Race" page="race" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />

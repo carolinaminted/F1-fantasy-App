@@ -4,24 +4,20 @@ import type { Page } from './App.tsx';
  * URL <-> Page mapping.
  *
  * Gate 2 gave every surface a URL; Gate 5 merged three of them into Race and Gate 11
- * merged four more into League. The retired names stay in the `Page` union so the
- * components that navigate by page name did not have to change — they now resolve to the
- * surface that absorbed them, with the matching view or query.
+ * merged four more into League. Gate 13 pruned the union down to the six canonical
+ * surfaces plus three aliases that components still navigate by — each alias resolves to
+ * the surface that absorbed it, with the matching view or query. Old *URLs* are covered
+ * separately by REDIRECTS below.
  */
 export const PAGE_PATHS: Record<Page, string> = {
   'home': '/',
   'race': '/race',
-  'picks': '/race',            // retired destination, folded into Race
+  'picks': '/race',            // alias: Race with the picks view
   'leaderboard': '/standings',
   'profile': '/profile',
   'admin': '/admin',
-  'points': '/standings',     // retired: scoring rules are a drawer on Standings
-  'donate': '/league',         // retired: donation cards live on the League surface
-  'support': '/league',        // retired: support cards live on the League surface
-  'gp-results': '/race',       // retired: was SchedulePage with a flag
-  'duesPayment': '/league',    // retired: the pay flow is a sheet on League
-  'drivers-teams': '/league',  // retired: the roster grid is gone; old links land on League
-  'schedule': '/race',         // retired, folded into Race
+  'gp-results': '/race',       // alias: Race with the results view
+  'duesPayment': '/league',    // alias: League with the dues sheet open
   'league-hub': '/league',
 };
 
@@ -54,15 +50,13 @@ export const REDIRECTS: Record<string, string> = {
   '/dues': '/league?dues=1',
 };
 
-/** Retired destinations that land on a query-driven view of the surface that absorbed them. */
+/** Alias destinations that land on a query-driven view of the surface that absorbed them. */
 const QUERY_FOR_PAGE: Partial<Record<Page, string>> = {
-  'points': 'rules=1',
   'duesPayment': 'dues=1',
 };
 
 const RACE_VIEW_FOR_PAGE: Partial<Record<Page, string>> = {
   'picks': 'picks',
-  'schedule': 'weekend',
   'gp-results': 'results',
   'race': 'picks',
 };

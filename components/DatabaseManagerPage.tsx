@@ -186,7 +186,7 @@ const CellContent: React.FC<{
         if (['paid', 'active', 'yes', 'completed', 'enabled', 'normal', 'verified'].includes(lower)) {
             colorClasses = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
         } else if (['exempt', 'admin'].includes(lower)) {
-            colorClasses = "bg-purple-500/15 text-purple-300 border-purple-500/30";
+            colorClasses = "bg-pure-white/15 text-pure-white border-pure-white/40";
         } else if (['pending', 'reserved', 'flagged', 'maintenance'].includes(lower)) {
             colorClasses = "bg-amber-500/15 text-amber-300 border-amber-500/30";
         } else if (['unpaid', 'used', 'no', 'disabled', 'failed', 'locked'].includes(lower)) {

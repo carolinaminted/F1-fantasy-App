@@ -12,7 +12,7 @@ import { setMaintenanceMode, triggerResultsAnnouncement, clearResultsAnnouncemen
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
 import { EVENTS } from '../constants.ts';
-import CountdownTimer from './CountdownTimer.tsx';
+import { Countdown } from './ui/index.ts';
 
 interface AdminAnnouncementsPageProps {
     setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements') => void;
@@ -263,7 +263,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                         {announcement.expiresAt?.toDate && (
                                             <div className="text-xs flex items-center gap-1.5 text-highlight-silver/70">
                                                 <span>Expires in:</span>
-                                                <CountdownTimer targetDate={announcement.expiresAt.toDate().toISOString()} />
+                                                <Countdown targetDate={announcement.expiresAt.toDate().toISOString()} expiredLabel="Expired" />
                                             </div>
                                         )}
                                     </div>
@@ -336,7 +336,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                         {generalAnnouncement.expiresAt?.toDate && (
                                             <div className="text-xs flex items-center gap-1.5 text-highlight-silver/70">
                                                 <span>Expires in:</span>
-                                                <CountdownTimer targetDate={generalAnnouncement.expiresAt.toDate().toISOString()} />
+                                                <Countdown targetDate={generalAnnouncement.expiresAt.toDate().toISOString()} expiredLabel="Expired" />
                                             </div>
                                         )}
                                     </div>

@@ -16,7 +16,7 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
-import CountdownTimer from './CountdownTimer.tsx';
+import { Countdown } from './ui/index.ts';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
 
 const getInitialPicks = (): PickSelection => ({
@@ -305,7 +305,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 {!isEffectiveLocked && (
                     <div className="mt-6 p-4 bg-carbon-black/40 rounded-lg inline-block border border-pure-white/5 backdrop-blur-sm relative z-10">
                         <p className="text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-2">Time Remaining to Edit</p>
-                        <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+                        <Countdown targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
                     </div>
                 )}
 
@@ -368,7 +368,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
               {isEventCancelled ? (
                   <span className="text-red-500 font-black text-xl md:text-2xl italic tracking-tighter">N/A</span>
               ) : (
-                  <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+                  <Countdown targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
               )}
           </div>
           <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px] z-10">
