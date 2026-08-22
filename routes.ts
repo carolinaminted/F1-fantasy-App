@@ -20,7 +20,7 @@ export const PAGE_PATHS: Record<Page, string> = {
   'support': '/league',        // retired: support cards live on the League surface
   'gp-results': '/race',       // retired: was SchedulePage with a flag
   'duesPayment': '/league',    // retired: the pay flow is a sheet on League
-  'drivers-teams': '/league',  // retired: the roster grid is on League
+  'drivers-teams': '/league',  // retired: the roster grid is gone; old links land on League
   'schedule': '/race',         // retired, folded into Race
   'league-hub': '/league',
 };

@@ -680,7 +680,7 @@ const App: React.FC = () => {
             cancelledEventIds={cancelledEventIds}
         />;
       case 'league-hub':
-        return <LeagueHubPage user={user} allDrivers={allDrivers} allConstructors={allConstructors} />;
+        return <LeagueHubPage user={user} />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         return null;
