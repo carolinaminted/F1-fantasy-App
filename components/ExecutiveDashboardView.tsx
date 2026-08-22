@@ -16,7 +16,7 @@ interface ExecutiveDashboardViewProps {
 }
 
 /**
- * The Showcase — the championship read as intervals, not positions.
+ * The Battle Zone — the championship read as intervals, not positions.
  *
  * Rebuilt in Gate 10 on the shared kit, then rethought after review: the podium-and-grid
  * layout answered "who is where", which the race track already does. This page answers the

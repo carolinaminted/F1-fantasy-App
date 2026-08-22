@@ -43,8 +43,8 @@ const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 type ViewState = 'standings' | 'popular' | 'insights' | 'entities' | 'p22' | 'executive';
 
 const VIEWS: Segment<ViewState>[] = [
-    { value: 'executive', label: 'Showcase' },
     { value: 'standings', label: 'Standings' },
+    { value: 'executive', label: 'Battle Zone' },
     { value: 'popular',   label: 'Popular' },
     { value: 'entities',  label: 'Driver & Team Points' },
     { value: 'insights',  label: 'Insights' },
@@ -296,8 +296,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 }) => {
   // The view and the rules drawer both live in the URL, so a specific view is linkable.
   const [searchParams, setSearchParams] = useSearchParams();
-  // Showcase is the default: it is the premier surface, so it is what a bare /standings lands on.
-  const view: ViewState = isViewState(searchParams.get('view')) ? searchParams.get('view') as ViewState : 'executive';
+  // The classification comes first: a bare /standings lands on the race track, and Battle
+  // Zone sits one segment over for the reader who wants the gaps rather than the order.
+  const view: ViewState = isViewState(searchParams.get('view')) ? searchParams.get('view') as ViewState : 'standings';
   const rulesOpen = searchParams.get('rules') === '1';
 
   const setParam = (key: string, value: string | null) => {
@@ -459,7 +460,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   // Tapping Standings while already on it returns to the default view.
   useEffect(() => {
     if (resetToken) {
-      setView('executive');
+      setView('standings');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken]);
@@ -603,7 +604,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
   const getHeaderProps = () => {
       switch (view) {
-          case 'executive': return { title: "EXECUTIVE DASHBOARD", icon: TrophyIcon };
+          case 'executive': return { title: "BATTLE ZONE", icon: F1CarIcon };
           case 'standings': return { title: "LEAGUE STANDINGS", icon: LeaderboardIcon };
           case 'popular': return { title: "POPULAR PICKS", icon: TrendingUpIcon };
           case 'entities': return { title: "DRIVER & TEAM POINTS", icon: TeamIcon };
