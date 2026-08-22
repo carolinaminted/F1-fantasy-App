@@ -3,10 +3,10 @@ import type { Page } from './App.tsx';
 /**
  * URL <-> Page mapping.
  *
- * Gate 2 gave every surface a URL; Gate 5 merged three of them into Race. `picks`,
- * `schedule`, and `gp-results` remain in the `Page` union so the eleven components that
- * navigate by page name did not have to change — they now all resolve to /race with the
- * matching view.
+ * Gate 2 gave every surface a URL; Gate 5 merged three of them into Race and Gate 11
+ * merged four more into League. The retired names stay in the `Page` union so the
+ * components that navigate by page name did not have to change — they now resolve to the
+ * surface that absorbed them, with the matching view or query.
  */
 export const PAGE_PATHS: Record<Page, string> = {
   'home': '/',
@@ -16,11 +16,11 @@ export const PAGE_PATHS: Record<Page, string> = {
   'profile': '/profile',
   'admin': '/admin',
   'points': '/standings',     // retired: scoring rules are a drawer on Standings
-  'donate': '/donate',
-  'support': '/support',
+  'donate': '/league',         // retired: donation cards live on the League surface
+  'support': '/league',        // retired: support cards live on the League surface
   'gp-results': '/race',       // retired: was SchedulePage with a flag
-  'duesPayment': '/dues',
-  'drivers-teams': '/drivers-teams',
+  'duesPayment': '/league',    // retired: the pay flow is a sheet on League
+  'drivers-teams': '/league',  // retired: the roster grid is on League
   'schedule': '/race',         // retired, folded into Race
   'league-hub': '/league',
 };
@@ -30,8 +30,7 @@ export const PAGE_PATHS: Record<Page, string> = {
  * so this table is built from the canonical entries only.
  */
 const CANONICAL: Page[] = [
-  'home', 'race', 'leaderboard', 'profile', 'admin', 'donate',
-  'support', 'duesPayment', 'drivers-teams', 'league-hub',
+  'home', 'race', 'leaderboard', 'profile', 'admin', 'league-hub',
 ];
 
 const PATH_PAGES = CANONICAL.reduce<Record<string, Page>>(
@@ -49,11 +48,16 @@ export const REDIRECTS: Record<string, string> = {
   '/gp-results': '/race?view=results',
   '/leaderboard': '/standings',
   '/points': '/standings?rules=1',
+  '/drivers-teams': '/league',
+  '/donate': '/league',
+  '/support': '/league',
+  '/dues': '/league?dues=1',
 };
 
-/** Retired destinations map to a view of the Race surface. */
+/** Retired destinations that land on a query-driven view of the surface that absorbed them. */
 const QUERY_FOR_PAGE: Partial<Record<Page, string>> = {
   'points': 'rules=1',
+  'duesPayment': 'dues=1',
 };
 
 const RACE_VIEW_FOR_PAGE: Partial<Record<Page, string>> = {

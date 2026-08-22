@@ -20,10 +20,6 @@ const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.
 const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
 const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
 import PointsTransparency from './components/PointsTransparency.tsx';
-import DonationPage from './components/DonationPage.tsx';
-import SupportPage from './components/SupportPage.tsx';
-import DuesPaymentPage from './components/DuesPaymentPage.tsx';
-import DriversTeamsPage from './components/DriversTeamsPage.tsx';
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -196,28 +192,15 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 />
                 <SideNavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
 
-                {/* League absorbs the remaining league-business pages until Gate 9 folds them in */}
+                {/* League holds the grid, membership, donations and support — Gate 11 folded them in. */}
                 <SideNavItem 
                     icon={LeagueIcon} 
                     label="League" 
                     page="league-hub" 
                     activePage={activePage} 
                     setActivePage={navigateToPage} 
-                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'drivers-teams'].includes(activePage)}
                 />
                 <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-
-                <SideNavItem 
-                    icon={() => (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.82 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.496 1.508 1.333 1.508 2.316v.192m6 3a46.236 46.236 0 0 1-1.5 0m-3 0a46.236 46.236 0 0 0-1.5 0" />
-                        </svg>
-                    )} 
-                    label="Support" 
-                    page="support" 
-                    activePage={activePage} 
-                    setActivePage={navigateToPage} 
-                />
 
                 {isUserAdmin(user) && (
                   <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
@@ -267,13 +250,12 @@ const App: React.FC = () => {
   const { announcement: resultsAnnouncement, shouldShow: showResultsBanner } = useResultsAnnouncement(user);
   const { announcement: generalAnnouncement, shouldShow: showGeneralBanner } = useGeneralAnnouncement(user);
 
+  // League and Standings both scroll inside themselves on desktop. The four page names
+  // Gate 11 retired into League are gone from here — `pageForPath` can no longer return them.
   const lockedDesktopPages: Page[] = [
-      'donate', 
-      'duesPayment', 
       'leaderboard',
       'league-hub',
-      'points', 
-      'drivers-teams'
+      'points',
   ];
 
   /**
@@ -698,26 +680,12 @@ const App: React.FC = () => {
             cancelledEventIds={cancelledEventIds}
         />;
       case 'league-hub':
-        return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
+        return <LeagueHubPage user={user} allDrivers={allDrivers} allConstructors={allConstructors} />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
         return null;
       case 'points':
         return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
-      case 'drivers-teams':
-        return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
-      case 'donate':
-        return <DonationPage user={user} setActivePage={navigateToPage} />;
-      case 'support':
-        return <SupportPage user={user} setActivePage={navigateToPage} />;
-      case 'duesPayment':
-        if(user) {
-            if (user.duesPaidStatus === 'Paid') {
-                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
-            }
-            return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
-        }
-        return null;
       case 'admin':
         if (!isUserAdmin(user)) {
             return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
@@ -858,7 +826,7 @@ const App: React.FC = () => {
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={PicksIcon} label="Race" page="race" activePage={activePage} setActivePage={navigateToPage} isParentActive={['race', 'picks', 'schedule', 'gp-results'].includes(activePage)} />
             <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'drivers-teams'].includes(activePage)} />
+            <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
         </nav>
 
