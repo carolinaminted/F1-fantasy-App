@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Tile, Sheet, Chip, NUMERIC } from '../ui/index.ts';
-import { DuesIcon } from '../icons/DuesIcon.tsx';
+import { Sheet, NUMERIC } from '../ui/index.ts';
 import { CopyIcon } from '../icons/CopyIcon.tsx';
 import { VenmoIcon } from '../icons/VenmoIcon.tsx';
 import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, VENMO_PROFILE_URL } from '../../constants.ts';
@@ -8,7 +7,7 @@ import { logDuesPaymentInitiation, getLeagueConfig } from '../../services/firest
 import { useToast } from '../../contexts/ToastContext.tsx';
 import type { User } from '../../types.ts';
 
-interface DuesCardProps {
+interface DuesStatusProps {
   user: User | null;
   /** Sheet visibility lives in the URL (`?dues=1`) so /dues can deep-link straight into it. */
   isOpen: boolean;
@@ -17,13 +16,18 @@ interface DuesCardProps {
 }
 
 /**
- * Membership status, with the payment flow one tap away instead of one page away.
+ * Membership status as a header badge, with the payment flow behind it.
  *
- * The write path is unchanged: the same `logDuesPaymentInitiation` call runs before the
- * same Venmo profile opens, and the memo is built exactly as the old page built it. Only
- * the container moved — from a route of its own into a sheet over the League surface.
+ * This started Gate 11 as a full-width card at the top of the League page, which spent a
+ * lot of vertical space telling most members something they already knew — that they had
+ * paid. Paid is now a quiet pill in the page header; unpaid is the same pill in red, and
+ * it is the button that opens the sheet.
+ *
+ * The write path is unchanged from the page this replaced: the same
+ * `logDuesPaymentInitiation` call runs before the same Venmo profile opens, and the memo
+ * is built exactly as the old page built it.
  */
-export const DuesCard: React.FC<DuesCardProps> = ({ user, isOpen, onOpen, onClose }) => {
+export const DuesStatus: React.FC<DuesStatusProps> = ({ user, isOpen, onOpen, onClose }) => {
   const [amount, setAmount] = useState<number>(LEAGUE_DUES_AMOUNT);
   const [isProcessing, setIsProcessing] = useState(false);
   const [copyState, setCopyState] = useState('');
@@ -33,7 +37,7 @@ export const DuesCard: React.FC<DuesCardProps> = ({ user, isOpen, onOpen, onClos
 
   useEffect(() => {
     // Only the unpaid need the live figure; paid members never open the sheet.
-    if (isPaid) return;
+    if (isPaid || !user) return;
     let cancelled = false;
     getLeagueConfig()
       .then(config => {
@@ -41,7 +45,7 @@ export const DuesCard: React.FC<DuesCardProps> = ({ user, isOpen, onOpen, onClos
       })
       .catch(e => console.error('Failed to load league dues config, using default.', e));
     return () => { cancelled = true; };
-  }, [isPaid]);
+  }, [isPaid, user]);
 
   const memo = useMemo(() => {
     const date = new Date().toISOString().split('T')[0];
@@ -69,51 +73,33 @@ export const DuesCard: React.FC<DuesCardProps> = ({ user, isOpen, onOpen, onClos
     }
   };
 
+  if (!user) return null;
+
+  const badgeBase =
+    'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wider transition-colors';
+
   return (
     <>
-      <Tile padding="md" className={isPaid ? 'border-green-500/40' : 'border-primary-red/50'}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                isPaid
-                  ? 'bg-green-500/15 text-green-400 border border-green-500/30'
-                  : 'bg-primary-red/15 text-primary-red border border-primary-red/40'
-              }`}
-            >
-              <DuesIcon className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-black uppercase italic tracking-wide text-pure-white">
-                  {isPaid ? 'Membership Active' : 'Dues Outstanding'}
-                </h3>
-                <Chip
-                  label={isPaid ? 'Paid' : 'Unpaid'}
-                  tone={isPaid ? 'success' : 'danger'}
-                  size="xs"
-                />
-              </div>
-              <p className="text-xs text-highlight-silver mt-0.5">
-                {isPaid
-                  ? `You are set for the ${CURRENT_SEASON} season.`
-                  : `Settle your entry fee for the ${CURRENT_SEASON} season.`}
-              </p>
-            </div>
-          </div>
+      {isPaid ? (
+        <span
+          className={`${badgeBase} border-green-500/40 bg-green-500/10 text-green-400`}
+          title={`Dues settled for the ${CURRENT_SEASON} season`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true" />
+          Dues Paid
+        </span>
+      ) : (
+        <button
+          onClick={onOpen}
+          className={`${badgeBase} border-primary-red/50 bg-primary-red/15 text-primary-red hover:bg-primary-red hover:text-pure-white active:scale-95`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-primary-red animate-pulse" aria-hidden="true" />
+          Dues Due
+          <span className={NUMERIC}>${amount.toFixed(2)}</span>
+        </button>
+      )}
 
-          {!isPaid && user && (
-            <button
-              onClick={onOpen}
-              className="shrink-0 rounded-lg bg-primary-red px-5 py-2.5 text-xs font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 active:scale-95"
-            >
-              Pay ${amount.toFixed(2)}
-            </button>
-          )}
-        </div>
-      </Tile>
-
-      <Sheet isOpen={isOpen && !isPaid && !!user} onClose={onClose} title="Pay League Dues">
+      <Sheet isOpen={isOpen && !isPaid} onClose={onClose} title="Pay League Dues">
         <div className="space-y-5">
           <div>
             <span className="block text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
@@ -122,6 +108,9 @@ export const DuesCard: React.FC<DuesCardProps> = ({ user, isOpen, onOpen, onClos
             <span className={`mt-1 block text-3xl font-black text-pure-white ${NUMERIC}`}>
               ${amount.toFixed(2)}{' '}
               <span className="text-sm font-bold uppercase text-highlight-silver">USD</span>
+            </span>
+            <span className="mt-1 block text-xs text-highlight-silver">
+              Entry fee for the {CURRENT_SEASON} season.
             </span>
           </div>
 
