@@ -36,7 +36,9 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         onClick={e => e.stopPropagation()}
         className={[
-          'w-full bg-accent-gray rounded-xl ring-1 ring-pure-white/10 border',
+          // Cap the panel and scroll the body inside it, so long content (a season of
+          // per-race breakdowns) never pushes the header or footer off screen.
+          'w-full max-h-[85vh] flex flex-col bg-accent-gray rounded-xl ring-1 ring-pure-white/10 border',
           SIZE[size],
           urgent
             ? 'border-primary-red/50 shadow-[0_0_50px_rgba(218,41,28,0.2)]'
@@ -44,7 +46,7 @@ export const Modal: React.FC<ModalProps> = ({
         ].join(' ')}
       >
         {title && (
-          <div className="flex items-center gap-3 px-6 pt-6">
+          <div className="shrink-0 flex items-center gap-3 px-6 pt-6">
             {Icon && (
               <div className="w-10 h-10 rounded-full bg-primary-red/20 flex items-center justify-center shrink-0">
                 <Icon className="w-5 h-5 text-primary-red" />
@@ -53,9 +55,9 @@ export const Modal: React.FC<ModalProps> = ({
             <h3 className="text-xl font-bold text-pure-white">{title}</h3>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6">{children}</div>
         {footer && (
-          <div className="px-6 pb-6 pt-0 flex items-center justify-end gap-3">{footer}</div>
+          <div className="shrink-0 px-6 pb-6 pt-0 flex items-center justify-end gap-3">{footer}</div>
         )}
       </div>
     </div>
