@@ -74,14 +74,3 @@ export const CategoryStrip: React.FC<StripProps> = ({ user, longLabels, classNam
     })}
   </div>
 );
-
-/** Bar plus figures, the combination most cards want. */
-export const CategoryBreakdown: React.FC<StripProps> = ({ user, longLabels, className = '' }) => (
-  <div className={className}>
-    <CategoryBar user={user} />
-    <CategoryStrip user={user} longLabels={longLabels} className="mt-2" />
-  </div>
-);
-
-/** Total, for the callers that want to state it beside the breakdown. */
-export const totalOf = pointsOf;
