@@ -7,10 +7,10 @@ interface DrawerProps {
   subtitle?: string;
   children: React.ReactNode;
   /** Panel width on desktop. Mobile always takes the full screen. */
-  width?: 'md' | 'lg';
+  width?: 'md' | 'lg' | 'xl';
 }
 
-const WIDTH = { md: 'md:max-w-md', lg: 'md:max-w-2xl' } as const;
+const WIDTH = { md: 'md:max-w-md', lg: 'md:max-w-2xl', xl: 'md:max-w-4xl' } as const;
 
 /**
  * Slide-over panel: full screen on mobile, anchored to the right edge on desktop.

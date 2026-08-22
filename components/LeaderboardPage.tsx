@@ -296,7 +296,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 }) => {
   // The view and the rules drawer both live in the URL, so a specific view is linkable.
   const [searchParams, setSearchParams] = useSearchParams();
-  const view: ViewState = isViewState(searchParams.get('view')) ? searchParams.get('view') as ViewState : 'standings';
+  // Showcase is the default: it is the premier surface, so it is what a bare /standings lands on.
+  const view: ViewState = isViewState(searchParams.get('view')) ? searchParams.get('view') as ViewState : 'executive';
   const rulesOpen = searchParams.get('rules') === '1';
 
   const setParam = (key: string, value: string | null) => {
@@ -458,7 +459,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   // Tapping Standings while already on it returns to the default view.
   useEffect(() => {
     if (resetToken) {
-      setView('standings');
+      setView('executive');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetToken]);
@@ -635,7 +636,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
           </div>
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
-            {view === 'executive' && <Suspense fallback={<ViewLoadingFallback />}><ExecutiveDashboardView users={processedUsers} currentUser={currentUser} allDrivers={allDrivers} allConstructors={allConstructors} events={events} onSelectUser={setSelectedUserProfile} /></Suspense>}
+            {view === 'executive' && <Suspense fallback={<ViewLoadingFallback />}><ExecutiveDashboardView users={processedUsers} currentUser={currentUser} onSelectUser={setSelectedUserProfile} /></Suspense>}
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <TrendsView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} cancelledEventIds={cancelledEventIds} currentUser={currentUser} />}
             {view === 'insights' && <InsightsView users={processedUsers} currentUser={currentUser} />}
