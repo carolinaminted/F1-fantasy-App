@@ -4,7 +4,11 @@ import { User, RaceResults, PointsSystem, Driver, Constructor, Event } from '../
 import { getAllUsers, getTotalUserCount, DEFAULT_PAGE_SIZE } from '../services/firestoreService.ts';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
-import { PageHeader } from './ui/PageHeader.tsx';
+import {
+    PageHeader, DataTable, SegmentedControl, Chip, NUMERIC,
+    type Column, type Segment,
+} from './ui/index.ts';
+import { AdminToolShell } from './admin/index.ts';
 import AdminUserProfileView from './AdminUserProfileView.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import type { AdminDestination } from '../routes.ts';
@@ -19,6 +23,14 @@ interface ManageUsersPageProps {
     cancelledEventIds: Set<string>;
 }
 
+type MemberFilter = 'all' | 'unpaid' | 'admin';
+
+const FILTERS: Segment<MemberFilter>[] = [
+    { value: 'all', label: 'Everyone' },
+    { value: 'unpaid', label: 'Not paid' },
+    { value: 'admin', label: 'Admins' },
+];
+
 const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, raceResults, pointsSystem, allDrivers, allConstructors, events, cancelledEventIds }) => {
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
@@ -28,7 +40,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [lastVisible, setLastVisible] = useState<any>(null);
     const [hasMore, setHasMore] = useState(true);
-    const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'admin'>('all');
+    const [filterType, setFilterType] = useState<MemberFilter>('all');
     const [sortField, setSortField] = useState<'displayName' | 'email' | 'createdAt' | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -132,30 +144,99 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
         setSelectedUser(null);
     };
 
-    const DashboardAction = (
-        <button 
-            onClick={() => selectedUser ? setSelectedUser(null) : setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
+    /* Sortable header: the old table hand-rolled these with ▲/▼ glyphs. */
+    const sortHeader = (label: string, field: 'displayName' | 'email' | 'createdAt') => (
+        <button
+            onClick={() => handleSort(field)}
+            className="flex items-center gap-1 uppercase tracking-wider transition-colors hover:text-pure-white"
         >
-            <BackIcon className="w-4 h-4" /> 
-            <span className="text-sm font-bold">{selectedUser ? 'Back to List' : 'Dashboard'}</span>
+            {label}
+            <span className={sortField === field ? 'text-primary-red' : 'opacity-0'}>
+                {sortDirection === 'asc' ? '\u25B2' : '\u25BC'}
+            </span>
         </button>
     );
 
-    return (
-        <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
-            <PageHeader 
-                title={selectedUser ? "EDIT USER" : "MANAGE USERS"} 
-                icon={ProfileIcon} 
-                leftAction={DashboardAction}
-            />
+    const columns: Column<User>[] = [
+        {
+            key: 'name',
+            header: sortHeader('Member', 'displayName'),
+            render: user => (
+                <div className="min-w-0">
+                    <span className="block truncate font-bold text-pure-white">{user.displayName}</span>
+                    <span className="block truncate text-xs text-highlight-silver">
+                        {`${user.firstName || ''} ${user.lastName || ''}`.trim() || '\u2014'}
+                    </span>
+                    {/* The phone has no room for a column each, so the detail rides along here. */}
+                    <span className={`mt-0.5 block truncate text-[11px] text-highlight-silver md:hidden ${NUMERIC}`}>
+                        {user.email}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            key: 'email',
+            header: sortHeader('Email', 'email'),
+            hideOnMobile: true,
+            render: user => <span className={`text-highlight-silver ${NUMERIC}`}>{user.email}</span>,
+        },
+        {
+            key: 'joined',
+            header: sortHeader('Joined', 'createdAt'),
+            hideOnMobile: true,
+            numeric: true,
+            render: user => {
+                const created = (user as any).createdAt?.seconds;
+                return created ? new Date(created * 1000).toLocaleDateString() : '\u2014';
+            },
+        },
+        {
+            key: 'dues',
+            header: 'Dues',
+            align: 'center',
+            render: user => (
+                <Chip
+                    label={(user.duesPaidStatus || 'Unpaid') === 'Paid' ? 'Paid' : 'Not paid'}
+                    tone={(user.duesPaidStatus || 'Unpaid') === 'Paid' ? 'success' : 'danger'}
+                    size="xs"
+                />
+            ),
+        },
+        {
+            key: 'role',
+            header: 'Role',
+            align: 'center',
+            hideOnMobile: true,
+            render: user =>
+                user.isAdmin
+                    ? <Chip label="Admin" tone="danger" size="xs" />
+                    : <span className="text-[11px] uppercase tracking-wider text-highlight-silver">Member</span>,
+        },
+    ];
 
-            {selectedUser ? (
+    /* An admin viewing one member is a step deeper, so the back link changes with it. */
+    if (selectedUser) {
+        return (
+            <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
+                <PageHeader
+                    title={selectedUser.displayName?.toUpperCase() || 'MEMBER'}
+                    icon={ProfileIcon}
+                    subtitle="Viewing this member as an admin"
+                    leftAction={
+                        <button
+                            onClick={() => setSelectedUser(null)}
+                            className="flex items-center gap-2 rounded-lg border border-pure-white/10 bg-carbon-black/50 px-4 py-2 text-highlight-silver transition-colors hover:border-pure-white/30 hover:text-pure-white"
+                        >
+                            <BackIcon className="w-4 h-4" />
+                            <span className="text-sm font-bold">All members</span>
+                        </button>
+                    }
+                />
                 <div className="flex-1 overflow-y-auto px-4 md:px-0 pb-8 custom-scrollbar">
-                    <AdminUserProfileView 
-                        targetUser={selectedUser} 
-                        raceResults={raceResults} 
-                        pointsSystem={pointsSystem} 
+                    <AdminUserProfileView
+                        targetUser={selectedUser}
+                        raceResults={raceResults}
+                        pointsSystem={pointsSystem}
                         onUpdateUser={handleUserUpdate}
                         onDeleteUser={handleUserDeleted}
                         allDrivers={allDrivers}
@@ -164,164 +245,85 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                         cancelledEventIds={cancelledEventIds}
                     />
                 </div>
-            ) : (
-                <div className="flex-1 md:overflow-hidden px-4 md:px-1 pb-8 flex flex-col">
-                    <div className="bg-carbon-fiber rounded-lg border border-pure-white/10 shadow-lg md:overflow-hidden flex flex-col md:flex-1">
-                        
-                        {/* Card Header with Search and Toggles */}
-                        <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 bg-carbon-black/50 border-b border-pure-white/10 shrink-0">
-                            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto flex-1">
-                                {/* Search Input */}
-                                <div className="w-full md:w-auto flex-1 max-w-md relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Search users..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full bg-carbon-black border border-accent-gray rounded-lg px-4 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
-                                    />
-                                </div>
-                                
-                                {/* Total Users Count */}
-                                {totalUserCount !== null && (
-                                    <div className="flex items-center gap-2 text-sm text-highlight-silver bg-carbon-black/80 px-3 py-2 rounded-lg border border-pure-white/5 whitespace-nowrap">
-                                        <ProfileIcon className="w-4 h-4" />
-                                        <span className="font-bold text-pure-white">{totalUserCount}</span> Registered Users
-                                    </div>
-                                )}
-                            </div>
+            </div>
+        );
+    }
 
-                            {/* Filter Toggles */}
-                            <div className="flex items-center gap-2 bg-carbon-black/80 rounded-lg p-1 w-full md:w-auto justify-center">
-                                <button
-                                    onClick={() => setFilterType('all')}
-                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors flex-1 md:flex-none text-center ${
-                                        filterType === 'all' 
-                                        ? 'bg-pure-white text-carbon-black shadow-sm' 
-                                        : 'text-highlight-silver hover:text-pure-white'
-                                    }`}
-                                >
-                                    All
-                                </button>
-                                <button
-                                    onClick={() => setFilterType('unpaid')}
-                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors flex-1 md:flex-none text-center ${
-                                        filterType === 'unpaid' 
-                                        ? 'bg-primary-red text-pure-white shadow-sm' 
-                                        : 'text-highlight-silver hover:text-pure-white'
-                                    }`}
-                                >
-                                    Unpaid
-                                </button>
-                                <button
-                                    onClick={() => setFilterType('admin')}
-                                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-colors flex-1 md:flex-none text-center ${
-                                        filterType === 'admin' 
-                                        ? 'bg-primary-red text-pure-white shadow-sm' 
-                                        : 'text-highlight-silver hover:text-pure-white'
-                                    }`}
-                                >
-                                    Admins
-                                </button>
-                            </div>
-                        </div>
+    return (
+        <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
+            <AdminToolShell
+                title="MEMBERS"
+                icon={ProfileIcon}
+                subtitle="Find a member to mark dues paid, edit their picks, or manage their account"
+                setAdminSubPage={setAdminSubPage}
+            />
 
-                        {/* List Content */}
-                        {isLoading ? (
-                            <div className="p-4"><ListSkeleton /></div>
-                        ) : (
-                            <div className="overflow-y-auto md:flex-1 custom-scrollbar pb-32 md:pb-0">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-carbon-black/30 sticky top-0 z-10 backdrop-blur-sm">
-                                        <tr>
-                                            <th 
-                                                className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] cursor-pointer hover:text-primary-red transition-colors select-none"
-                                                onClick={() => handleSort('displayName')}
-                                            >
-                                                Name {sortField === 'displayName' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                            </th>
-                                            <th 
-                                                className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] hidden md:table-cell cursor-pointer hover:text-primary-red transition-colors select-none"
-                                                onClick={() => handleSort('email')}
-                                            >
-                                                Email {sortField === 'email' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                            </th>
-                                            <th 
-                                                className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] hidden md:table-cell cursor-pointer hover:text-primary-red transition-colors select-none"
-                                                onClick={() => handleSort('createdAt')}
-                                            >
-                                                Created On {sortField === 'createdAt' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                            </th>
-                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center hidden md:table-cell">Status</th>
-                                            <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em] text-center">Role</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sortedUsers.map(user => (
-                                            <tr 
-                                                key={user.id} 
-                                                className="border-t border-pure-white/5 hover:bg-pure-white/5 transition-colors cursor-pointer group"
-                                                onClick={() => setSelectedUser(user)}
-                                            >
-                                                <td className="p-4 align-middle">
-                                                    <span className="font-bold text-base md:text-lg text-pure-white group-hover:text-primary-red transition-colors block">{user.displayName}</span>
-                                                    <span className="text-xs text-highlight-silver font-mono opacity-70 block">
-                                                        {user.firstName || ''} {user.lastName || ''}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 align-middle hidden md:table-cell">
-                                                    <span className="text-sm text-highlight-silver font-mono">{user.email}</span>
-                                                </td>
-                                                <td className="p-4 align-middle hidden md:table-cell">
-                                                    <span className="text-xs text-highlight-silver font-mono">
-                                                        {(user as any).createdAt?.seconds 
-                                                            ? new Date((user as any).createdAt.seconds * 1000).toLocaleDateString() 
-                                                            : '-'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-center align-middle hidden md:table-cell">
-                                                     <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full border ${
-                                                        (user.duesPaidStatus || 'Unpaid') === 'Paid'
-                                                        ? 'bg-green-600/20 text-green-400 border-green-500/30'
-                                                        : 'bg-red-900/20 text-red-400 border-red-500/30'
-                                                    }`}>
-                                                        {user.duesPaidStatus || 'Unpaid'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-center align-middle">
-                                                    {user.isAdmin ? (
-                                                        <span className="px-2 py-1 text-[10px] font-bold uppercase rounded-full bg-primary-red text-pure-white shadow-sm shadow-primary-red/50">Admin</span>
-                                                    ) : (
-                                                        <span className="text-highlight-silver text-[10px] font-medium uppercase tracking-wider">User</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {sortedUsers.length === 0 && (
-                                            <tr>
-                                                <td colSpan={5} className="p-8 text-center text-highlight-silver italic opacity-50">No users found matching criteria.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                                
-                                {/* Pagination Button */}
-                                {hasMore && (
-                                    <div className="p-4 flex justify-center border-t border-pure-white/5">
-                                        <button 
-                                            onClick={() => fetchUsers(true)}
-                                            disabled={isPaging}
-                                            className="bg-accent-gray hover:bg-pure-white/10 text-pure-white font-bold py-2 px-6 rounded-lg border border-pure-white/10 transition-all flex items-center gap-2 text-xs uppercase tracking-wider disabled:opacity-50"
-                                        >
-                                            {isPaging ? 'Loading...' : 'Load More'}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+            <div className="flex flex-1 flex-col px-4 md:px-1 pb-8 md:overflow-hidden">
+                <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center">
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            placeholder="Search by name or email\u2026"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full rounded-xl border border-pure-white/10 bg-carbon-black px-3.5 py-2.5 text-sm text-pure-white placeholder-highlight-silver/50 transition-colors focus:border-primary-red focus:outline-none"
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold uppercase tracking-wider text-highlight-silver hover:text-pure-white"
+                            >
+                                Clear
+                            </button>
                         )}
                     </div>
+                    <SegmentedControl
+                        segments={FILTERS}
+                        value={filterType}
+                        onChange={v => setFilterType(v)}
+                        size="sm"
+                        scrollable
+                    />
                 </div>
-            )}
+
+                <div className={`mb-2 flex items-center justify-between text-[11px] uppercase tracking-wider text-highlight-silver ${NUMERIC}`}>
+                    <span>
+                        Showing {sortedUsers.length}
+                        {totalUserCount !== null && ` of ${totalUserCount} members`}
+                    </span>
+                    <span className="hidden sm:inline normal-case tracking-normal">
+                        Choose a member to open their account
+                    </span>
+                </div>
+
+                {isLoading ? (
+                    <ListSkeleton />
+                ) : (
+                    <>
+                        <DataTable
+                            columns={columns}
+                            rows={sortedUsers}
+                            rowKey={user => user.id}
+                            onRowClick={user => setSelectedUser(user)}
+                            scrollInside
+                            emptyTitle="No members match"
+                            emptyDescription="Try a different name, email, or filter."
+                        />
+
+                        {hasMore && (
+                            <div className="flex shrink-0 justify-center pt-4">
+                                <button
+                                    onClick={() => fetchUsers(true)}
+                                    disabled={isPaging}
+                                    className="rounded-lg border border-pure-white/10 bg-accent-gray px-6 py-2 text-xs font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-pure-white/10 disabled:opacity-50"
+                                >
+                                    {isPaging ? 'Loading\u2026' : 'Show more members'}
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
     );
 };
