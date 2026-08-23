@@ -68,8 +68,14 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
 
     const selectedEvent = events.find(e => e.id === selectedEventId);
 
+    // While open, the selector lifts itself above its siblings. It can still be trapped by an
+    // ancestor that creates a stacking context — a backdrop-blur wrapper will do it — so a
+    // container that holds a selector above other content needs its own z-index too.
     return (
-        <div className="relative w-full md:w-64" ref={dropdownRef}>
+        <div
+            className={`relative w-full md:w-64 ${isDropdownOpen ? 'z-50' : ''}`}
+            ref={dropdownRef}
+        >
             <button
                 type="button"
                 disabled={disabled}

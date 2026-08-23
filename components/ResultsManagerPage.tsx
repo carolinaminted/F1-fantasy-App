@@ -296,7 +296,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
 
             <div className="flex flex-col px-4 md:px-0">
                 {/* Control Bar with Event Selector */}
-                <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-end shrink-0 shadow-lg">
+                <div className="relative z-30 bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-end shrink-0 shadow-lg">
                     
                     <div className="w-full md:w-auto grow flex justify-end">
                         <EventSelector 
