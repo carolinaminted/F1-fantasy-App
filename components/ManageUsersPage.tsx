@@ -258,7 +258,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                 setAdminSubPage={setAdminSubPage}
             />
 
-            <div className="flex flex-1 flex-col px-4 md:px-1 pb-8 md:overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col px-4 md:px-1 pb-8 md:overflow-hidden">
                 <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div className="relative flex-1">
                         <input

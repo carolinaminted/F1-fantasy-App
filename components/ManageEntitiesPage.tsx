@@ -258,7 +258,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                 summary="Your changes to the grid are only on this screen until you save them."
             />
 
-            <div className="flex flex-1 flex-col px-4 pb-8 pt-4 md:overflow-hidden md:px-1">
+            <div className="flex min-h-0 flex-1 flex-col px-4 pb-8 pt-4 md:overflow-hidden md:px-1">
                 <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <SegmentedControl
                         segments={TABS}
@@ -282,7 +282,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                     </div>
                 </div>
 
-                <div className={isSaving ? 'pointer-events-none opacity-60' : ''}>
+                <div className={`flex min-h-0 flex-1 flex-col ${isSaving ? 'pointer-events-none opacity-60' : ''}`}>
                     <DataTable
                         columns={columns}
                         rows={getFilteredEntities()}
