@@ -13,9 +13,10 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
 import { EVENTS } from '../constants.ts';
 import { Countdown } from './ui/index.ts';
+import type { AdminDestination } from '../routes.ts';
 
 interface AdminAnnouncementsPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
 }
 

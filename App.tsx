@@ -37,7 +37,10 @@ import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
-import { pathForPage, pageForPath, DEV_UI_PATH, REDIRECTS } from './routes.ts';
+import {
+  pathForPage, pageForPath, DEV_UI_PATH, REDIRECTS,
+  isAdminTool, LOCKED_ADMIN_TOOLS, type AdminDestination,
+} from './routes.ts';
 import { copyright } from './brand.ts';
 import { BrandMark } from './components/ui/BrandMark.tsx';
 import { auth, db } from './services/firebase.ts';
@@ -230,7 +233,14 @@ const App: React.FC = () => {
   // so no child component had to change.
   const activePage = pageForPath(location.pathname);
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements'>('dashboard');
+  // Gate admin-1: which admin tool is open lives in the URL as /admin?tool=<name>, so Back,
+  // reload and shared links all work. `dashboard` is the absence of the param. Children still
+  // receive a function called `setAdminSubPage` with the same shape, so none of them changed.
+  const adminToolParam = new URLSearchParams(location.search).get('tool');
+  const adminSubPage: AdminDestination = isAdminTool(adminToolParam) ? adminToolParam : 'dashboard';
+  const setAdminSubPage = (tool: AdminDestination) => {
+    navigate(tool === 'dashboard' ? '/admin' : `/admin?tool=${tool}`);
+  };
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -266,8 +276,9 @@ const App: React.FC = () => {
   // FIX: Removed 'dashboard' from the locked layout logic to ensure the Admin Dashboard is scrollable.
   // Other data-heavy tables remain locked as they have internal scroll mechanisms.
   const isLockedLayout = lockedDesktopPages.includes(activePage) || isLockedRaceView || (
-      activePage === 'admin' && 
-      ['invitations', 'entities', 'manage-users', 'schedule', 'database', 'announcements'].includes(adminSubPage)
+      activePage === 'admin' &&
+      adminSubPage !== 'dashboard' &&
+      LOCKED_ADMIN_TOOLS.includes(adminSubPage)
   );
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
@@ -613,9 +624,6 @@ const App: React.FC = () => {
         setLeaderboardResetToken(prev => prev + 1);
     }
 
-    if (page === 'admin') {
-      setAdminSubPage('dashboard');
-    }
     if (params?.eventId) {
         setTargetEventId(params.eventId);
     } else {

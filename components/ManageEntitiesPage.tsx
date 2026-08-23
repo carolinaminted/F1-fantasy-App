@@ -9,9 +9,10 @@ import { GarageIcon } from './icons/GarageIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import type { AdminDestination } from '../routes.ts';
 
 interface ManageEntitiesPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     currentDrivers: Driver[];
     currentConstructors: Constructor[];
     onUpdateEntities: (drivers: Driver[], constructors: Constructor[]) => void;

@@ -11,9 +11,10 @@ import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { getGenericDocuments, saveGenericDocument, deleteGenericDocument } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Timestamp } from '@firebase/firestore';
+import type { AdminDestination } from '../routes.ts';
 
 interface DatabaseManagerPageProps {
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
 }
 
 const COLLECTIONS = [

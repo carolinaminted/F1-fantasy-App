@@ -12,11 +12,12 @@ import { logAdminAction, getAdminLogs, cancelEvent, uncancelEvent } from '../ser
 import { EventSelector } from './ui/EventSelector.tsx';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { RotateCcwIcon } from './icons/RotateCcwIcon.tsx';
+import type { AdminDestination } from '../routes.ts';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
     onResultsUpdate: (eventId: string, results: EventResult) => Promise<void>;
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     allDrivers: Driver[];
     allConstructors: Constructor[];
     formLocks: { [eventId: string]: boolean };

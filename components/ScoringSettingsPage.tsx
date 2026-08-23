@@ -11,10 +11,11 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
+import type { AdminDestination } from '../routes.ts';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
 }
 
 const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, setAdminSubPage }) => {

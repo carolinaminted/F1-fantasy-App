@@ -18,9 +18,10 @@ import { triggerManualLeaderboardSync, getLeagueConfig, saveLeagueConfig } from 
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
 import { User } from '../types.ts';
+import type { AdminDestination } from '../routes.ts';
 
 interface AdminPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
 }
 

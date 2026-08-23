@@ -4,6 +4,7 @@ import {
   SegmentedControl, Chip, Meter, Countdown, EmptyState, Banner,
   CATEGORY_THEME, teamColor, type Category, type Column, type Segment,
 } from './ui/index.ts';
+import { ConfirmModal, Toggle } from './admin/index.ts';
 import { CONSTRUCTORS, USAGE_LIMITS } from '../constants.ts';
 import { EntityClass } from '../types.ts';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
@@ -64,6 +65,9 @@ const DevUiGallery: React.FC = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [urgentOpen, setUrgentOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [guardOpen, setGuardOpen] = useState(false);
+  const [toggleOn, setToggleOn] = useState(true);
 
   const soon = new Date(Date.now() + 1000 * 60 * 60 * 26).toISOString();
   const urgentSoon = new Date(Date.now() + 1000 * 60 * 4).toISOString();
@@ -198,6 +202,34 @@ const DevUiGallery: React.FC = () => {
         </div>
       </Row>
 
+      <SectionHeader title="Admin primitives" subtitle="components/admin/ — not part of the member kit" />
+      <Row label="Toggle">
+        <div className="space-y-4 max-w-md">
+          <Toggle
+            checked={toggleOn} onChange={setToggleOn}
+            label="League admin"
+            description="Can enter results, manage members, and pause the league."
+          />
+          <Toggle
+            checked disabled onChange={() => {}}
+            label="League admin (yourself)"
+            disabledReason="You can't remove your own admin access."
+          />
+        </div>
+      </Row>
+      <Row label="Confirm">
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => setConfirmOpen(true)}
+            className="bg-primary-red text-pure-white font-bold py-2 px-5 rounded-lg text-sm">
+            Destructive
+          </button>
+          <button onClick={() => setGuardOpen(true)}
+            className="bg-accent-gray text-pure-white font-bold py-2 px-5 rounded-lg text-sm">
+            Typed guard
+          </button>
+        </div>
+      </Row>
+
       <SectionHeader title="Empty state" />
       <Row label="Standalone">
         <Tile padding="none">
@@ -254,6 +286,25 @@ const DevUiGallery: React.FC = () => {
           You will be signed out in 2:00 unless you continue.
         </p>
       </Modal>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => setConfirmOpen(false)}
+        title="Delete results for this race"
+        consequence="This removes every score entered for the Monaco Grand Prix and recalculates the championship. You can enter the results again afterwards."
+        confirmLabel="Delete results"
+      />
+
+      <ConfirmModal
+        isOpen={guardOpen}
+        onClose={() => setGuardOpen(false)}
+        onConfirm={() => setGuardOpen(false)}
+        title="Delete this member's data"
+        consequence="This permanently removes Jordan Blake, their picks, and their scores. Their invitation code is released so it can be used again. This cannot be undone."
+        confirmLabel="Delete member"
+        typedGuard="Jordan Blake"
+      />
 
       <div className="h-16" />
     </PageShell>

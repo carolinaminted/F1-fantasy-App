@@ -77,3 +77,35 @@ export const pageForPath = (pathname: string): Page => {
 
 /** Admin-only primitive gallery. Deliberately outside the Page union — it is not a surface. */
 export const DEV_UI_PATH = '/dev/ui';
+
+/* ---------------------------------------------------------------- admin tools */
+
+/**
+ * The nine admin destinations. `dashboard` is the tile menu and is represented by the
+ * *absence* of a `tool` param, so a bare /admin is the home screen.
+ *
+ * These live in the URL as /admin?tool=<name> rather than in React state, which is what
+ * makes the browser Back button, a page reload, and a shared link all behave. Before
+ * Gate 1 the sub-page was `useState` only: Back left /admin entirely, reload dropped you
+ * on the tile menu, and no individual tool could be linked to.
+ */
+export const ADMIN_TOOLS = [
+  'results', 'manage-users', 'scoring', 'entities',
+  'schedule', 'invitations', 'database', 'announcements',
+] as const;
+
+export type AdminTool = (typeof ADMIN_TOOLS)[number];
+
+/** What every admin page receives: any tool, or 'dashboard' to go back to the tile menu. */
+export type AdminDestination = AdminTool | 'dashboard';
+
+export const isAdminTool = (v: string | null): v is AdminTool =>
+  !!v && (ADMIN_TOOLS as readonly string[]).includes(v);
+
+/**
+ * Tools that manage their own internal scroll on desktop and therefore want the fixed-height
+ * shell. The tile menu and the two natural-height forms (results, scoring) scroll normally.
+ */
+export const LOCKED_ADMIN_TOOLS: readonly AdminTool[] = [
+  'invitations', 'entities', 'manage-users', 'schedule', 'database', 'announcements',
+];

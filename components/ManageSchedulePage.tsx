@@ -14,11 +14,12 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { db } from '../services/firebase.ts';
 import { doc, setDoc } from '@firebase/firestore';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
+import type { AdminDestination } from '../routes.ts';
 
 const LEAGUE_TIMEZONE = 'America/New_York';
 
 interface ManageSchedulePageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     existingSchedules: { [eventId: string]: EventSchedule };
     onScheduleUpdate: () => void;
 }

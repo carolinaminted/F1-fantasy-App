@@ -9,9 +9,10 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import type { AdminDestination } from '../routes.ts';
 
 interface AdminInvitationPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
 }
 

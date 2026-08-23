@@ -7,9 +7,10 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { PageHeader } from './ui/PageHeader.tsx';
 import AdminUserProfileView from './AdminUserProfileView.tsx';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
+import type { AdminDestination } from '../routes.ts';
 
 interface ManageUsersPageProps {
-    setAdminSubPage: (page: 'dashboard') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     raceResults: RaceResults;
     pointsSystem: PointsSystem;
     allDrivers: Driver[];
