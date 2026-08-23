@@ -66,8 +66,8 @@ export const SlotCard: React.FC<SlotCardProps> = ({
                 {/* Same budget read-out as the option sheet, so a pick looks the same
                     before and after it lands in a slot. */}
                 <Meter value={used} max={limit} color={color} size="sm" className="mt-2" />
-                <div className={`text-[10px] mt-1 text-highlight-silver/70 ${NUMERIC}`}>
-                  {used} / {limit} used
+                <div className={`text-[10px] mt-1 ${NUMERIC} ${limit - used <= 0 ? 'text-primary-red font-bold' : 'text-highlight-silver/70'}`}>
+                  {Math.max(0, limit - used)} left
                 </div>
               </>
             )}

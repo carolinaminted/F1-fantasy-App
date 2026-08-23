@@ -8,6 +8,7 @@ import { PolePositionIcon } from '../icons/PolePositionIcon.tsx';
 import { SprintIcon } from '../icons/SprintIcon.tsx';
 import { FastestLapIcon } from '../icons/FastestLapIcon.tsx';
 import { LightbulbIcon } from '../icons/LightbulbIcon.tsx';
+import { ChevronDownIcon } from '../icons/ChevronDownIcon.tsx';
 import type { User } from '../../types.ts';
 
 interface CategoryMeta {
@@ -114,8 +115,24 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ users, currentUser, 
             </div>
           }
         />
-        <div className="md:hidden mb-3">
-          <SegmentedControl segments={SEGMENTS} value={active} onChange={v => setActive(v)} size="sm" scrollable />
+        {/* Phones get a centered dropdown (the OS picker) instead of a horizontally
+            scrolling segment row. */}
+        <div className="md:hidden mb-3 flex justify-center">
+          <div className="relative w-full max-w-xs">
+            <select
+              value={active}
+              onChange={e => setActive(e.target.value as Category)}
+              aria-label="Scoring category"
+              className="w-full appearance-none cursor-pointer rounded-lg border border-accent-gray bg-carbon-black py-2 pl-4 pr-9 text-center text-sm font-bold uppercase tracking-wider text-pure-white focus:border-primary-red focus:outline-none"
+            >
+              {CATEGORIES.map(c => (
+                <option key={c.key} value={c.key}>{c.listTitle}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-highlight-silver">
+              <ChevronDownIcon className="h-4 w-4" />
+            </div>
+          </div>
         </div>
 
         {ranked.length > 0 ? (
