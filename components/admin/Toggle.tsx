@@ -49,11 +49,17 @@ export const Toggle: React.FC<ToggleProps> = ({
           checked ? `${onColor} border-transparent` : 'border-pure-white/20 bg-carbon-black'
         } ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
       >
+        {/*
+          `left-0.5` is load-bearing. A <button> centres its content, so an absolutely
+          positioned child with `left: auto` takes its static position at the centre of the
+          track — and the translate for the "on" state then carried the knob off the right
+          edge. Anchoring it to the left makes the travel distance mean what it says:
+          44px track - 2px border - 18px knob - 2px inset = 22px.
+        */}
         <span
-          className={`absolute top-0.5 h-4.5 w-4.5 rounded-full bg-pure-white transition-transform duration-200 ${
-            checked ? 'translate-x-[22px]' : 'translate-x-0.5'
+          className={`absolute left-0.5 top-0.5 h-[18px] w-[18px] rounded-full bg-pure-white shadow-sm transition-transform duration-200 ${
+            checked ? 'translate-x-[22px]' : 'translate-x-0'
           }`}
-          style={{ height: '1.125rem', width: '1.125rem' }}
         />
       </button>
     </div>
