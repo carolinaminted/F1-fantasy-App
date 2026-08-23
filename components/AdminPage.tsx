@@ -1,6 +1,4 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AdminIcon } from './icons/AdminIcon.tsx';
 import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
@@ -10,27 +8,55 @@ import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { SyncIcon } from './icons/SyncIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
-import { SaveIcon } from './icons/SaveIcon.tsx';
-import { DatabaseIcon } from './icons/DatabaseIcon.tsx';
 import { SpeakerphoneIcon } from './icons/SpeakerphoneIcon.tsx';
-import { PageHeader } from './ui/PageHeader.tsx';
+import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
+import { LockIcon } from './icons/LockIcon.tsx';
+import {
+    PageHeader, Tile, StatTile, SectionHeader, Modal, Chip, Countdown, NUMERIC,
+} from './ui/index.ts';
+import { ConfirmModal } from './admin/index.ts';
 import { triggerManualLeaderboardSync, getLeagueConfig, saveLeagueConfig } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
-import { auth } from '../services/firebase.ts';
-import { User } from '../types.ts';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
+import { User, RaceResults, Event } from '../types.ts';
 import type { AdminDestination } from '../routes.ts';
 
 interface AdminPageProps {
     setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
+    /** Everything below is already loaded by App — the status strip adds no Firestore reads. */
+    events: Event[];
+    raceResults: RaceResults;
+    cancelledEventIds: Set<string>;
+    maintenanceOn: boolean;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage, user }) => {
+interface ToolDef {
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    title: string;
+    description: string;
+    tool: AdminDestination;
+    badge?: React.ReactNode;
+}
+
+/**
+ * Admin Home.
+ *
+ * Was a flat grid of seven tiles labelled with internal taxonomy — "Entities",
+ * "Onboarding", "Race Control" — which told you which part of the system a tool belonged
+ * to rather than what you would do there. Now the tiles are grouped by the job at hand and
+ * described as verbs, and the page opens by answering the question an admin actually
+ * arrives with: is anything waiting for me?
+ *
+ * The status strip derives entirely from props App already holds. No new reads.
+ */
+const AdminPage: React.FC<AdminPageProps> = ({
+    setAdminSubPage, user, events, raceResults, cancelledEventIds, maintenanceOn,
+}) => {
     const [isSyncing, setIsSyncing] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showSyncConfirm, setShowSyncConfirm] = useState(false);
     const { showToast } = useToast();
 
-    // Dues Management State
     const [showDuesModal, setShowDuesModal] = useState(false);
     const [currentDuesAmount, setCurrentDuesAmount] = useState<number>(25);
     const [isSavingDues, setIsSavingDues] = useState(false);
@@ -47,15 +73,35 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage, user }) => {
         loadDues();
     }, []);
 
-    const handleManualSyncClick = () => {
-        if (isSyncing) return;
-        setShowConfirmModal(true);
-    };
+    /* --------------------------------------------------------- status, from props */
+
+    const { nextEvent, awaitingResults } = useMemo(() => {
+        const now = Date.now();
+        const live = events.filter(e => !cancelledEventIds.has(e.id));
+
+        const upcoming = live
+            .filter(e => {
+                const lock = parseLeagueDate(e.lockAtUtc);
+                return lock ? lock.getTime() > now : false;
+            })
+            .sort((a, b) => (parseLeagueDate(a.lockAtUtc)?.getTime() ?? 0) - (parseLeagueDate(b.lockAtUtc)?.getTime() ?? 0));
+
+        // A race whose picks have already locked but has no results entered is the one
+        // thing on this page that represents work waiting for the admin.
+        const pending = live.filter(e => {
+            const lock = parseLeagueDate(e.lockAtUtc);
+            if (!lock || lock.getTime() > now) return false;
+            return !raceResults[e.id];
+        });
+
+        return { nextEvent: upcoming[0] ?? null, awaitingResults: pending };
+    }, [events, raceResults, cancelledEventIds]);
+
+    /* --------------------------------------------------------------------- actions */
 
     const executeSync = async () => {
-        setShowConfirmModal(false);
+        setShowSyncConfirm(false);
         setIsSyncing(true);
-        
         try {
             const result = await triggerManualLeaderboardSync();
             if (result.success) {
@@ -87,231 +133,246 @@ const AdminPage: React.FC<AdminPageProps> = ({ setAdminSubPage, user }) => {
         }
     };
 
-    const HeaderActions = (
-        <div className="flex items-center gap-3">
-            <button
-                onClick={() => setShowDuesModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-all border shadow-lg backdrop-blur-md relative bg-carbon-black/60 border-green-500/50 text-green-500 hover:bg-green-600 hover:text-pure-white hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:scale-105 active:scale-95 cursor-pointer"
-            >
-                <DuesIcon className="w-4 h-4" />
-                <span>Dues</span>
-            </button>
+    /* ----------------------------------------------------------------------- tools */
 
-            <button
-                onClick={handleManualSyncClick}
-                disabled={isSyncing}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border shadow-lg backdrop-blur-md z-[60] relative ${
-                    isSyncing 
-                    ? 'bg-carbon-black/80 border-accent-gray text-highlight-silver cursor-wait' 
-                    : 'bg-carbon-black/60 border-primary-red/50 text-primary-red hover:bg-primary-red hover:text-pure-white hover:shadow-[0_0_20px_rgba(218,41,28,0.4)] hover:scale-105 active:scale-95 cursor-pointer'
-                }`}
-            >
-                <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
-            </button>
-        </div>
-    );
+    const GROUPS: { title: string; subtitle: string; tools: ToolDef[] }[] = [
+        {
+            title: 'Race Weekend',
+            subtitle: 'What you do around each Grand Prix',
+            tools: [
+                {
+                    icon: TrackIcon,
+                    title: 'Enter Race Results',
+                    description: 'Type in the finishing order, then open or close the pick form for a race.',
+                    tool: 'results',
+                    badge: awaitingResults.length > 0
+                        ? <Chip label={`${awaitingResults.length} waiting`} tone="warning" size="xs" />
+                        : undefined,
+                },
+                {
+                    icon: CalendarIcon,
+                    title: 'Race Schedule',
+                    description: 'Set race dates, session times, and when picks stop being accepted.',
+                    tool: 'schedule',
+                },
+            ],
+        },
+        {
+            title: 'People',
+            subtitle: 'Members and how they join',
+            tools: [
+                {
+                    icon: ProfileIcon,
+                    title: 'Members',
+                    description: 'Find a member, mark their dues paid, or edit their picks for them.',
+                    tool: 'manage-users',
+                },
+                {
+                    icon: TicketIcon,
+                    title: 'Invite Codes',
+                    description: 'Create codes for new members and see which ones have been used.',
+                    tool: 'invitations',
+                },
+            ],
+        },
+        {
+            title: 'League Setup',
+            subtitle: 'Set once, change rarely',
+            tools: [
+                {
+                    icon: TeamIcon,
+                    title: 'Drivers & Teams',
+                    description: 'Add or retire drivers, move them between teams, and set Class A or B.',
+                    tool: 'entities',
+                },
+                {
+                    icon: TrophyIcon,
+                    title: 'Scoring Rules',
+                    description: 'Change how many points each finishing position is worth.',
+                    tool: 'scoring',
+                },
+            ],
+        },
+        {
+            title: 'Announcements',
+            subtitle: 'Talking to the league',
+            tools: [
+                {
+                    icon: SpeakerphoneIcon,
+                    title: 'Announcements & Red Flag',
+                    description: 'Post a message to everyone, or pause the league for maintenance.',
+                    tool: 'announcements',
+                    badge: maintenanceOn
+                        ? <Chip label="League paused" tone="danger" size="xs" />
+                        : undefined,
+                },
+            ],
+        },
+    ];
 
     return (
-        <div className="w-full max-w-5xl mx-auto px-2 md:px-0">
-            <PageHeader 
-                title="ADMIN DASHBOARD" 
-                icon={AdminIcon} 
-                subtitle="League Controls & Configuration"
-                rightAction={HeaderActions}
+        <div className="w-full max-w-5xl mx-auto px-2 md:px-0 pb-20 md:pb-12">
+            <PageHeader
+                title="ADMIN"
+                icon={AdminIcon}
+                subtitle={`Signed in as ${user?.displayName || 'admin'}`}
                 onIconClick={() => setAdminSubPage('database')}
+                rightAction={
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowDuesModal(true)}
+                            className="flex items-center gap-2 rounded-lg border border-pure-white/15 bg-carbon-black/60 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight-silver transition-colors hover:border-pure-white/30 hover:text-pure-white"
+                        >
+                            <DuesIcon className="w-4 h-4" />
+                            <span>Dues amount</span>
+                        </button>
+                        <button
+                            onClick={() => !isSyncing && setShowSyncConfirm(true)}
+                            disabled={isSyncing}
+                            className="flex items-center gap-2 rounded-lg border border-primary-red/50 bg-carbon-black/60 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white disabled:cursor-wait disabled:opacity-60"
+                        >
+                            <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                            <span>{isSyncing ? 'Recalculating…' : 'Recalculate scores'}</span>
+                        </button>
+                    </div>
+                }
             />
-            
-            <div className="pb-20 md:pb-12 px-2">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <AdminTile
-                        icon={ProfileIcon}
-                        title="Manage Users"
-                        subtitle="Membership"
-                        description="Search users, manage dues, and view profiles."
-                        onClick={() => setAdminSubPage('manage-users')}
-                        delay="0ms"
+
+            <div className="px-2">
+                {/* Status: the question an admin arrives with is "is anything waiting for me?" */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+                    <StatTile
+                        label="League Status"
+                        value={maintenanceOn ? 'Paused' : 'Live'}
+                        icon={maintenanceOn ? LockIcon : CheckeredFlagIcon}
+                        deltaLabel={maintenanceOn ? "Members can't sign in" : 'Members can sign in'}
                     />
-                    <AdminTile
+                    <StatTile
+                        label="Results Waiting"
+                        value={awaitingResults.length}
+                        unit={awaitingResults.length === 1 ? 'race' : 'races'}
                         icon={TrackIcon}
-                        title="Results & Locks Manager"
-                        subtitle="Race Control"
-                        description="Enter race results and lock/unlock pick forms."
-                        onClick={() => setAdminSubPage('results')}
-                        delay="100ms"
+                        deltaLabel={
+                            awaitingResults.length > 0
+                                ? awaitingResults.map(e => e.name).slice(0, 2).join(', ')
+                                : 'Every finished race is scored'
+                        }
                     />
-                    <AdminTile
-                        icon={CalendarIcon}
-                        title="Schedule Manager"
-                        subtitle="Calendar"
-                        description="Set race dates, start times, and session details."
-                        onClick={() => setAdminSubPage('schedule')}
-                        delay="200ms"
-                    />
-                     <AdminTile
-                        icon={TeamIcon}
-                        title="Drivers & Teams"
-                        subtitle="Entities"
-                        description="Update the active grid, transfers, and classes."
-                        onClick={() => setAdminSubPage('entities')}
-                        delay="300ms"
-                    />
-                    <AdminTile
-                        icon={TrophyIcon}
-                        title="Scoring Settings"
-                        subtitle="Rules"
-                        description="Configure points awarded for race results."
-                        onClick={() => setAdminSubPage('scoring')}
-                        delay="400ms"
-                    />
-                    <AdminTile
-                        icon={TicketIcon}
-                        title="Invitation Codes"
-                        subtitle="Onboarding"
-                        description="Create and manage registration codes."
-                        onClick={() => setAdminSubPage('invitations')}
-                        delay="500ms"
-                    />
-                    <AdminTile
-                        icon={SpeakerphoneIcon}
-                        title="Announcements"
-                        subtitle="Communications"
-                        description="Manage Red Flags, Results, and General updates."
-                        onClick={() => setAdminSubPage('announcements')}
-                        delay="600ms"
-                    />
+                    <Tile padding="md" className="col-span-2 lg:col-span-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
+                            Next Race
+                        </span>
+                        {nextEvent ? (
+                            <>
+                                <span className="mt-1.5 block truncate text-lg font-black text-pure-white">
+                                    {nextEvent.name}
+                                </span>
+                                <Countdown
+                                    targetDate={nextEvent.lockAtUtc}
+                                    label="Picks close in"
+                                    size="sm"
+                                    expiredLabel="Picks closed"
+                                    className="mt-2"
+                                />
+                            </>
+                        ) : (
+                            <span className={`mt-1.5 block text-lg font-black text-pure-white ${NUMERIC}`}>
+                                —
+                                <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-highlight-silver">
+                                    Season complete
+                                </span>
+                            </span>
+                        )}
+                    </Tile>
                 </div>
+
+                {GROUPS.map(group => (
+                    <div key={group.title} className="mb-8">
+                        <SectionHeader title={group.title} subtitle={group.subtitle} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {group.tools.map(t => (
+                                <Tile
+                                    key={t.title}
+                                    padding="md"
+                                    onClick={() => setAdminSubPage(t.tool)}
+                                    className="group"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary-red/25 bg-primary-red/10 text-primary-red">
+                                            <t.icon className="h-5 w-5" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h3 className="text-base font-black text-pure-white">{t.title}</h3>
+                                                {t.badge}
+                                            </div>
+                                            <p className="mt-1 text-xs leading-relaxed text-highlight-silver">
+                                                {t.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </Tile>
+                            ))}
+                        </div>
+                    </div>
+                ))}
             </div>
 
-            {/* Dues Management Modal */}
-            {showDuesModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => !isSavingDues && setShowDuesModal(false)}>
-                    <div className="bg-carbon-fiber border border-green-500/30 rounded-xl p-8 max-w-sm w-full shadow-[0_0_50px_rgba(34,197,94,0.1)] ring-1 ring-pure-white/10 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
-                            <DuesIcon className="w-8 h-8 text-green-500" />
-                        </div>
-                        
-                        <h2 className="text-xl font-bold text-pure-white mb-2 text-center">Configure League Dues</h2>
-                        <p className="text-highlight-silver mb-6 text-sm text-center">
-                            Set the entry fee amount for the current season. This amount will prepopulate on the payment page.
-                        </p>
-                        
-                        <form onSubmit={handleSaveDues}>
-                            <div className="relative mb-6">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span className="text-highlight-silver font-bold">$</span>
-                                </div>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={currentDuesAmount}
-                                    onChange={(e) => setCurrentDuesAmount(parseFloat(e.target.value))}
-                                    className="w-full bg-carbon-black border border-accent-gray rounded-lg py-2 pl-8 pr-4 text-pure-white font-bold focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
-                                    placeholder="25.00"
-                                    required
-                                />
-                            </div>
-                            
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={isSavingDues}
-                                    className="w-full bg-green-600 hover:bg-green-500 text-pure-white font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-green-600/20 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                                >
-                                    {isSavingDues ? 'Saving...' : <><SaveIcon className="w-4 h-4" /> Save Amount</>}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDuesModal(false)}
-                                    disabled={isSavingDues}
-                                    className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 text-xs uppercase"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={showDuesModal}
+                onClose={() => !isSavingDues && setShowDuesModal(false)}
+                title="League dues amount"
+                icon={DuesIcon}
+                size="sm"
+            >
+                <p className="text-sm leading-relaxed text-highlight-silver">
+                    What each member pays to enter this season. This is the figure shown on the
+                    League page when someone goes to pay.
+                </p>
+                <form onSubmit={handleSaveDues} className="mt-5">
+                    <div className="relative">
+                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 font-bold text-highlight-silver">
+                            $
+                        </span>
+                        <input
+                            type="number" min="0" step="0.01" required
+                            value={currentDuesAmount}
+                            onChange={e => setCurrentDuesAmount(parseFloat(e.target.value))}
+                            placeholder="25.00"
+                            className={`w-full rounded-lg border border-pure-white/15 bg-carbon-black py-2.5 pl-8 pr-4 font-bold text-pure-white focus:border-primary-red focus:outline-none ${NUMERIC}`}
+                        />
                     </div>
-                </div>
-            )}
+                    <div className="mt-5 flex items-center justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowDuesModal(false)}
+                            disabled={isSavingDues}
+                            className="rounded-lg border border-pure-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-highlight-silver transition-colors hover:text-pure-white disabled:opacity-40"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSavingDues}
+                            className="rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                        >
+                            {isSavingDues ? 'Saving…' : 'Save amount'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
 
-            {/* Custom Confirmation Modal for Sync */}
-            {showConfirmModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in">
-                    <div className="bg-accent-gray border border-primary-red/50 rounded-xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(218,41,28,0.2)] ring-1 ring-pure-white/10 animate-peek-up">
-                        <div className="w-16 h-16 bg-primary-red/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <AdminIcon className="w-8 h-8 text-primary-red" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Race Control</h2>
-                        <p className="text-highlight-silver mb-8 text-sm leading-relaxed">
-                            Are you sure you want to trigger a <span className="text-pure-white font-bold">Manual Clean Sweep</span>? 
-                            This will force-recalculate points for ALL users across ALL races.
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={executeSync}
-                                className="w-full bg-primary-red hover:bg-red-600 text-pure-white font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/20 uppercase tracking-widest text-xs"
-                            >
-                                Initiate Recalculation
-                            </button>
-                            <button
-                                onClick={() => setShowConfirmModal(false)}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 text-xs uppercase"
-                            >
-                                Abort
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showSyncConfirm}
+                onClose={() => setShowSyncConfirm(false)}
+                onConfirm={executeSync}
+                title="Recalculate all scores"
+                consequence="This re-scores every member across every race from the results currently entered. Nothing is lost — it just rebuilds the standings. It can take a minute."
+                confirmLabel="Recalculate"
+                tone="warning"
+            />
         </div>
     );
-};
-
-interface AdminTileProps {
-    icon: React.FC<React.SVGProps<SVGSVGElement>>;
-    title: string;
-    subtitle: string;
-    description: string;
-    onClick: () => void;
-    delay?: string;
-}
-
-const AdminTile: React.FC<AdminTileProps> = ({ icon: Icon, title, subtitle, description, onClick, delay = '0ms' }) => {
-  return (
-    <button
-        onClick={onClick}
-        className="group relative overflow-hidden rounded-xl p-6 text-left border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col w-full min-h-[220px] bg-carbon-fiber animate-fade-in-up"
-        style={{ animationDelay: delay }}
-    >
-        {/* Background Icon (Huge & Faded) */}
-        <div className="absolute -bottom-6 -right-6 p-0 opacity-[0.03] transition-all transform duration-500 pointer-events-none group-hover:scale-110 group-hover:rotate-12 group-hover:opacity-10 text-pure-white">
-            <Icon className="w-48 h-48" />
-        </div>
-        
-        {/* Header Section */}
-        <div className="flex items-start justify-between mb-4 relative z-10">
-             <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-colors shadow-lg border bg-carbon-black/50 text-primary-red border-pure-white/5 group-hover:bg-primary-red/20">
-                <Icon className="w-6 h-6" />
-            </div>
-            <p className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider bg-carbon-black/30 px-2 py-1 rounded border border-pure-white/5">{subtitle}</p>
-        </div>
-        
-        {/* Content Section */}
-        <div className="relative z-10 grow flex flex-col justify-center">
-            <h3 className="text-2xl font-bold mb-2 transition-colors leading-none text-pure-white group-hover:text-primary-red">{title}</h3>
-            <p className="text-highlight-silver/70 text-sm leading-snug">{description}</p>
-        </div>
-
-        {/* Footer Action */}
-        <div className="mt-4 pt-4 border-t border-pure-white/5 flex items-center justify-between text-xs font-bold text-pure-white opacity-60 group-hover:opacity-100 transition-opacity relative z-10">
-            <span>Manage</span>
-            <span className="text-primary-red transform group-hover:translate-x-1 transition-transform">&rarr;</span>
-        </div>
-    </button>
-  );
 };
 
 export default AdminPage;

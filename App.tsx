@@ -692,7 +692,7 @@ const App: React.FC = () => {
         }
         switch (adminSubPage) {
             case 'dashboard':
-                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
+                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
             case 'results':
                 return <ResultsManagerPage 
                           raceResults={raceResults} 
@@ -723,7 +723,7 @@ const App: React.FC = () => {
             case 'announcements':
                 return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} />;
             default:
-                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
+                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }
       default:
         return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
