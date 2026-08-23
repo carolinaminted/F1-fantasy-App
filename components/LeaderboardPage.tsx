@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SegmentedControl, Drawer, type Segment } from './ui/index.ts';
+import { SegmentedControl, Drawer, type Segment, type Category } from './ui/index.ts';
 import PointsTransparency from './PointsTransparency.tsx';
 import { P22View } from './standings/P22View.tsx';
 import { InsightsView } from './standings/InsightsView.tsx';
@@ -50,6 +50,9 @@ const VIEWS: Segment<ViewState>[] = [
     { value: 'insights',  label: 'Insights' },
     { value: 'p22',       label: 'P22' },
 ];
+
+const isCategory = (v: string | null): v is Category =>
+  v === 'gp' || v === 'quali' || v === 'sprint' || v === 'fl';
 
 const isViewState = (v: string | null): v is ViewState =>
     !!v && VIEWS.some(s => s.value === v);
@@ -300,6 +303,9 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   // Zone sits one segment over for the reader who wants the gaps rather than the order.
   const view: ViewState = isViewState(searchParams.get('view')) ? searchParams.get('view') as ViewState : 'standings';
   const rulesOpen = searchParams.get('rules') === '1';
+  // Category tiles on Home and Profile link straight to their own slice of Insights.
+  const catParam = searchParams.get('cat');
+  const insightsCategory = isCategory(catParam) ? catParam : undefined;
 
   const setParam = (key: string, value: string | null) => {
       const next = new URLSearchParams(searchParams);
@@ -640,7 +646,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
             {view === 'executive' && <Suspense fallback={<ViewLoadingFallback />}><ExecutiveDashboardView users={processedUsers} currentUser={currentUser} onSelectUser={setSelectedUserProfile} /></Suspense>}
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
             {view === 'popular' && <TrendsView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} cancelledEventIds={cancelledEventIds} currentUser={currentUser} />}
-            {view === 'insights' && <InsightsView users={processedUsers} currentUser={currentUser} />}
+            {view === 'insights' && <InsightsView users={processedUsers} currentUser={currentUser} initialCategory={insightsCategory} />}
             {view === 'entities' && <EntityPointsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'p22' && <P22View users={processedUsers} currentUser={currentUser} />}
           </div>

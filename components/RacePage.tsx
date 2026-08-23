@@ -77,6 +77,7 @@ const RacePage: React.FC<RacePageProps> = ({
           events={events}
           initialEventId={targetEventId}
           cancelledEventIds={cancelledEventIds}
+          raceResults={raceResults}
         />
       );
     }

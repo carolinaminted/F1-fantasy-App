@@ -16,10 +16,11 @@ import { SprintIcon } from './icons/SprintIcon.tsx';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
 import { calculatePointsForEvent, calculateScoreRollup } from '../services/scoringService.ts';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
+import { rankInCategory } from '../utils/categoryRank.ts';
 
 interface DashboardProps {
   user: User | null;
-  setActivePage: (page: Page, params?: { eventId?: string }) => void;
+  setActivePage: (page: Page, params?: { eventId?: string; search?: string }) => void;
   raceResults?: RaceResults;
   pointsSystem?: PointsSystem;
   allDrivers?: Driver[];
@@ -86,12 +87,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   const picksReady = isPicksComplete(nextPicks);
   const lastEventPoints = perEvent.length ? perEvent[perEvent.length - 1].points : null;
 
-  const topFive = useMemo(() => (leaderboardCache?.users ?? []).slice(0, 5), [leaderboardCache]);
+  const leagueUsers = leaderboardCache?.users ?? [];
+  const topSix = useMemo(() => leagueUsers.slice(0, 6), [leaderboardCache]);
 
-  const podium = useMemo(() => {
+  const topFinishers = useMemo(() => {
     if (!lastScored) return [];
     const finish = raceResults[lastScored.id]?.grandPrixFinish ?? [];
-    return finish.slice(0, 3)
+    return finish.slice(0, 5)
       .map(id => allDrivers.find(d => d.id === id))
       .filter((d): d is Driver => !!d);
   }, [lastScored, raceResults, allDrivers]);
@@ -108,8 +110,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           <Tile glow padding="lg" className="relative overflow-hidden">
             <div className="absolute inset-0 bg-carbon-fiber opacity-[0.07] pointer-events-none" />
             <div className="relative flex flex-col lg:flex-row lg:items-center gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-2">
+              <div className="flex-1 min-w-0 text-center lg:text-left">
+                <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-2">
                   <Chip label={`Round ${nextEvent.round}`} tone="neutral" size="xs" />
                   <Chip label="Next Grand Prix" tone="info" size="xs" />
                   {nextEvent.hasSprint && <Chip label="Sprint" tone="warning" size="xs" icon={SprintIcon} />}
@@ -119,7 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <button
                   onClick={handleTriggerClick}
                   aria-label={BRAND.name}
-                  className="flex gap-1.5 mb-3"
+                  className="flex justify-center lg:justify-start gap-1.5 mb-3 w-full lg:w-auto"
                 >
                   {[0, 1, 2, 3, 4].map(i => (
                     <span key={i}
@@ -194,12 +196,34 @@ const Dashboard: React.FC<DashboardProps> = ({
               ['quali', 'Qualifying', rollup.gpQualifyingPoints + rollup.sprintQualifyingPoints],
               ['sprint', 'Sprint', rollup.sprintPoints],
               ['fl', 'Fastest Lap', rollup.fastestLapPoints],
-            ] as const).map(([key, label, value]) => (
-              <Tile key={key} accent={key} accentEdge padding="sm">
-                <div className="text-[10px] uppercase tracking-wider text-highlight-silver font-bold">{label}</div>
-                <div className={`text-xl font-black ${NUMERIC} ${CATEGORY_THEME[key].text}`}>{value}</div>
-              </Tile>
-            ))}
+            ] as const).map(([key, label, value]) => {
+              const standing = rankInCategory(leagueUsers, user?.id, key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActivePage('leaderboard', { search: `view=insights&cat=${key}` })}
+                  className="text-left"
+                >
+                  <Tile accent={key} accentEdge padding="sm" className="h-full">
+                    <div className="text-[10px] uppercase tracking-wider text-highlight-silver font-bold">{label}</div>
+                    {/* Rank leads, the season total sits beside it. Rank needs the whole league's
+                        category totals, so it appears only once Standings has been opened. */}
+                    <div className="flex items-baseline gap-2">
+                      {standing && (
+                        <span className={`text-xl font-black ${NUMERIC} ${CATEGORY_THEME[key].text}`}>
+                          #{standing.rank}
+                        </span>
+                      )}
+                      <span className={standing
+                        ? `text-[11px] ${NUMERIC} text-highlight-silver`
+                        : `text-xl font-black ${NUMERIC} ${CATEGORY_THEME[key].text}`}>
+                        {value}{standing ? ' pts' : ''}
+                      </span>
+                    </div>
+                  </Tile>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -214,9 +238,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                 Full table →
               </button>
             } />
-          {topFive.length > 0 ? (
+          {topSix.length > 0 ? (
             <Tile padding="sm">
-              {topFive.map((u, i) => {
+              {topSix.map((u, i) => {
                 const isYou = u.id === user?.id;
                 return (
                   <div key={u.id}
@@ -235,15 +259,18 @@ const Dashboard: React.FC<DashboardProps> = ({
               })}
             </Tile>
           ) : (
-            <Tile padding="none">
-              <EmptyState icon={LeaderboardIcon} title="Standings not loaded"
-                description="Open Standings once and the top five will appear here."
-                action={
-                  <button onClick={() => setActivePage('leaderboard')}
-                    className="bg-accent-gray hover:bg-accent-gray/80 text-pure-white font-bold py-2 px-5 rounded-lg text-sm transition-colors">
-                    Open Standings
-                  </button>
-                } />
+            /* The league table is fetched on sign-in, so this is a brief wait rather than a
+               dead end — no "go and load it yourself" prompt. */
+            <Tile padding="sm">
+              <div className="animate-pulse space-y-1">
+                {[0, 1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="flex items-center gap-3 px-2 py-2.5">
+                    <div className="w-6 h-4 rounded bg-pure-white/10" />
+                    <div className="h-4 flex-1 rounded bg-pure-white/10" style={{ maxWidth: `${70 - i * 6}%` }} />
+                    <div className="w-12 h-4 rounded bg-pure-white/10" />
+                  </div>
+                ))}
+              </div>
             </Tile>
           )}
         </div>
@@ -269,7 +296,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 )}
               </div>
               <div className="space-y-1.5">
-                {podium.map((d, i) => {
+                {topFinishers.map((d, i) => {
                   const color = teamColor(d.constructorId, allConstructors);
                   return (
                     <div key={d.id}
@@ -285,7 +312,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   );
                 })}
-                {podium.length === 0 && (
+                {topFinishers.length === 0 && (
                   <p className="text-sm text-highlight-silver py-2">Finishing order not recorded.</p>
                 )}
               </div>

@@ -11,11 +11,17 @@ export type Category = 'gp' | 'quali' | 'sprint' | 'fl';
 
 export const CATEGORY_THEME: Record<Category, {
   label: string; text: string; border: string; bg: string; ring: string; from: string;
+  /**
+   * The accent as a CSS value rather than a class. A border-color *class* ties with the one
+   * TILE_BASE already sets, so whichever Tailwind happens to emit later wins — which silently
+   * left the red and blue accents gray. Anything painting a border uses this instead.
+   */
+  css: string;
 }> = {
-  gp:     { label: 'Grand Prix',  text: 'text-primary-red',  border: 'border-primary-red',  bg: 'bg-primary-red',  ring: 'ring-primary-red',  from: 'from-primary-red/20' },
-  quali:  { label: 'Qualifying',  text: 'text-blue-500',     border: 'border-blue-500',     bg: 'bg-blue-500',     ring: 'ring-blue-500',     from: 'from-blue-500/20' },
-  sprint: { label: 'Sprint',      text: 'text-yellow-500',   border: 'border-yellow-500',   bg: 'bg-yellow-500',   ring: 'ring-yellow-500',   from: 'from-yellow-500/20' },
-  fl:     { label: 'Fastest Lap', text: 'text-purple-500',   border: 'border-purple-500',   bg: 'bg-purple-500',   ring: 'ring-purple-500',   from: 'from-purple-500/20' },
+  gp:     { label: 'Grand Prix',  text: 'text-primary-red',  border: 'border-primary-red',  bg: 'bg-primary-red',  ring: 'ring-primary-red',  from: 'from-primary-red/20',  css: 'var(--color-category-gp)' },
+  quali:  { label: 'Qualifying',  text: 'text-blue-500',     border: 'border-blue-500',     bg: 'bg-blue-500',     ring: 'ring-blue-500',     from: 'from-blue-500/20',     css: 'var(--color-category-quali)' },
+  sprint: { label: 'Sprint',      text: 'text-yellow-500',   border: 'border-yellow-500',   bg: 'bg-yellow-500',   ring: 'ring-yellow-500',   from: 'from-yellow-500/20',   css: 'var(--color-category-sprint)' },
+  fl:     { label: 'Fastest Lap', text: 'text-purple-500',   border: 'border-purple-500',   bg: 'bg-purple-500',   ring: 'ring-purple-500',   from: 'from-purple-500/20',   css: 'var(--color-category-fl)' },
 };
 
 /** Semantic tones. Green = paid/success, amber = warning, red = error/locked. */

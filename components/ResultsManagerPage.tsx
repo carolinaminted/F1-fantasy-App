@@ -14,6 +14,7 @@ import { AdminToolShell, ConfirmModal } from './admin/index.ts';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { RotateCcwIcon } from './icons/RotateCcwIcon.tsx';
 import type { AdminDestination } from '../routes.ts';
+import { hasEventResults } from '../utils/eventStatus.ts';
 
 interface ResultsManagerPageProps {
     raceResults: RaceResults;
@@ -50,16 +51,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     // Restore Confirmation State
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
-    const checkHasResults = (event: Event): boolean => {
-        const results = raceResults[event.id];
-        if (!results) return false;
-        const hasGpFinish = results.grandPrixFinish?.some(pos => !!pos);
-        const hasFastestLap = !!results.fastestLap;
-        const hasSprintFinish = results.sprintFinish?.some(pos => !!pos);
-        const hasGpQuali = results.gpQualifying?.some(pos => !!pos);
-        const hasSprintQuali = results.sprintQualifying?.some(pos => !!pos);
-        return hasGpFinish || hasFastestLap || hasSprintFinish || hasGpQuali || hasSprintQuali;
-    };
+    const checkHasResults = (event: Event): boolean => hasEventResults(raceResults[event.id]);
 
     const generateDiff = (oldR: EventResult, newR: EventResult): string => {
         const changes: string[] = [];
@@ -262,14 +254,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         </button>
     );
 
-    // Dropdown Filters Logic
-    const handleEventFilter = (event: Event, filter: string) => {
-        const hasResults = checkHasResults(event);
-        if (filter === 'added') return hasResults;
-        if (filter === 'pending') return !hasResults;
-        return true;
-    };
-
     const renderEventStatus = (event: Event) => {
         const hasResults = checkHasResults(event);
         const isLocked = formLocks[event.id];
@@ -303,12 +287,10 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                             events={events}
                             selectedEventId={selectedEventId}
                             onSelect={(e) => setSelectedEventId(e.id)}
-                            filters={[
-                                { label: 'All races', value: 'all' },
-                                { label: 'Results entered', value: 'added' },
-                                { label: 'Needs results', value: 'pending' }
-                            ]}
-                            filterPredicate={handleEventFilter}
+                            raceResults={raceResults}
+                            cancelledEventIds={cancelledEventIds}
+                            orderBy="upcoming-first"
+                            align="right"
                             renderStatus={renderEventStatus}
                             placeholder="Choose a race…"
                         />

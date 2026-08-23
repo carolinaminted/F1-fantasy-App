@@ -29,6 +29,12 @@ export const Tile: React.FC<TileProps> = ({
       style.borderColor = withAlpha(accent, 0.5);
       style.backgroundColor = withAlpha(accent, 0.08);
     }
+  } else if (category) {
+    // Painted inline for the same reason team hexes are: a class here only ties with the base
+    // border and loses or wins on Tailwind's emit order.
+    style.borderColor = accentEdge
+      ? category.css
+      : `color-mix(in srgb, ${category.css} 50%, transparent)`;
   }
 
   return (
@@ -40,7 +46,6 @@ export const Tile: React.FC<TileProps> = ({
         PADDING[padding],
         onClick ? TILE_INTERACTIVE : '',
         accentEdge ? 'border-l-4' : '',
-        category ? (accentEdge ? category.border : `${category.border}/50`) : '',
         glow ? 'shadow-[0_0_30px_rgba(218,41,28,0.18)]' : '',
         className,
       ].filter(Boolean).join(' ')}

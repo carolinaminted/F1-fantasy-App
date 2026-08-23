@@ -28,6 +28,9 @@ const UsageList: React.FC<UsageListProps> = ({ title, entities, usageData, limit
   });
 
   const spent = sorted.reduce((n, e) => n + (usageData[e.id] || 0), 0);
+  // Every entity carries the same per-season allowance, so the group's remaining budget is
+  // simply the whole pool less what has gone.
+  const remaining = Math.max(0, sorted.length * limit - spent);
 
   return (
     <div>
@@ -38,7 +41,9 @@ const UsageList: React.FC<UsageListProps> = ({ title, entities, usageData, limit
       >
         <span className="text-sm font-black uppercase tracking-wider text-pure-white">{title}</span>
         <span className="flex items-center gap-2">
-          <span className={`text-[11px] text-highlight-silver ${NUMERIC}`}>{spent} used</span>
+          <span className={`text-[11px] ${NUMERIC} ${remaining === 0 ? 'text-primary-red font-bold' : 'text-highlight-silver'}`}>
+            {remaining} left
+          </span>
           <ChevronDownIcon className={`w-5 h-5 text-highlight-silver transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </span>
       </button>
@@ -56,6 +61,7 @@ const UsageList: React.FC<UsageListProps> = ({ title, entities, usageData, limit
                 value={usageData[e.id] || 0}
                 max={limit}
                 color={e.color}
+                showRemaining
               />
             </button>
           ))}

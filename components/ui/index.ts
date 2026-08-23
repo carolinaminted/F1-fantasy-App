@@ -1,5 +1,5 @@
 export { PageHeader } from './PageHeader.tsx';
-export { EventSelector, type FilterOption } from './EventSelector.tsx';
+export { EventSelector } from './EventSelector.tsx';
 export { PageShell } from './PageShell.tsx';
 export { SectionHeader } from './SectionHeader.tsx';
 export { Tile } from './Tile.tsx';

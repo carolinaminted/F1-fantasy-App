@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { User, PickSelection, RaceResults, EntityClass, PointsSystem, Driver, Constructor, Event } from '../types.ts';
+import { User, PickSelection, RaceResults, EntityClass, PointsSystem, Driver, Constructor, Event, LeaderboardCache } from '../types.ts';
+import { rankInCategory } from '../utils/categoryRank.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { CURRENT_SEASON } from '../constants.ts';
 import { getPublicProfileRank } from '../services/firestoreService.ts';
@@ -27,7 +28,9 @@ interface ProfilePageProps {
   pointsSystem: PointsSystem;
   allDrivers: Driver[];
   allConstructors: Constructor[];
-  setActivePage?: (page: Page) => void;
+  setActivePage?: (page: Page, params?: { eventId?: string; search?: string }) => void;
+  /** Populated once Standings has been visited; without it the tiles show points alone. */
+  leaderboardCache?: LeaderboardCache | null;
   /** If present, enables the admin penalty controls inside the history rows. */
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
   events: Event[];
@@ -57,7 +60,7 @@ const getDriverPoints = (driverId: string | null, results: (string | null)[] | u
  */
 const ProfilePage: React.FC<ProfilePageProps> = ({
   user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors,
-  setActivePage, onUpdatePenalty, events, isPublicView = false, cancelledEventIds,
+  setActivePage, onUpdatePenalty, events, isPublicView = false, cancelledEventIds, leaderboardCache,
 }) => {
   const { scoreRollup, usageRollup, getLimit } = useFantasyData(
     seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, cancelledEventIds
@@ -85,6 +88,25 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   };
 
   /* ------------------------------------------------- read-only detail modals */
+
+  /**
+   * Rank is the reader's own standing, and Insights describes the reader — so both only apply
+   * when this is your profile. Viewed as an admin or in public view, the tiles keep the
+   * per-race modal, which is about the member on screen.
+   */
+  const showsOwnStanding = !isPublicView && !!setActivePage;
+  // Matches breakdown.quali, which is what the league ranks on.
+  const qualifyingPoints = scoreRollup.gpQualifyingPoints + scoreRollup.sprintQualifyingPoints;
+  const standingFor = (category: Category) =>
+    showsOwnStanding ? rankInCategory(leaderboardCache?.users ?? [], user.id, category) : null;
+
+  const handleCategoryClick = (category: Category) => {
+    if (showsOwnStanding) {
+      setActivePage!('leaderboard', { search: `view=insights&cat=${category}` });
+      return;
+    }
+    handleScoringDetailClick(category);
+  };
 
   const handleScoringDetailClick = (category: Category) => {
     let title = '';
@@ -374,7 +396,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             <div>
               <SectionHeader
                 title="Scoring Breakdown"
-                subtitle="Season totals by category — tap one for the detail"
+                subtitle={showsOwnStanding
+                  ? 'Your rank and points by category — tap one for the league view'
+                  : 'Season totals by category — tap one for the detail'}
                 icon={TrophyIcon}
               />
               <div className="grid grid-cols-2 gap-3">
@@ -389,17 +413,69 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                   value={globalRank ? `#${globalRank}` : '—'}
                   icon={LeaderboardIcon}
                 />
-                <button onClick={() => handleScoringDetailClick('gp')} className="text-left">
-                  <StatTile label="Grand Prix" value={scoreRollup.grandPrixPoints} accent="gp" icon={CheckeredFlagIcon} className="h-full" />
+                <button onClick={() => handleCategoryClick('gp')} className="text-left">
+                  {(() => {
+                    const standing = standingFor('gp');
+                    return (
+                      <StatTile
+                        label="Grand Prix"
+                        value={standing ? `#${standing.rank}` : scoreRollup.grandPrixPoints}
+                        secondary={standing ? `${scoreRollup.grandPrixPoints} pts` : undefined}
+                        accent="gp"
+                        accentEdge
+                        icon={CheckeredFlagIcon}
+                        className="h-full"
+                      />
+                    );
+                  })()}
                 </button>
-                <button onClick={() => handleScoringDetailClick('sprint')} className="text-left">
-                  <StatTile label="Sprint Race" value={scoreRollup.sprintPoints} accent="sprint" icon={SprintIcon} className="h-full" />
+                <button onClick={() => handleCategoryClick('sprint')} className="text-left">
+                  {(() => {
+                    const standing = standingFor('sprint');
+                    return (
+                      <StatTile
+                        label="Sprint Race"
+                        value={standing ? `#${standing.rank}` : scoreRollup.sprintPoints}
+                        secondary={standing ? `${scoreRollup.sprintPoints} pts` : undefined}
+                        accent="sprint"
+                        accentEdge
+                        icon={SprintIcon}
+                        className="h-full"
+                      />
+                    );
+                  })()}
                 </button>
-                <button onClick={() => handleScoringDetailClick('quali')} className="text-left">
-                  <StatTile label="GP Quali" value={scoreRollup.gpQualifyingPoints} accent="quali" icon={PolePositionIcon} className="h-full" />
+                <button onClick={() => handleCategoryClick('quali')} className="text-left">
+                  {(() => {
+                    const standing = standingFor('quali');
+                    return (
+                      <StatTile
+                        label="Qualifying"
+                        value={standing ? `#${standing.rank}` : qualifyingPoints}
+                        secondary={standing ? `${qualifyingPoints} pts` : undefined}
+                        accent="quali"
+                        accentEdge
+                        icon={PolePositionIcon}
+                        className="h-full"
+                      />
+                    );
+                  })()}
                 </button>
-                <button onClick={() => handleScoringDetailClick('fl')} className="text-left">
-                  <StatTile label="Fastest Lap" value={scoreRollup.fastestLapPoints} accent="fl" icon={FastestLapIcon} className="h-full" />
+                <button onClick={() => handleCategoryClick('fl')} className="text-left">
+                  {(() => {
+                    const standing = standingFor('fl');
+                    return (
+                      <StatTile
+                        label="Fastest Lap"
+                        value={standing ? `#${standing.rank}` : scoreRollup.fastestLapPoints}
+                        secondary={standing ? `${scoreRollup.fastestLapPoints} pts` : undefined}
+                        accent="fl"
+                        accentEdge
+                        icon={FastestLapIcon}
+                        className="h-full"
+                      />
+                    );
+                  })()}
                 </button>
               </div>
             </div>

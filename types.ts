@@ -31,6 +31,11 @@ export interface Event {
   hasSprint: boolean;
   lockAtUtc: string;
   softDeadlineUtc: string;
+  /**
+   * When the Grand Prix itself runs, folded in from the imported schedule. `lockAtUtc` is the
+   * picks deadline (qualifying, normally a day earlier), so it cannot stand in for the race.
+   */
+  raceAtUtc?: string;
 }
 
 export interface User {

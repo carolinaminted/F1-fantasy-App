@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Tile, StatTile, SectionHeader, SegmentedControl, Chip, EmptyState,
   CATEGORY_THEME, NUMERIC, type Category, type Segment,
@@ -30,6 +30,8 @@ const SEGMENTS: Segment<Category>[] = CATEGORIES.map(c => ({ value: c.key, label
 interface InsightsViewProps {
   users: User[];
   currentUser: User | null;
+  /** Category to open on, when arrived at from a category tile elsewhere in the app. */
+  initialCategory?: Category;
 }
 
 /**
@@ -39,8 +41,13 @@ interface InsightsViewProps {
  * reader's own profile across those categories. Insights previously only described other
  * people; the interesting question is which category *you* are strong in.
  */
-export const InsightsView: React.FC<InsightsViewProps> = ({ users, currentUser }) => {
-  const [active, setActive] = useState<Category>('gp');
+export const InsightsView: React.FC<InsightsViewProps> = ({ users, currentUser, initialCategory }) => {
+  const [active, setActive] = useState<Category>(initialCategory ?? 'gp');
+
+  // Arriving from a different category tile re-points the view without a remount.
+  useEffect(() => {
+    if (initialCategory) setActive(initialCategory);
+  }, [initialCategory]);
 
   const scoreOf = (u: User, key: Category) => u.breakdown?.[key] ?? 0;
 
@@ -55,20 +62,6 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ users, currentUser }
     }
     return out;
   }, [users]);
-
-  /** The reader's rank and share within each category — the "how am I doing" half. */
-  const yourProfile = useMemo(() => {
-    if (!currentUser) return null;
-    const me = users.find(u => u.id === currentUser.id);
-    if (!me?.breakdown) return null;
-    const total = CATEGORIES.reduce((n, c) => n + scoreOf(me, c.key), 0) || 1;
-    return CATEGORIES.map(c => {
-      const score = scoreOf(me, c.key);
-      const ranked = [...users].sort((a, b) => scoreOf(b, c.key) - scoreOf(a, c.key));
-      const rank = ranked.findIndex(u => u.id === me.id) + 1;
-      return { ...c, score, rank: rank > 0 ? rank : null, share: Math.round((score / total) * 100) };
-    });
-  }, [users, currentUser]);
 
   const ranked = useMemo(
     () => [...users]
@@ -108,37 +101,22 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ users, currentUser }
         </div>
       </div>
 
-      {yourProfile && (
-        <div>
-          <SectionHeader title="Your Category Profile" subtitle="Where your points actually come from" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {yourProfile.map(c => (
-              <Tile key={c.key} accent={c.key} accentEdge padding="sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-highlight-silver font-bold truncate">
-                    {c.label}
-                  </span>
-                  {c.rank && <Chip label={`#${c.rank}`} tone="neutral" size="xs" />}
-                </div>
-                <div className={`text-2xl font-black mt-1 ${NUMERIC} ${CATEGORY_THEME[c.key].text}`}>
-                  {c.score.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-highlight-silver/70 mt-0.5">
-                  {c.share}% of your points
-                </div>
-              </Tile>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div>
+        {/* On a phone the four-segment switcher is nearly as wide as the screen, and keeping it
+            inline squeezed the title down to one letter — so it gets its own row there. */}
         <SectionHeader
           title={meta.listTitle}
           subtitle="Rankings and point gaps for this category"
           icon={meta.icon}
-          action={<SegmentedControl segments={SEGMENTS} value={active} onChange={v => setActive(v)} size="sm" scrollable />}
+          action={
+            <div className="hidden md:block">
+              <SegmentedControl segments={SEGMENTS} value={active} onChange={v => setActive(v)} size="sm" scrollable />
+            </div>
+          }
         />
+        <div className="md:hidden mb-3">
+          <SegmentedControl segments={SEGMENTS} value={active} onChange={v => setActive(v)} size="sm" scrollable />
+        </div>
 
         {ranked.length > 0 ? (
           <Tile padding="sm">

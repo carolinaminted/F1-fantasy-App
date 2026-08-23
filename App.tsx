@@ -226,6 +226,9 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionVariant, setTransitionVariant] = useState(1);
+  // Whether Firebase has told us yet if there is a session. Until it has, neither the app nor
+  // the auth screen is the right answer, so nothing but the skeleton may render.
+  const [authResolved, setAuthResolved] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   // Gate 2: the URL is the source of truth for which surface is showing. Everything
@@ -287,6 +290,16 @@ const App: React.FC = () => {
   // Caches for the user profile snapshots to avoid race conditions and stale closures
   const publicProfileDataRef = useRef<{ rank?: number; totalPoints?: number } | null>(null);
   const userProfileDataRef = useRef<User | null>(null);
+  /**
+   * What the last `onAuthStateChanged` callback saw. The login celebration is for people who
+   * actually just signed in, so it plays only on 'signed-out' → signed in. A session restored
+   * on reload arrives as 'pending' → signed in and gets no overlay.
+   *
+   * A ref, not state: the auth effect has empty deps and must not resubscribe. Starting at
+   * 'pending' is also what makes StrictMode's dev double-mount behave — the second subscribe
+   * already reads 'signed-in', so it does not celebrate again.
+   */
+  const prevAuthRef = useRef<'pending' | 'signed-out' | 'signed-in'>('pending');
 
   // Implement Session Security
   const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
@@ -342,7 +355,10 @@ const App: React.FC = () => {
               name: sched?.name || e.name,
               hasSprint,
               lockAtUtc: lockAt,
-              softDeadlineUtc: lockAt // Sync for now
+              softDeadlineUtc: lockAt, // Sync for now
+              // The race itself, which is what "upcoming" is judged against. Falls back to the
+              // lock time for events whose schedule has not been imported yet.
+              raceAtUtc: sched?.race || lockAt
           };
       });
   }, [eventSchedules]);
@@ -371,6 +387,18 @@ const App: React.FC = () => {
 
 
 
+  /**
+   * Warm the league cache as soon as someone is signed in. It is a single paged read of
+   * `public_users` with the totals already baked in, and it is what Home's standings list and
+   * the category rank tiles read from — none of which should be waiting on a trip to the
+   * Standings page first.
+   */
+  useEffect(() => {
+    if (isAuthenticated && !leaderboardCache) {
+      fetchLeaderboardData();
+    }
+  }, [isAuthenticated, leaderboardCache, fetchLeaderboardData]);
+
   useEffect(() => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};
@@ -395,18 +423,27 @@ const App: React.FC = () => {
       publicProfileDataRef.current = null;
       userProfileDataRef.current = null;
 
+      setAuthResolved(true);
+
       if (firebaseUser) {
-        // If we have a user but aren't authenticated yet, we are transitioning (logging in)
-        if (!isAuthenticated) {
+        // Only a real sign-in gets the celebration. A restored session on reload comes through
+        // here too, and playing the overlay for it cost every reload 2.2 seconds.
+        const isFreshSignIn = prevAuthRef.current === 'signed-out';
+        prevAuthRef.current = 'signed-in';
+
+        if (isFreshSignIn) {
             setTransitionVariant(Math.floor(Math.random() * 3) + 1); // Randomize Variant 1-3
             setIsTransitioning(true);
         }
         setIsLoading(true);
 
-        // Safety timeout for transition overlay to prevent eternal stalls
+        // Escape hatch for a session whose profile document never arrives — a signup that died
+        // half-written, say. Releasing the loading gate drops the user on the auth screen,
+        // which beats an eternal skeleton now that the gate no longer lets them past it.
         const safetyTimeout = setTimeout(() => {
             setIsTransitioning(false);
-        }, 10000); // 10 seconds max overlay
+            setIsLoading(false);
+        }, 10000);
 
         const entities = await getLeagueEntities();
         if (entities) {
@@ -512,6 +549,9 @@ const App: React.FC = () => {
             clearTimeout(safetyTimeout);
             setTimeout(() => setIsTransitioning(false), 2200);
           }
+          // No `else`: a brand new signup reaches here before createUserProfileDocument has
+          // written the document, and this listener fires again the moment it lands. The
+          // safety timeout below is what rescues the case where it never does.
         });
 
         // Listener 2: User Picks (Realtime Penalties/Selections)
@@ -523,6 +563,7 @@ const App: React.FC = () => {
         });
 
       } else {
+        prevAuthRef.current = 'signed-out';
         setUser(null);
         setSeasonPicks({});
         setRaceResults({});
@@ -619,7 +660,7 @@ const App: React.FC = () => {
       setEventSchedules(schedules);
   };
 
-  const navigateToPage = (page: Page, params?: { eventId?: string }) => {
+  const navigateToPage = (page: Page, params?: { eventId?: string; search?: string }) => {
     if (page === 'leaderboard' && activePage === 'leaderboard') {
         setLeaderboardResetToken(prev => prev + 1);
     }
@@ -629,7 +670,9 @@ const App: React.FC = () => {
     } else {
         setTargetEventId(null);
     }
-    navigate(pathForPage(page));
+    // `search` targets a specific view within a page — the category tiles use it to land on
+    // their own slice of Insights. It replaces any query the page would default to.
+    navigate(params?.search ? `${pathForPage(page).split('?')[0]}?${params.search}` : pathForPage(page));
   };
 
   const renderPage = () => {
@@ -684,7 +727,7 @@ const App: React.FC = () => {
       case 'league-hub':
         return <LeagueHubPage user={user} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} leaderboardCache={leaderboardCache} />;
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
@@ -721,7 +764,7 @@ const App: React.FC = () => {
             case 'database':
                 return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
             case 'announcements':
-                return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} />;
+                return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }
@@ -730,7 +773,14 @@ const App: React.FC = () => {
     }
   };
   
-   if ((isLoading || maintenanceLoading) && !isTransitioning) {
+  // Nothing renders until Firebase says whether there is a session. Painting the auth screen
+  // on a maybe is what used to flash the sign-in form on every reload.
+  if (!authResolved || maintenanceLoading) {
+    return <AppSkeleton />;
+  }
+
+  // Signed in, but the profile document is still in flight — skeleton, never the auth screen.
+  if (auth.currentUser && isLoading) {
     return <AppSkeleton />;
   }
 

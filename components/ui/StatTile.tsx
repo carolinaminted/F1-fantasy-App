@@ -11,7 +11,14 @@ interface StatTileProps {
   deltaLabel?: string;
   /** Points-per-event history; rendered as a bare sparkline. */
   sparkline?: number[];
+  /** Sits to the right of the value, smaller — e.g. the points behind a rank. */
+  secondary?: React.ReactNode;
   accent?: Category;
+  /**
+   * Carry the accent onto the tile's border, the way the Dashboard's category tiles do.
+   * Off by default: plenty of stat tiles use an accent purely to tint their number.
+   */
+  accentEdge?: boolean;
   icon?: React.FC<React.SVGProps<SVGSVGElement>>;
   className?: string;
 }
@@ -38,7 +45,7 @@ const Sparkline: React.FC<{ points: number[]; className?: string }> = ({ points,
 };
 
 export const StatTile: React.FC<StatTileProps> = ({
-  label, value, unit, delta, deltaLabel, sparkline, accent, icon: Icon, className = '',
+  label, value, unit, secondary, delta, deltaLabel, sparkline, accent, accentEdge, icon: Icon, className = '',
 }) => {
   const theme = accent ? CATEGORY_THEME[accent] : undefined;
   const deltaTone = delta === undefined || delta === 0
@@ -46,7 +53,7 @@ export const StatTile: React.FC<StatTileProps> = ({
     : delta > 0 ? 'text-green-400' : 'text-primary-red';
 
   return (
-    <Tile className={className} padding="md">
+    <Tile className={className} padding="md" accent={accentEdge ? accent : undefined} accentEdge={accentEdge}>
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10px] text-highlight-silver uppercase tracking-wider font-bold">
           {label}
@@ -59,6 +66,7 @@ export const StatTile: React.FC<StatTileProps> = ({
           {value}
         </span>
         {unit && <span className="text-[11px] text-highlight-silver uppercase tracking-wider">{unit}</span>}
+        {secondary && <span className={`text-[11px] ${NUMERIC} text-highlight-silver`}>{secondary}</span>}
       </div>
 
       {(delta !== undefined || deltaLabel) && (

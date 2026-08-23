@@ -11,6 +11,7 @@ import { EventSelector } from './ui/EventSelector.tsx';
 import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
+import { hasEventResults } from '../utils/eventStatus.ts';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
@@ -83,17 +84,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Helper to check if results are available
-    const hasResults = (eventId: string) => {
-        const r = raceResults?.[eventId];
-        if (!r) return false;
-        return (
-            r.grandPrixFinish?.some(pos => !!pos) || 
-            !!r.fastestLap ||
-            r.sprintFinish?.some(pos => !!pos) ||
-            r.gpQualifying?.some(pos => !!pos) ||
-            r.sprintQualifying?.some(pos => !!pos)
-        );
-    };
+    const hasResults = (eventId: string) => hasEventResults(raceResults?.[eventId]);
 
     /**
      * A selected event means two different things in the two detail modes: the page's
@@ -259,6 +250,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                     event={selectedEvent}
                     schedule={schedules[selectedEvent.id]}
                     results={raceResults?.[selectedEvent.id]}
+                    raceResults={raceResults}
+                    cancelledEventIds={cancelledEventIds}
                     allDrivers={allDrivers}
                     allConstructors={allConstructors}
                     events={events}
@@ -412,6 +405,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                         event={selectedEvent} 
                         schedule={schedules[selectedEvent.id]} 
                         results={raceResults?.[selectedEvent.id]}
+                        raceResults={raceResults}
+                        cancelledEventIds={cancelledEventIds}
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         events={events}
@@ -543,6 +538,9 @@ const EventDetailsModal: React.FC<{
     allDrivers: Driver[];
     allConstructors: Constructor[];
     events: Event[];
+    /** The whole season, for the race selector's Upcoming/Completed tabs. */
+    raceResults?: RaceResults;
+    cancelledEventIds?: Set<string>;
     onClose: () => void; 
     onSelectEvent: (event: Event) => void;
     isCancelled?: boolean;
@@ -558,6 +556,8 @@ const EventDetailsModal: React.FC<{
     allDrivers, 
     allConstructors, 
     events, 
+    raceResults,
+    cancelledEventIds,
     onClose, 
     onSelectEvent, 
     isCancelled, 
@@ -575,13 +575,7 @@ const EventDetailsModal: React.FC<{
 
     const raceRaw = schedule?.race || event.lockAtUtc;
 
-    const hasEventResults = !!(
-        results?.grandPrixFinish?.some(pos => !!pos) || 
-        !!results?.fastestLap ||
-        results?.sprintFinish?.some(pos => !!pos) ||
-        results?.gpQualifying?.some(pos => !!pos) ||
-        results?.sprintQualifying?.some(pos => !!pos)
-    );
+    const eventIsScored = hasEventResults(results);
 
     const accentColor = isCancelled 
         ? '#EF4444' 
@@ -627,6 +621,9 @@ const EventDetailsModal: React.FC<{
                                 selectedEventId={event.id}
                                 onSelect={(e) => onSelectEvent(e)}
                                 placeholder="Switch Grand Prix..."
+                                raceResults={raceResults}
+                                cancelledEventIds={cancelledEventIds}
+                                orderBy="upcoming-first"
                             />
                         </div>
                         <button 
@@ -659,7 +656,7 @@ const EventDetailsModal: React.FC<{
                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                                     <span>CANCELLED</span>
                                 </div>
-                            ) : hasEventResults ? (
+                            ) : eventIsScored ? (
                                 <div className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/60 text-emerald-400 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                                     <CheckeredFlagIcon className="w-3.5 h-3.5 text-emerald-400" />
                                     <span>RESULTS IN</span>
@@ -711,7 +708,7 @@ const EventDetailsModal: React.FC<{
                         >
                             <CheckeredFlagIcon className={`w-4 h-4 ${activeModalView === 'results' ? 'text-pure-white' : 'text-emerald-400'}`} />
                             <span>Race Results</span>
-                            {hasEventResults && (
+                            {eventIsScored && (
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                             )}
                         </button>

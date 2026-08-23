@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types.ts';
+import { User, Event, RaceResults } from '../types.ts';
 import { SpeakerphoneIcon } from './icons/SpeakerphoneIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
@@ -9,14 +9,17 @@ import { useGeneralAnnouncement } from '../hooks/useGeneralAnnouncement.ts';
 import { setMaintenanceMode, triggerResultsAnnouncement, clearResultsAnnouncement, triggerGeneralAnnouncement, clearGeneralAnnouncement } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
-import { EVENTS } from '../constants.ts';
-import { Countdown, SegmentedControl, Chip, type Segment } from './ui/index.ts';
+import { Countdown, SegmentedControl, Chip, EventSelector, type Segment } from './ui/index.ts';
 import { AdminToolShell, ConfirmModal } from './admin/index.ts';
 import type { AdminDestination } from '../routes.ts';
+import { findNextEvent } from '../utils/eventStatus.ts';
 
 interface AdminAnnouncementsPageProps {
     setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
+    events: Event[];
+    raceResults: RaceResults;
+    cancelledEventIds: Set<string>;
 }
 
 type AnnouncementTab = 'maintenance' | 'results' | 'general';
@@ -27,7 +30,7 @@ const TABS: Segment<AnnouncementTab>[] = [
     { value: 'general', label: 'Message everyone', icon: SpeakerphoneIcon },
 ];
 
-const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdminSubPage, user }) => {
+const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdminSubPage, user, events, raceResults, cancelledEventIds }) => {
     const [activeTab, setActiveTab] = useState<AnnouncementTab>('maintenance');
     const { showToast } = useToast();
 
@@ -37,7 +40,10 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
 
     // Results State
     const { announcement } = useResultsAnnouncement(user);
-    const [announcementEventId, setAnnouncementEventId] = useState<string>(EVENTS[0]?.id || '');
+    // Default to the race everyone is about to talk about, not Round 1 back in March.
+    const [announcementEventId, setAnnouncementEventId] = useState<string>(
+        () => findNextEvent(events)?.id || events[0]?.id || ''
+    );
     const [announcementMessage, setAnnouncementMessage] = useState('');
     const [isAnnouncing, setIsAnnouncing] = useState(false);
 
@@ -95,7 +101,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
 
     const handleAnnounceResults = async () => {
         if (!user || !announcementEventId) return;
-        const event = EVENTS.find(e => e.id === announcementEventId);
+        const event = events.find(e => e.id === announcementEventId);
         if (!event) return;
 
         setIsAnnouncing(true);
@@ -287,13 +293,15 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                 <div className="space-y-6">
                                     <div>
                                         <label className="block text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 text-center md:text-left">Select Grand Prix</label>
-                                        <select 
-                                            value={announcementEventId} 
-                                            onChange={e => setAnnouncementEventId(e.target.value)} 
-                                            className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-green-500 outline-none appearance-none cursor-pointer text-center md:text-left"
-                                        >
-                                            {EVENTS.map(e => <option key={e.id} value={e.id}>Round {e.round}: {e.name}</option>)}
-                                        </select>
+                                        <EventSelector
+                                            events={events}
+                                            selectedEventId={announcementEventId || null}
+                                            onSelect={ev => setAnnouncementEventId(ev.id)}
+                                            placeholder="Choose a race…"
+                                            raceResults={raceResults}
+                                            cancelledEventIds={cancelledEventIds}
+                                            orderBy="upcoming-first"
+                                        />
                                     </div>
 
                                     <div>

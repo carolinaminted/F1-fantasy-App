@@ -9,7 +9,7 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
-import { Tile, SectionHeader, Banner, Chip } from './ui/index.ts';
+import { Tile, SectionHeader, Banner, Chip, EventSelector } from './ui/index.ts';
 import { ConfirmModal, Toggle } from './admin/index.ts';
 
 interface AdminUserProfileViewProps {
@@ -309,21 +309,22 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                     {/* Event Selector */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold uppercase tracking-wider text-highlight-silver">Select Event</label>
-                        <select
-                            value={selectedEventId}
-                            onChange={(e) => setSelectedEventId(e.target.value)}
-                            className="bg-carbon-black border border-accent-gray rounded px-3 py-2 text-pure-white text-sm focus:border-primary-red focus:outline-none w-full"
-                        >
-                            <option value="">-- Choose Event --</option>
-                            {events.map(ev => {
-                                const hasPicks = !!seasonPicks[ev.id];
-                                return (
-                                    <option key={ev.id} value={ev.id}>
-                                        Round {ev.round}: {ev.name} ({ev.location}) {hasPicks ? '✓ (Picks Exist)' : '(No Picks)'}
-                                    </option>
-                                );
-                            })}
-                        </select>
+                        <EventSelector
+                            events={events}
+                            selectedEventId={selectedEventId || null}
+                            onSelect={(ev) => setSelectedEventId(ev.id)}
+                            placeholder="Choose a race…"
+                            raceResults={raceResults}
+                            cancelledEventIds={cancelledEventIds}
+                            orderBy="upcoming-first"
+                            renderStatus={(ev) => (
+                                <Chip
+                                    label={seasonPicks[ev.id] ? 'Picks in' : 'No picks'}
+                                    tone={seasonPicks[ev.id] ? 'success' : 'neutral'}
+                                    size="xs"
+                                />
+                            )}
+                        />
                     </div>
 
                     {selectedEventId && (
