@@ -9,6 +9,8 @@ import { SyncIcon } from './icons/SyncIcon.tsx';
 import { CopyIcon } from './icons/CopyIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { getGenericDocuments, saveGenericDocument, deleteGenericDocument } from '../services/firestoreService.ts';
+import { NUMERIC } from './ui/index.ts';
+import { ConfirmModal } from './admin/index.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Timestamp } from '@firebase/firestore';
 import type { AdminDestination } from '../routes.ts';
@@ -263,7 +265,7 @@ const DatabaseLoader = () => (
         
         <div className="text-center space-y-2">
             <p className="text-xs font-black uppercase tracking-[0.3em] text-highlight-silver">
-                Establishing Secure Uplink
+                Loading
             </p>
             <div className="flex items-center justify-center gap-1">
                 <span className="w-1 h-1 bg-primary-red rounded-full animate-bounce [animation-delay:-0.3s]"></span>
@@ -289,6 +291,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
     
     // Delete Confirmation State
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
     const { showToast } = useToast();
 
@@ -301,7 +304,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
             // Artificial delay for smoother transition (min 600ms)
             const [result] = await Promise.all([
                 getGenericDocuments(collectionName, 10, isMore ? lastDoc : null),
-                !isMore ? new Promise(resolve => setTimeout(resolve, 600)) : Promise.resolve()
+                Promise.resolve()
             ]);
             
             const { docs, lastDoc: nextLast } = result;
@@ -360,13 +363,11 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         fetchDocs(selectedCollection);
     }, [selectedCollection]);
 
-    const [isFormView, setIsFormView] = useState(false);
     
     // Editor Handlers
     const openEditor = (doc: any) => {
         setSelectedDoc(doc);
         setConfirmDelete(false); // Reset confirmation state
-        setIsFormView(false); // Default to JSON view
         // Exclude ID from the editable JSON body to prevent confusion
         const { id, ...data } = doc;
         setJsonContent(JSON.stringify(data, null, 2));
@@ -379,11 +380,12 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         setJsonError(null);
         setConfirmDelete(false);
         setIsSaving(false);
-        setIsFormView(false);
+        setShowSaveConfirm(false);
     };
 
     const handleSave = async () => {
         if (!selectedDoc) return;
+        setShowSaveConfirm(false);
         setIsSaving(true);
         setJsonError(null);
 
@@ -410,6 +412,18 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
             showToast("Failed to save document. Check console.", 'error');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    /* Writing straight to a production document had no confirmation at all, while deleting
+       one did. Parse first, so a typo fails here instead of at the write. */
+    const requestSave = () => {
+        try {
+            JSON.parse(jsonContent);
+            setJsonError(null);
+            setShowSaveConfirm(true);
+        } catch (e: any) {
+            setJsonError(e.message || 'That is not valid JSON.');
         }
     };
 
@@ -452,7 +466,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
         <div className="flex flex-col h-full overflow-hidden text-pure-white w-full max-w-7xl mx-auto">
             <div className="flex-none">
                 <PageHeader 
-                    title="DATABASE MANAGER" 
+                    title="DATABASE EDITOR" 
                     icon={DatabaseIcon} 
                     leftAction={DashboardAction}
                 />
@@ -601,48 +615,30 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                         {/* Editor Area */}
                         <div className="flex-1 bg-[#1e1e1e] p-0 relative overflow-hidden flex flex-col">
                             <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                <button 
-                                    onClick={() => setIsFormView(!isFormView)} 
-                                    className="px-3 py-1.5 bg-carbon-black/80 rounded hover:bg-pure-white/10 text-highlight-silver transition-colors border border-pure-white/5 text-xs font-bold uppercase tracking-wider"
-                                >
-                                    {isFormView ? 'JSON View' : 'Form View'}
-                                </button>
                                 <button onClick={handleCopyToClipboard} className="p-2 bg-carbon-black/80 rounded hover:bg-pure-white/10 text-highlight-silver transition-colors border border-pure-white/5" title="Copy JSON">
                                     <CopyIcon className="w-4 h-4" />
                                 </button>
                             </div>
-                            {isFormView ? (
-                                <div className="w-full h-full overflow-y-auto p-6 space-y-4">
-                                    {Object.entries(JSON.parse(jsonContent)).map(([key, value]) => (
-                                        <div key={key} className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider text-highlight-silver">{key}</label>
-                                            <input
-                                                type="text"
-                                                value={typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                                onChange={(e) => {
-                                                    const updated = JSON.parse(jsonContent);
-                                                    updated[key] = e.target.value;
-                                                    setJsonContent(JSON.stringify(updated, null, 2));
-                                                }}
-                                                className="w-full bg-carbon-black border border-accent-gray rounded-lg px-4 py-2 text-sm text-pure-white focus:outline-none focus:border-primary-red transition-colors"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <textarea
-                                    value={jsonContent}
-                                    onChange={(e) => {
-                                        setJsonContent(e.target.value);
-                                        setJsonError(null);
-                                    }}
-                                    className="w-full h-full bg-transparent text-green-400 font-mono text-xs md:text-base leading-relaxed p-4 md:p-6 outline-none resize-none"
-                                    spellCheck={false}
-                                    autoCapitalize="off"
-                                    autoComplete="off"
-                                    autoCorrect="off"
-                                />
-                            )}
+                            {/*
+                              There used to be a "Form View" toggle here. Every value in it
+                              round-tripped through String(value) on edit, so a number came back
+                              as "42", a boolean as "true", and a nested object as its stringified
+                              text — silently rewriting the document's schema on save. It has been
+                              removed rather than patched: this editor is for someone who can read
+                              JSON, and a form that quietly corrupts types is worse than no form.
+                            */}
+                            <textarea
+                                value={jsonContent}
+                                onChange={(e) => {
+                                    setJsonContent(e.target.value);
+                                    setJsonError(null);
+                                }}
+                                className="w-full h-full bg-transparent text-green-400 font-mono text-xs md:text-base leading-relaxed p-4 md:p-6 outline-none resize-none"
+                                spellCheck={false}
+                                autoCapitalize="off"
+                                autoComplete="off"
+                                autoCorrect="off"
+                            />
                         </div>
 
                         {/* Footer / Error Bar */}
@@ -696,7 +692,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                             <TrashIcon className="w-4 h-4" /> <span className="md:hidden">Delete</span>
                                         </button>
                                         <button
-                                            onClick={handleSave}
+                                            onClick={requestSave}
                                             disabled={isSaving || !!jsonError}
                                             type="button"
                                             className="px-6 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-[2] md:flex-none"
@@ -711,6 +707,20 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                     </div>
                 </div>
             )}
+            <ConfirmModal
+                isOpen={showSaveConfirm}
+                onClose={() => setShowSaveConfirm(false)}
+                onConfirm={handleSave}
+                title="Overwrite this document"
+                consequence="This replaces the live document with exactly what is in the editor. There is no undo and no version history."
+                confirmLabel="Overwrite"
+                busy={isSaving}
+                busyLabel="Saving\u2026"
+            >
+                <p className={`rounded-lg border border-pure-white/10 bg-carbon-black px-3 py-2 text-xs text-highlight-silver ${NUMERIC}`}>
+                    {selectedCollection} / {selectedDoc?.id}
+                </p>
+            </ConfirmModal>
         </div>
     );
 };
