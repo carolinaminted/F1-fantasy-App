@@ -3,13 +3,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { RaceResults, Event, EventResult, Driver, PointsSystem, Constructor, AdminLogEntry } from '../types.ts';
 import ResultsForm from './ResultsForm.tsx';
 import { TrackIcon } from './icons/TrackIcon.tsx';
-import { BackIcon } from './icons/BackIcon.tsx';
 import { HistoryIcon } from './icons/HistoryIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
-import { PageHeader } from './ui/PageHeader.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { logAdminAction, getAdminLogs, cancelEvent, uncancelEvent } from '../services/firestoreService.ts';
-import { EventSelector } from './ui/EventSelector.tsx';
+import {
+    EventSelector, Tile, Modal, Chip, EmptyState, NUMERIC,
+} from './ui/index.ts';
+import { AdminToolShell, ConfirmModal } from './admin/index.ts';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { RotateCcwIcon } from './icons/RotateCcwIcon.tsx';
 import type { AdminDestination } from '../routes.ts';
@@ -192,7 +193,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
     const isCancelled = selectedEvent ? cancelledEventIds.has(selectedEvent.id) : false;
 
     const handleCancelEvent = () => {
-        console.log("handleCancelEvent called");
         if (!selectedEvent) return;
         setCancelReason('');
         setShowCancelConfirm(true);
@@ -202,8 +202,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         if (!selectedEvent) return;
         
         setShowCancelConfirm(false);
-        console.log("confirmCancelEvent called for:", selectedEvent.id, "adminId:", adminId);
-        
         try {
             setIsSaving(true);
             await cancelEvent(selectedEvent.id, adminId, cancelReason);
@@ -253,16 +251,6 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         }
     };
 
-    const DashboardAction = (
-        <button 
-            onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
-        >
-            <BackIcon className="w-4 h-4" /> 
-            <span className="text-sm font-bold">Dashboard</span>
-        </button>
-    );
-
     const HistoryAction = (
         <button 
             onClick={fetchLogs}
@@ -270,7 +258,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
             className={`flex items-center gap-2 transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30 ${!selectedEventId ? 'opacity-50 cursor-not-allowed text-highlight-silver' : 'text-pure-white hover:bg-carbon-black/80'}`}
         >
             <HistoryIcon className="w-4 h-4" />
-            <span className="text-sm font-bold hidden sm:inline">History</span>
+            <span className="text-sm font-bold hidden sm:inline">Change history</span>
         </button>
     );
 
@@ -289,24 +277,23 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         
         return (
             <div className="flex items-center gap-2">
-                {isEventCancelled && <span className="text-[9px] text-red-500 border border-red-500/50 rounded px-1 font-bold uppercase">Cancelled</span>}
-                {isLocked && !isEventCancelled && <span className="text-[9px] text-primary-red border border-primary-red/50 rounded px-1 font-bold uppercase">Locked</span>}
-                {hasResults && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>}
+                {isEventCancelled && <Chip label="Cancelled" tone="danger" size="xs" />}
+                {isLocked && !isEventCancelled && <Chip label="Picks closed" tone="warning" size="xs" />}
+                {hasResults && <Chip label="Scored" tone="success" size="xs" />}
             </div>
         );
     };
 
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto text-pure-white min-h-full">
-            <div className="flex-none">
-                <PageHeader 
-                    title="RESULTS MANAGER" 
-                    icon={TrackIcon} 
-                    leftAction={DashboardAction}
-                    rightAction={HistoryAction}
-                />
-            </div>
-            
+            <AdminToolShell
+                title="RACE RESULTS"
+                icon={TrackIcon}
+                subtitle="Enter finishing positions and open or close the pick form"
+                setAdminSubPage={setAdminSubPage}
+                actions={HistoryAction}
+            />
+
             <div className="flex flex-col px-4 md:px-0">
                 {/* Control Bar with Event Selector */}
                 <div className="bg-accent-gray/50 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-4 md:mb-6 ring-1 ring-pure-white/10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-end shrink-0 shadow-lg">
@@ -317,13 +304,13 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                             selectedEventId={selectedEventId}
                             onSelect={(e) => setSelectedEventId(e.id)}
                             filters={[
-                                { label: 'All Rounds', value: 'all' },
-                                { label: 'Done', value: 'added' },
-                                { label: 'Pending', value: 'pending' }
+                                { label: 'All races', value: 'all' },
+                                { label: 'Results entered', value: 'added' },
+                                { label: 'Needs results', value: 'pending' }
                             ]}
                             filterPredicate={handleEventFilter}
                             renderStatus={renderEventStatus}
-                            placeholder="Select GP Weekend..."
+                            placeholder="Choose a race…"
                         />
                     </div>
                 </div>
@@ -343,203 +330,173 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                 isCancelled={isCancelled}
                             />
 
-                            {/* Cancellation Controls */}
-                            <div className="mt-8 pt-6 border-t border-pure-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-                                <div className="flex flex-col gap-1 text-center md:text-left">
-                                    <h4 className="text-xs font-bold text-pure-white uppercase tracking-widest">Event Status Control</h4>
-                                    <p className="text-[10px] text-highlight-silver opacity-60 max-w-xs">
-                                        Cancelling an event removes it from all scoring and usage calculations. This is reversible.
-                                    </p>
+                            <p className="mt-6 pt-4 border-t border-pure-white/5 text-[11px] text-highlight-silver">
+                                Saving updates everyone's scores automatically.
+                            </p>
+
+                            {/*
+                              These two actions used to sit side by side in the same red, which
+                              made the reversible one look as frightening as the permanent one.
+                              Cancelling a race can be undone; deleting its results cannot, so
+                              they are separated and toned apart.
+                            */}
+                            <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-stretch">
+                                <div className="flex flex-1 flex-col justify-between gap-3 rounded-xl border border-pure-white/10 bg-carbon-black/40 p-4">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-pure-white">
+                                            {isCancelled ? 'This race is cancelled' : 'Cancel this race'}
+                                        </h4>
+                                        <p className="mt-1 text-[11px] leading-relaxed text-highlight-silver">
+                                            A cancelled race doesn't count towards anyone's score or their
+                                            selection limits. You can bring it back at any time.
+                                        </p>
+                                    </div>
+                                    {isCancelled ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleRestoreEvent}
+                                            disabled={isSaving}
+                                            className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-green-500 disabled:opacity-50"
+                                        >
+                                            <RotateCcwIcon className="w-4 h-4" /> Bring this race back
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelEvent}
+                                            disabled={isSaving}
+                                            className="flex items-center justify-center gap-2 rounded-lg border border-pure-white/15 bg-pure-white/5 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-pure-white/10 disabled:opacity-50"
+                                        >
+                                            <XCircleIcon className="w-4 h-4" /> Cancel this race
+                                        </button>
+                                    )}
                                 </div>
 
-                                {isCancelled ? (
+                                <div className="flex flex-1 flex-col justify-between gap-3 rounded-xl border border-primary-red/30 bg-primary-red/[0.06] p-4">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-primary-red">Delete the results</h4>
+                                        <p className="mt-1 text-[11px] leading-relaxed text-highlight-silver">
+                                            Clears every position you've entered for this race and sets
+                                            everyone's score for it back to zero. This can't be undone.
+                                        </p>
+                                    </div>
                                     <button
-                                        type="button"
-                                        onClick={handleRestoreEvent}
-                                        disabled={isSaving}
-                                        className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-pure-white text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-lg transition-all shadow-lg shadow-green-900/20"
+                                        onClick={handleInitiateReset}
+                                        className="flex items-center justify-center gap-2 rounded-lg border border-primary-red/40 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white"
                                     >
-                                        <RotateCcwIcon className="w-4 h-4" /> Restore Event
+                                        <TrashIcon className="w-4 h-4" /> Delete results
                                     </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={handleCancelEvent}
-                                        disabled={isSaving}
-                                        className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-pure-white disabled:opacity-50 border border-red-500/30 text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-lg transition-all"
-                                    >
-                                        <XCircleIcon className="w-4 h-4" /> Cancel Event
-                                    </button>
-                                )}
-                            </div>
-                            
-                            <div className="mt-6 pt-4 border-t border-pure-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-highlight-silver opacity-50 text-center md:text-left">
-                                    Recalculation engine triggers automatically upon saving.
-                                </p>
-                                <button
-                                    onClick={handleInitiateReset}
-                                    className="flex items-center gap-2 text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors px-3 py-2 rounded hover:bg-red-900/10 border border-transparent hover:border-red-500/20"
-                                    title="Reset all results for this event"
-                                >
-                                    <TrashIcon className="w-4 h-4" /> Reset Event Results
-                                </button>
+                                </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-64 md:h-96 bg-accent-gray/20 rounded-xl border-2 border-dashed border-accent-gray/50 m-2">
-                            <TrackIcon className="w-16 h-16 text-accent-gray mb-6 opacity-20" />
-                            <h3 className="text-xl font-bold text-highlight-silver mb-2">Awaiting Race Telemetry</h3>
-                            <p className="text-highlight-silver/50 text-sm max-w-xs text-center">Select an event from the roster above to manage session results and lock statuses.</p>
-                        </div>
+                        <Tile padding="none">
+                            <EmptyState
+                                icon={TrackIcon}
+                                title="Choose a race to get started"
+                                description="Pick a race above to type in its finishing positions, or to open and close the pick form for it."
+                            />
+                        </Tile>
                     )}
                 </div>
             </div>
 
-            {/* Audit Log Modal */}
-            {showLogModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowLogModal(false)}>
-                    <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b border-pure-white/10 flex justify-between items-center bg-carbon-black/50 rounded-t-xl">
-                            <div className="flex items-center gap-2">
-                                <HistoryIcon className="w-5 h-5 text-primary-red" />
-                                <h3 className="text-lg font-bold text-pure-white">Audit Trail: {selectedEvent?.name}</h3>
-                            </div>
-                            <button onClick={() => setShowLogModal(false)} className="text-highlight-silver hover:text-pure-white text-2xl leading-none">&times;</button>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                            {isLoadingLogs ? (
-                                <div className="p-8 text-center text-highlight-silver italic">Loading history...</div>
-                            ) : auditLogs.length === 0 ? (
-                                <div className="p-8 text-center text-highlight-silver italic">No history found for this event.</div>
-                            ) : (
-                                <div className="divide-y divide-pure-white/5">
-                                    {auditLogs.map(log => {
-                                        const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
-                                        return (
-                                            <div key={log.id} className="p-4 hover:bg-pure-white/5 transition-colors">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <span className="font-bold text-pure-white text-sm">{log.adminName}</span>
-                                                    <span className="text-xs text-highlight-silver font-mono">{date.toLocaleString()}</span>
-                                                </div>
-                                                <div className="text-xs text-primary-red font-bold uppercase tracking-wider mb-1">{log.action}</div>
-                                                <p className="text-sm text-highlight-silver whitespace-pre-wrap leading-relaxed">{log.changes}</p>
-                                            </div>
-                                        );
-                                    })}
+            <Modal
+                isOpen={showLogModal}
+                onClose={() => setShowLogModal(false)}
+                title={`Change history — ${selectedEvent?.name ?? ''}`}
+                icon={HistoryIcon}
+                size="lg"
+            >
+                {isLoadingLogs ? (
+                    <p className="py-8 text-center italic text-highlight-silver">Loading…</p>
+                ) : auditLogs.length === 0 ? (
+                    <p className="py-8 text-center italic text-highlight-silver">
+                        Nobody has changed the results for this race yet.
+                    </p>
+                ) : (
+                    <div className="divide-y divide-pure-white/5">
+                        {auditLogs.map(log => {
+                            const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+                            return (
+                                <div key={log.id} className="py-3 first:pt-0">
+                                    <div className="mb-1 flex items-start justify-between gap-3">
+                                        <span className="text-sm font-bold text-pure-white">{log.adminName}</span>
+                                        <span className={`text-xs text-highlight-silver ${NUMERIC}`}>
+                                            {date.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary-red">
+                                        {log.action}
+                                    </div>
+                                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-highlight-silver">
+                                        {log.changes}
+                                    </p>
                                 </div>
-                            )}
-                        </div>
+                            );
+                        })}
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
 
-            {/* Reset Confirmation Modal */}
-            {showResetConfirm && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowResetConfirm(false)}>
-                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
-                            <TrashIcon className="w-8 h-8 text-red-500" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Reset Results?</h2>
-                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
-                            You are about to clear all race data for <span className="text-pure-white font-bold">{selectedEvent?.name}</span>.
-                            <br/><br/>
-                            This will remove P1-P10, Quali, Sprint, and Fastest Lap records. Scores will be recalculated to 0 for this event.
-                            <br/><br/>
-                            <span className="text-red-400 font-bold uppercase tracking-wide">This action cannot be undone.</span>
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={handleConfirmReset}
-                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
-                            >
-                                Yes, Reset Everything
-                            </button>
-                            <button
-                                onClick={() => setShowResetConfirm(false)}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Cancel Confirmation Modal */}
-            {showCancelConfirm && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowCancelConfirm(false)}>
-                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
-                            <XCircleIcon className="w-8 h-8 text-red-500" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Cancel Event?</h2>
-                        <p className="text-highlight-silver mb-4 text-sm leading-relaxed">
-                            Are you sure you want to CANCEL the <span className="text-pure-white font-bold">{selectedEvent?.name}</span>? This will exclude it from all scoring and usage limits.
-                        </p>
-                        
-                        <div className="mb-6 text-left">
-                            <label className="block text-xs font-bold text-highlight-silver uppercase tracking-wider mb-2">Reason (Optional)</label>
-                            <input
-                                type="text"
-                                value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
-                                placeholder="e.g., Extreme weather conditions"
-                                className="w-full bg-carbon-black border border-pure-white/10 rounded-lg px-4 py-3 text-pure-white focus:outline-none focus:border-primary-red transition-colors"
-                            />
-                        </div>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={confirmCancelEvent}
-                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
-                            >
-                                Yes, Cancel Event
-                            </button>
-                            <button
-                                onClick={() => setShowCancelConfirm(false)}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
-                            >
-                                Go Back
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Restore Confirmation Modal */}
-            {showRestoreConfirm && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowRestoreConfirm(false)}>
-                    <div className="bg-carbon-fiber border border-green-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-green-900/50 ring-1 ring-green-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/50">
-                            <RotateCcwIcon className="w-8 h-8 text-green-500" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Restore Event?</h2>
-                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
-                            Are you sure you want to RESTORE the <span className="text-pure-white font-bold">{selectedEvent?.name}</span>? This will re-enable scoring and usage counting for this event.
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={confirmRestoreEvent}
-                                className="w-full bg-green-600 hover:bg-green-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-green-600/20 uppercase tracking-widest text-xs"
-                            >
-                                Yes, Restore Event
-                            </button>
-                            <button
-                                onClick={() => setShowRestoreConfirm(false)}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showResetConfirm}
+                onClose={() => setShowResetConfirm(false)}
+                onConfirm={handleConfirmReset}
+                title="Delete the results for this race"
+                consequence={
+                    <>
+                        This clears every position entered for{' '}
+                        <strong className="text-pure-white">{selectedEvent?.name}</strong> — the top ten,
+                        qualifying, sprint and fastest lap — and sets everyone's score for this race back
+                        to zero. You would have to type them all in again. This cannot be undone.
+                    </>
+                }
+                confirmLabel="Delete results"
+            />
+
+            <ConfirmModal
+                isOpen={showCancelConfirm}
+                onClose={() => setShowCancelConfirm(false)}
+                onConfirm={confirmCancelEvent}
+                title="Cancel this race"
+                tone="warning"
+                consequence={
+                    <>
+                        <strong className="text-pure-white">{selectedEvent?.name}</strong> stops counting
+                        towards anyone's score and towards their driver and team selection limits. You can
+                        bring it back at any time.
+                    </>
+                }
+                confirmLabel="Cancel this race"
+                cancelLabel="Go back"
+            >
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-highlight-silver">
+                    Reason (optional)
+                </label>
+                <input
+                    type="text"
+                    value={cancelReason}
+                    onChange={e => setCancelReason(e.target.value)}
+                    placeholder="e.g. Extreme weather"
+                    className="mt-1.5 w-full rounded-lg border border-pure-white/15 bg-carbon-black px-3 py-2 text-sm text-pure-white focus:border-primary-red focus:outline-none"
+                />
+            </ConfirmModal>
+
+            <ConfirmModal
+                isOpen={showRestoreConfirm}
+                onClose={() => setShowRestoreConfirm(false)}
+                onConfirm={confirmRestoreEvent}
+                title="Bring this race back"
+                tone="info"
+                consequence={
+                    <>
+                        <strong className="text-pure-white">{selectedEvent?.name}</strong> starts counting
+                        towards scores and selection limits again.
+                    </>
+                }
+                confirmLabel="Bring it back"
+            />
         </div>
     );
 };

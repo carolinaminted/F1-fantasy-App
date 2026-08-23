@@ -3,13 +3,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Event, EventSchedule } from '../types.ts';
 import { EVENTS } from '../constants.ts';
 import { saveEventSchedule } from '../services/firestoreService.ts';
-import { BackIcon } from './icons/BackIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { SyncIcon } from './icons/SyncIcon.tsx';
-import { PageHeader } from './ui/PageHeader.tsx';
+import { Tile, Modal, Chip, Banner, NUMERIC } from './ui/index.ts';
+import { AdminToolShell, ConfirmModal } from './admin/index.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { db } from '../services/firebase.ts';
 import { doc, setDoc } from '@firebase/firestore';
@@ -29,6 +28,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
     const [showImporter, setShowImporter] = useState(false);
     const [importData, setImportData] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
+    const [showImportConfirm, setShowImportConfirm] = useState(false);
     const { showToast } = useToast();
 
     const handleSave = async (eventId: string, data: EventSchedule) => {
@@ -44,6 +44,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
     };
 
     const handleBulkImport = async () => {
+        setShowImportConfirm(false);
         let raw = importData.trim();
         if (!raw) return;
 
@@ -68,12 +69,12 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
             
             await setDoc(schedulesRef, newScheduleData);
             onScheduleUpdate();
-            showToast("Firebase records updated successfully!", 'success');
+            showToast("Schedule updated.", 'success');
             setShowImporter(false);
             setImportData('');
         } catch (error) {
             console.error("Import error:", error);
-            showToast("Invalid format. Ensure you have valid key:value pairs.", 'error');
+            showToast("That does not look like valid schedule data. Nothing was changed.", 'error');
         } finally {
             setIsSyncing(false);
         }
@@ -90,37 +91,23 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
 
     const selectedEvent = EVENTS.find(e => e.id === editingEventId);
 
-    const DashboardAction = (
-        <button 
-            onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10"
-        >
-            <BackIcon className="w-4 h-4" /> 
-            <span className="text-sm font-bold">Dashboard</span>
-        </button>
-    );
-
-    const SyncHeaderAction = (
-        <button
-            onClick={() => setShowImporter(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest bg-primary-red text-pure-white hover:opacity-90 shadow-lg"
-        >
-            <SyncIcon className="w-4 h-4" />
-            <span>Bulk Import JSON</span>
-        </button>
-    );
-
     return (
         <div className="flex flex-col md:h-full md:overflow-hidden w-full max-w-7xl mx-auto text-pure-white">
-            <div className="flex-none">
-                <PageHeader 
-                    title="SCHEDULE MANAGER" 
-                    icon={CalendarIcon} 
-                    subtitle="Admin: Manage session times in Eastern Time"
-                    leftAction={DashboardAction}
-                    rightAction={SyncHeaderAction}
-                />
-            </div>
+            <AdminToolShell
+                title="RACE SCHEDULE"
+                icon={CalendarIcon}
+                subtitle="All times are Eastern (New York)"
+                setAdminSubPage={setAdminSubPage}
+                actions={
+                    <button
+                        onClick={() => setShowImporter(true)}
+                        className="flex items-center gap-2 rounded-lg border border-pure-white/15 bg-carbon-black/60 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight-silver transition-colors hover:border-pure-white/30 hover:text-pure-white"
+                    >
+                        <SyncIcon className="w-4 h-4" />
+                        <span>Import full schedule</span>
+                    </button>
+                }
+            />
 
             <div className="flex-1 md:overflow-y-auto custom-scrollbar px-4 md:px-0 pb-24 md:pb-8 md:min-h-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -135,38 +122,67 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                 </div>
             </div>
 
-            {/* Bulk Importer Modal */}
-            {showImporter && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => setShowImporter(false)}>
-                    <div className="bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl w-full max-w-2xl p-6 flex flex-col gap-4 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <DownloadIcon className="w-5 h-5 text-primary-red" />
-                                Database Importer
-                            </h2>
-                            <button onClick={copyTemplate} className="text-xs font-bold text-highlight-silver hover:text-pure-white bg-pure-white/5 px-2 py-1 rounded">Copy Example Template</button>
-                        </div>
-                        <p className="text-sm text-highlight-silver">Paste your JSON schedule data below. If you omit the outer braces {`{ }`}, the app will try to add them for you.</p>
-                        <textarea 
-                            value={importData}
-                            onChange={(e) => setImportData(e.target.value)}
-                            placeholder='"aus_26": { "race": "2026-03-07T23:00", ... }, ...'
-                            className="w-full h-80 bg-carbon-black border border-accent-gray rounded-lg p-4 font-mono text-xs text-pure-white focus:outline-none focus:border-primary-red"
-                        />
-                        <div className="flex justify-end gap-3 pt-2">
-                            <button onClick={() => setShowImporter(false)} className="px-6 py-2 text-sm font-bold text-highlight-silver">Cancel</button>
-                            <button 
-                                onClick={handleBulkImport} 
-                                disabled={isSyncing || !importData.trim()}
-                                className="px-8 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {isSyncing ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
-                                Push to Firebase
-                            </button>
-                        </div>
-                    </div>
+            <Modal
+                isOpen={showImporter}
+                onClose={() => !isSyncing && setShowImporter(false)}
+                title="Import a full schedule"
+                icon={SyncIcon}
+                size="lg"
+                footer={
+                    <>
+                        <button
+                            onClick={() => setShowImporter(false)}
+                            disabled={isSyncing}
+                            className="rounded-lg border border-pure-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-highlight-silver transition-colors hover:text-pure-white disabled:opacity-40"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => setShowImportConfirm(true)}
+                            disabled={isSyncing || !importData.trim()}
+                            className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                        >
+                            {isSyncing ? <SyncIcon className="w-4 h-4 animate-spin" /> : <SaveIcon className="w-4 h-4" />}
+                            Review and replace
+                        </button>
+                    </>
+                }
+            >
+                <Banner
+                    tone="warning"
+                    title="This replaces the times for every race at once"
+                    message="Use the editor on a race card instead if you only need to change one weekend."
+                    className="-mx-6 -mt-6 mb-4 rounded-none"
+                />
+                <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs text-highlight-silver">
+                        Paste schedule data below. An example is a faster starting point than typing it.
+                    </p>
+                    <button
+                        onClick={copyTemplate}
+                        className="shrink-0 rounded border border-pure-white/10 bg-pure-white/5 px-2 py-1 text-[11px] font-bold text-highlight-silver transition-colors hover:text-pure-white"
+                    >
+                        Copy an example
+                    </button>
                 </div>
-            )}
+                <textarea
+                    value={importData}
+                    onChange={e => setImportData(e.target.value)}
+                    placeholder='"aus_26": { "race": "2026-03-07T23:00", ... }, ...'
+                    className={`h-72 w-full rounded-lg border border-pure-white/15 bg-carbon-black p-4 text-xs text-pure-white focus:border-primary-red focus:outline-none ${NUMERIC}`}
+                />
+            </Modal>
+
+            <ConfirmModal
+                isOpen={showImportConfirm}
+                onClose={() => setShowImportConfirm(false)}
+                onConfirm={handleBulkImport}
+                title="Replace the schedule"
+                consequence="This overwrites the saved session times for every race in the season with what you pasted. Any race you did not include keeps its current times. There is no undo, so make sure the data is right."
+                confirmLabel="Replace schedule"
+                busy={isSyncing}
+                busyLabel="Replacing..."
+            />
 
             {selectedEvent && (
                 <ScheduleEditorModal 
@@ -189,7 +205,6 @@ interface EventSummaryTileProps {
 const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, onClick }) => {
     const hasData = !!schedule?.race;
     const isSprint = schedule?.hasSprint !== undefined ? schedule.hasSprint : event.hasSprint;
-    const accentColor = isSprint ? '#EAB308' : '#DA291C';
 
     const displayDate = useMemo(() => {
         const rawDate = schedule?.race;
@@ -206,38 +221,37 @@ const EventSummaryTile: React.FC<EventSummaryTileProps> = ({ event, schedule, on
     }, [schedule]);
 
     return (
-        <button 
-            onClick={onClick}
-            className="w-full text-left relative overflow-hidden rounded-xl bg-carbon-fiber border border-pure-white/10 hover:border-primary-red/50 shadow-lg hover:shadow-2xl transition-all duration-300 group flex flex-col h-52 items-center justify-center p-6"
-        >
-            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 80%)` }}></div>
-            {isSprint && (
-                <div className="absolute top-4 left-4 z-20">
-                    <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded border border-yellow-500/30 font-black uppercase tracking-widest">
-                        <SprintIcon className="w-3 h-3 text-yellow-500" /> Sprint
-                    </div>
+        <Tile padding="md" onClick={onClick} className="flex h-full flex-col justify-between">
+            <div className="flex items-start justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-highlight-silver">
+                    Round {event.round}
+                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                    {isSprint && <Chip label="Sprint" tone="warning" size="xs" icon={SprintIcon} />}
+                    <Chip
+                        label={hasData ? 'Times set' : 'No times yet'}
+                        tone={hasData ? 'success' : 'neutral'}
+                        size="xs"
+                    />
                 </div>
-            )}
-            <div className="absolute top-4 right-4">
-                {hasData ? (
-                    <span className="w-2.5 h-2.5 block rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]"></span>
-                ) : (
-                    <span className="w-2.5 h-2.5 block rounded-full bg-highlight-silver/20 border border-pure-white/10"></span>
-                )}
             </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-                <span className="text-[10px] font-bold text-highlight-silver uppercase tracking-[0.2em] mb-1">Round {event.round}</span>
-                <h3 className="text-2xl font-black text-pure-white leading-none mb-2 tracking-tight">
+
+            <div className="mt-3">
+                <h3 className="text-lg font-black leading-tight tracking-tight text-pure-white">
                     {schedule?.name || event.name}
                 </h3>
-                <p className="text-xs font-medium text-highlight-silver opacity-80 uppercase tracking-wider mb-4">
+                <p className="mt-0.5 text-[11px] uppercase tracking-wider text-highlight-silver">
                     {event.location}, {event.country}
                 </p>
-                <div className={`text-[11px] font-black text-pure-white px-3 py-1 rounded bg-carbon-black/80 border border-pure-white/10 shadow-lg tracking-widest uppercase ${!hasData ? 'opacity-30' : ''}`}>
-                    {displayDate}
-                </div>
             </div>
-        </button>
+
+            <div className="mt-3 flex items-baseline gap-2">
+                <span className={`text-sm font-black text-pure-white ${NUMERIC} ${hasData ? '' : 'opacity-40'}`}>
+                    {displayDate}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-highlight-silver">Race day</span>
+            </div>
+        </Tile>
     );
 };
 
@@ -275,7 +289,9 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                             {event.name}
                             <span className="text-xs font-normal text-highlight-silver bg-pure-white/5 px-2 py-0.5 rounded">Round {event.round}</span>
                         </h2>
-                        <p className="text-xs text-highlight-silver mt-1">{event.country} • {event.circuit}</p>
+                        <p className="text-xs text-highlight-silver mt-1">
+                            {event.country} &bull; {event.circuit} &bull; all times Eastern
+                        </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-pure-white/10 rounded-full text-highlight-silver hover:text-pure-white transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -283,17 +299,10 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                 </div>
 
                 <form onSubmit={handleSave} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                    <div className="bg-blue-600/10 border border-blue-500/30 p-4 rounded-xl flex items-start gap-4 mb-4">
-                        <div className="bg-blue-500 p-2 rounded-lg text-white"><CalendarIcon className="w-5 h-5" /></div>
-                        <div>
-                            <h4 className="text-sm font-bold text-white uppercase">League Timezone Active: EST/EDT</h4>
-                            <p className="text-xs text-highlight-silver mt-0.5">Please enter all session times as they should appear for the New York audience.</p>
-                        </div>
-                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-highlight-silver uppercase mb-1.5">Custom Name</label>
+                            <label className="block text-[10px] font-bold text-highlight-silver uppercase tracking-wider mb-1.5">Race name</label>
                             <input 
                                 type="text" 
                                 value={formState.name !== undefined ? formState.name : event.name}
@@ -305,13 +314,13 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                             <label className="block text-xs font-bold text-highlight-silver uppercase mb-1.5 opacity-0">Format</label>
                             <label className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border transition-all cursor-pointer h-[38px] ${isSprint ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-carbon-black border-accent-gray'}`}>
                                 <input type="checkbox" checked={!!isSprint} onChange={(e) => handleInputChange('hasSprint', e.target.checked)} className="w-4 h-4 accent-yellow-500" />
-                                <span className={`text-sm font-bold uppercase ${isSprint ? 'text-yellow-500' : 'text-highlight-silver'}`}>Sprint Weekend</span>
+                                <span className={`text-sm font-bold uppercase ${isSprint ? 'text-yellow-500' : 'text-highlight-silver'}`}>Sprint weekend</span>
                             </label>
                         </div>
                     </div>
 
                     <div className="space-y-4 pt-4 border-t border-pure-white/10">
-                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-2">Session Timetable <span className="text-primary-red">(EST)</span></h3>
+                        <h3 className="text-sm font-bold text-pure-white uppercase tracking-wider mb-2">Session times</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-carbon-black/30 p-4 rounded-xl border border-pure-white/5">
                             <TimeInput label="Practice 1" value={getValue(formState.fp1)} onChange={v => handleInputChange('fp1', v)} />
                             {isSprint ? (
@@ -331,7 +340,17 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
                         <div className="bg-primary-red/5 p-4 rounded-xl border border-primary-red/20 mt-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TimeInput label="Grand Prix Race" value={getValue(formState.race)} onChange={v => handleInputChange('race', v)} highlightColor="text-primary-red font-black" />
-                                <TimeInput label="Custom Lock Time" value={getValue(formState.customLockAt)} onChange={v => handleInputChange('customLockAt', v)} />
+                                <div>
+                                    <TimeInput
+                                        label="Picks deadline (optional)"
+                                        value={getValue(formState.customLockAt)}
+                                        onChange={v => handleInputChange('customLockAt', v)}
+                                    />
+                                    <p className="mt-1.5 text-[11px] leading-relaxed text-highlight-silver">
+                                        When members stop being able to change their picks. Leave blank and
+                                        it defaults to {isSprint ? 'sprint qualifying' : 'qualifying'}.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
