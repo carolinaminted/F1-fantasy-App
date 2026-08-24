@@ -6,7 +6,8 @@
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "seed:staging": "node scripts/seed-staging.js --project formula-fantasy-staging"
   },
   "engines": {
     "node": "22"
