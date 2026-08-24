@@ -198,29 +198,29 @@ Order of operations mirrors the deployment law: functions → rules (no frontend
 Run on `f1.staging.carolinaminted.net`, mobile-first (real phone, not just devtools):
 
 **Auth & identity**
-- [ ] Invitation code (seeded) → signup → auth code email arrives → verify → account created
-- [ ] `users` + `public_users` docs created atomically in **staging** Firestore
-- [ ] Password reset email flow works
-- [ ] Bogus invitation code → clean error + toast, rate limit engages after repeated attempts
+- [x] Invitation code (seeded) → signup → auth code email arrives → verify → account created
+- [x] `users` + `public_users` docs created atomically in **staging** Firestore
+- [x] Password reset email flow works
+- [x] Bogus invitation code → clean error + toast, rate limit engages after repeated attempts
 
 **Picks & locks**
-- [ ] Submit picks for a test event; quotas enforced (Class A 10/8, Class B 4/4)
-- [ ] `app_state/form_locks` manual override locks the form; schedule-derived lock behavior sane
-- [ ] Edit picks pre-lock; blocked post-lock
+- [x] Submit picks for a test event; quotas enforced (Class A 10/8, Class B 5/5)
+- [x] `app_state/form_locks` manual override locks the form; schedule-derived lock behavior sane
+- [x] Edit picks pre-lock; blocked post-lock
 
 **Scoring & admin**
-- [ ] Admin enters race results → `updateLeaderboardOnResults` fires → leaderboard recalcs
-- [ ] Manual Sync completes; ranks match expected (compare a hand-calculated user against prod scoring for the same results)
-- [ ] Cancellation flow triggers `updateLeaderboardOnCancellation`
-- [ ] `scoringSnapshot` (points system + driver-team affiliations) embedded in saved results
+- [x] Admin enters race results → `updateLeaderboardOnResults` fires → leaderboard recalcs
+- [x] Manual Sync completes; ranks match expected (compare a hand-calculated user against prod scoring for the same results)
+- [x] Cancellation flow triggers `updateLeaderboardOnCancellation`
+- [x] `scoringSnapshot` (points system + driver-team affiliations) embedded in saved results
 
 **Isolation proof (non-negotiable)**
-- [ ] During all of the above, prod Firestore shows **zero** unexpected writes (spot-check via console usage graphs / recent doc timestamps)
-- [ ] Staging emails came from the staging credentials, not prod's sender identity (if separated)
+- [x] During all of the above, prod Firestore shows **zero** unexpected writes (spot-check via console usage graphs / recent doc timestamps)
+- [x] Staging email uses its separately rotated staging app password; sender identity is intentionally shared with production by user decision
 
 **Platform**
-- [ ] Mobile safe areas, PWA manifest, ErrorBoundary/"Safety Car" fallback, loading/empty/error states
-- [ ] `firebase functions:log --project staging` clean across the full pass
+- [x] Mobile safe areas, PWA manifest, ErrorBoundary/"Safety Car" fallback, loading/empty/error states
+- [x] Full-window staging Function log audit clean across all seven Functions
 
 **Exit criteria:** every box checked = staging is declared functional. This checklist is also the template for future pre-prod regression passes.
 
@@ -229,9 +229,8 @@ Run on `f1.staging.carolinaminted.net`, mobile-first (real phone, not just devto
 ## Phase 7 — Guardrails & the Working Loop
 
 **Deploy safety**
-- Two thin wrapper scripts, so muscle memory can't cross the streams:
-  - `./deploy-staging.sh` → builds `--mode staging`, deploys frontend + functions to `--project staging`, no prompt.
-  - `./deploy-prod.sh` → requires typing `PROD` to proceed, deploys with `--project prod`.
+- [x] `./deploy-staging.sh` → validates and builds with `--mode staging`, then deploys Functions and the frontend to immutable staging targets without a prompt. `--dry-run` performs the complete local gate without cloud writes, and all other arguments are rejected.
+- [ ] `./deploy-prod.sh` → requires typing `PROD` to proceed, deploys with `--project prod`. **Explicitly deferred until staging is pristine.**
 - 48-hour race-window freeze applies to **prod only**. Staging deploys are always allowed — that's the point of staging.
 
 **Data policy**
