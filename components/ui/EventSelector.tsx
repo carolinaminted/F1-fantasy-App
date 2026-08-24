@@ -20,7 +20,8 @@ interface EventSelectorProps {
     renderStatus?: (event: Event) => React.ReactNode;
     disabled?: boolean;
     // 'schedule' keeps the season order it was handed. 'upcoming-first' puts the next race at the
-    // top, then the rest of the season, then finished races most-recent-first.
+    // top, then the rest of the season, then finished races most-recent-first. The All filter
+    // always overrides either mode with explicit round order so the complete season reads R1-R24.
     orderBy?: 'schedule' | 'upcoming-first';
     // Which edge the open panel is pinned to. The panel can be wider than its trigger, so it
     // grows toward the opposite side: 'left' grows rightward, 'right' grows leftward. Pick the
@@ -74,6 +75,10 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
 
     const filteredEvents = useMemo(() => {
         const matching = events.filter(event => matchesEventFilter(event, activeFilter, statusContext));
+
+        if (activeFilter === 'all') {
+            return [...matching].sort((a, b) => a.round - b.round);
+        }
 
         return orderBy === 'upcoming-first' ? orderEventsUpcomingFirst(matching) : matching;
     }, [events, activeFilter, statusContext, orderBy]);
