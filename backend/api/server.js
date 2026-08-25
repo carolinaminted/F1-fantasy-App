@@ -157,6 +157,13 @@ const isPlainObject = (value) => (
   value !== null && typeof value === 'object' && !Array.isArray(value)
 );
 
+const sanitizeErrorDetail = (value) => {
+  if (typeof value !== 'string' || value.length === 0) return undefined;
+  return value
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+    .slice(0, 1000);
+};
+
 const publicAuthPaths = new Set([
   '/v1/auth/invitations/validate',
   '/v1/auth/email-code/send',
@@ -681,6 +688,7 @@ const handlePasswordReset = async (request, response) => {
       console.info(JSON.stringify({
         message: 'Password reset completed with generic response',
         reason: error.code || 'account_unavailable',
+        detail: sanitizeErrorDetail(error.errorInfo?.message || error.message),
       }));
       sendJson(request, response, 200, { success: true });
       return;
