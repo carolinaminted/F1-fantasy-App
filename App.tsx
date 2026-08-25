@@ -46,7 +46,7 @@ import { BrandMark } from './components/ui/BrandMark.tsx';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveEventRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
@@ -627,9 +627,8 @@ const App: React.FC = () => {
   };
 
   const handleResultsUpdate = async (eventId: string, results: any) => {
-    const newResults = { ...raceResults, [eventId]: results };
     try {
-      await saveRaceResults(newResults);
+      await saveEventRaceResults(eventId, results, raceResults);
     } catch (error) {
       console.error("Failed to save race results:", error);
       throw error;

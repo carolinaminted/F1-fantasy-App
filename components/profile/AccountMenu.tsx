@@ -4,6 +4,7 @@ import { ProfileIcon } from '../icons/ProfileIcon.tsx';
 import { functions } from '../../services/firebase.ts';
 import { httpsCallable } from '@firebase/functions';
 import type { User } from '../../types.ts';
+import { sendApiPasswordReset } from '../../services/apiService.ts';
 
 interface AccountMenuProps {
   user: User;
@@ -34,8 +35,13 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ user, onEditProfile })
     setResetStatus(null);
     setIsResetting(true);
     try {
-      const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
-      await sendResetLink({ email: user.email });
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+      if (apiBaseUrl) {
+        await sendApiPasswordReset(apiBaseUrl, user.email);
+      } else {
+        const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+        await sendResetLink({ email: user.email });
+      }
       setResetStatus({ type: 'success', message: `Password reset link sent to ${user.email}` });
       setResetCooldown(true);
       setTimeout(() => setResetCooldown(false), 60000);
@@ -43,7 +49,11 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ user, onEditProfile })
       console.error('Password reset error:', err);
       setResetStatus({
         type: 'error',
-        message: err.code === 'functions/resource-exhausted'
+        message: (
+          err.code === 'functions/resource-exhausted'
+          || err.code === 'resource-exhausted'
+          || err.code === 'rate_limited'
+        )
           ? 'Too many attempts. Please wait a few minutes.'
           : 'Failed to send reset email. Please try again later.',
       });

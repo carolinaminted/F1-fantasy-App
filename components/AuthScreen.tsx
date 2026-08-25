@@ -10,6 +10,12 @@ import { SESSION_STORAGE_KEY } from '../constants.ts';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
 import { EyeIcon } from './icons/EyeIcon.tsx';
 import { EyeOffIcon } from './icons/EyeOffIcon.tsx';
+import {
+  sendApiEmailCode,
+  sendApiPasswordReset,
+  validateApiInvitationCode,
+  verifyApiEmailCode,
+} from '../services/apiService.ts';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -122,10 +128,16 @@ const AuthScreen: React.FC = () => {
 
       setIsLoading(true);
       try {
-          const validateFn = httpsCallable(functions, 'validateInvitationCode');
           const codeToSubmit = invitationCode.trim().toUpperCase();
-          const result = await validateFn({ code: codeToSubmit });
-          const data = result.data as any;
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+          let data: { valid?: boolean };
+          if (apiBaseUrl) {
+              data = await validateApiInvitationCode(apiBaseUrl, codeToSubmit);
+          } else {
+              const validateFn = httpsCallable(functions, 'validateInvitationCode');
+              const result = await validateFn({ code: codeToSubmit });
+              data = result.data as { valid?: boolean };
+          }
 
           if (data.valid) {
               setInvitationCode(codeToSubmit);
@@ -137,7 +149,12 @@ const AuthScreen: React.FC = () => {
 
       } catch (err: any) {
           console.error("Invitation validation failed:", err);
-          if (err.code === 'resource-exhausted' || (err.message && err.message.includes('Too many attempts'))) {
+          if (
+              err.code === 'resource-exhausted'
+              || err.code === 'functions/resource-exhausted'
+              || err.code === 'rate_limited'
+              || (err.message && err.message.includes('Too many attempts'))
+          ) {
               const blockTime = Date.now() + 10 * 60 * 1000;
               setBlockUntil(blockTime);
               setError("Maximum attempts reached. Please try again in 10 minutes.");
@@ -165,14 +182,23 @@ const AuthScreen: React.FC = () => {
             return setError("An account with this email already exists. Please log in.");
         }
 
-        const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
-        await sendAuthCode({ email });
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+        if (apiBaseUrl) {
+            await sendApiEmailCode(apiBaseUrl, email);
+        } else {
+            const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
+            await sendAuthCode({ email });
+        }
         
         setSignupStep('code');
 
     } catch (err: any) {
         console.error("Verification error:", err);
-        if (err.code === 'resource-exhausted') {
+        if (
+            err.code === 'resource-exhausted'
+            || err.code === 'functions/resource-exhausted'
+            || err.code === 'rate_limited'
+        ) {
              setError("Too many requests. Please wait a moment before trying again.");
         } else if (err.message) {
              setError(err.message);
@@ -191,9 +217,15 @@ const AuthScreen: React.FC = () => {
 
       try {
         try {
-            const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
-            const result = await verifyAuthCode({ email, code: codeInput });
-            const data = result.data as any;
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+            let data: { valid?: boolean; message?: string };
+            if (apiBaseUrl) {
+                data = await verifyApiEmailCode(apiBaseUrl, email, codeInput);
+            } else {
+                const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
+                const result = await verifyAuthCode({ email, code: codeInput });
+                data = result.data as { valid?: boolean; message?: string };
+            }
             
             if (data.valid) {
                  setSignupStep('details');
@@ -295,11 +327,20 @@ const AuthScreen: React.FC = () => {
       setResetMessage(null);
       
       try {
-          const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
-          await sendResetLink({ email });
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+          if (apiBaseUrl) {
+              await sendApiPasswordReset(apiBaseUrl, email);
+          } else {
+              const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+              await sendResetLink({ email });
+          }
       } catch (err: any) {
           // Rate limit error from server
-          if (err.code === 'functions/resource-exhausted') {
+          if (
+              err.code === 'functions/resource-exhausted'
+              || err.code === 'resource-exhausted'
+              || err.code === 'rate_limited'
+          ) {
               setError("Too many attempts. Please wait a few minutes.");
               setIsLoading(false);
               return;
