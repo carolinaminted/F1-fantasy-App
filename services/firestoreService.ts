@@ -1,11 +1,11 @@
 
-import { db, functions } from './firebase.ts';
+import { db } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
-import { httpsCallable } from '@firebase/functions';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 import { cancelApiEvent, restoreApiEvent, saveApiRaceResults, triggerApiLeaderboardSync } from './apiService.ts';
+import { getCallable } from './callableService.ts';
 
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
@@ -26,7 +26,7 @@ export const triggerManualLeaderboardSync = async () => {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
     if (apiBaseUrl) return triggerApiLeaderboardSync(apiBaseUrl);
 
-    const syncFn = httpsCallable(functions, 'manualLeaderboardSync');
+    const syncFn = getCallable<unknown, { success: boolean, usersProcessed: number }>('manualLeaderboardSync');
     const result = await syncFn();
     return result.data as { success: boolean, usersProcessed: number };
 };

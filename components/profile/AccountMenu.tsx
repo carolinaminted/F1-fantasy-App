@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDownIcon } from '../icons/ChevronDownIcon.tsx';
 import { ProfileIcon } from '../icons/ProfileIcon.tsx';
-import { functions } from '../../services/firebase.ts';
-import { httpsCallable } from '@firebase/functions';
 import type { User } from '../../types.ts';
 import { sendApiPasswordReset } from '../../services/apiService.ts';
+import { getCallable } from '../../services/callableService.ts';
 
 interface AccountMenuProps {
   user: User;
@@ -39,7 +38,7 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ user, onEditProfile })
       if (apiBaseUrl) {
         await sendApiPasswordReset(apiBaseUrl, user.email);
       } else {
-        const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+        const sendResetLink = getCallable('sendPasswordResetLink');
         await sendResetLink({ email: user.email });
       }
       setResetStatus({ type: 'success', message: `Password reset link sent to ${user.email}` });

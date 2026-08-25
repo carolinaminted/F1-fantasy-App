@@ -2,6 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for F1 Fantasy League",
   "scripts": {
+    "test": "node --test test/*.test.js",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",

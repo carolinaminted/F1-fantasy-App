@@ -9,8 +9,14 @@ const functions = require("firebase-functions");
 const logger = functions.logger;
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+const { resolveRuntimeTarget } = require("./runtime-target");
 
-admin.initializeApp();
+const runtimeTarget = resolveRuntimeTarget();
+if (runtimeTarget) {
+  admin.initializeApp({ projectId: runtimeTarget.firebaseProjectId });
+} else {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 
 // --- CONSTANTS ---

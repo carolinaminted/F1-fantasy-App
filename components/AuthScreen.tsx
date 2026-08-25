@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
-import { auth, functions } from '../services/firebase.ts';
+import { auth } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, fetchSignInMethodsForEmail } from '@firebase/auth';
-import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
+import { getCallable } from '../services/callableService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { SESSION_STORAGE_KEY } from '../constants.ts';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
@@ -134,7 +134,7 @@ const AuthScreen: React.FC = () => {
           if (apiBaseUrl) {
               data = await validateApiInvitationCode(apiBaseUrl, codeToSubmit);
           } else {
-              const validateFn = httpsCallable(functions, 'validateInvitationCode');
+              const validateFn = getCallable('validateInvitationCode');
               const result = await validateFn({ code: codeToSubmit });
               data = result.data as { valid?: boolean };
           }
@@ -186,7 +186,7 @@ const AuthScreen: React.FC = () => {
         if (apiBaseUrl) {
             await sendApiEmailCode(apiBaseUrl, email);
         } else {
-            const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
+            const sendAuthCode = getCallable('sendAuthCode');
             await sendAuthCode({ email });
         }
         
@@ -222,7 +222,7 @@ const AuthScreen: React.FC = () => {
             if (apiBaseUrl) {
                 data = await verifyApiEmailCode(apiBaseUrl, email, codeInput);
             } else {
-                const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
+                const verifyAuthCode = getCallable('verifyAuthCode');
                 const result = await verifyAuthCode({ email, code: codeInput });
                 data = result.data as { valid?: boolean; message?: string };
             }
@@ -331,7 +331,7 @@ const AuthScreen: React.FC = () => {
           if (apiBaseUrl) {
               await sendApiPasswordReset(apiBaseUrl, email);
           } else {
-              const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
+              const sendResetLink = getCallable('sendPasswordResetLink');
               await sendResetLink({ email });
           }
       } catch (err: any) {
