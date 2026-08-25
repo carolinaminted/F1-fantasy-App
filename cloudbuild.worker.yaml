@@ -1,0 +1,20 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - backend/worker/Dockerfile
+      - --tag
+      - us-central1-docker.pkg.dev/lights-out-league-prod/lol-backend/lights-out-league-worker:${_IMAGE_TAG}
+      - backend
+
+images:
+  - us-central1-docker.pkg.dev/lights-out-league-prod/lol-backend/lights-out-league-worker:${_IMAGE_TAG}
+
+serviceAccount: projects/lights-out-league-prod/serviceAccounts/lol-build@lights-out-league-prod.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _IMAGE_TAG: reconcile-v1
