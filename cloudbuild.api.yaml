@@ -17,4 +17,4 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _IMAGE_TAG: bootstrap-ready-v3
+  _IMAGE_TAG: auth-functions-v1

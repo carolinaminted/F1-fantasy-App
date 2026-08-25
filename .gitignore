@@ -19,6 +19,7 @@ dist-ssr
 .env.*
 !.env.production
 !.env.staging
+!.env.prod-staging
 functions/.env
 functions/.env.*
 

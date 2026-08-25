@@ -10,7 +10,7 @@ COPY . .
 # Cloud Run source deploys are staging-safe by default. A future production
 # image must opt in explicitly with --build-arg BUILD_MODE=production.
 ARG BUILD_MODE=staging
-RUN case "$BUILD_MODE" in production|staging) ;; *) echo "Unsupported BUILD_MODE: $BUILD_MODE" >&2; exit 1 ;; esac \
+RUN case "$BUILD_MODE" in production|staging|prod-staging) ;; *) echo "Unsupported BUILD_MODE: $BUILD_MODE" >&2; exit 1 ;; esac \
     && npm run build -- --mode "$BUILD_MODE"
 
 FROM nginx:alpine
@@ -22,7 +22,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # indexable when this image becomes the production deployment path.
 ARG BUILD_MODE=staging
 RUN case "$BUILD_MODE" in \
-      staging) ;; \
+      staging|prod-staging) ;; \
       production) sed -i '/X-Robots-Tag/d' /etc/nginx/conf.d/default.conf ;; \
       *) echo "Unsupported BUILD_MODE: $BUILD_MODE" >&2; exit 1 ;; \
     esac

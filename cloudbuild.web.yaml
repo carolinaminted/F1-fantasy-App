@@ -17,5 +17,5 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _BUILD_MODE: staging
-  _IMAGE_TAG: bootstrap-05f22d5
+  _BUILD_MODE: prod-staging
+  _IMAGE_TAG: auth-functions-v1
