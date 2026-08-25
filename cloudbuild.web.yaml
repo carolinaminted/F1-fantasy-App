@@ -1,0 +1,21 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - BUILD_MODE=${_BUILD_MODE}
+      - --tag
+      - us-west1-docker.pkg.dev/lights-out-league-prod/lol-web/lights-out-league-web:${_IMAGE_TAG}
+      - .
+
+images:
+  - us-west1-docker.pkg.dev/lights-out-league-prod/lol-web/lights-out-league-web:${_IMAGE_TAG}
+
+serviceAccount: projects/lights-out-league-prod/serviceAccounts/lol-build@lights-out-league-prod.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _BUILD_MODE: staging
+  _IMAGE_TAG: bootstrap-05f22d5

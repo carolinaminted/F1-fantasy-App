@@ -1,0 +1,20 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - backend/api/Dockerfile
+      - --tag
+      - us-central1-docker.pkg.dev/lights-out-league-prod/lol-backend/lights-out-league-api:${_IMAGE_TAG}
+      - backend/api
+
+images:
+  - us-central1-docker.pkg.dev/lights-out-league-prod/lol-backend/lights-out-league-api:${_IMAGE_TAG}
+
+serviceAccount: projects/lights-out-league-prod/serviceAccounts/lol-build@lights-out-league-prod.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _IMAGE_TAG: bootstrap-ready-v3
