@@ -6,6 +6,9 @@ readonly STAGING_FIREBASE_PROJECT="formula-fantasy-staging"
 readonly STAGING_FIREBASE_ALIAS="staging"
 readonly STAGING_RUN_SERVICE="lights-out-league-staging"
 readonly STAGING_RUN_REGION="us-west1"
+# The branch staging is expected to deploy from. Advisory only — deploying a feature branch
+# to staging before merging it is a legitimate workflow, it just should not happen by accident.
+readonly STAGING_BRANCH="staging"
 readonly FIREBASE_CLI_VERSION="15.28.1"
 readonly STAGING_GCLOUD_ACCOUNT="carolinaminted@gmail.com"
 readonly STAGING_REGISTRY_PATH="us-west1-docker.pkg.dev/formula-fantasy-staging/cloud-run-source-deploy/lights-out-league-staging"
@@ -74,10 +77,35 @@ node -e '
 [[ "$STAGING_RUN_SERVICE" == "lights-out-league-staging" ]] || fail "unexpected Cloud Run service target"
 [[ "$STAGING_FIREBASE_PROJECT" != *"formula-fantasy-1"* ]] || fail "production Firebase target detected"
 
+current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+working_tree="$(git status --porcelain 2>/dev/null || true)"
+
 echo "Staging deployment targets locked:"
 echo "  Firebase project: $STAGING_FIREBASE_PROJECT (alias: $STAGING_FIREBASE_ALIAS)"
 echo "  Cloud Run service: $STAGING_RUN_SERVICE"
 echo "  Cloud Run region:  $STAGING_RUN_REGION"
+echo "  Git branch:        $current_branch"
+
+# Both checks below are advisory. The hard failures in this script guard *targets* — the wrong
+# project, the wrong service, a leaked credential. Branch and tree state are hygiene, and
+# blocking on them would break the deploy-a-feature-branch-first workflow.
+if [[ "$current_branch" != "$STAGING_BRANCH" ]]; then
+  echo
+  echo "  NOTE: deploying from '$current_branch', not '$STAGING_BRANCH'."
+  echo "        Fine for trying a feature branch in staging; check it was deliberate."
+fi
+
+# `gcloud builds submit` uploads the working directory, but the image is tagged from HEAD's
+# SHA. Uncommitted changes therefore ship inside an image whose tag does not describe them,
+# which silently breaks the digest-to-commit trail the deploy verification depends on.
+if [[ -n "$working_tree" ]]; then
+  echo
+  echo "  WARNING: the working tree has uncommitted changes."
+  echo "           They WILL be included in the build, but the image is tagged with HEAD's"
+  echo "           SHA, so the tag will not describe what actually shipped. Commit first"
+  echo "           unless you are deliberately testing something unversioned."
+  echo "$working_tree" | sed 's/^/             /'
+fi
 echo
 echo "Running local validation..."
 
