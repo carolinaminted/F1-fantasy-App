@@ -222,6 +222,12 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  /**
+   * True as soon as Firebase reports a signed-in user, before the profile document has
+   * loaded. `isAuthenticated` deliberately waits for the profile; the league cache must
+   * not, because it reads nothing user-specific.
+   */
+  const [hasSession, setHasSession] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -394,10 +400,10 @@ const App: React.FC = () => {
    * Standings page first.
    */
   useEffect(() => {
-    if (isAuthenticated && !leaderboardCache) {
+    if (hasSession && !leaderboardCache) {
       fetchLeaderboardData();
     }
-  }, [isAuthenticated, leaderboardCache, fetchLeaderboardData]);
+  }, [hasSession, leaderboardCache, fetchLeaderboardData]);
 
   useEffect(() => {
     let unsubscribeResults = () => {};
@@ -436,6 +442,9 @@ const App: React.FC = () => {
             setIsTransitioning(true);
         }
         setIsLoading(true);
+        // Ahead of the blocking read below, so the league cache fetch runs alongside it
+        // rather than queueing behind the whole auth chain.
+        setHasSession(true);
 
         // Escape hatch for a session whose profile document never arrives — a signup that died
         // half-written, say. Releasing the loading gate drops the user on the auth screen,
@@ -575,6 +584,7 @@ const App: React.FC = () => {
         setAllConstructors(CONSTRUCTORS);
         setCancelledEvents(null);
         setIsAuthenticated(false);
+        setHasSession(false);
         setIsLoading(false);
         setIsTransitioning(false);
       }
