@@ -7,6 +7,13 @@ readonly STAGING_FIREBASE_ALIAS="staging"
 readonly STAGING_RUN_SERVICE="lights-out-league-staging"
 readonly STAGING_RUN_REGION="us-west1"
 readonly FIREBASE_CLI_VERSION="15.28.1"
+readonly STAGING_GCLOUD_ACCOUNT="carolinaminted@gmail.com"
+readonly STAGING_REGISTRY_PATH="us-west1-docker.pkg.dev/formula-fantasy-staging/cloud-run-source-deploy/lights-out-league-staging"
+readonly STAGING_BUILD_SA="projects/formula-fantasy-staging/serviceAccounts/342911349882-compute@developer.gserviceaccount.com"
+readonly STAGING_FUNCTIONS_REGION="us-central1"
+# Only these two functions read email credentials. They are re-bound after every
+# functions deploy, because `firebase deploy` clears secret bindings it did not set.
+readonly STAGING_EMAIL_FUNCTIONS=(sendauthcode sendpasswordresetlink)
 
 usage() {
   cat <<'EOF'
@@ -91,11 +98,28 @@ env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
   --non-interactive
 
 echo
-echo "Deploying staging frontend..."
+echo "Building staging image (Cloud Build, pinned digest)..."
+image_tag="staging-$(git rev-parse --short HEAD 2>/dev/null || date -u +%Y%m%d%H%M%S)"
+
+env -u DEBUG gcloud builds submit \
+  --project "$STAGING_FIREBASE_PROJECT" \
+  --account "$STAGING_GCLOUD_ACCOUNT" \
+  --config cloudbuild.web.yaml \
+  --substitutions "_BUILD_MODE=staging,_IMAGE_TAG=${image_tag},_REGISTRY_PATH=${STAGING_REGISTRY_PATH},_BUILD_SA=${STAGING_BUILD_SA}"
+
+digest="$(gcloud artifacts docker images list "$STAGING_REGISTRY_PATH" \
+  --account "$STAGING_GCLOUD_ACCOUNT" --include-tags \
+  --filter="tags:${image_tag}" --format="value(version)")"
+[[ -n "$digest" ]] || fail "could not resolve the built image digest"
+echo "  image digest: $digest"
+
+echo
+echo "Deploying staging frontend by digest..."
 env -u DEBUG gcloud run deploy "$STAGING_RUN_SERVICE" \
-  --source . \
+  --image "${STAGING_REGISTRY_PATH}@${digest}" \
   --region "$STAGING_RUN_REGION" \
   --project "$STAGING_FIREBASE_PROJECT" \
+  --account "$STAGING_GCLOUD_ACCOUNT" \
   --allow-unauthenticated \
   --cpu 1 \
   --memory 512Mi \
@@ -107,4 +131,28 @@ env -u DEBUG gcloud run deploy "$STAGING_RUN_SERVICE" \
   --quiet
 
 echo
+echo "Re-binding email secrets (firebase deploy clears them)..."
+for fn in "${STAGING_EMAIL_FUNCTIONS[@]}"; do
+  env -u DEBUG gcloud run services update "$fn" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --region "$STAGING_FUNCTIONS_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --set-secrets EMAIL_USER=lol-staging-email-user:latest,EMAIL_PASS=lol-staging-email-pass:latest \
+    --quiet
+done
+
+echo
+echo "Verifying no plaintext credentials landed in function config..."
+for fn in manualLeaderboardSync sendAuthCode sendPasswordResetLink \
+          updateLeaderboardOnCancellation updateLeaderboardOnResults \
+          validateInvitationCode verifyAuthCode; do
+  plaintext="$(gcloud functions describe "$fn" \
+    --project "$STAGING_FIREBASE_PROJECT" --region "$STAGING_FUNCTIONS_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format="value(serviceConfig.environmentVariables)" 2>/dev/null \
+    | tr ';' '\n' | grep -cE '^(EMAIL_USER|EMAIL_PASS)=' || true)"
+  [[ "$plaintext" == "0" ]] || fail "$fn has plaintext EMAIL_* in its config"
+done
+echo "  all 7 functions clean"
+
 echo "Staging deployment complete: https://f1.staging.carolinaminted.net"

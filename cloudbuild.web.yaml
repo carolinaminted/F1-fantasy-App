@@ -1,3 +1,15 @@
+# Builds the Lights Out League frontend image.
+#
+# Defaults target lights-out-league-prod, so existing prod invocations are unchanged:
+#   gcloud builds submit --project lights-out-league-prod --config cloudbuild.web.yaml \
+#     --substitutions _IMAGE_TAG=<tag>
+#
+# Staging overrides the registry path, build mode, and service account:
+#   gcloud builds submit --project formula-fantasy-staging --config cloudbuild.web.yaml \
+#     --account carolinaminted@gmail.com \
+#     --substitutions _BUILD_MODE=staging,_IMAGE_TAG=<tag>,\
+# _REGISTRY_PATH=us-west1-docker.pkg.dev/formula-fantasy-staging/cloud-run-source-deploy/lights-out-league-staging,\
+# _BUILD_SA=projects/formula-fantasy-staging/serviceAccounts/342911349882-compute@developer.gserviceaccount.com
 steps:
   - name: gcr.io/cloud-builders/docker
     args:
@@ -5,13 +17,13 @@ steps:
       - --build-arg
       - BUILD_MODE=${_BUILD_MODE}
       - --tag
-      - us-west1-docker.pkg.dev/lights-out-league-prod/lol-web/lights-out-league-web:${_IMAGE_TAG}
+      - ${_REGISTRY_PATH}:${_IMAGE_TAG}
       - .
 
 images:
-  - us-west1-docker.pkg.dev/lights-out-league-prod/lol-web/lights-out-league-web:${_IMAGE_TAG}
+  - ${_REGISTRY_PATH}:${_IMAGE_TAG}
 
-serviceAccount: projects/lights-out-league-prod/serviceAccounts/lol-build@lights-out-league-prod.iam.gserviceaccount.com
+serviceAccount: ${_BUILD_SA}
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -19,3 +31,5 @@ options:
 substitutions:
   _BUILD_MODE: prod-staging
   _IMAGE_TAG: auth-functions-v1
+  _REGISTRY_PATH: us-west1-docker.pkg.dev/lights-out-league-prod/lol-web/lights-out-league-web
+  _BUILD_SA: projects/lights-out-league-prod/serviceAccounts/lol-build@lights-out-league-prod.iam.gserviceaccount.com
