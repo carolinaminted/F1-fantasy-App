@@ -65,7 +65,26 @@ npm run build -- --mode staging   # vite build for a given mode
 `deploy-staging.sh` self-guards: it asserts the `.firebaserc` staging alias, hardcodes its
 targets (`formula-fantasy-staging`, Cloud Run `lights-out-league-staging`, `us-west1`), refuses
 any argument that would redirect it, and explicitly fails if a `formula-fantasy-1` target
-appears. Do not add override flags to it.
+appears. Do not add override flags to it. It also *warns* (never blocks) when run from a branch
+other than `staging` or with a dirty working tree — see Branches.
+
+## Branches
+
+Two durable branches, adopted 2026-08-26. **Do not create another dated branch.**
+
+| Branch | Role |
+|---|---|
+| `staging` | Integration branch, and what staging deploys from. Feature branches cut from it and merge back into it. |
+| `prod` | Release branch, cut from a `staging` commit already deployed and validated in staging. Prod-staging and production images build from here. |
+| `main`, `develop`, `live-*`, `prod-migration`, `lol-codex` | Historical. Retained for the migration record, never advanced. `main` is still GitHub's default. |
+
+Work flows `feature` → `staging` → `prod`, never the reverse. A release is a `staging` → `prod`
+merge of a commit that has already run in staging — so `prod` never contains code no environment
+has served.
+
+The dated branches exist because every environment change used to invent a new one. That cost real
+time: `live-staging-august-24-2026` and `live-prod-staging-august-25-2026` silently drifted 14
+commits apart, and neither name said what either environment was running.
 
 `cloudbuild.web.yaml` defaults to `lights-out-league-prod` Artifact Registry (`us-west1`) via the
 `lol-build` service account. It takes `_REGISTRY_PATH` / `_BUILD_SA` substitutions so staging builds
