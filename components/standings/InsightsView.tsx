@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Tile, StatTile, SectionHeader, SegmentedControl, Chip, EmptyState,
+  Tile, StatTile, SectionHeader, SegmentedControl, SegmentSelect, Chip, EmptyState,
   CATEGORY_THEME, NUMERIC, type Category, type Segment,
 } from '../ui/index.ts';
 import { CheckeredFlagIcon } from '../icons/CheckeredFlagIcon.tsx';
@@ -8,7 +8,6 @@ import { PolePositionIcon } from '../icons/PolePositionIcon.tsx';
 import { SprintIcon } from '../icons/SprintIcon.tsx';
 import { FastestLapIcon } from '../icons/FastestLapIcon.tsx';
 import { LightbulbIcon } from '../icons/LightbulbIcon.tsx';
-import { ChevronDownIcon } from '../icons/ChevronDownIcon.tsx';
 import type { User } from '../../types.ts';
 
 interface CategoryMeta {
@@ -26,7 +25,9 @@ const CATEGORIES: CategoryMeta[] = [
   { key: 'fl',     label: 'FL',     leaderTitle: 'Fastest Lap Hunter', listTitle: 'Fastest Lap Hunters', icon: FastestLapIcon },
 ];
 
-const SEGMENTS: Segment<Category>[] = CATEGORIES.map(c => ({ value: c.key, label: c.label, icon: c.icon }));
+const SEGMENTS: Segment<Category>[] = CATEGORIES.map(
+  c => ({ value: c.key, label: c.label, optionLabel: c.listTitle, icon: c.icon })
+);
 
 interface InsightsViewProps {
   users: User[];
@@ -118,21 +119,13 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ users, currentUser, 
         {/* Phones get a centered dropdown (the OS picker) instead of a horizontally
             scrolling segment row. */}
         <div className="md:hidden mb-3 flex justify-center">
-          <div className="relative w-full max-w-xs">
-            <select
-              value={active}
-              onChange={e => setActive(e.target.value as Category)}
-              aria-label="Scoring category"
-              className="w-full appearance-none cursor-pointer rounded-lg border border-accent-gray bg-carbon-black py-2 pl-4 pr-9 text-center text-sm font-bold uppercase tracking-wider text-pure-white focus:border-primary-red focus:outline-none"
-            >
-              {CATEGORIES.map(c => (
-                <option key={c.key} value={c.key}>{c.listTitle}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-highlight-silver">
-              <ChevronDownIcon className="h-4 w-4" />
-            </div>
-          </div>
+          <SegmentSelect
+            segments={SEGMENTS}
+            value={active}
+            onChange={v => setActive(v)}
+            ariaLabel="Scoring category"
+            className="w-full max-w-xs"
+          />
         </div>
 
         {ranked.length > 0 ? (

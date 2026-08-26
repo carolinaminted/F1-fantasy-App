@@ -639,7 +639,15 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
           </div>
 
           <div className="flex-none px-2 md:px-0 pb-3">
-              <SegmentedControl segments={VIEWS} value={view} onChange={v => setView(v)} scrollable size="sm" />
+              <SegmentedControl
+                  segments={VIEWS}
+                  value={view}
+                  onChange={v => setView(v)}
+                  scrollable
+                  collapseOnMobile
+                  ariaLabel="Standings view"
+                  size="sm"
+              />
           </div>
 
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">

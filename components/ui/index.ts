@@ -8,7 +8,7 @@ export { DataTable, type Column } from './DataTable.tsx';
 export { Sheet } from './Sheet.tsx';
 export { Drawer } from './Drawer.tsx';
 export { Modal } from './Modal.tsx';
-export { SegmentedControl, type Segment } from './SegmentedControl.tsx';
+export { SegmentedControl, SegmentSelect, type Segment } from './SegmentedControl.tsx';
 export { Chip } from './Chip.tsx';
 export { Meter } from './Meter.tsx';
 export { Countdown } from './Countdown.tsx';

@@ -148,6 +148,17 @@ const DevUiGallery: React.FC = () => {
           <SegmentedControl segments={COUNT_TABS} value={tab} onChange={v => setTab(v)} fullWidth size="sm" />
         </div>
       </Row>
+      <Row label="Collapsed on mobile — narrow the window past md to see the picker">
+        <SegmentedControl
+          segments={RACE_TABS}
+          value={tab}
+          onChange={v => setTab(v)}
+          scrollable
+          collapseOnMobile
+          ariaLabel="Race tab"
+          size="sm"
+        />
+      </Row>
 
       <SectionHeader title="Countdown" subtitle="Same thresholds as the old CountdownTimer" />
       <Row label="Normal (26h) / urgent (4m) / sizes">
