@@ -155,4 +155,84 @@ for fn in manualLeaderboardSync sendAuthCode sendPasswordResetLink \
 done
 echo "  all 7 functions clean"
 
+# `gcloud run deploy` reports the revision the service is SERVING, not the one it just
+# created. When traffic is pinned to an older revision those differ, and a deploy that
+# changed nothing user-visible still prints "serving 100 percent of traffic" and exits 0.
+# Everything below exists so that can never read as success again.
+echo
+echo "Verifying what the service actually serves..."
+
+describe_service() {
+  env -u DEBUG gcloud run services describe "$STAGING_RUN_SERVICE" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --region "$STAGING_RUN_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format="$1"
+}
+
+deployed_revision="$(describe_service 'value(status.latestCreatedRevisionName)')"
+[[ -n "$deployed_revision" ]] || fail "could not resolve the revision this deploy created"
+
+# A tagged revision at 0% sorts first in status.traffic, so select on percent, never index.
+serving_revision="$(describe_service json | python3 -c '
+import json, sys
+for entry in json.load(sys.stdin).get("status", {}).get("traffic", []):
+    if entry.get("percent") == 100:
+        print(entry.get("revisionName", ""))
+        break
+')"
+[[ -n "$serving_revision" ]] || fail "no revision is receiving 100% of traffic"
+
+expected_image="${STAGING_REGISTRY_PATH}@${digest}"
+serving_image="$(env -u DEBUG gcloud run revisions describe "$serving_revision" \
+  --project "$STAGING_FIREBASE_PROJECT" \
+  --region "$STAGING_RUN_REGION" \
+  --account "$STAGING_GCLOUD_ACCOUNT" \
+  --format='value(spec.containers[0].image)')"
+
+echo "  built this run:  $deployed_revision"
+echo "  serving at 100%: $serving_revision"
+
+if [[ "$serving_revision" != "$deployed_revision" ]]; then
+  cat >&2 <<EOF
+
+########################################################################
+# DEPLOY DID NOT TAKE EFFECT
+#
+# Built and deployed: $deployed_revision
+# Still serving:      $serving_revision
+#
+# The service is traffic-pinned, so the new revision was created with 0%
+# of traffic. Nothing you just built is reachable at
+# https://f1.staging.carolinaminted.net
+#
+# To serve it, either shift traffic to this one revision:
+#   gcloud run services update-traffic $STAGING_RUN_SERVICE \\
+#     --to-revisions $deployed_revision=100 \\
+#     --region $STAGING_RUN_REGION --project $STAGING_FIREBASE_PROJECT \\
+#     --account $STAGING_GCLOUD_ACCOUNT
+#
+# ...or restore latest-tracking so future deploys serve automatically:
+#   gcloud run services update-traffic $STAGING_RUN_SERVICE --to-latest \\
+#     --region $STAGING_RUN_REGION --project $STAGING_FIREBASE_PROJECT \\
+#     --account $STAGING_GCLOUD_ACCOUNT
+########################################################################
+EOF
+  exit 1
+fi
+
+if [[ "$serving_image" != "$expected_image" ]]; then
+  echo >&2
+  echo "Staging deploy blocked: $serving_revision serves an unexpected image." >&2
+  echo "  expected: $expected_image" >&2
+  echo "  actual:   $serving_image" >&2
+  exit 1
+fi
+
+echo "  image digest verified on the serving revision"
+
+echo
 echo "Staging deployment complete: https://f1.staging.carolinaminted.net"
+echo "  revision: $serving_revision"
+echo "  image:    ${STAGING_REGISTRY_PATH}:${image_tag}"
+echo "  digest:   $digest"
