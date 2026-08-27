@@ -1,0 +1,147 @@
+/* Base styles and custom utility classes, moved verbatim from the <style> block that used
+   to live in index.html. Class names are unchanged so no markup has to move. */
+
+@layer base {
+  /* ---- Tailwind v3 compatibility ------------------------------------------------
+     v4 defaults border-color to currentColor; v3 used gray-200. Audited in Gate 13:
+     15 class lists still take a border with no color utility, so this stays — it is
+     five lines against a subtle color shift on each of them. The ring-width compat
+     that used to sit beside it was removed after the same audit found zero bare
+     `ring` utilities. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    /* v4 defaults this to currentColor; v3 used gray-200. ~600 border utilities exist. */
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  body {
+    font-family: 'Exo 2', sans-serif;
+    /* Prevent elastic scrolling/bouncing on iOS for a native app feel */
+    overscroll-behavior-y: none;
+  }
+}
+
+/*
+ * These classes came out of index.html's <style> block in Gate 1. They MUST stay inside a
+ * cascade layer: unlayered CSS beats every layered rule, so leaving them at top level made
+ * them override Tailwind utilities on the same element. Under the CDN, utilities were
+ * injected after this block and won — `pb-[6rem] pb-safe` resolved to 6rem, not the safe
+ * inset. @layer components restores that precedence, since utilities come after components.
+ */
+@keyframes pulse-red {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.5); opacity: 0.7; }
+}
+
+@layer components {
+  .animate-pulse-red {
+    animation: pulse-red 1.5s infinite;
+  }
+  /* Safe area utility for the mobile bottom nav. */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+  .environment-badge {
+    position: fixed;
+    right: 0.75rem;
+    bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    z-index: 10000;
+    pointer-events: none;
+    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 9999px;
+    background: #facc15;
+    color: #0a0a0a;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    padding: 0.35rem 0.65rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.6875rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 768px) {
+    .environment-badge {
+      bottom: 0.75rem;
+    }
+  }
+
+  /* Hide scrollbar for cleaner UI in specific containers */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+
+  /* Carbon Fiber Pattern Class - Updated for visibility and size */
+  .bg-carbon-fiber {
+    background-color: #111;
+    background-image:
+      linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a),
+      linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a);
+    background-position: 0 0, 10px 10px;
+    background-size: 20px 20px;
+  }
+
+  /* Traditional Checkered Flag Pattern Class */
+  .bg-checkered-flag {
+    background-color: #e0e0e0; /* Off-white/Light Grey base */
+    background-image:
+      linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505),
+      linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505);
+    background-position: 0 0, 40px 40px; /* Offset to align checks */
+    background-size: 80px 80px;          /* Much larger checks */
+  }
+
+  /* Glassy Sheen Sweep */
+  .sheen-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .sheen-sweep::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    transform: skewX(-25deg);
+    transition: left 0.5s;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .sheen-sweep:hover::after, .sheen-sweep.animate-flare::after {
+    left: 200%;
+    transition: left 1s ease-in-out;
+  }
+}
+
+@layer base {
+  /* Vestibular safety: every animation and transition collapses to a frame when the
+     OS asks for reduced motion. The app's pulses, sweeps, and drive-ins are all
+     decorative — nothing communicates *only* through motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Keyboard focus: most controls only style focus via focus:*; give everything a
+     visible fallback that mouse clicks don't trigger. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-red);
+    outline-offset: 2px;
+  }
+}

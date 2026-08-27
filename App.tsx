@@ -1,29 +1,24 @@
 
 
 // Fix: Implement the main App component to provide structure, state management, and navigation.
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReactDOM from 'react-dom/client';
 import AuthScreen from './components/AuthScreen.tsx';
-import HomePage from './components/HomePage.tsx';
-import ProfilePage from './components/ProfilePage.tsx';
-import LeaderboardPage from './components/LeaderboardPage.tsx';
+const ProfilePage = lazy(() => import('./components/ProfilePage.tsx'));
+const DevUiGallery = lazy(() => import('./components/DevUiGallery.tsx'));
+const RacePage = lazy(() => import('./components/RacePage.tsx'));
+const LeaderboardPage = lazy(() => import('./components/LeaderboardPage.tsx'));
 import Dashboard from './components/Dashboard.tsx';
-import AdminPage from './components/AdminPage.tsx';
-import ResultsManagerPage from './components/ResultsManagerPage.tsx';
-import ManageUsersPage from './components/ManageUsersPage.tsx';
-import ManageEntitiesPage from './components/ManageEntitiesPage.tsx';
-import ManageSchedulePage from './components/ManageSchedulePage.tsx';
-import ScoringSettingsPage from './components/ScoringSettingsPage.tsx';
-import AdminInvitationPage from './components/AdminInvitationPage.tsx';
-import DatabaseManagerPage from './components/DatabaseManagerPage.tsx'; // Import
-import AdminAnnouncementsPage from './components/AdminAnnouncementsPage.tsx';
-import PointsTransparency from './components/PointsTransparency.tsx';
-import DonationPage from './components/DonationPage.tsx';
-import SupportPage from './components/SupportPage.tsx';
-import DuesPaymentPage from './components/DuesPaymentPage.tsx';
-import GpResultsPage from './components/GpResultsPage.tsx';
-import DriversTeamsPage from './components/DriversTeamsPage.tsx';
-import SchedulePage from './components/SchedulePage.tsx';
+const AdminPage = lazy(() => import('./components/AdminPage.tsx'));
+const ResultsManagerPage = lazy(() => import('./components/ResultsManagerPage.tsx'));
+const ManageUsersPage = lazy(() => import('./components/ManageUsersPage.tsx'));
+const ManageEntitiesPage = lazy(() => import('./components/ManageEntitiesPage.tsx'));
+const ManageSchedulePage = lazy(() => import('./components/ManageSchedulePage.tsx'));
+const ScoringSettingsPage = lazy(() => import('./components/ScoringSettingsPage.tsx'));
+const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.tsx'));
+const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
+const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -42,10 +37,16 @@ import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
 import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
+import {
+  pathForPage, pageForPath, DEV_UI_PATH, REDIRECTS,
+  isAdminTool, LOCKED_ADMIN_TOOLS, type AdminDestination,
+} from './routes.ts';
+import { copyright } from './brand.ts';
+import { BrandMark } from './components/ui/BrandMark.tsx';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveEventRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
@@ -59,7 +60,7 @@ import GeneralAnnouncementBanner from './components/GeneralAnnouncementBanner.ts
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
-export type Page = 'home' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'points' | 'donate' | 'support' | 'gp-results' | 'duesPayment' | 'drivers-teams' | 'schedule' | 'league-hub';
+export type Page = 'home' | 'race' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'gp-results' | 'duesPayment' | 'league-hub';
 
 
 // New SideNavItem component for desktop sidebar
@@ -83,11 +84,18 @@ const SideNavItem: React.FC<SideNavItemProps> = ({ icon: Icon, label, page, acti
           : 'text-highlight-silver hover:bg-accent-gray/50 hover:text-pure-white'
       }`}
     >
-      <Icon className={`w-8 h-8 flex-shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
+      <Icon className={`w-8 h-8 shrink-0 ${isActive ? 'text-primary-red' : ''}`} />
       <span className="text-base font-medium">{label}</span>
     </button>
   );
 };
+
+/** Shown while a lazily-loaded surface's chunk is in flight. */
+const PageLoadingFallback: React.FC = () => (
+  <div className="w-full h-full min-h-[50vh] flex items-center justify-center">
+    <div className="w-10 h-10 rounded-full border-2 border-accent-gray border-t-primary-red animate-spin" />
+  </div>
+);
 
 const isUserAdmin = (user: User | null) => {
     return !!user?.isAdmin;
@@ -118,7 +126,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
     }, []);
 
     return (
-        <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 flex-shrink-0 h-screen overflow-y-auto custom-scrollbar">
+        <aside className="hidden md:flex flex-col w-72 bg-carbon-black border-r border-accent-gray p-4 shrink-0 h-screen overflow-y-auto custom-scrollbar">
             {/* Header / User Dropdown */}
             <div className="relative mb-4" ref={dropdownRef}>
                 <button 
@@ -129,7 +137,7 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                         : 'hover:bg-accent-gray/20 border-transparent'
                     }`}
                 >
-                   <F1CarIcon className="w-10 h-10 text-primary-red flex-shrink-0" />
+                   <F1CarIcon className="w-10 h-10 text-primary-red shrink-0" />
                    <div className="flex flex-col overflow-hidden text-left flex-1">
                        <span className="font-bold text-lg truncate leading-tight text-pure-white group-hover:text-primary-red transition-colors">{getUserRealName(user)}</span>
                        {user && (
@@ -174,44 +182,37 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 )}
             </div>
 
-            <nav className="flex-grow space-y-1">
+            <nav className="grow space-y-1">
                 <SideNavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
-                <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-                <SideNavItem icon={PicksIcon} label="GP Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
-                <SideNavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-                
-                {/* Consolidated League Item - Now includes events and league pages */}
+                <SideNavItem
+                    icon={PicksIcon}
+                    label="Race"
+                    page="race"
+                    activePage={activePage}
+                    setActivePage={navigateToPage}
+                />
+                <SideNavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
+
+                {/* League holds the grid, membership, donations and support — Gate 11 folded them in. */}
                 <SideNavItem 
                     icon={LeagueIcon} 
                     label="League" 
                     page="league-hub" 
                     activePage={activePage} 
                     setActivePage={navigateToPage} 
-                    isParentActive={['league-hub', 'points', 'donate', 'duesPayment', 'schedule', 'gp-results', 'drivers-teams'].includes(activePage)}
                 />
-
-                <SideNavItem 
-                    icon={() => (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.82 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.496 1.508 1.333 1.508 2.316v.192m6 3a46.236 46.236 0 0 1-1.5 0m-3 0a46.236 46.236 0 0 0-1.5 0" />
-                        </svg>
-                    )} 
-                    label="Support" 
-                    page="support" 
-                    activePage={activePage} 
-                    setActivePage={navigateToPage} 
-                />
+                <SideNavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
 
                 {isUserAdmin(user) && (
                   <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
                 )}
             </nav>
              
-             <div className="mt-auto flex-shrink-0 pt-4 pb-2">
+             <div className="mt-auto shrink-0 pt-4 pb-2">
                  {/* Copyright Section - Moved Here for Desktop Persistence */}
                  <div className="text-center opacity-30 pb-4">
                     <F1CarIcon className="w-8 h-8 mx-auto mb-2 text-pure-white" />
-                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">Lights Out League © {new Date().getFullYear()}</p>
+                    <p className="text-[10px] text-highlight-silver uppercase tracking-widest">{copyright()}</p>
                  </div>
              </div>
         </aside>
@@ -221,13 +222,34 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  /**
+   * True as soon as Firebase reports a signed-in user, before the profile document has
+   * loaded. `isAuthenticated` deliberately waits for the profile; the league cache must
+   * not, because it reads nothing user-specific.
+   */
+  const [hasSession, setHasSession] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionVariant, setTransitionVariant] = useState(1);
-  const [activePage, setActivePage] = useState<Page>('home');
+  // Whether Firebase has told us yet if there is a session. Until it has, neither the app nor
+  // the auth screen is the right answer, so nothing but the skeleton may render.
+  const [authResolved, setAuthResolved] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Gate 2: the URL is the source of truth for which surface is showing. Everything
+  // downstream still receives `navigateToPage` under the old `setActivePage` prop name,
+  // so no child component had to change.
+  const activePage = pageForPath(location.pathname);
   const [targetEventId, setTargetEventId] = useState<string | null>(null);
-  const [adminSubPage, setAdminSubPage] = useState<'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements'>('dashboard');
+  // Gate admin-1: which admin tool is open lives in the URL as /admin?tool=<name>, so Back,
+  // reload and shared links all work. `dashboard` is the absence of the param. Children still
+  // receive a function called `setAdminSubPage` with the same shape, so none of them changed.
+  const adminToolParam = new URLSearchParams(location.search).get('tool');
+  const adminSubPage: AdminDestination = isAdminTool(adminToolParam) ? adminToolParam : 'dashboard';
+  const setAdminSubPage = (tool: AdminDestination) => {
+    navigate(tool === 'dashboard' ? '/admin' : `/admin?tool=${tool}`);
+  };
   const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
@@ -245,22 +267,27 @@ const App: React.FC = () => {
   const { announcement: resultsAnnouncement, shouldShow: showResultsBanner } = useResultsAnnouncement(user);
   const { announcement: generalAnnouncement, shouldShow: showGeneralBanner } = useGeneralAnnouncement(user);
 
+  // League and Standings both scroll inside themselves on desktop. The four page names
+  // Gate 11 retired into League are gone from here — `pageForPath` can no longer return them.
   const lockedDesktopPages: Page[] = [
-      'donate', 
-      'duesPayment', 
       'leaderboard',
       'league-hub',
-      'points', 
-      'gp-results', 
-      'drivers-teams', 
-      'schedule'
   ];
+
+  /**
+   * Only the Weekend calendar is locked. SchedulePage's calendar expects a fixed-height
+   * parent and scrolls internally, while Picks sizes itself and Results renders the event
+   * details as an ordinary block — both need the page to scroll normally.
+   */
+  const raceView = new URLSearchParams(location.search).get('view');
+  const isLockedRaceView = activePage === 'race' && raceView === 'weekend';
   
   // FIX: Removed 'dashboard' from the locked layout logic to ensure the Admin Dashboard is scrollable.
   // Other data-heavy tables remain locked as they have internal scroll mechanisms.
-  const isLockedLayout = lockedDesktopPages.includes(activePage) || (
-      activePage === 'admin' && 
-      ['invitations', 'entities', 'manage-users', 'schedule', 'database', 'announcements'].includes(adminSubPage)
+  const isLockedLayout = lockedDesktopPages.includes(activePage) || isLockedRaceView || (
+      activePage === 'admin' &&
+      adminSubPage !== 'dashboard' &&
+      LOCKED_ADMIN_TOOLS.includes(adminSubPage)
   );
 
   // Data Cache for Leaderboard to prevent redundant fetches on tab switch
@@ -269,6 +296,16 @@ const App: React.FC = () => {
   // Caches for the user profile snapshots to avoid race conditions and stale closures
   const publicProfileDataRef = useRef<{ rank?: number; totalPoints?: number } | null>(null);
   const userProfileDataRef = useRef<User | null>(null);
+  /**
+   * What the last `onAuthStateChanged` callback saw. The login celebration is for people who
+   * actually just signed in, so it plays only on 'signed-out' → signed in. A session restored
+   * on reload arrives as 'pending' → signed in and gets no overlay.
+   *
+   * A ref, not state: the auth effect has empty deps and must not resubscribe. Starting at
+   * 'pending' is also what makes StrictMode's dev double-mount behave — the second subscribe
+   * already reads 'signed-in', so it does not celebrate again.
+   */
+  const prevAuthRef = useRef<'pending' | 'signed-out' | 'signed-in'>('pending');
 
   // Implement Session Security
   const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
@@ -324,7 +361,10 @@ const App: React.FC = () => {
               name: sched?.name || e.name,
               hasSprint,
               lockAtUtc: lockAt,
-              softDeadlineUtc: lockAt // Sync for now
+              softDeadlineUtc: lockAt, // Sync for now
+              // The race itself, which is what "upcoming" is judged against. Falls back to the
+              // lock time for events whose schedule has not been imported yet.
+              raceAtUtc: sched?.race || lockAt
           };
       });
   }, [eventSchedules]);
@@ -353,6 +393,18 @@ const App: React.FC = () => {
 
 
 
+  /**
+   * Warm the league cache as soon as someone is signed in. It is a single paged read of
+   * `public_users` with the totals already baked in, and it is what Home's standings list and
+   * the category rank tiles read from — none of which should be waiting on a trip to the
+   * Standings page first.
+   */
+  useEffect(() => {
+    if (hasSession && !leaderboardCache) {
+      fetchLeaderboardData();
+    }
+  }, [hasSession, leaderboardCache, fetchLeaderboardData]);
+
   useEffect(() => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};
@@ -377,18 +429,30 @@ const App: React.FC = () => {
       publicProfileDataRef.current = null;
       userProfileDataRef.current = null;
 
+      setAuthResolved(true);
+
       if (firebaseUser) {
-        // If we have a user but aren't authenticated yet, we are transitioning (logging in)
-        if (!isAuthenticated) {
+        // Only a real sign-in gets the celebration. A restored session on reload comes through
+        // here too, and playing the overlay for it cost every reload 2.2 seconds.
+        const isFreshSignIn = prevAuthRef.current === 'signed-out';
+        prevAuthRef.current = 'signed-in';
+
+        if (isFreshSignIn) {
             setTransitionVariant(Math.floor(Math.random() * 3) + 1); // Randomize Variant 1-3
             setIsTransitioning(true);
         }
         setIsLoading(true);
+        // Ahead of the blocking read below, so the league cache fetch runs alongside it
+        // rather than queueing behind the whole auth chain.
+        setHasSession(true);
 
-        // Safety timeout for transition overlay to prevent eternal stalls
+        // Escape hatch for a session whose profile document never arrives — a signup that died
+        // half-written, say. Releasing the loading gate drops the user on the auth screen,
+        // which beats an eternal skeleton now that the gate no longer lets them past it.
         const safetyTimeout = setTimeout(() => {
             setIsTransitioning(false);
-        }, 10000); // 10 seconds max overlay
+            setIsLoading(false);
+        }, 10000);
 
         const entities = await getLeagueEntities();
         if (entities) {
@@ -494,6 +558,9 @@ const App: React.FC = () => {
             clearTimeout(safetyTimeout);
             setTimeout(() => setIsTransitioning(false), 2200);
           }
+          // No `else`: a brand new signup reaches here before createUserProfileDocument has
+          // written the document, and this listener fires again the moment it lands. The
+          // safety timeout below is what rescues the case where it never does.
         });
 
         // Listener 2: User Picks (Realtime Penalties/Selections)
@@ -505,6 +572,7 @@ const App: React.FC = () => {
         });
 
       } else {
+        prevAuthRef.current = 'signed-out';
         setUser(null);
         setSeasonPicks({});
         setRaceResults({});
@@ -516,6 +584,7 @@ const App: React.FC = () => {
         setAllConstructors(CONSTRUCTORS);
         setCancelledEvents(null);
         setIsAuthenticated(false);
+        setHasSession(false);
         setIsLoading(false);
         setIsTransitioning(false);
       }
@@ -534,12 +603,18 @@ const App: React.FC = () => {
     };
   }, []); 
 
+  // Old links and open tabs land on the surface that absorbed them.
+  useEffect(() => {
+    const target = REDIRECTS[location.pathname];
+    if (target) navigate(target, { replace: true });
+  }, [location.pathname, navigate]);
+
   useEffect(() => {
     if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
     }
     window.scrollTo(0, 0);
-  }, [activePage, adminSubPage]);
+  }, [location.pathname, adminSubPage]);
 
   const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
     if (!user) return;
@@ -562,9 +637,8 @@ const App: React.FC = () => {
   };
 
   const handleResultsUpdate = async (eventId: string, results: any) => {
-    const newResults = { ...raceResults, [eventId]: results };
     try {
-      await saveRaceResults(newResults);
+      await saveEventRaceResults(eventId, results, raceResults);
     } catch (error) {
       console.error("Failed to save race results:", error);
       throw error;
@@ -595,23 +669,26 @@ const App: React.FC = () => {
       setEventSchedules(schedules);
   };
 
-  const navigateToPage = (page: Page, params?: { eventId?: string }) => {
+  const navigateToPage = (page: Page, params?: { eventId?: string; search?: string }) => {
     if (page === 'leaderboard' && activePage === 'leaderboard') {
         setLeaderboardResetToken(prev => prev + 1);
     }
 
-    if (page === 'admin') {
-      setAdminSubPage('dashboard');
-    }
     if (params?.eventId) {
         setTargetEventId(params.eventId);
     } else {
         setTargetEventId(null);
     }
-    setActivePage(page);
+    // `search` targets a specific view within a page — the category tiles use it to land on
+    // their own slice of Insights. It replaces any query the page would default to.
+    navigate(params?.search ? `${pathForPage(page).split('?')[0]}?${params.search}` : pathForPage(page));
   };
 
   const renderPage = () => {
+    // Primitive gallery: admin-only, never linked from the app's navigation.
+    if (location.pathname === DEV_UI_PATH) {
+      return isUserAdmin(user) ? <DevUiGallery /> : null;
+    }
     switch (activePage) {
       case 'home':
         return <Dashboard 
@@ -623,21 +700,26 @@ const App: React.FC = () => {
             allConstructors={allConstructors} 
             events={mergedEvents} 
             cancelledEventIds={cancelledEventIds}
+            seasonPicks={seasonPicks}
+            leaderboardCache={leaderboardCache}
         />;
-      case 'picks':
-        if (user) return <HomePage 
-            user={user} 
-            seasonPicks={seasonPicks} 
-            onPicksSubmit={handlePicksSubmit} 
-            formLocks={formLocks} 
-            pointsSystem={activePointsSystem} 
-            allDrivers={allDrivers} 
-            allConstructors={allConstructors} 
-            events={mergedEvents} 
-            initialEventId={targetEventId}
+      case 'race':
+        return <RacePage
+            user={user}
+            seasonPicks={seasonPicks}
+            onPicksSubmit={handlePicksSubmit}
+            formLocks={formLocks}
+            pointsSystem={activePointsSystem}
+            allDrivers={allDrivers}
+            allConstructors={allConstructors}
+            events={mergedEvents}
             cancelledEventIds={cancelledEventIds}
+            schedules={eventSchedules}
+            raceResults={raceResults}
+            onRefresh={handleScheduleUpdate}
+            setActivePage={navigateToPage}
+            targetEventId={targetEventId}
         />;
-        return null;
       case 'leaderboard':
         return <LeaderboardPage 
             currentUser={user} 
@@ -652,58 +734,17 @@ const App: React.FC = () => {
             cancelledEventIds={cancelledEventIds}
         />;
       case 'league-hub':
-        return <LeagueHubPage setActivePage={navigateToPage} user={user} />;
-      case 'gp-results':
-        return <SchedulePage 
-          schedules={eventSchedules} 
-          events={mergedEvents} 
-          onRefresh={handleScheduleUpdate} 
-          raceResults={raceResults} 
-          setActivePage={navigateToPage} 
-          cancelledEventIds={cancelledEventIds}
-          allDrivers={allDrivers}
-          allConstructors={allConstructors}
-          initialEventId={targetEventId}
-          initialViewResults={true}
-        />;
+        return <LeagueHubPage user={user} />;
       case 'profile':
-        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
-        return null;
-      case 'points':
-        return <PointsTransparency pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
-      case 'drivers-teams':
-        return <DriversTeamsPage allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} />;
-      case 'schedule':
-        return <SchedulePage 
-          schedules={eventSchedules} 
-          events={mergedEvents} 
-          onRefresh={handleScheduleUpdate} 
-          raceResults={raceResults} 
-          setActivePage={navigateToPage} 
-          cancelledEventIds={cancelledEventIds}
-          allDrivers={allDrivers}
-          allConstructors={allConstructors}
-          initialEventId={targetEventId}
-        />;
-      case 'donate':
-        return <DonationPage user={user} setActivePage={navigateToPage} />;
-      case 'support':
-        return <SupportPage user={user} setActivePage={navigateToPage} />;
-      case 'duesPayment':
-        if(user) {
-            if (user.duesPaidStatus === 'Paid') {
-                return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
-            }
-            return <DuesPaymentPage user={user} setActivePage={navigateToPage} />;
-        }
+        if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} leaderboardCache={leaderboardCache} />;
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
-                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
+                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
             case 'results':
                 return <ResultsManagerPage 
                           raceResults={raceResults} 
@@ -732,16 +773,23 @@ const App: React.FC = () => {
             case 'database':
                 return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
             case 'announcements':
-                return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} />;
+                return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} />;
             default:
-                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} />;
+                return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
     }
   };
   
-   if ((isLoading || maintenanceLoading) && !isTransitioning) {
+  // Nothing renders until Firebase says whether there is a session. Painting the auth screen
+  // on a maybe is what used to flash the sign-in form on every reload.
+  if (!authResolved || maintenanceLoading) {
+    return <AppSkeleton />;
+  }
+
+  // Signed in, but the profile document is still in flight — skeleton, never the auth screen.
+  if (auth.currentUser && isLoading) {
     return <AppSkeleton />;
   }
 
@@ -782,7 +830,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden flex-shrink-0 z-50">
+        <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden shrink-0 z-50">
          {user ? (
            <>
              <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">
@@ -791,21 +839,31 @@ const App: React.FC = () => {
              <div className="text-center justify-self-center">
                 <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
-             <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors justify-self-end">
-               Log Out
-             </button>
+             <div className="flex items-center gap-3 justify-self-end">
+               {isUserAdmin(user) && (
+                 <button
+                   onClick={() => navigateToPage('admin')}
+                   aria-label="Admin"
+                   className={`transition-colors ${activePage === 'admin' ? 'text-primary-red' : 'text-highlight-silver hover:text-primary-red'}`}
+                 >
+                   <AdminIcon className="w-6 h-6" />
+                 </button>
+               )}
+               <button onClick={handleLogout} className="text-sm font-medium text-highlight-silver hover:text-primary-red transition-colors">
+                 Log Out
+               </button>
+             </div>
            </>
          ) : (
            <div onClick={() => navigateToPage('home')} className="flex items-center gap-2 cursor-pointer col-span-3 justify-center">
-             <F1CarIcon className="w-10 h-10 text-primary-red" />
-             <span className="font-bold text-xl">Lights Out</span>
+             <BrandMark size="md" />
            </div>
          )}
         </header>
 
         <div 
             ref={scrollContainerRef} 
-            className={`relative flex-1 overflow-y-auto pb-[6rem] pb-safe ${isLockedLayout ? 'md:overflow-hidden md:pb-0' : 'md:pb-8'}`}
+            className={`relative flex-1 overflow-y-auto pb-[calc(6rem+env(safe-area-inset-bottom))] ${isLockedLayout ? 'md:overflow-hidden md:pb-0' : 'md:pb-8'}`}
         >
             <div className="absolute inset-0 bg-carbon-fiber opacity-10 pointer-events-none fixed"></div>
             
@@ -816,20 +874,19 @@ const App: React.FC = () => {
                     window.location.reload();
                   }}
                 >
-                    {renderPage()}
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      {renderPage()}
+                    </Suspense>
                 </ErrorBoundary>
             </main>
         </div>
 
-        <nav className={`absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid ${isUserAdmin(user) ? 'grid-cols-6' : 'grid-cols-5'} md:hidden z-50 pb-safe`}>
+        <nav className="absolute bottom-0 left-0 right-0 bg-carbon-black/90 backdrop-blur-lg border-t border-accent-gray/50 grid grid-cols-5 md:hidden z-50 pb-safe">
             <NavItem icon={HomeIcon} label="Home" page="home" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={PicksIcon} label="Picks" page="picks" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={PicksIcon} label="Race" page="race" activePage={activePage} setActivePage={navigateToPage} />
+            <NavItem icon={LeaderboardIcon} label="Standings" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
             <NavItem icon={LeagueIcon} label="League" page="league-hub" activePage={activePage} setActivePage={navigateToPage} />
-            <NavItem icon={LeaderboardIcon} label="Leaderboard" page="leaderboard" activePage={activePage} setActivePage={navigateToPage} />
-            {isUserAdmin(user) && (
-              <NavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
-            )}
+            <NavItem icon={ProfileIcon} label="Profile" page="profile" activePage={activePage} setActivePage={navigateToPage} />
         </nav>
 
         <SessionWarningModal 
@@ -918,10 +975,12 @@ interface NavItemProps {
   page: Page;
   activePage: Page;
   setActivePage: (page: Page) => void;
+  /** Keeps the tab lit for the retired destinations a surface absorbed. */
+  isParentActive?: boolean;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage }) => {
-  const isActive = activePage === page;
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, page, activePage, setActivePage, isParentActive }) => {
+  const isActive = isParentActive !== undefined ? isParentActive : activePage === page;
   return (
     <button
       onClick={() => setActivePage(page)}

@@ -2,14 +2,16 @@
   "name": "functions",
   "description": "Cloud Functions for F1 Fantasy League",
   "scripts": {
+    "test": "node --test test/*.test.js",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "seed:staging": "node scripts/seed-staging.js --project formula-fantasy-staging"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "dependencies": {

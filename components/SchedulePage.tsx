@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Event, EventSchedule, RaceResults, Driver, Constructor, EventResult } from '../types.ts';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -11,6 +11,7 @@ import { EventSelector } from './ui/EventSelector.tsx';
 import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
+import { hasEventResults } from '../utils/eventStatus.ts';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
@@ -23,6 +24,12 @@ interface SchedulePageProps {
     allConstructors?: Constructor[];
     initialEventId?: string | null;
     initialViewResults?: boolean;
+    /**
+     * 'inline' renders the selected event's details as the page itself rather than as an
+     * overlay above the calendar. The Race surface uses it for the Results view so all
+     * three views read as pages, not as a page with a modal on top of it.
+     */
+    detailMode?: 'modal' | 'inline';
 }
 
 /**
@@ -68,7 +75,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
     allDrivers = [],
     allConstructors = [],
     initialEventId,
-    initialViewResults = false
+    initialViewResults = false,
+    detailMode = 'modal'
 }) => {
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -76,17 +84,21 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Helper to check if results are available
-    const hasResults = (eventId: string) => {
-        const r = raceResults?.[eventId];
-        if (!r) return false;
-        return (
-            r.grandPrixFinish?.some(pos => !!pos) || 
-            !!r.fastestLap ||
-            r.sprintFinish?.some(pos => !!pos) ||
-            r.gpQualifying?.some(pos => !!pos) ||
-            r.sprintQualifying?.some(pos => !!pos)
-        );
-    };
+    const hasResults = (eventId: string) => hasEventResults(raceResults?.[eventId]);
+
+    /**
+     * A selected event means two different things in the two detail modes: the page's
+     * subject when inline, an open overlay when modal. Carrying a selection across that
+     * switch would pop the overlay open unbidden, so drop it on the way into modal mode.
+     * Entering inline mode is left alone — the auto-select effect below chooses there.
+     */
+    const previousDetailMode = useRef(detailMode);
+    useEffect(() => {
+        if (previousDetailMode.current !== detailMode) {
+            previousDetailMode.current = detailMode;
+            if (detailMode === 'modal') setSelectedEvent(null);
+        }
+    }, [detailMode]);
 
     // Auto-select initialEventId if passed from props
     useEffect(() => {
@@ -172,7 +184,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Sprint</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_5px_#A855F7]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-red shadow-[0_0_5px_#DA291C]"></div>
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Next</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -193,6 +205,66 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             <span className="text-sm font-bold">League Hub</span>
         </button>
     );
+
+    // Inline detail mode: render the selected event as the page. No calendar, no overlay.
+    if (detailMode === 'inline') {
+        if (!selectedEvent) {
+            return (
+                <div className="flex flex-col h-full w-full max-w-7xl mx-auto">
+                    <div className="flex-none">
+                        <PageHeader
+                            title="RACE RESULTS"
+                            icon={CheckeredFlagIcon}
+                            subtitle="Official GP finishing orders in EST"
+                        />
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                        <CalendarIcon className="w-20 h-20 text-accent-gray opacity-20 mb-5" />
+                        <h2 className="text-2xl font-black text-pure-white italic uppercase mb-2">No Results Yet</h2>
+                        <p className="text-highlight-silver max-w-md">
+                            Official finishing orders appear here once the first Grand Prix has been scored.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        const isSelectedCancelled = cancelledEventIds.has(selectedEvent.id);
+        const isSelectedNext = nextRace?.id === selectedEvent.id;
+        const isSelectedCompletedResult = hasResults(selectedEvent.id);
+        const qualiTime = selectedEvent.hasSprint
+            ? (schedules[selectedEvent.id]?.sprintQualifying || schedules[selectedEvent.id]?.qualifying)
+            : schedules[selectedEvent.id]?.qualifying;
+        const lockDate = parseLeagueDate(qualiTime || selectedEvent.lockAtUtc);
+        const isSelectedPastPicksDue = lockDate ? new Date() >= lockDate : false;
+
+        return (
+            <div className="w-full max-w-7xl mx-auto pb-8">
+                <PageHeader
+                    title="RACE RESULTS"
+                    icon={CheckeredFlagIcon}
+                    subtitle="Official GP finishing orders in EST"
+                />
+                <EventDetailsModal
+                    inline
+                    event={selectedEvent}
+                    schedule={schedules[selectedEvent.id]}
+                    results={raceResults?.[selectedEvent.id]}
+                    raceResults={raceResults}
+                    cancelledEventIds={cancelledEventIds}
+                    allDrivers={allDrivers}
+                    allConstructors={allConstructors}
+                    events={events}
+                    onClose={() => setSelectedEvent(null)}
+                    onSelectEvent={(evt) => setSelectedEvent(evt)}
+                    isCancelled={isSelectedCancelled}
+                    isCompleted={!isSelectedCancelled && (isSelectedCompletedResult || isSelectedPastPicksDue)}
+                    isNext={isSelectedNext}
+                    initialView={modalInitialView}
+                />
+            </div>
+        );
+    }
 
     if (!events || events.length === 0) {
         return (
@@ -333,6 +405,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                         event={selectedEvent} 
                         schedule={schedules[selectedEvent.id]} 
                         results={raceResults?.[selectedEvent.id]}
+                        raceResults={raceResults}
+                        cancelledEventIds={cancelledEventIds}
                         allDrivers={allDrivers}
                         allConstructors={allConstructors}
                         events={events}
@@ -358,21 +432,21 @@ const NextRaceHero: React.FC<{
 }> = ({ event, schedule, isCancelled, hasResults, onOpenModal }) => {
     const raceRaw = schedule?.race || event.lockAtUtc;
     return (
-        <div className={`relative overflow-hidden rounded-2xl bg-carbon-fiber border ${isCancelled ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.2)] opacity-80' : 'border-purple-500/60 shadow-[0_0_25px_rgba(168,85,247,0.25)]'} shadow-2xl transition-all`}>
+        <div className={`relative overflow-hidden rounded-2xl bg-carbon-fiber border ${isCancelled ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.2)] opacity-80' : 'border-primary-red/60 shadow-[0_0_25px_rgba(218,41,28,0.25)]'} shadow-2xl transition-all`}>
             {isCancelled && (
                 <div className="absolute top-4 right-4 bg-red-600 text-pure-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-[0_0_10px_rgba(239,68,68,0.4)]">
                     Cancelled
                 </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-purple-900/10 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-red/20 via-red-950/10 to-transparent pointer-events-none"></div>
             <div className="relative z-10 p-5 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-4 flex-wrap">
                         <span className="bg-carbon-black/60 border border-pure-white/10 text-highlight-silver text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                             Round {event.round}
                         </span>
-                        <div className="inline-flex items-center gap-1.5 bg-purple-500/20 border border-purple-500/60 text-purple-300 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(168,85,247,0.3)]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                        <div className="inline-flex items-center gap-1.5 bg-primary-red/20 border border-primary-red/60 text-red-300 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(218,41,28,0.3)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
                             <span>Next Grand Prix</span>
                         </div>
                         {event.hasSprint && (
@@ -401,10 +475,10 @@ const NextRaceHero: React.FC<{
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="bg-carbon-black/60 p-4 rounded-xl border border-purple-500/30 shadow-lg">
-                            <p className="text-xs text-purple-400 font-black uppercase tracking-widest mb-1">Lights Out</p>
+                        <div className="bg-carbon-black/60 p-4 rounded-xl border border-primary-red/30 shadow-lg">
+                            <p className="text-xs text-red-400 font-black uppercase tracking-widest mb-1">Lights Out</p>
                             <p className="text-xl md:text-2xl font-bold text-pure-white">
-                                {formatSessionDate(raceRaw)} <span className="text-purple-400 mx-1.5">•</span> {formatSessionTime(raceRaw)}
+                                {formatSessionDate(raceRaw)} <span className="text-red-400 mx-1.5">•</span> {formatSessionTime(raceRaw)}
                             </p>
                         </div>
 
@@ -423,12 +497,12 @@ const NextRaceHero: React.FC<{
                 <div className="flex-1 bg-pure-white/5 backdrop-blur-sm rounded-xl p-5 border border-pure-white/10">
                     <h3 className="text-xs md:text-sm font-bold text-pure-white uppercase tracking-wider mb-4 border-b border-pure-white/10 pb-2 flex items-center justify-between">
                         <span className="flex items-center gap-2">
-                            <CalendarIcon className="w-4 h-4 text-purple-400" />
+                            <CalendarIcon className="w-4 h-4 text-red-400" />
                             Session Timetable
                         </span>
                         <button
                             onClick={() => onOpenModal('timetable')}
-                            className="text-[10px] text-purple-300 hover:text-pure-white font-bold uppercase tracking-wider underline"
+                            className="text-[10px] text-red-300 hover:text-pure-white font-bold uppercase tracking-wider underline"
                         >
                             View Details
                         </button>
@@ -449,7 +523,7 @@ const NextRaceHero: React.FC<{
                                 <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
                             </>
                         )}
-                        <SessionRow label="Grand Prix" time={raceRaw} isRace accentColor="#A855F7" />
+                        <SessionRow label="Grand Prix" time={raceRaw} isRace accentColor="#DA291C" />
                     </div>
                 </div>
             </div>
@@ -464,12 +538,17 @@ const EventDetailsModal: React.FC<{
     allDrivers: Driver[];
     allConstructors: Constructor[];
     events: Event[];
+    /** The whole season, for the race selector's Upcoming/Completed tabs. */
+    raceResults?: RaceResults;
+    cancelledEventIds?: Set<string>;
     onClose: () => void; 
     onSelectEvent: (event: Event) => void;
     isCancelled?: boolean;
     isCompleted?: boolean;
     isNext?: boolean;
     initialView?: 'timetable' | 'results';
+    /** Render as a normal in-page block instead of an overlay. */
+    inline?: boolean;
 }> = ({ 
     event, 
     schedule, 
@@ -477,12 +556,15 @@ const EventDetailsModal: React.FC<{
     allDrivers, 
     allConstructors, 
     events, 
+    raceResults,
+    cancelledEventIds,
     onClose, 
     onSelectEvent, 
     isCancelled, 
     isCompleted, 
     isNext,
-    initialView = 'timetable'
+    initialView = 'timetable',
+    inline = false
 }) => {
     const [activeModalView, setActiveModalView] = useState<'timetable' | 'results'>(initialView);
 
@@ -493,20 +575,14 @@ const EventDetailsModal: React.FC<{
 
     const raceRaw = schedule?.race || event.lockAtUtc;
 
-    const hasEventResults = !!(
-        results?.grandPrixFinish?.some(pos => !!pos) || 
-        !!results?.fastestLap ||
-        results?.sprintFinish?.some(pos => !!pos) ||
-        results?.gpQualifying?.some(pos => !!pos) ||
-        results?.sprintQualifying?.some(pos => !!pos)
-    );
+    const eventIsScored = hasEventResults(results);
 
     const accentColor = isCancelled 
         ? '#EF4444' 
         : isCompleted 
             ? '#10B981' 
             : isNext 
-                ? '#A855F7' 
+                ? '#DA291C' 
                 : (event.hasSprint ? '#EAB308' : '#C0C0C0');
 
     const borderStyle = isCancelled
@@ -514,7 +590,7 @@ const EventDetailsModal: React.FC<{
         : isCompleted
             ? 'border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
             : isNext
-                ? 'border-purple-500/60 shadow-[0_0_30px_rgba(168,85,247,0.25)]'
+                ? 'border-primary-red/60 shadow-[0_0_30px_rgba(218,41,28,0.25)]'
                 : event.hasSprint
                     ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.2)]'
                     : 'border-pure-white/15 shadow-2xl';
@@ -524,18 +600,19 @@ const EventDetailsModal: React.FC<{
         : isCompleted
             ? 'from-emerald-600/20'
             : isNext
-                ? 'from-purple-600/20'
+                ? 'from-primary-red/20'
                 : event.hasSprint
                     ? 'from-yellow-600/15'
                     : 'from-pure-white/10';
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-3 sm:p-4 animate-fade-in" onClick={onClose}>
-            <div 
-                className={`w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border ${borderStyle} animate-scale-in flex flex-col max-h-[90vh] ${isCancelled ? 'opacity-95' : ''}`} 
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="overflow-y-auto custom-scrollbar relative w-full h-full p-5 md:p-8">
+    const body = (
+        <div
+            className={`w-full max-w-4xl relative overflow-hidden rounded-2xl bg-carbon-fiber border ${borderStyle} flex flex-col ${
+                inline ? 'mx-auto' : 'animate-scale-in max-h-[90vh]'
+            } ${isCancelled ? 'opacity-95' : ''}`}
+            onClick={inline ? undefined : e => e.stopPropagation()}
+        >
+                <div className={`relative w-full p-5 md:p-8 ${inline ? '' : 'overflow-y-auto custom-scrollbar h-full'}`}>
                     {/* Header bar controls: Event Selector + Close */}
                     <div className="flex items-center justify-between gap-3 mb-4 z-30 relative">
                         <div className="max-w-[220px] sm:max-w-xs">
@@ -544,11 +621,14 @@ const EventDetailsModal: React.FC<{
                                 selectedEventId={event.id}
                                 onSelect={(e) => onSelectEvent(e)}
                                 placeholder="Switch Grand Prix..."
+                                raceResults={raceResults}
+                                cancelledEventIds={cancelledEventIds}
+                                orderBy="upcoming-first"
                             />
                         </div>
                         <button 
                             onClick={onClose} 
-                            className="bg-carbon-black/80 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/20 shadow-lg transition-transform hover:scale-110 shrink-0"
+                            className={`bg-carbon-black/80 hover:bg-carbon-black text-pure-white rounded-full p-2 border border-pure-white/20 shadow-lg transition-transform hover:scale-110 shrink-0 ${inline ? 'hidden' : ''}`}
                             aria-label="Close modal"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -576,7 +656,7 @@ const EventDetailsModal: React.FC<{
                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                                     <span>CANCELLED</span>
                                 </div>
-                            ) : hasEventResults ? (
+                            ) : eventIsScored ? (
                                 <div className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/60 text-emerald-400 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                                     <CheckeredFlagIcon className="w-3.5 h-3.5 text-emerald-400" />
                                     <span>RESULTS IN</span>
@@ -587,8 +667,8 @@ const EventDetailsModal: React.FC<{
                                     <span>EVENT COMPLETE</span>
                                 </div>
                             ) : isNext ? (
-                                <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/60 text-purple-300 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                                <div className="px-3 py-1 rounded-full bg-primary-red/20 border border-primary-red/60 text-red-300 text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(218,41,28,0.3)]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
                                     <span>NEXT RACE</span>
                                 </div>
                             ) : null}
@@ -628,7 +708,7 @@ const EventDetailsModal: React.FC<{
                         >
                             <CheckeredFlagIcon className={`w-4 h-4 ${activeModalView === 'results' ? 'text-pure-white' : 'text-emerald-400'}`} />
                             <span>Race Results</span>
-                            {hasEventResults && (
+                            {eventIsScored && (
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                             )}
                         </button>
@@ -687,7 +767,17 @@ const EventDetailsModal: React.FC<{
                         )}
                     </div>
                 </div>
-            </div>
+        </div>
+    );
+
+    if (inline) return body;
+
+    return (
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-3 sm:p-4 animate-fade-in"
+            onClick={onClose}
+        >
+            {body}
         </div>
     );
 };
@@ -940,9 +1030,9 @@ const FastestLapDisplay: React.FC<{
 
     return (
         <div className="p-4">
-            <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-purple-900/20 to-transparent rounded-xl border border-purple-500/10">
-                <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mb-3 ring-1 ring-purple-500/50 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
-                     <FastestLapIcon className="w-8 h-8 text-purple-400" />
+            <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-red-950/20 to-transparent rounded-xl border border-primary-red/10">
+                <div className="w-16 h-16 bg-primary-red/20 rounded-full flex items-center justify-center mb-3 ring-1 ring-primary-red/50 shadow-[0_0_25px_rgba(218,41,28,0.2)]">
+                     <FastestLapIcon className="w-8 h-8 text-red-400" />
                 </div>
                 
                 <h3 className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-1">Fastest Lap Award</h3>
@@ -1010,7 +1100,7 @@ const CompactEventCard: React.FC<{
                     : isCompleted
                         ? 'border-emerald-500/30 bg-carbon-black'
                         : isNext 
-                            ? 'bg-carbon-black border-purple-500 shadow-lg shadow-purple-500/20' 
+                            ? 'bg-carbon-black border-primary-red shadow-lg shadow-primary-red/20' 
                             : 'bg-carbon-fiber border-pure-white/10 shadow-lg'
             }`}
         >
@@ -1028,7 +1118,7 @@ const CompactEventCard: React.FC<{
                         ) : isCompleted ? (
                             <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Complete</span>
                         ) : isNext ? (
-                            <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Next</span>
+                            <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Next</span>
                         ) : null}
                     </div>
                     {event.hasSprint && (
@@ -1044,7 +1134,7 @@ const CompactEventCard: React.FC<{
             <div className="mt-auto pt-3 border-t border-pure-white/10 w-full">
                 <p className="text-[10px] text-highlight-silver uppercase mb-0.5">Race</p>
                 <p className="font-bold text-base text-pure-white">{formatSessionDate(raceRaw)}</p>
-                <p className={`text-sm font-mono ${isNext ? 'text-purple-400 font-bold' : (isCompleted ? 'text-emerald-400 font-bold' : 'text-highlight-silver')}`}>{formatSessionTime(raceRaw)}</p>
+                <p className={`text-sm font-mono ${isNext ? 'text-red-400 font-bold' : (isCompleted ? 'text-emerald-400 font-bold' : 'text-highlight-silver')}`}>{formatSessionTime(raceRaw)}</p>
             </div>
         </button>
     );
@@ -1065,7 +1155,7 @@ const EventGridCard: React.FC<{
         : isCompleted 
             ? '#10B981' 
             : isNext 
-                ? '#A855F7' 
+                ? '#DA291C' 
                 : (event.hasSprint ? '#EAB308' : '#C0C0C0');
 
     const qualiTime = event.hasSprint ? (schedule?.sprintQualifying || schedule?.qualifying) : schedule?.qualifying;
@@ -1080,7 +1170,7 @@ const EventGridCard: React.FC<{
                     : isCompleted 
                         ? 'bg-carbon-black border-emerald-500/30' 
                         : isNext
-                            ? 'bg-carbon-black border-purple-500/60 shadow-[0_0_20px_rgba(168,85,247,0.2)]'
+                            ? 'bg-carbon-black border-primary-red/60 shadow-[0_0_20px_rgba(218,41,28,0.2)]'
                             : 'bg-carbon-black'
             }`}
             style={{ 
@@ -1125,8 +1215,8 @@ const EventGridCard: React.FC<{
                                 <span>EVENT COMPLETE</span>
                             </div>
                         ) : isNext ? (
-                            <div className="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-500/60 text-purple-300 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-[0_0_8px_rgba(168,85,247,0.2)]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                            <div className="px-2 py-0.5 rounded bg-primary-red/20 border border-primary-red/60 text-red-300 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-[0_0_8px_rgba(218,41,28,0.2)]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
                                 <span>NEXT RACE</span>
                             </div>
                         ) : null}

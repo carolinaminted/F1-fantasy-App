@@ -1,0 +1,22 @@
+.git
+.gitignore
+.firebaserc
+.vscode
+node_modules
+dist
+functions
+docs
+*.md
+firebase-debug.log*
+npm-debug.log*
+firestore.indexes.json
+firestore.rules
+firebase.json
+
+# Never send local dotenv credentials to the image build. These two root files
+# contain public Firebase web configuration and are required by Vite.
+.env
+.env.*
+!.env.production
+!.env.staging
+!.env.prod-staging

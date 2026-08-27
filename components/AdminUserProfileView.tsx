@@ -9,6 +9,8 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
+import { Tile, SectionHeader, Banner, Chip, EventSelector } from './ui/index.ts';
+import { ConfirmModal, Toggle } from './admin/index.ts';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -144,6 +146,12 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     }, [targetUser.id, targetUser.isAdmin, targetUser.duesPaidStatus]);
 
     const handleSaveAdminStatus = async () => {
+        // The toggle is already disabled for your own account; refuse here too, so a stale
+        // render or a future caller can't lock the signed-in admin out of the admin surface.
+        if (auth.currentUser?.uid === targetUser.id) {
+            showToast("You can't change your own admin access.", 'error');
+            return;
+        }
         setIsSavingAdmin(true);
         try {
             await updateUserAdminStatus(targetUser.id, isAdminState);
@@ -212,132 +220,111 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
     }
 
     const aDriversList = allDrivers.filter(d => d.class === EntityClass.A && d.isActive);
+    // An admin removing their own access would lock themselves out of this very page.
+    const isSelf = auth.currentUser?.uid === targetUser.id;
+    const adminDirty = isAdminState !== !!targetUser.isAdmin;
+    const duesDirty = (isDuesPaidState ? 'Paid' : 'Unpaid') !== (targetUser.duesPaidStatus || 'Unpaid');
+
     const bDriversList = allDrivers.filter(d => d.class === EntityClass.B && d.isActive);
     const aTeamsList = allConstructors.filter(c => c.class === EntityClass.A && c.isActive);
     const bTeamsList = allConstructors.filter(c => c.class === EntityClass.B && c.isActive);
 
     return (
         <div>
-            {/* Admin Management Panel */}
-            <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl p-6 mb-6 space-y-6 shadow-xl">
-                <h3 className="font-bold text-pure-white text-xl border-b border-pure-white/10 pb-4 flex items-center gap-2">
-                    <AdminIcon className="w-6 h-6 text-primary-red" />
-                    Account Management
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Admin Toggle */}
-                    <div className="flex flex-col gap-3 p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 hover:border-pure-white/10 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-primary-red/10 p-2 rounded-lg">
-                                <AdminIcon className="w-6 h-6 text-primary-red" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-pure-white">Admin Privileges</h4>
-                                <p className="text-xs text-highlight-silver">Access level</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-pure-white/5">
-                            <label className="flex items-center cursor-pointer select-none group">
-                                <div className="relative">
-                                    <input 
-                                        type="checkbox" 
-                                        className="sr-only" 
-                                        checked={isAdminState} 
-                                        onChange={(e) => setIsAdminState(e.target.checked)}
-                                    />
-                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isAdminState ? 'bg-primary-red' : 'bg-carbon-black border border-highlight-silver group-hover:border-pure-white'}`}></div>
-                                    <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isAdminState ? 'transform translate-x-5' : ''}`}></div>
-                                </div>
-                                <div className="ml-3 font-medium text-sm text-pure-white">
-                                    {isAdminState ? 'Admin' : 'User'}
-                                </div>
-                            </label>
+            {/* Account settings */}
+            <Tile padding="md" className="mb-6">
+                <SectionHeader
+                    title="Account"
+                    subtitle="Admin access and dues for this member"
+                    icon={AdminIcon}
+                />
 
-                            {(isAdminState !== !!targetUser.isAdmin) && (
-                                <button 
-                                    onClick={handleSaveAdminStatus}
-                                    disabled={isSavingAdmin}
-                                    className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-1.5 px-4 rounded-lg text-xs disabled:opacity-50 transition-colors shadow-lg shadow-primary-red/20"
-                                >
-                                    {isSavingAdmin ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            )}
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div className="rounded-xl border border-pure-white/10 bg-carbon-black/40 p-4">
+                        <Toggle
+                            checked={isAdminState}
+                            onChange={setIsAdminState}
+                            label="League admin"
+                            description="Can enter results, manage members, and pause the league."
+                            disabled={isSelf}
+                            disabledReason="You can't change your own admin access."
+                            tone="danger"
+                        />
+                        {/*
+                          The Save button used to appear only once a value changed, so a
+                          half-finished change looked identical to a saved one. It is always
+                          here now, and simply disables when there is nothing to save.
+                        */}
+                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-pure-white/5 pt-3">
+                            <span className="text-[11px] text-highlight-silver">
+                                {adminDirty ? 'Not saved yet' : 'Saved'}
+                            </span>
+                            <button
+                                onClick={handleSaveAdminStatus}
+                                disabled={isSavingAdmin || !adminDirty || isSelf}
+                                className="rounded-lg bg-primary-red px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                            >
+                                {isSavingAdmin ? 'Saving\u2026' : 'Save'}
+                            </button>
                         </div>
                     </div>
 
-                    {/* Dues Toggle */}
-                    <div className="flex flex-col gap-3 p-4 bg-carbon-black/40 rounded-xl border border-pure-white/5 hover:border-pure-white/10 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-green-600/10 p-2 rounded-lg">
-                                <DuesIcon className="w-6 h-6 text-green-500" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-pure-white">League Dues</h4>
-                                <p className="text-xs text-highlight-silver">Payment status</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-pure-white/5">
-                            <label className="flex items-center cursor-pointer select-none group">
-                                <div className="relative">
-                                    <input 
-                                        type="checkbox" 
-                                        className="sr-only" 
-                                        checked={isDuesPaidState} 
-                                        onChange={(e) => setIsDuesPaidState(e.target.checked)}
-                                    />
-                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isDuesPaidState ? 'bg-green-600' : 'bg-carbon-black border border-highlight-silver group-hover:border-pure-white'}`}></div>
-                                    <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isDuesPaidState ? 'transform translate-x-5' : ''}`}></div>
-                                </div>
-                                <div className="ml-3 font-medium text-sm text-pure-white">
-                                    {isDuesPaidState ? 'Paid' : 'Unpaid'}
-                                </div>
-                            </label>
-
-                             {((isDuesPaidState ? 'Paid' : 'Unpaid') !== (targetUser.duesPaidStatus || 'Unpaid')) && (
-                                <button 
-                                    onClick={handleSaveDuesStatus}
-                                    disabled={isSavingDues}
-                                    className="bg-green-600 hover:bg-green-500 text-pure-white font-bold py-1.5 px-4 rounded-lg text-xs disabled:opacity-50 transition-colors shadow-lg shadow-green-600/20"
-                                >
-                                    {isSavingDues ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            )}
+                    <div className="rounded-xl border border-pure-white/10 bg-carbon-black/40 p-4">
+                        <Toggle
+                            checked={isDuesPaidState}
+                            onChange={setIsDuesPaidState}
+                            label="Dues paid"
+                            description="Marks this member as having paid their entry fee for the season."
+                        />
+                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-pure-white/5 pt-3">
+                            <span className="text-[11px] text-highlight-silver">
+                                {duesDirty ? 'Not saved yet' : 'Saved'}
+                            </span>
+                            <button
+                                onClick={handleSaveDuesStatus}
+                                disabled={isSavingDues || !duesDirty}
+                                className="rounded-lg bg-green-600 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-green-500 disabled:opacity-40"
+                            >
+                                {isSavingDues ? 'Saving\u2026' : 'Save'}
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Tile>
 
             {/* Submit Picks on Behalf of User */}
             <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl p-6 mb-6 space-y-6 shadow-xl">
-                <h3 className="font-bold text-pure-white text-xl border-b border-pure-white/10 pb-4 flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                        <span className="text-primary-red font-black">⚙</span> Submit / Edit Picks on Behalf of User
-                    </span>
-                    <span className="text-xs text-highlight-silver bg-primary-red/10 border border-primary-red/20 px-2.5 py-1 rounded-full uppercase tracking-wider font-semibold">Admin Override Mode</span>
-                </h3>
+                <div className="mb-4 border-b border-pure-white/10 pb-4">
+                    <h3 className="text-xl font-bold text-pure-white">
+                        Make picks for {targetUser.displayName}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-highlight-silver">
+                        Enter or change this member's lineup for a race on their behalf. This works
+                        even after picks have closed, so use it to fix a genuine mistake rather than
+                        to give someone extra time.
+                    </p>
+                </div>
 
                 <div className="space-y-4">
                     {/* Event Selector */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold uppercase tracking-wider text-highlight-silver">Select Event</label>
-                        <select
-                            value={selectedEventId}
-                            onChange={(e) => setSelectedEventId(e.target.value)}
-                            className="bg-carbon-black border border-accent-gray rounded px-3 py-2 text-pure-white text-sm focus:border-primary-red focus:outline-none w-full"
-                        >
-                            <option value="">-- Choose Event --</option>
-                            {events.map(ev => {
-                                const hasPicks = !!seasonPicks[ev.id];
-                                return (
-                                    <option key={ev.id} value={ev.id}>
-                                        Round {ev.round}: {ev.name} ({ev.location}) {hasPicks ? '✓ (Picks Exist)' : '(No Picks)'}
-                                    </option>
-                                );
-                            })}
-                        </select>
+                        <EventSelector
+                            events={events}
+                            selectedEventId={selectedEventId || null}
+                            onSelect={(ev) => setSelectedEventId(ev.id)}
+                            placeholder="Choose a race…"
+                            raceResults={raceResults}
+                            cancelledEventIds={cancelledEventIds}
+                            orderBy="upcoming-first"
+                            renderStatus={(ev) => (
+                                <Chip
+                                    label={seasonPicks[ev.id] ? 'Picks in' : 'No picks'}
+                                    tone={seasonPicks[ev.id] ? 'success' : 'neutral'}
+                                    size="xs"
+                                />
+                            )}
+                        />
                     </div>
 
                     {selectedEventId && (
@@ -496,7 +483,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                         </svg>
                                     )}
-                                    <span>{isSubmittingPicks ? 'Saving Override Picks...' : 'Submit Override Picks'}</span>
+                                    <span>{isSubmittingPicks ? 'Saving\u2026' : `Save picks for ${targetUser.displayName}`}</span>
                                 </button>
                             </div>
                         </div>
@@ -504,9 +491,12 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 </div>
             </div>
 
-            <div className="bg-accent-gray/30 p-3 rounded-lg text-center ring-1 ring-pure-white/10 mb-6 border border-pure-white/5">
-                <p className="font-bold text-ghost-white text-sm">Impersonation View · <span className="text-highlight-silver font-normal">You are viewing this profile as an administrator.</span></p>
-            </div>
+            <Banner
+                tone="neutral"
+                title={`Viewing as ${targetUser.displayName}`}
+                message="This is their profile exactly as they see it, plus admin penalty controls on each race."
+                className="mb-6 rounded-xl border-b-0 ring-1 ring-pure-white/10"
+            />
             
             {/* Pass the penalty update callback to enable admin controls inside ProfilePage */}
             <ProfilePage 
@@ -521,69 +511,51 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 cancelledEventIds={cancelledEventIds}
             />
 
-            {/* Danger Zone */}
-            <div className="mt-8 border border-red-500/20 rounded-xl overflow-hidden bg-red-900/5">
-                <div className="bg-red-900/20 px-6 py-4 border-b border-red-500/20 flex items-center gap-2">
-                    <TrashIcon className="w-5 h-5 text-red-500" />
-                    <h3 className="text-red-500 font-bold uppercase tracking-wider text-sm">Danger Zone</h3>
+            <div className="mt-8 overflow-hidden rounded-xl border border-primary-red/30 bg-primary-red/[0.06]">
+                <div className="flex items-center gap-2 border-b border-primary-red/20 px-5 py-3">
+                    <TrashIcon className="w-5 h-5 text-primary-red" />
+                    <h3 className="text-sm font-black uppercase tracking-wider text-primary-red">
+                        Permanent actions
+                    </h3>
                 </div>
-                <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="text-center md:text-left">
-                        <h4 className="font-bold text-pure-white text-sm">Purge User Data</h4>
-                        <p className="text-xs text-highlight-silver mt-1 max-w-md">
-                            Permanently delete this user's profile, public stats, and all historical picks. Invitation code will be reset.
+                <div className="flex flex-col items-start justify-between gap-4 p-5 md:flex-row md:items-center">
+                    <div>
+                        <h4 className="text-sm font-bold text-pure-white">
+                            Delete this member's data
+                        </h4>
+                        <p className="mt-1 max-w-md text-xs leading-relaxed text-highlight-silver">
+                            Removes their profile, their standings entry, and every pick they have
+                            made. Their invitation code goes back to unused so someone else can
+                            join with it. This cannot be undone.
                         </p>
                     </div>
                     <button
                         onClick={() => setShowPurgeModal(true)}
-                        className="bg-red-600 hover:bg-red-500 text-pure-white font-bold py-2.5 px-6 rounded-lg text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/20 whitespace-nowrap"
+                        className="whitespace-nowrap rounded-lg border border-primary-red/40 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white"
                     >
-                        Purge User Data
+                        Delete member
                     </button>
                 </div>
             </div>
 
-            {/* Purge Confirmation Modal */}
-            {showPurgeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => !isPurging && setShowPurgeModal(false)}>
-                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
-                            <TrashIcon className="w-8 h-8 text-red-500" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Confirm User Purge</h2>
-                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
-                            Are you absolutely sure you want to delete <span className="text-pure-white font-bold">{targetUser.displayName}</span>?
-                            <br/><br/>
-                            <span className="text-red-400 font-bold">This action cannot be undone.</span> All picks, points, and profile data will be permanently erased.
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={handleConfirmPurge}
-                                disabled={isPurging}
-                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {isPurging ? (
-                                    <>
-                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                        <span>Purging Data...</span>
-                                    </>
-                                ) : (
-                                    'Yes, Purge User'
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setShowPurgeModal(false)}
-                                disabled={isPurging}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showPurgeModal}
+                onClose={() => setShowPurgeModal(false)}
+                onConfirm={handleConfirmPurge}
+                title="Delete this member's data"
+                consequence={
+                    <>
+                        This permanently removes{' '}
+                        <strong className="text-pure-white">{targetUser.displayName}</strong>, their
+                        standings entry, and every pick they have made. Their invitation code is
+                        released so it can be used again. This cannot be undone.
+                    </>
+                }
+                confirmLabel="Delete member"
+                typedGuard={targetUser.displayName}
+                busy={isPurging}
+                busyLabel="Deleting\u2026"
+            />
         </div>
     );
 };

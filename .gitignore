@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment files may contain credentials. The two root Vite files below
+# contain public Firebase web-app configuration only and are intentionally
+# versioned so production and staging builds are reproducible.
+.env
+.env.*
+!.env.production
+!.env.staging
+!.env.prod-staging
+functions/.env
+functions/.env.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

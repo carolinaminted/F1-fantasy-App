@@ -10,8 +10,8 @@ import { firebaseConfig } from '../firebaseConfig.ts';
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Analytics
-export const analytics = getAnalytics(app);
+// Analytics is enabled in production but intentionally not configured in staging.
+export const analytics = firebaseConfig.measurementId ? getAnalytics(app) : null;
 
 // Export Firebase services
 export const auth = getAuth(app);

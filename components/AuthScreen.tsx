@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { F1FantasyLogo } from './icons/F1FantasyLogo.tsx';
-import { auth, functions } from '../services/firebase.ts';
+import { auth } from '../services/firebase.ts';
 // Fix: Use scoped @firebase packages for imports to resolve module errors.
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, fetchSignInMethodsForEmail } from '@firebase/auth';
-import { httpsCallable } from '@firebase/functions';
 import { createUserProfileDocument } from '../services/firestoreService.ts';
+import { getCallable } from '../services/callableService.ts';
 import { validateDisplayName, validateRealName, sanitizeString } from '../services/validation.ts';
 import { SESSION_STORAGE_KEY } from '../constants.ts';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
 import { EyeIcon } from './icons/EyeIcon.tsx';
 import { EyeOffIcon } from './icons/EyeOffIcon.tsx';
+import {
+  sendApiEmailCode,
+  sendApiPasswordReset,
+  validateApiInvitationCode,
+  verifyApiEmailCode,
+} from '../services/apiService.ts';
 
 const AuthScreen: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -42,7 +48,8 @@ const AuthScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // Easter Egg Hook
-  const { easterEggState, activeLights, handleTriggerClick } = useRaceStartEasterEgg();
+  const egg = useRaceStartEasterEgg();
+  const { handleTriggerClick } = egg;
 
   // Timer for Countdown (UX Only - Server enforces actual block)
   React.useEffect(() => {
@@ -121,10 +128,16 @@ const AuthScreen: React.FC = () => {
 
       setIsLoading(true);
       try {
-          const validateFn = httpsCallable(functions, 'validateInvitationCode');
           const codeToSubmit = invitationCode.trim().toUpperCase();
-          const result = await validateFn({ code: codeToSubmit });
-          const data = result.data as any;
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+          let data: { valid?: boolean };
+          if (apiBaseUrl) {
+              data = await validateApiInvitationCode(apiBaseUrl, codeToSubmit);
+          } else {
+              const validateFn = getCallable('validateInvitationCode');
+              const result = await validateFn({ code: codeToSubmit });
+              data = result.data as { valid?: boolean };
+          }
 
           if (data.valid) {
               setInvitationCode(codeToSubmit);
@@ -136,7 +149,12 @@ const AuthScreen: React.FC = () => {
 
       } catch (err: any) {
           console.error("Invitation validation failed:", err);
-          if (err.code === 'resource-exhausted' || (err.message && err.message.includes('Too many attempts'))) {
+          if (
+              err.code === 'resource-exhausted'
+              || err.code === 'functions/resource-exhausted'
+              || err.code === 'rate_limited'
+              || (err.message && err.message.includes('Too many attempts'))
+          ) {
               const blockTime = Date.now() + 10 * 60 * 1000;
               setBlockUntil(blockTime);
               setError("Maximum attempts reached. Please try again in 10 minutes.");
@@ -164,14 +182,23 @@ const AuthScreen: React.FC = () => {
             return setError("An account with this email already exists. Please log in.");
         }
 
-        const sendAuthCode = httpsCallable(functions, 'sendAuthCode');
-        await sendAuthCode({ email });
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+        if (apiBaseUrl) {
+            await sendApiEmailCode(apiBaseUrl, email);
+        } else {
+            const sendAuthCode = getCallable('sendAuthCode');
+            await sendAuthCode({ email });
+        }
         
         setSignupStep('code');
 
     } catch (err: any) {
         console.error("Verification error:", err);
-        if (err.code === 'resource-exhausted') {
+        if (
+            err.code === 'resource-exhausted'
+            || err.code === 'functions/resource-exhausted'
+            || err.code === 'rate_limited'
+        ) {
              setError("Too many requests. Please wait a moment before trying again.");
         } else if (err.message) {
              setError(err.message);
@@ -190,9 +217,15 @@ const AuthScreen: React.FC = () => {
 
       try {
         try {
-            const verifyAuthCode = httpsCallable(functions, 'verifyAuthCode');
-            const result = await verifyAuthCode({ email, code: codeInput });
-            const data = result.data as any;
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+            let data: { valid?: boolean; message?: string };
+            if (apiBaseUrl) {
+                data = await verifyApiEmailCode(apiBaseUrl, email, codeInput);
+            } else {
+                const verifyAuthCode = getCallable('verifyAuthCode');
+                const result = await verifyAuthCode({ email, code: codeInput });
+                data = result.data as { valid?: boolean; message?: string };
+            }
             
             if (data.valid) {
                  setSignupStep('details');
@@ -294,11 +327,20 @@ const AuthScreen: React.FC = () => {
       setResetMessage(null);
       
       try {
-          const sendResetLink = httpsCallable(functions, 'sendPasswordResetLink');
-          await sendResetLink({ email });
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+          if (apiBaseUrl) {
+              await sendApiPasswordReset(apiBaseUrl, email);
+          } else {
+              const sendResetLink = getCallable('sendPasswordResetLink');
+              await sendResetLink({ email });
+          }
       } catch (err: any) {
           // Rate limit error from server
-          if (err.code === 'functions/resource-exhausted') {
+          if (
+              err.code === 'functions/resource-exhausted'
+              || err.code === 'resource-exhausted'
+              || err.code === 'rate_limited'
+          ) {
               setError("Too many attempts. Please wait a few minutes.");
               setIsLoading(false);
               return;
@@ -523,7 +565,7 @@ const AuthScreen: React.FC = () => {
   return (
     <div className="max-w-md mx-auto w-full relative">
       {/* Race Start Easter Egg Overlay */}
-      <EasterEggOverlay state={easterEggState} activeLights={activeLights} />
+      <EasterEggOverlay {...egg} />
 
       <div className="bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl relative z-10">
         <div 

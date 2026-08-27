@@ -1,40 +1,53 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { setMaintenanceMode } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { Banner } from './ui/index.ts';
+import { LockIcon } from './icons/LockIcon.tsx';
 
 interface AdminMaintenanceBannerProps {
     adminId: string;
 }
 
+/**
+ * Shown to admins while the league is paused, so nobody forgets it is on.
+ *
+ * Gate admin-1 moved it onto the kit `Banner` (it was hardcoding #DA291C and fighting the
+ * sticky wrapper App puts around it with its own `fixed` positioning), and gave the button
+ * an object — "Disable" alone never said disable *what*.
+ */
 const AdminMaintenanceBanner: React.FC<AdminMaintenanceBannerProps> = ({ adminId }) => {
     const { showToast } = useToast();
+    const [isEnding, setIsEnding] = useState(false);
 
     const handleDisable = async () => {
+        setIsEnding(true);
         try {
             await setMaintenanceMode(false, adminId);
             showToast("🟢 Green flag — session live", 'success');
         } catch (error) {
             console.error(error);
             showToast("Failed to disable maintenance mode", 'error');
+        } finally {
+            setIsEnding(false);
         }
     };
 
     return (
-        <div className="fixed top-0 left-0 right-0 z-[9999] bg-[#DA291C] text-white px-4 py-2 shadow-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                <span className="text-xs md:text-sm font-bold uppercase tracking-wide">
-                    ⚠ RED FLAG ACTIVE — Non-admin users are locked out
-                </span>
-            </div>
-            <button 
-                onClick={handleDisable}
-                className="bg-white text-[#DA291C] text-xs font-black uppercase tracking-wider px-3 py-1 rounded shadow-md hover:bg-gray-100 transition-colors"
-            >
-                Disable
-            </button>
-        </div>
+        <Banner
+            tone="danger"
+            icon={LockIcon}
+            title="Red flag — the league is paused"
+            message="Members can't sign in. Only admins can use the app right now."
+            action={
+                <button
+                    onClick={handleDisable}
+                    disabled={isEnding}
+                    className="rounded-lg bg-pure-white px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-primary-red transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                    {isEnding ? 'Ending…' : 'End maintenance'}
+                </button>
+            }
+        />
     );
 };
 

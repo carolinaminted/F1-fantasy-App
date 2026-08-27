@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "formula-fantasy-1",
+    "prod": "formula-fantasy-1",
+    "staging": "formula-fantasy-staging"
+  }
+}

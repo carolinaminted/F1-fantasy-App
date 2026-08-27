@@ -1,0 +1,11 @@
+{
+  "region": "us-central1",
+  "runtime": "nodejs22",
+  "functions": [
+    "manualLeaderboardSync",
+    "sendAuthCode",
+    "sendPasswordResetLink",
+    "validateInvitationCode",
+    "verifyAuthCode"
+  ]
+}

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types.ts';
-import { PageHeader } from './ui/PageHeader.tsx';
-import { BackIcon } from './icons/BackIcon.tsx';
+import { User, Event, RaceResults } from '../types.ts';
 import { SpeakerphoneIcon } from './icons/SpeakerphoneIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { AdminIcon } from './icons/AdminIcon.tsx';
@@ -11,17 +9,28 @@ import { useGeneralAnnouncement } from '../hooks/useGeneralAnnouncement.ts';
 import { setMaintenanceMode, triggerResultsAnnouncement, clearResultsAnnouncement, triggerGeneralAnnouncement, clearGeneralAnnouncement } from '../services/firestoreService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
-import { EVENTS } from '../constants.ts';
-import CountdownTimer from './CountdownTimer.tsx';
+import { Countdown, SegmentedControl, Chip, EventSelector, type Segment } from './ui/index.ts';
+import { AdminToolShell, ConfirmModal } from './admin/index.ts';
+import type { AdminDestination } from '../routes.ts';
+import { findNextEvent } from '../utils/eventStatus.ts';
 
 interface AdminAnnouncementsPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations' | 'database' | 'announcements') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
+    events: Event[];
+    raceResults: RaceResults;
+    cancelledEventIds: Set<string>;
 }
 
 type AnnouncementTab = 'maintenance' | 'results' | 'general';
 
-const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdminSubPage, user }) => {
+const TABS: Segment<AnnouncementTab>[] = [
+    { value: 'maintenance', label: 'Pause the league', icon: AdminIcon },
+    { value: 'results', label: 'Results are in', icon: TrophyIcon },
+    { value: 'general', label: 'Message everyone', icon: SpeakerphoneIcon },
+];
+
+const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdminSubPage, user, events, raceResults, cancelledEventIds }) => {
     const [activeTab, setActiveTab] = useState<AnnouncementTab>('maintenance');
     const { showToast } = useToast();
 
@@ -31,7 +40,10 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
 
     // Results State
     const { announcement } = useResultsAnnouncement(user);
-    const [announcementEventId, setAnnouncementEventId] = useState<string>(EVENTS[0]?.id || '');
+    // Default to the race everyone is about to talk about, not Round 1 back in March.
+    const [announcementEventId, setAnnouncementEventId] = useState<string>(
+        () => findNextEvent(events)?.id || events[0]?.id || ''
+    );
     const [announcementMessage, setAnnouncementMessage] = useState('');
     const [isAnnouncing, setIsAnnouncing] = useState(false);
 
@@ -39,6 +51,8 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
     const { announcement: generalAnnouncement } = useGeneralAnnouncement(user);
     const [generalMessage, setGeneralMessage] = useState('');
     const [isGeneralAnnouncing, setIsGeneralAnnouncing] = useState(false);
+    const [showRedFlagConfirm, setShowRedFlagConfirm] = useState(false);
+    const [isTogglingMaintenance, setIsTogglingMaintenance] = useState(false);
 
     useEffect(() => {
         if (maintenance) {
@@ -49,7 +63,9 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
     const toggleMaintenance = async () => {
         const currentUser = auth.currentUser;
         if (!currentUser) return;
-        
+
+        setShowRedFlagConfirm(false);
+        setIsTogglingMaintenance(true);
         const newState = !maintenance?.enabled;
         try {
             await setMaintenanceMode(newState, currentUser.uid, maintenanceMsg);
@@ -61,12 +77,31 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
         } catch (error) {
             console.error("Maintenance toggle failed", error);
             showToast("Failed to toggle maintenance mode", 'error');
+        } finally {
+            setIsTogglingMaintenance(false);
+        }
+    };
+
+    /* Saving the public message on its own — it used to only persist as a side effect of
+       toggling, so editing it while paused appeared to do nothing. */
+    const saveMaintenanceMessage = async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        setIsTogglingMaintenance(true);
+        try {
+            await setMaintenanceMode(true, currentUser.uid, maintenanceMsg);
+            showToast("Message updated", 'success');
+        } catch (error) {
+            console.error("Failed to update maintenance message", error);
+            showToast("Failed to update the message", 'error');
+        } finally {
+            setIsTogglingMaintenance(false);
         }
     };
 
     const handleAnnounceResults = async () => {
         if (!user || !announcementEventId) return;
-        const event = EVENTS.find(e => e.id === announcementEventId);
+        const event = events.find(e => e.id === announcementEventId);
         if (!event) return;
 
         setIsAnnouncing(true);
@@ -128,120 +163,96 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
         }
     };
 
-    const DashboardAction = (
-        <button 
-            onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
-        >
-            <BackIcon className="w-4 h-4" /> 
-            <span className="text-sm font-bold">Dashboard</span>
-        </button>
-    );
-
     return (
         <div className="max-w-4xl mx-auto text-pure-white h-full flex flex-col">
-            <div className="flex-none">
-                <PageHeader 
-                    title="ANNOUNCEMENTS" 
-                    icon={SpeakerphoneIcon} 
-                    leftAction={DashboardAction}
-                />
-            </div>
+            <AdminToolShell
+                title="ANNOUNCEMENTS"
+                icon={SpeakerphoneIcon}
+                subtitle="Tell the league something, or pause it for maintenance"
+                setAdminSubPage={setAdminSubPage}
+            />
 
-            <div className="flex-1 overflow-y-auto no-scrollbar px-2 md:px-0 pb-24 md:pb-8 mt-6">
-                
-                {/* Interactive Glass Filter Slider (Desktop Only) */}
-                <div className="hidden md:flex relative bg-carbon-black/50 border border-pure-white/10 rounded-2xl p-2 mb-8 shadow-2xl backdrop-blur-md">
-                    {/* Sliding Background Indicator */}
-                    <div 
-                        className="absolute top-2 bottom-2 w-[calc(33.333%-5.33px)] bg-pure-white/10 border border-pure-white/20 rounded-xl transition-transform duration-300 ease-in-out shadow-[0_0_15px_rgba(255,255,255,0.1)] backdrop-blur-lg"
-                        style={{ 
-                            transform: `translateX(${
-                                activeTab === 'maintenance' ? '0%' : 
-                                activeTab === 'results' ? '100%' : '200%'
-                            })`,
-                            marginLeft: activeTab === 'maintenance' ? '0' : activeTab === 'results' ? '8px' : '16px'
-                        }}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-2 md:px-0 pb-24 md:pb-8">
+                {/*
+                  This bar used to be hidden below md, so a phone got three stacked panels
+                  and no tabs — a different information architecture per breakpoint. One
+                  control now, at every width.
+                */}
+                <div className="mb-6">
+                    <SegmentedControl
+                        segments={TABS}
+                        value={activeTab}
+                        onChange={v => setActiveTab(v)}
+                        scrollable
+                        size="sm"
                     />
-
-                    {/* Tab Buttons */}
-                    <button 
-                        onClick={() => setActiveTab('maintenance')}
-                        className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${activeTab === 'maintenance' ? 'text-pure-white' : 'text-highlight-silver hover:text-pure-white/80'}`}
-                    >
-                        <AdminIcon className="w-4 h-4" />
-                        <span className="hidden sm:inline">Maintenance</span>
-                    </button>
-                    
-                    <button 
-                        onClick={() => setActiveTab('results')}
-                        className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${activeTab === 'results' ? 'text-pure-white' : 'text-highlight-silver hover:text-pure-white/80'}`}
-                    >
-                        <TrophyIcon className="w-4 h-4" />
-                        <span className="hidden sm:inline">Results</span>
-                    </button>
-                    
-                    <button 
-                        onClick={() => setActiveTab('general')}
-                        className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${activeTab === 'general' ? 'text-pure-white' : 'text-highlight-silver hover:text-pure-white/80'}`}
-                    >
-                        <SpeakerphoneIcon className="w-4 h-4" />
-                        <span className="hidden sm:inline">General</span>
-                    </button>
                 </div>
 
-                {/* Dynamic Form Content */}
-                <style>{`
-                    @media (min-width: 768px) {
-                        .desktop-slider {
-                            transform: translateX(${activeTab === 'maintenance' ? '0%' : activeTab === 'results' ? '-100%' : '-200%'});
-                        }
-                    }
-                `}</style>
-                <div className="relative md:overflow-hidden bg-carbon-fiber md:rounded-2xl md:border md:border-pure-white/10 md:shadow-2xl">
-                    <div className="flex flex-col md:flex-row md:transition-transform md:duration-500 md:ease-in-out items-stretch desktop-slider gap-6 md:gap-0">
-                        {/* Maintenance Form */}
-                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
-                            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
-                                <div className={`p-4 rounded-full ${maintenance?.enabled ? 'bg-primary-red text-white animate-pulse shadow-[0_0_30px_rgba(218,41,28,0.4)]' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
-                                    <AdminIcon className="w-8 h-8" />
+                <div className="rounded-2xl border border-pure-white/10 bg-carbon-fiber shadow-2xl">
+                    {activeTab === 'maintenance' && (
+                        <div className="w-full p-6 md:p-8">
+                            <div className="mb-6 flex flex-col items-center gap-4 text-center md:flex-row md:items-start md:text-left">
+                                <div className={`shrink-0 rounded-full p-4 ${maintenance?.enabled ? 'bg-primary-red text-white' : 'border border-pure-white/10 bg-carbon-black text-highlight-silver'}`}>
+                                    <AdminIcon className="h-8 w-8" />
                                 </div>
                                 <div>
-                                    <h2 className={`text-2xl font-black uppercase tracking-wider ${maintenance?.enabled ? 'text-primary-red' : 'text-pure-white'}`}>
-                                        {maintenance?.enabled ? 'RED FLAG ACTIVE' : 'RACE CONTROL: GREEN FLAG'}
-                                    </h2>
-                                    <p className="text-sm text-highlight-silver opacity-80 mt-1">
-                                        {maintenance?.enabled ? 'App is locked for non-admins. Users see the maintenance screen.' : 'App is accessible to all users normally.'}
+                                    <div className="flex items-center justify-center gap-2 md:justify-start">
+                                        <h2 className={`text-2xl font-black uppercase tracking-wider ${maintenance?.enabled ? 'text-primary-red' : 'text-pure-white'}`}>
+                                            {maintenance?.enabled ? 'League paused' : 'League running'}
+                                        </h2>
+                                        <Chip
+                                            label={maintenance?.enabled ? 'Red flag' : 'Green flag'}
+                                            tone={maintenance?.enabled ? 'danger' : 'success'}
+                                            size="xs"
+                                        />
+                                    </div>
+                                    <p className="mt-1 text-sm leading-relaxed text-highlight-silver">
+                                        {maintenance?.enabled
+                                            ? 'Members cannot sign in. They see a maintenance screen with your message below. You and other admins still have full access.'
+                                            : 'Everyone can sign in and use the app as normal. Pausing is for when you need to fix data without members seeing it half-done.'}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 text-center md:text-left">Public Message (Optional)</label>
-                                    <textarea 
-                                        placeholder="e.g., We are currently calculating points for the Australian GP..."
+                                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
+                                        What members will see (optional)
+                                    </label>
+                                    <textarea
+                                        placeholder="e.g. We're adding the Australian GP results \u2014 back in about ten minutes."
                                         value={maintenanceMsg}
-                                        onChange={(e) => setMaintenanceMsg(e.target.value)}
-                                        className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-primary-red outline-none min-h-[120px] resize-none"
+                                        onChange={e => setMaintenanceMsg(e.target.value)}
+                                        className="min-h-[110px] w-full resize-none rounded-xl border border-pure-white/15 bg-carbon-black p-4 text-sm text-pure-white focus:border-primary-red focus:outline-none"
                                     />
+                                    {maintenance?.enabled && (
+                                        <button
+                                            onClick={saveMaintenanceMessage}
+                                            disabled={isTogglingMaintenance}
+                                            className="mt-2 rounded-lg border border-pure-white/15 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-pure-white/10 disabled:opacity-40"
+                                        >
+                                            Update the message
+                                        </button>
+                                    )}
                                 </div>
-                                
-                                <button 
-                                    onClick={toggleMaintenance}
-                                    className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${
-                                        maintenance?.enabled 
-                                        ? 'bg-green-600 hover:bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
-                                        : 'bg-primary-red hover:bg-red-600 text-white shadow-[0_0_20px_rgba(218,41,28,0.3)]'
+
+                                <button
+                                    onClick={() => maintenance?.enabled ? toggleMaintenance() : setShowRedFlagConfirm(true)}
+                                    disabled={isTogglingMaintenance}
+                                    className={`flex w-full items-center justify-center gap-3 rounded-xl py-4 text-sm font-black uppercase tracking-widest transition-colors disabled:opacity-50 ${
+                                        maintenance?.enabled
+                                            ? 'bg-green-600 text-white hover:bg-green-500'
+                                            : 'bg-primary-red text-white hover:bg-red-600'
                                     }`}
                                 >
-                                    {maintenance?.enabled ? 'Resume Session (Green Flag)' : 'Deploy Red Flag'}
+                                    {maintenance?.enabled ? 'Let members back in' : 'Pause the league'}
                                 </button>
                             </div>
                         </div>
+                    )}
 
-                        {/* Results Form */}
-                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
+                    {activeTab === 'results' && (
+                        <div className="w-full p-6 md:p-8">
                             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
                                 <div className={`p-4 rounded-full ${announcement?.active ? 'bg-green-500 text-white animate-pulse shadow-[0_0_30px_rgba(34,197,94,0.4)]' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
                                     <TrophyIcon className="w-8 h-8" />
@@ -263,7 +274,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                         {announcement.expiresAt?.toDate && (
                                             <div className="text-xs flex items-center gap-1.5 text-highlight-silver/70">
                                                 <span>Expires in:</span>
-                                                <CountdownTimer targetDate={announcement.expiresAt.toDate().toISOString()} />
+                                                <Countdown targetDate={announcement.expiresAt.toDate().toISOString()} expiredLabel="Expired" />
                                             </div>
                                         )}
                                     </div>
@@ -282,13 +293,15 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                 <div className="space-y-6">
                                     <div>
                                         <label className="block text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2 text-center md:text-left">Select Grand Prix</label>
-                                        <select 
-                                            value={announcementEventId} 
-                                            onChange={e => setAnnouncementEventId(e.target.value)} 
-                                            className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-green-500 outline-none appearance-none cursor-pointer text-center md:text-left"
-                                        >
-                                            {EVENTS.map(e => <option key={e.id} value={e.id}>Round {e.round}: {e.name}</option>)}
-                                        </select>
+                                        <EventSelector
+                                            events={events}
+                                            selectedEventId={announcementEventId || null}
+                                            onSelect={ev => setAnnouncementEventId(ev.id)}
+                                            placeholder="Choose a race…"
+                                            raceResults={raceResults}
+                                            cancelledEventIds={cancelledEventIds}
+                                            orderBy="upcoming-first"
+                                        />
                                     </div>
 
                                     <div>
@@ -313,14 +326,16 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                             )}
                         </div>
 
-                        {/* General Form */}
-                        <div className="w-full flex-shrink-0 p-6 md:p-8 bg-carbon-fiber rounded-2xl border border-pure-white/10 shadow-2xl md:bg-none md:rounded-none md:border-none md:shadow-none">
+                    )}
+
+                    {activeTab === 'general' && (
+                        <div className="w-full p-6 md:p-8">
                             <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-4 mb-8">
-                                <div className={`p-4 rounded-full ${generalAnnouncement?.active ? 'bg-blue-500 text-white animate-pulse shadow-[0_0_30px_rgba(37,99,235,0.4)]' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
+                                <div className={`p-4 rounded-full ${generalAnnouncement?.active ? 'bg-indigo-500 text-white' : 'bg-carbon-black text-highlight-silver border border-pure-white/10'}`}>
                                     <SpeakerphoneIcon className="w-8 h-8" />
                                 </div>
                                 <div>
-                                    <h2 className={`text-2xl font-black uppercase tracking-wider ${generalAnnouncement?.active ? 'text-blue-500' : 'text-pure-white'}`}>
+                                    <h2 className={`text-2xl font-black uppercase tracking-wider ${generalAnnouncement?.active ? 'text-indigo-300' : 'text-pure-white'}`}>
                                         {generalAnnouncement?.active ? 'GENERAL ANNOUNCEMENT LIVE' : 'LEAGUE ANNOUNCEMENT'}
                                     </h2>
                                     <p className="text-sm text-highlight-silver opacity-80 mt-1">
@@ -330,13 +345,13 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                             </div>
 
                             {generalAnnouncement?.active ? (
-                                <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6 mb-6 text-center md:text-left">
+                                <div className="bg-indigo-500/10 border border-indigo-500/40 rounded-xl p-6 mb-6 text-center md:text-left">
                                     <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
-                                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Active Message</span>
+                                        <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Active Message</span>
                                         {generalAnnouncement.expiresAt?.toDate && (
                                             <div className="text-xs flex items-center gap-1.5 text-highlight-silver/70">
                                                 <span>Expires in:</span>
-                                                <CountdownTimer targetDate={generalAnnouncement.expiresAt.toDate().toISOString()} />
+                                                <Countdown targetDate={generalAnnouncement.expiresAt.toDate().toISOString()} expiredLabel="Expired" />
                                             </div>
                                         )}
                                     </div>
@@ -358,23 +373,34 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                             placeholder="Enter your official league announcement here..."
                                             value={generalMessage}
                                             onChange={(e) => setGeneralMessage(e.target.value)}
-                                            className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-blue-500 outline-none min-h-[120px] resize-none"
+                                            className="w-full bg-carbon-black border border-accent-gray rounded-xl p-4 text-sm text-pure-white focus:border-primary-red outline-none min-h-[120px] resize-none"
                                         />
                                     </div>
                                     
                                     <button 
                                         onClick={handleGeneralAnnounce}
                                         disabled={isGeneralAnnouncing}
-                                        className="w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                                        className="w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-colors bg-primary-red hover:bg-red-600 text-pure-white"
                                     >
                                         {isGeneralAnnouncing ? 'Posting...' : 'Post Announcement'}
                                     </button>
                                 </div>
                             )}
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={showRedFlagConfirm}
+                onClose={() => setShowRedFlagConfirm(false)}
+                onConfirm={toggleMaintenance}
+                title="Pause the league"
+                consequence="Every member is signed out of the app and cannot get back in until you let them back in. They will see a maintenance screen with your message. You and other admins keep full access."
+                confirmLabel="Pause the league"
+                busy={isTogglingMaintenance}
+                busyLabel="Pausing\u2026"
+            />
         </div>
     );
 };

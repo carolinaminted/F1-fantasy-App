@@ -2,19 +2,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScoringSettingsDoc, ScoringProfile, PointsSystem } from '../types.ts';
 import { saveScoringSettings } from '../services/firestoreService.ts';
-import { BackIcon } from './icons/BackIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { DEFAULT_POINTS_SYSTEM } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
-import { PageHeader } from './ui/PageHeader.tsx';
+import { Tile, EmptyState, Chip, CATEGORY_THEME } from './ui/index.ts';
+import { AdminToolShell, ConfirmModal, useUnsavedChanges, UnsavedChangesBanner } from './admin/index.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
+import type { AdminDestination } from '../routes.ts';
 
 interface ScoringSettingsPageProps {
     settings: ScoringSettingsDoc;
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
 }
 
 const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, setAdminSubPage }) => {
@@ -22,7 +23,35 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
     const [editForm, setEditForm] = useState<ScoringProfile | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showActivateConfirm, setShowActivateConfirm] = useState(false);
     const { showToast } = useToast();
+
+    /*
+      Everything on this page is staged locally until Save. "+ New" in particular only
+      ever existed in React state, so navigating away quietly discarded a profile the
+      admin thought they had created. `isDirty` compares the form against what is saved.
+    */
+    const savedProfile = editForm
+        ? localSettings.profiles.find(p => p.id === editForm.id)
+        : undefined;
+    const isDirty = !!editForm && JSON.stringify(savedProfile) !== JSON.stringify(editForm);
+    const { confirmLeave } = useUnsavedChanges(isDirty);
+
+    const discardChanges = () => {
+        if (!editForm) return;
+        if (savedProfile) {
+            setEditForm(JSON.parse(JSON.stringify(savedProfile)));
+        } else {
+            // A profile that was never saved just goes away, along with its local entry.
+            setLocalSettings(prev => ({
+                ...prev,
+                profiles: prev.profiles.filter(p => p.id !== editForm.id),
+            }));
+            const fallback = localSettings.profiles.find(p => p.id === localSettings.activeProfileId)
+                ?? localSettings.profiles[0];
+            setEditForm(fallback ? JSON.parse(JSON.stringify(fallback)) : null);
+        }
+    };
     
     useEffect(() => {
         setLocalSettings(settings);
@@ -91,6 +120,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
 
     const handleMakeActive = async () => {
         if (!editForm || isSaving) return;
+        setShowActivateConfirm(false);
         setIsSaving(true);
         try {
             // Internal call to save the current state of the form before activating
@@ -166,35 +196,42 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
 
     const isActiveProfile = editForm?.id === localSettings.activeProfileId;
 
-    const DashboardAction = (
-        <button 
-            onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10"
-        >
-            <BackIcon className="w-4 h-4" /> 
-            <span className="text-sm font-bold">Dashboard</span>
-        </button>
-    );
-
     return (
         <div className="w-full max-w-4xl mx-auto text-pure-white pb-24">
-            <PageHeader 
-                title="SCORING SETTINGS" 
-                icon={TrophyIcon} 
-                leftAction={DashboardAction}
+            <AdminToolShell
+                title="SCORING RULES"
+                icon={TrophyIcon}
+                subtitle="How many points each finishing position is worth"
+                setAdminSubPage={setAdminSubPage}
+                onBeforeLeave={confirmLeave}
+                actions={
+                    <button
+                        onClick={() => handleSaveProfile(true)}
+                        disabled={isSaving || !isDirty}
+                        className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                    >
+                        <SaveIcon className="w-4 h-4" />
+                        {isSaving ? 'Saving\u2026' : 'Save changes'}
+                    </button>
+                }
             />
-            
-            <div className="px-4 md:px-0 space-y-6">
-                {/* Main Profile Control Card */}
-                <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-2xl relative">
-                    
-                    {/* Row 1: Dropdown and Action Buttons */}
-                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-3 relative z-30">
-                        
-                        {/* Left: Dropdown */}
-                        <div className="w-full md:flex-1 min-w-0">
-                             <ProfileDropdown 
-                                profiles={localSettings.profiles} 
+
+            <UnsavedChangesBanner
+                isDirty={isDirty}
+                onSave={() => handleSaveProfile(true)}
+                onDiscard={discardChanges}
+                saving={isSaving}
+                summary={savedProfile
+                    ? `Your edits to "${editForm?.name}" are not saved yet.`
+                    : 'This new set of rules has not been saved yet.'}
+            />
+
+            <div className="px-4 md:px-0 space-y-6 pt-4">
+                <Tile padding="md" className="relative">
+                    <div className="relative z-30 mb-3 flex flex-col items-center justify-between gap-4 md:flex-row">
+                        <div className="w-full min-w-0 md:flex-1">
+                            <ProfileDropdown
+                                profiles={localSettings.profiles}
                                 activeProfileId={localSettings.activeProfileId}
                                 selectedProfileId={editForm?.id || ''}
                                 onSelect={handleProfileSelect}
@@ -202,46 +239,39 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             />
                         </div>
 
-                        {/* Right: Actions */}
-                        <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-shrink-0">
+                        <div className="flex w-full shrink-0 items-center justify-end gap-2 md:w-auto">
                             <button
                                 onClick={handleCreateNew}
                                 disabled={isSaving}
-                                className="h-12 px-6 rounded-xl bg-carbon-black border border-pure-white/10 hover:bg-pure-white/5 text-pure-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                className="h-11 whitespace-nowrap rounded-xl border border-pure-white/15 bg-carbon-black px-5 text-xs font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-pure-white/5 disabled:opacity-50"
                             >
-                                + New
-                            </button>
-
-                            <button
-                                onClick={() => handleSaveProfile(true)}
-                                disabled={isSaving}
-                                className="h-12 w-12 flex items-center justify-center rounded-xl bg-primary-red hover:bg-red-600 text-pure-white shadow-lg shadow-primary-red/20 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent"
-                                title="Save Changes"
-                            >
-                                {isSaving ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <SaveIcon className="w-6 h-6" />
-                                )}
+                                New set of rules
                             </button>
                         </div>
                     </div>
 
-                    {/* Row 2: Context Actions (Active/Delete) */}
-                    <div className="flex items-center gap-4 px-1 h-6 relative z-20">
-                        {!isActiveProfile && editForm && (
+                    {/*
+                      Switching the league's live scoring used to be a 10px text link — the
+                      highest-impact action on the page with the lowest visual weight, and no
+                      confirmation. It is a real button behind a confirm now.
+                    */}
+                    <div className="relative z-20 flex items-center gap-3 px-1">
+                        {isActiveProfile ? (
+                            <Chip label="In use by the league" tone="success" size="xs" />
+                        ) : editForm && (
                             <>
+                                <Chip label="Not in use" tone="neutral" size="xs" />
                                 <button
-                                    onClick={handleMakeActive}
+                                    onClick={() => setShowActivateConfirm(true)}
                                     disabled={isSaving}
-                                    className="text-[10px] font-black uppercase tracking-widest text-green-500 hover:text-green-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                                    className="rounded-lg border border-green-500/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-600 hover:text-pure-white disabled:opacity-40"
                                 >
-                                    Make Active
+                                    Use for league scoring
                                 </button>
                             </>
                         )}
                     </div>
-                </div>
+                </Tile>
 
                 {editForm ? (
                     <div className={`space-y-6 animate-fade-in ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -250,7 +280,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             {/* Profile Name Field */}
                             <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl flex flex-col h-full">
                                 <div className="flex justify-between items-start mb-3">
-                                    <label className="block text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Profile Name</label>
+                                    <label className="block text-[10px] font-black uppercase text-highlight-silver tracking-[0.2em]">Name for this set of rules</label>
                                     {!isActiveProfile && (
                                         <button
                                             onClick={handleDelete}
@@ -262,12 +292,12 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                         </button>
                                     )}
                                 </div>
-                                <div className="flex-grow flex items-center">
+                                <div className="grow flex items-center">
                                     <input 
                                         type="text" 
                                         value={editForm.name}
                                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                        className="w-full bg-transparent border-b border-pure-white/10 focus:border-primary-red text-4xl font-black text-pure-white placeholder-pure-white/10 focus:outline-none transition-colors py-2 italic uppercase tracking-tighter"
+                                        className="w-full rounded-lg border border-pure-white/15 bg-carbon-black px-3 py-2.5 text-lg font-bold text-pure-white placeholder-highlight-silver/40 focus:border-primary-red focus:outline-none"
                                         placeholder="Season 2026"
                                         disabled={isSaving}
                                     />
@@ -277,7 +307,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                             {/* Fastest Lap Field */}
                             <div className="bg-carbon-fiber rounded-2xl border border-pure-white/10 p-6 shadow-xl flex flex-col h-full">
                                 <label className="block text-[10px] font-black uppercase text-highlight-silver mb-4 tracking-[0.2em]">Fastest Lap Bonus</label>
-                                <div className="flex-grow flex items-center">
+                                <div className="grow flex items-center">
                                     <div className="flex items-center gap-4 max-w-sm w-full">
                                         <div className="bg-carbon-black p-3 rounded-xl border border-pure-white/5 shadow-inner">
                                             <FastestLapIcon className="w-7 h-7 text-purple-500" />
@@ -304,7 +334,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 subtitle="Positions 1-10"
                                 values={editForm.config.grandPrixFinish}
                                 onChange={(idx, val) => handleArrayChange('grandPrixFinish', idx, val)}
-                                colorClass="text-primary-red"
+                                colorClass={CATEGORY_THEME.gp.text}
                                 disabled={isSaving}
                             />
                             <PointArraySection 
@@ -312,7 +342,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 subtitle="Positions 1-8"
                                 values={editForm.config.sprintFinish}
                                 onChange={(idx, val) => handleArrayChange('sprintFinish', idx, val)}
-                                colorClass="text-yellow-500"
+                                colorClass={CATEGORY_THEME.sprint.text}
                                 disabled={isSaving}
                             />
                             <PointArraySection 
@@ -320,7 +350,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 subtitle="Positions 1-3"
                                 values={editForm.config.gpQualifying}
                                 onChange={(idx, val) => handleArrayChange('gpQualifying', idx, val)}
-                                colorClass="text-blue-500"
+                                colorClass={CATEGORY_THEME.quali.text}
                                 disabled={isSaving}
                             />
                             <PointArraySection 
@@ -328,49 +358,57 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 subtitle="Positions 1-3"
                                 values={editForm.config.sprintQualifying}
                                 onChange={(idx, val) => handleArrayChange('sprintQualifying', idx, val)}
-                                colorClass="text-blue-400"
+                                colorClass={CATEGORY_THEME.quali.text}
                                 disabled={isSaving}
                             />
                         </div>
                     </div>
                 ) : (
-                    <div className="py-20 flex flex-col items-center justify-center text-highlight-silver opacity-20">
-                        <TrophyIcon className="w-20 h-20 mb-4" />
-                        <p className="text-sm font-black uppercase tracking-[0.2em]">Select Profile to Load Telemetry</p>
-                    </div>
+                    <Tile padding="none">
+                        <EmptyState
+                            icon={TrophyIcon}
+                            title="Choose a set of rules"
+                            description="Pick one above to see and edit its points, or create a new set."
+                        />
+                    </Tile>
                 )}
             </div>
             
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowDeleteConfirm(false)}>
-                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
-                            <TrashIcon className="w-8 h-8 text-red-500" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Delete Profile?</h2>
-                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
-                            Are you sure you want to delete "<span className="text-pure-white font-bold">{editForm?.name}</span>"?
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={confirmDelete}
-                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
-                            >
-                                Yes, Delete Profile
-                            </button>
-                            <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={confirmDelete}
+                title="Delete this set of rules"
+                consequence={
+                    <>
+                        <strong className="text-pure-white">{editForm?.name}</strong> is removed for
+                        good. The league is not using it, so nobody's points change.
+                    </>
+                }
+                confirmLabel="Delete"
+                busy={isSaving}
+                busyLabel="Deleting\u2026"
+            />
+
+            <ConfirmModal
+                isOpen={showActivateConfirm}
+                onClose={() => setShowActivateConfirm(false)}
+                onConfirm={handleMakeActive}
+                title="Use these rules for the league"
+                tone="warning"
+                consequence={
+                    <>
+                        The league switches to{' '}
+                        <strong className="text-pure-white">{editForm?.name}</strong> for scoring from
+                        now on. Races already scored keep the points they were given, but anything
+                        entered or recalculated after this uses these numbers. Any unsaved edits on
+                        this page are saved at the same time.
+                    </>
+                }
+                confirmLabel="Use these rules"
+                busy={isSaving}
+                busyLabel="Switching\u2026"
+            />
         </div>
     );
 };

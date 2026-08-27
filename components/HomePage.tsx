@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import PicksForm from './PicksForm.tsx';
 import { RACE_RESULTS, CURRENT_SEASON } from '../constants.ts';
-import { Event, PickSelection, User, PointsSystem, Driver, Constructor } from '../types.ts';
+import { Event, PickSelection, User, PointsSystem, Driver, Constructor, RaceResults } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
 import { DuesIcon } from './icons/DuesIcon.tsx';
@@ -22,9 +22,10 @@ interface HomePageProps {
   events: Event[];
   initialEventId?: string | null;
   cancelledEventIds: Set<string>;
+  raceResults: RaceResults;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events, initialEventId, cancelledEventIds }) => {
+const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, formLocks, pointsSystem, allDrivers, allConstructors, events, initialEventId, cancelledEventIds, raceResults }) => {
   // Default to the first upcoming (open) event.
   const [selectedEvent, setSelectedEvent] = useState<Event>(() => {
     // 0. Pre-selection from navigation
@@ -74,28 +75,6 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
 
   // Check dues status
   const isDuesPaid = user.duesPaidStatus === 'Paid';
-
-  // Filter Logic for Dropdown
-  const handleEventFilter = (event: Event, filter: string) => {
-      const isLocked = formLocks[event.id] || Date.now() >= (parseLeagueDate(event.lockAtUtc)?.getTime() || 0);
-      
-      if (filter === 'active') return !isLocked;
-      if (filter === 'locked') return isLocked;
-      
-      if (filter === 'needs_picks') {
-          const userPicks = seasonPicks[event.id];
-          const isPicksComplete = userPicks && 
-              userPicks.aTeams?.every(t => t) &&
-              userPicks.bTeam &&
-              userPicks.aDrivers?.every(d => d) &&
-              userPicks.bDrivers?.every(d => d) &&
-              userPicks.fastestLap;
-          
-          return !isLocked && !isPicksComplete;
-      }
-      
-      return true;
-  };
 
   // Status Indicator Render
   const renderEventStatus = (event: Event) => {
@@ -153,13 +132,10 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                   events={events}
                   selectedEventId={selectedEvent.id}
                   onSelect={setSelectedEvent}
-                  filters={[
-                      { label: 'All', value: 'all' },
-                      { label: 'Active', value: 'active' },
-                      { label: 'Locked', value: 'locked' },
-                      { label: 'Needs Picks', value: 'needs_picks' }
-                  ]}
-                  filterPredicate={handleEventFilter}
+                  raceResults={raceResults}
+                  cancelledEventIds={cancelledEventIds}
+                  orderBy="upcoming-first"
+                  align="right"
                   renderStatus={renderEventStatus}
                   placeholder="Select GP..."
                   disabled={!isDuesPaid}

@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
-import SelectorGroup from './SelectorGroup.tsx';
+import { SlotGroup } from './picks/SlotGroup.tsx';
+import { OptionSheet } from './picks/OptionSheet.tsx';
+import { SlotCard } from './picks/SlotCard.tsx';
+import { LineupReview } from './picks/LineupReview.tsx';
+import { TeamIcon } from './icons/TeamIcon.tsx';
+import { DriverIcon } from './icons/DriverIcon.tsx';
+import { teamColor } from './ui/tokens.ts';
 import { SubmitIcon } from './icons/SubmitIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { LockIcon } from './icons/LockIcon.tsx';
@@ -10,7 +16,7 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
-import CountdownTimer from './CountdownTimer.tsx';
+import { Countdown } from './ui/index.ts';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
 
 const getInitialPicks = (): PickSelection => ({
@@ -67,6 +73,12 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+  /** Which slot the option sheet is currently editing. */
+  const [showReview, setShowReview] = useState(false);
+  /** Which slot the option sheet is currently editing. */
+  const [openSlot, setOpenSlot] = useState<
+    { category: 'aTeams' | 'bTeam' | 'aDrivers' | 'bDrivers' | 'fastestLap'; index: number } | null
+  >(null);
   
   // Time-based locking logic
   const [isTimeLocked, setIsTimeLocked] = useState(() => {
@@ -215,70 +227,18 @@ const PicksForm: React.FC<PicksFormProps> = ({
     }
     
     if (isSelectionComplete()) {
-        // Partial lineup confirmation
-        if (hasEmptySlots() && hasExhaustedCategory) {
-            const exhaustedCategoryNames = Object.entries(exhaustionReport)
-                .filter(([_, r]: [string, any]) => r.isExhausted)
-                .map(([key, r]: [string, any]) => {
-                    const labels: Record<string, string> = {
-                        aTeams: 'Class A Teams', bTeam: 'Class B Team',
-                        aDrivers: 'Class A Drivers', bDrivers: 'Class B Drivers',
-                    };
-                    return `${labels[key]} (${r.emptySlots} empty slot${r.emptySlots > 1 ? 's' : ''})`;
-                });
-
-            const modalBody = (
-                <div className="p-6 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-900/30 border-2 border-amber-500/50 flex items-center justify-center">
-                        <span className="text-2xl">⚠️</span>
-                    </div>
-                    <h4 className="text-2xl font-bold text-pure-white mb-4">Partial Lineup Submission</h4>
-                    <p className="text-highlight-silver text-sm mb-4">
-                        You are submitting a partial lineup due to pick limits exhaustion.
-                    </p>
-                    <div className="bg-carbon-black/50 border border-pure-white/10 rounded-lg p-4 mb-6 text-left">
-                        <p className="text-pure-white font-semibold mb-2">Exhausted Categories:</p>
-                        <ul className="list-disc list-inside text-amber-400/90 text-sm space-y-1">
-                            {exhaustedCategoryNames.map((reason, idx) => (
-                                <li key={idx}>{reason}</li>
-                            ))}
-                        </ul>
-                    </div>
-                    <p className="text-amber-500/80 text-xs mb-6 font-bold uppercase tracking-wider">
-                        Empty slots will score 0 points for this race.
-                    </p>
-                    <div className="flex gap-4 justify-center">
-                        <button 
-                            type="button"
-                            onClick={() => setModalContent(null)}
-                            className="bg-accent-gray hover:bg-accent-gray/80 text-pure-white font-bold py-3 px-6 rounded-lg transition-colors flex-1"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setModalContent(null);
-                                onPicksSubmit(event.id, picks);
-                                setIsEditing(false);
-                            }}
-                            className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-6 rounded-lg transition-colors flex-1 shadow-lg shadow-primary-red/20"
-                        >
-                            Confirm & Submit
-                        </button>
-                    </div>
-                </div>
-            );
-            
-            setModalContent(modalBody);
-            return;
-        }
-
-        onPicksSubmit(event.id, picks);
-        setIsEditing(false);
+        // Every submission passes through the review step, so the budget a lineup spends is
+        // visible before it is spent — not only when the lineup is partial.
+        setShowReview(true);
     } else {
         showToast("Please complete all available selections before submitting.", 'error');
     }
+  };
+
+  const confirmSubmit = () => {
+    setShowReview(false);
+    onPicksSubmit(event.id, picks);
+    setIsEditing(false);
   };
   
   // CANCELLED GATE
@@ -345,7 +305,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 {!isEffectiveLocked && (
                     <div className="mt-6 p-4 bg-carbon-black/40 rounded-lg inline-block border border-pure-white/5 backdrop-blur-sm relative z-10">
                         <p className="text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-2">Time Remaining to Edit</p>
-                        <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+                        <Countdown targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
                     </div>
                 )}
 
@@ -373,38 +333,6 @@ const PicksForm: React.FC<PicksFormProps> = ({
       flSubtitle = allConstructors.find(c => c.id === cId)?.name || CONSTRUCTORS.find(c => c.id === cId)?.name;
   }
 
-  const openFastestLapModal = () => {
-      if(isFormDisabled) return;
-      const isAnyFastestLapSelected = !!picks.fastestLap;
-      const modalBody = (
-          <div className="p-6">
-              <div className="text-center mb-6">
-                  <h4 className="text-2xl font-bold text-pure-white">Select Fastest Lap</h4>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                   {sortedDrivers.map(driver => {
-                       let constructor = allConstructors.find(c => c.id === driver.constructorId) || CONSTRUCTORS.find(c => c.id === driver.constructorId);
-                       const color = constructor?.color;
-                       const subtitle = constructor?.name;
-                       return (
-                           <SelectorCard
-                               key={driver.id}
-                               option={driver}
-                               isSelected={picks.fastestLap === driver.id}
-                               onClick={() => { handleSelect('fastestLap', driver.id); setModalContent(null); }}
-                               placeholder="Driver"
-                               disabled={isFormDisabled}
-                               color={color}
-                               forceColor={!isAnyFastestLapSelected}
-                               subtitle={subtitle}
-                           />
-                       );
-                   })}
-              </div>
-          </div>
-      );
-      setModalContent(modalBody);
-  };
 
   return (
     <>
@@ -417,7 +345,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
               </div>
           )}
           
-          <div className="flex-grow text-center md:text-left z-10">
+          <div className="grow text-center md:text-left z-10">
             <div className="flex items-center justify-center md:justify-start gap-3">
                 <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
                 {isEventCancelled && (
@@ -440,7 +368,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
               {isEventCancelled ? (
                   <span className="text-red-500 font-black text-xl md:text-2xl italic tracking-tighter">N/A</span>
               ) : (
-                  <CountdownTimer targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
+                  <Countdown targetDate={event.lockAtUtc} onExpire={handleTimerExpire} />
               )}
           </div>
           <div className="text-center bg-carbon-black/20 p-2 rounded-lg md:bg-transparent md:p-0 flex flex-col items-center justify-center gap-2 min-w-[120px] z-10">
@@ -465,7 +393,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         {/* CANCELLED STAMP PANEL */}
         {isEventCancelled && (
             <div className="bg-red-950/10 border border-red-500/30 rounded-xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 animate-fade-in">
-                <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
                     <XCircleIcon className="w-8 h-8 text-red-500" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
@@ -489,7 +417,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${isEventCancelled ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
             {hasExhaustedCategory && (
               <div className="lg:col-span-2 bg-amber-900/30 border border-amber-500/50 rounded-lg p-4 flex items-start gap-3 animate-fade-in-up">
-                 <span className="text-amber-400 text-xl flex-shrink-0 mt-0.5">⚠️</span>
+                 <span className="text-amber-400 text-xl shrink-0 mt-0.5">⚠️</span>
                  <div>
                      <p className="text-amber-200 font-bold text-sm">Usage Limits Reached</p>
                      <p className="text-amber-300/80 text-xs mt-1">
@@ -502,33 +430,37 @@ const PicksForm: React.FC<PicksFormProps> = ({
                  </div>
               </div>
             )}
-            <SelectorGroup
-                title="Class A Teams" slots={2} options={aTeams} selected={picks.aTeams}
-                onSelect={(value, index) => handleSelect('aTeams', value, index)}
-                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                isExhausted={exhaustionReport.aTeams.isExhausted}
+            <SlotGroup
+                title="Class A Teams" icon={TeamIcon} slots={2} options={aTeams} selected={picks.aTeams}
+                entityType="teams" allConstructors={allConstructors} allDrivers={allDrivers}
+                getUsage={getUsage} getLimit={getLimit}
+                onOpenSlot={(i) => setOpenSlot({ category: 'aTeams', index: i })}
+                onClearSlot={(i) => handleSelect('aTeams', null, i)}
+                disabled={isFormDisabled} isExhausted={exhaustionReport.aTeams.isExhausted}
             />
-            <SelectorGroup
-                title="Class A Drivers" slots={3} options={aDrivers} selected={picks.aDrivers}
-                onSelect={(value, index) => handleSelect('aDrivers', value, index)}
-                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                isExhausted={exhaustionReport.aDrivers.isExhausted}
+            <SlotGroup
+                title="Class A Drivers" icon={DriverIcon} slots={3} options={aDrivers} selected={picks.aDrivers}
+                entityType="drivers" allConstructors={allConstructors} allDrivers={allDrivers}
+                getUsage={getUsage} getLimit={getLimit}
+                onOpenSlot={(i) => setOpenSlot({ category: 'aDrivers', index: i })}
+                onClearSlot={(i) => handleSelect('aDrivers', null, i)}
+                disabled={isFormDisabled} isExhausted={exhaustionReport.aDrivers.isExhausted}
             />
-            <SelectorGroup
-                title="Class B Team" slots={1} options={bTeams} selected={[picks.bTeam]}
-                onSelect={(value) => handleSelect('bTeam', value, 0)}
-                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                entityType="teams" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                isExhausted={exhaustionReport.bTeam.isExhausted}
+            <SlotGroup
+                title="Class B Team" icon={TeamIcon} slots={1} options={bTeams} selected={[picks.bTeam]}
+                entityType="teams" allConstructors={allConstructors} allDrivers={allDrivers}
+                getUsage={getUsage} getLimit={getLimit}
+                onOpenSlot={() => setOpenSlot({ category: 'bTeam', index: 0 })}
+                onClearSlot={() => handleSelect('bTeam', null, 0)}
+                disabled={isFormDisabled} isExhausted={exhaustionReport.bTeam.isExhausted}
             />
-            <SelectorGroup
-                title="Class B Drivers" slots={2} options={bDrivers} selected={picks.bDrivers}
-                onSelect={(value, index) => handleSelect('bDrivers', value, index)}
-                getUsage={getUsage} getLimit={getLimit} hasRemaining={hasRemaining}
-                entityType="drivers" setModalContent={setModalContent} disabled={isFormDisabled} allConstructors={allConstructors}
-                isExhausted={exhaustionReport.bDrivers.isExhausted}
+            <SlotGroup
+                title="Class B Drivers" icon={DriverIcon} slots={2} options={bDrivers} selected={picks.bDrivers}
+                entityType="drivers" allConstructors={allConstructors} allDrivers={allDrivers}
+                getUsage={getUsage} getLimit={getLimit}
+                onOpenSlot={(i) => setOpenSlot({ category: 'bDrivers', index: i })}
+                onClearSlot={(i) => handleSelect('bDrivers', null, i)}
+                disabled={isFormDisabled} isExhausted={exhaustionReport.bDrivers.isExhausted}
             />
         </div>
 
@@ -538,14 +470,15 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     <FastestLapIcon className="w-5 h-5 text-primary-red" />
                     <h3 className="text-lg font-bold text-pure-white">Fastest Lap</h3>
                 </div>
-                <div className="h-14">
-                    <SelectorCard 
-                        option={selectedFLDriver} isSelected={!!selectedFLDriver}
-                        onClick={openFastestLapModal} placeholder="Select Driver"
-                        disabled={isFormDisabled} color={flColor} forceColor={!!selectedFLDriver}
-                        subtitle={flSubtitle}
-                    />
-                </div>
+                <SlotCard
+                    name={selectedFLDriver?.name}
+                    subtitle={flSubtitle}
+                    color={flColor}
+                    placeholder="Select Driver"
+                    onClick={() => setOpenSlot({ category: 'fastestLap', index: 0 })}
+                    onClear={() => handleSelect('fastestLap', null, 0)}
+                    disabled={isFormDisabled}
+                />
             </div>
             <div className="w-full md:flex-1">
                 <button
@@ -559,6 +492,60 @@ const PicksForm: React.FC<PicksFormProps> = ({
             </div>
         </div>
       </form>
+
+      <LineupReview
+        isOpen={showReview}
+        onClose={() => setShowReview(false)}
+        onConfirm={confirmSubmit}
+        picks={picks}
+        eventName={event.name}
+        allDrivers={allDrivers}
+        allConstructors={allConstructors}
+        getUsage={getUsage}
+        getLimit={getLimit}
+        exhaustedLabels={Object.entries(exhaustionReport)
+          .filter(([, r]: [string, any]) => r.isExhausted)
+          .map(([key]) => ({
+            aTeams: 'Class A Teams', bTeam: 'Class B Team',
+            aDrivers: 'Class A Drivers', bDrivers: 'Class B Drivers',
+          }[key] ?? key))}
+      />
+
+      {/* One sheet drives every slot; which slot is open decides its option list. */}
+      {(() => {
+        if (!openSlot) return null;
+        const CONFIG = {
+          aTeams:     { title: 'Select Class A Team',   options: aTeams,        type: 'teams'   as const, taken: picks.aTeams },
+          bTeam:      { title: 'Select Class B Team',   options: bTeams,        type: 'teams'   as const, taken: [picks.bTeam] },
+          aDrivers:   { title: 'Select Class A Driver', options: aDrivers,      type: 'drivers' as const, taken: picks.aDrivers },
+          bDrivers:   { title: 'Select Class B Driver', options: bDrivers,      type: 'drivers' as const, taken: picks.bDrivers },
+          fastestLap: { title: 'Select Fastest Lap',    options: sortedDrivers, type: 'drivers' as const, taken: [] as (string | null)[] },
+        };
+        const cfg = CONFIG[openSlot.category];
+        const current = openSlot.category === 'bTeam'
+          ? picks.bTeam
+          : openSlot.category === 'fastestLap'
+            ? picks.fastestLap
+            : (picks[openSlot.category] as (string | null)[])[openSlot.index];
+
+        return (
+          <OptionSheet
+            isOpen
+            onClose={() => setOpenSlot(null)}
+            title={cfg.title}
+            options={cfg.options}
+            entityType={cfg.type}
+            takenIds={cfg.taken.filter(Boolean) as string[]}
+            currentId={current}
+            allConstructors={allConstructors}
+            getUsage={getUsage}
+            getLimit={getLimit}
+            /* Fastest Lap has no usage limit, so every driver stays selectable. */
+            hasRemaining={openSlot.category === 'fastestLap' ? () => true : hasRemaining}
+            onSelect={(id) => handleSelect(openSlot.category, id, openSlot.index)}
+          />
+        );
+      })()}
       
       {modalContent && (
         <div 

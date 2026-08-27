@@ -2,23 +2,36 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, InvitationCode } from '../types.ts';
 import { getInvitationCodes, createInvitationCode, createBulkInvitationCodes, deleteInvitationCode, reserveInvitationCode, clearReservation } from '../services/firestoreService.ts';
-import { BackIcon } from './icons/BackIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { CopyIcon } from './icons/CopyIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
-import { PageHeader } from './ui/PageHeader.tsx';
+import {
+    StatTile, DataTable, SegmentedControl, Chip, Modal, NUMERIC,
+    type Column, type Segment,
+} from './ui/index.ts';
+import { AdminToolShell, ConfirmModal } from './admin/index.ts';
 import { ListSkeleton } from './LoadingSkeleton.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import type { AdminDestination } from '../routes.ts';
 
 interface AdminInvitationPageProps {
-    setAdminSubPage: (page: 'dashboard' | 'results' | 'manage-users' | 'scoring' | 'entities' | 'schedule' | 'invitations') => void;
+    setAdminSubPage: (page: AdminDestination) => void;
     user: User | null;
 }
+
+type CodeFilter = 'all' | 'available' | 'reserved' | 'used';
+
+const FILTERS: Segment<CodeFilter>[] = [
+    { value: 'all', label: 'All' },
+    { value: 'available', label: 'Available' },
+    { value: 'reserved', label: 'Reserved' },
+    { value: 'used', label: 'Used' },
+];
 
 const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPage, user }) => {
     const [codes, setCodes] = useState<InvitationCode[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'active' | 'used'>('active');
+    const [filter, setFilter] = useState<CodeFilter>('available');
     const [isCreating, setIsCreating] = useState(false);
     const [bulkAmount, setBulkAmount] = useState(1);
     
@@ -105,8 +118,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     const handleCopyCode = () => {
         if (!selectedCodeObj) return;
         navigator.clipboard.writeText(selectedCodeObj.code);
-        showToast("Code copied to clipboard!", 'success');
-        setSelectedCodeObj(null);
+        showToast(`Copied ${selectedCodeObj.code}`, 'success');
     };
 
     const handleReserve = async () => {
@@ -159,7 +171,10 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
     const filteredCodes = useMemo(() => {
         const filtered = codes.filter(code => {
             if (filter === 'all') return true;
-            if (filter === 'active') return code.status === 'active';
+            // "Reserved" is a real state the table has always shown but the filter never
+            // offered, so reserved codes used to hide inside "active".
+            if (filter === 'available') return code.status === 'active' && !code.reservedFor;
+            if (filter === 'reserved') return code.status === 'active' && !!code.reservedFor;
             if (filter === 'used') return code.status === 'used';
             return true;
         });
@@ -176,25 +191,6 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
             return getTime(b.createdAt) - getTime(a.createdAt);
         });
     }, [codes, filter]);
-
-    const getStatusColor = (code: InvitationCode) => {
-        if (code.status === 'active' && code.reservedFor) {
-            return 'bg-blue-600 text-pure-white shadow-[0_0_10px_rgba(37,99,235,0.4)]';
-        }
-        switch (code.status) {
-            case 'active': return 'bg-green-500 text-carbon-black shadow-[0_0_10px_rgba(34,197,94,0.4)]';
-            case 'reserved': return 'bg-yellow-500 text-carbon-black';
-            case 'used': return 'bg-carbon-black text-highlight-silver border border-pure-white/20';
-            default: return 'bg-carbon-black';
-        }
-    };
-
-    const getStatusLabel = (code: InvitationCode) => {
-        if (code.status === 'active' && code.reservedFor) {
-            return 'RESERVED';
-        }
-        return code.status.toUpperCase();
-    }
 
     const formatDate = (timestamp: any) => {
         if (!timestamp) return '-';
@@ -215,291 +211,277 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
         });
     };
 
-    const DashboardAction = (
-        <button 
-            onClick={() => setAdminSubPage('dashboard')}
-            className="flex items-center gap-2 text-highlight-silver hover:text-pure-white transition-colors bg-carbon-black/50 px-4 py-2 rounded-lg border border-pure-white/10 hover:border-pure-white/30"
-        >
-            <BackIcon className="w-4 h-4" /> 
-            <span className="text-sm font-bold">Dashboard</span>
-        </button>
-    );
+    const columns: Column<InvitationCode>[] = [
+        {
+            key: 'code',
+            header: 'Code',
+            render: code => (
+                <div className="min-w-0">
+                    <span className={`block font-bold tracking-widest text-pure-white ${NUMERIC}`}>
+                        {code.code}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-highlight-silver md:hidden">
+                        {formatDate(code.createdAt)}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            align: 'center',
+            render: code => {
+                const reserved = code.status === 'active' && !!code.reservedFor;
+                return (
+                    <Chip
+                        label={reserved ? 'Reserved' : code.status === 'used' ? 'Used' : 'Available'}
+                        tone={reserved ? 'warning' : code.status === 'used' ? 'neutral' : 'success'}
+                        size="xs"
+                    />
+                );
+            },
+        },
+        {
+            key: 'created',
+            header: 'Created',
+            align: 'center',
+            hideOnMobile: true,
+            render: code => (
+                <span className={`text-highlight-silver ${NUMERIC}`}>{formatDate(code.createdAt)}</span>
+            ),
+        },
+        {
+            key: 'who',
+            header: 'Who has it',
+            render: code =>
+                code.usedByEmail ? (
+                    <div className="min-w-0">
+                        <span className="block truncate text-xs font-bold text-pure-white">
+                            {code.usedByEmail}
+                        </span>
+                        <span className="block text-[10px] text-highlight-silver">
+                            Joined {formatDateTimeEST(code.usedAt)}
+                        </span>
+                    </div>
+                ) : code.reservedFor ? (
+                    <div className="min-w-0">
+                        <span className="block truncate text-xs font-bold text-amber-400">
+                            {code.reservedFor}
+                        </span>
+                        <span className="block text-[10px] text-highlight-silver">Held for them</span>
+                    </div>
+                ) : (
+                    <span className="text-xs text-highlight-silver opacity-40">Nobody yet</span>
+                ),
+        },
+    ];
 
     return (
         <div className="max-w-7xl mx-auto text-pure-white h-full flex flex-col">
-            <div className="flex-none">
-                <PageHeader 
-                    title="INVITATION MANAGER" 
-                    icon={TicketIcon} 
-                    leftAction={DashboardAction}
-                />
-            </div>
-
-            <div className="flex-1 flex flex-col min-h-0 px-2 md:px-0 pb-8">
-                {/* Controls - Fixed Height */}
-                <div className="bg-carbon-fiber/50 backdrop-blur-sm rounded-lg p-4 border border-pure-white/10 mb-6 flex flex-col md:flex-row gap-6 justify-between items-center shadow-lg flex-none ring-1 ring-pure-white/5">
-                    <div className="flex bg-carbon-black rounded-lg p-1 border border-pure-white/10">
-                        {(['all', 'active', 'used'] as const).map(f => (
-                            <button 
-                                key={f} 
-                                onClick={() => setFilter(f)}
-                                className={`px-5 py-2 rounded-md text-sm font-bold uppercase transition-all ${filter === f ? 'bg-primary-red text-pure-white shadow-lg' : 'text-highlight-silver hover:text-pure-white hover:bg-white/5'}`}
-                            >
-                                {f}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Stats Display */}
-                    <div className="flex items-center gap-8 md:gap-12 border-y md:border-y-0 md:border-x border-pure-white/5 py-3 md:py-0 px-6 md:px-12 w-full md:w-auto justify-center bg-black/20 md:bg-transparent rounded-lg md:rounded-none">
-                        <div className="flex flex-col items-center">
-                            <span className="text-[9px] font-black text-highlight-silver uppercase tracking-widest opacity-70 mb-1">Reserved</span>
-                            <span className="text-lg md:text-2xl font-black text-blue-400 leading-none">{stats.reserved}</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <span className="text-[9px] font-black text-highlight-silver uppercase tracking-widest opacity-70 mb-1">Active</span>
-                            <span className="text-lg md:text-2xl font-black text-green-500 leading-none">{stats.active}</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <span className="text-[9px] font-black text-highlight-silver uppercase tracking-widest opacity-70 mb-1">Used</span>
-                            <span className="text-lg md:text-2xl font-black text-pure-white leading-none">{stats.used}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-carbon-black/50 p-2 rounded-lg border border-pure-white/10">
-                        <span className="text-[10px] text-highlight-silver font-black uppercase tracking-widest mr-2 ml-1">Create</span>
-                        <select 
-                            value={bulkAmount} 
-                            onChange={(e) => setBulkAmount(Number(e.target.value))}
-                            className="bg-carbon-black border border-accent-gray text-pure-white text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-primary-red outline-none appearance-none cursor-pointer"
+            <AdminToolShell
+                title="INVITE CODES"
+                icon={TicketIcon}
+                subtitle="Create codes for new members and see who has used them"
+                setAdminSubPage={setAdminSubPage}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={bulkAmount}
+                            onChange={e => setBulkAmount(Number(e.target.value))}
+                            className="cursor-pointer rounded-lg border border-pure-white/15 bg-carbon-black px-3 py-2 text-xs text-pure-white focus:border-primary-red focus:outline-none"
                         >
-                            <option value={1}>1 Code</option>
-                            <option value={5}>5 Codes</option>
-                            <option value={10}>10 Codes</option>
+                            <option value={1}>1 code</option>
+                            <option value={5}>5 codes</option>
+                            <option value={10}>10 codes</option>
                         </select>
-                        <button 
+                        <button
                             onClick={handleCreateCode}
                             disabled={isCreating}
-                            className="bg-primary-red hover:bg-red-600 text-pure-white font-black py-2 px-6 rounded-lg text-xs uppercase tracking-widest disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20 active:scale-95"
+                            className="rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-50"
                         >
-                            {isCreating ? 'Generating...' : 'Generate'}
+                            {isCreating ? 'Creating\u2026' : 'Create'}
                         </button>
                     </div>
+                }
+            />
+
+            <div className="flex flex-1 flex-col min-h-0 px-2 md:px-0 pb-8">
+                <div className="mb-4 grid grid-cols-3 gap-3">
+                    <StatTile label="Available" value={stats.active} unit="codes" />
+                    <StatTile label="Reserved" value={stats.reserved} unit="held" />
+                    <StatTile label="Used" value={stats.used} unit="joined" />
                 </div>
 
-                {/* List Container - Takes Remaining Space */}
-                {isLoading ? <div className="flex-1"><ListSkeleton /></div> : (
-                    <div className="bg-carbon-fiber rounded-xl border border-pure-white/10 shadow-2xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-pure-white/5">
-                        <div className="overflow-y-auto custom-scrollbar flex-1">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-carbon-black/80 sticky top-0 z-10 backdrop-blur-md border-b border-pure-white/10">
-                                    <tr>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest hidden md:table-cell">Code</th>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center">Status</th>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-center hidden md:table-cell">Created</th>
-                                        <th className="p-4 text-[10px] font-black uppercase text-highlight-silver tracking-widest text-left md:text-center">Used By / Reserved</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-pure-white/5">
-                                    {filteredCodes.map(code => (
-                                        <tr 
-                                            key={code.code} 
-                                            className="hover:bg-pure-white/5 transition-colors cursor-pointer group"
-                                            onClick={() => setSelectedCodeObj(code)}
-                                        >
-                                            <td className="p-4 font-mono font-bold text-pure-white tracking-widest group-hover:text-primary-red transition-colors min-w-[200px] hidden md:table-cell">{code.code}</td>
-                                            <td className="p-4 text-center">
-                                                <span className={`inline-block px-3 py-1 text-[10px] font-black uppercase rounded-lg ${getStatusColor(code)}`}>
-                                                    {getStatusLabel(code)}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-sm text-highlight-silver font-medium text-center hidden md:table-cell">{formatDate(code.createdAt)}</td>
-                                            <td className="p-4 text-left md:text-center">
-                                                {code.usedByEmail ? (
-                                                    <div className="inline-flex flex-col items-start md:items-center">
-                                                        <span className="text-pure-white block font-bold text-xs truncate max-w-[150px] md:max-w-none">{code.usedByEmail}</span>
-                                                        <span className="text-[10px] text-highlight-silver block opacity-50 uppercase tracking-tighter">{formatDateTimeEST(code.usedAt)}</span>
-                                                    </div>
-                                                ) : code.reservedFor ? (
-                                                    <div className="inline-flex flex-col items-start md:items-center">
-                                                        <span className="text-blue-400 block font-bold text-xs">{code.reservedFor}</span>
-                                                        <span className="text-[10px] text-highlight-silver block opacity-50 uppercase tracking-tighter">Manually Reserved</span>
-                                                    </div>
-                                                ) : <span className="text-highlight-silver text-xs opacity-30 font-bold">-</span>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredCodes.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="p-12 text-center text-highlight-silver italic bg-carbon-black/20 opacity-50 font-bold uppercase tracking-widest">No matching codes found in database.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div className="mb-3">
+                    <SegmentedControl
+                        segments={FILTERS}
+                        value={filter}
+                        onChange={v => setFilter(v)}
+                        size="sm"
+                        scrollable
+                    />
+                </div>
+
+                {isLoading ? (
+                    <div className="flex-1"><ListSkeleton /></div>
+                ) : (
+                    <DataTable
+                        columns={columns}
+                        rows={filteredCodes}
+                        rowKey={code => code.code}
+                        onRowClick={code => setSelectedCodeObj(code)}
+                        scrollInside
+                        emptyTitle="No codes here"
+                        emptyDescription="Try a different filter, or create some codes."
+                    />
                 )}
             </div>
 
-            {/* Code Detail Modal */}
-            {selectedCodeObj && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-carbon-black/90 backdrop-blur-md p-4 animate-fade-in" onClick={() => !isDeleting && setSelectedCodeObj(null)}>
-                    <div className="bg-carbon-fiber border border-pure-white/10 rounded-xl p-8 max-w-sm w-full text-center shadow-2xl ring-1 ring-pure-white/10 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        
-                        <div className="w-16 h-16 bg-pure-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-pure-white/10">
-                            <TicketIcon className="w-8 h-8 text-pure-white" />
-                        </div>
-                        
-                        <h2 className="text-xs font-bold text-highlight-silver uppercase tracking-widest mb-2">Invitation Code</h2>
-                        <p className="text-2xl md:text-3xl font-black text-pure-white mb-4 font-mono tracking-wider break-all leading-none bg-black/20 p-4 rounded-lg border border-pure-white/5 select-all">
+            <Modal
+                isOpen={!!selectedCodeObj && !confirmingDelete}
+                onClose={() => setSelectedCodeObj(null)}
+                title="Invitation code"
+                icon={TicketIcon}
+                size="sm"
+                footer={
+                    <button
+                        onClick={() => setSelectedCodeObj(null)}
+                        className="rounded-lg border border-pure-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-highlight-silver transition-colors hover:text-pure-white"
+                    >
+                        Close
+                    </button>
+                }
+            >
+                {selectedCodeObj && (
+                    <>
+                        <p className={`select-all break-all rounded-lg border border-pure-white/10 bg-carbon-black p-4 text-center text-2xl font-black tracking-wider text-pure-white ${NUMERIC}`}>
                             {selectedCodeObj.code}
                         </p>
 
-                        {/* Reservation Info */}
+                        {selectedCodeObj.usedByEmail && (
+                            <p className="mt-3 text-center text-xs text-highlight-silver">
+                                Already used by{' '}
+                                <strong className="text-pure-white">{selectedCodeObj.usedByEmail}</strong>.
+                            </p>
+                        )}
+
                         {selectedCodeObj.reservedFor && !showReserveInput && (
-                            <div className="mb-6 bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg">
-                                <p className="text-xs text-blue-400 font-bold uppercase tracking-wide mb-1">Reserved For</p>
-                                <p className="text-pure-white font-bold">{selectedCodeObj.reservedFor}</p>
-                                <button 
+                            <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                                    Being held for
+                                </p>
+                                <p className="font-bold text-pure-white">{selectedCodeObj.reservedFor}</p>
+                                <button
                                     onClick={handleClearReservation}
                                     disabled={isReserving}
-                                    className="text-[10px] text-red-400 hover:text-red-300 underline mt-2"
+                                    className="mt-2 text-[11px] font-bold text-highlight-silver underline transition-colors hover:text-pure-white"
                                 >
-                                    Clear Reservation
+                                    Stop holding it
                                 </button>
                             </div>
                         )}
-                        
-                        <div className="flex flex-col gap-3">
-                            {showReserveInput ? (
-                                <div className="space-y-3 animate-fade-in">
-                                    <div className="text-left">
-                                        <label className="text-[10px] font-bold text-highlight-silver uppercase tracking-wider block mb-1">Reserve For (Name or Email)</label>
-                                        <input 
-                                            type="text" 
-                                            value={reservationName} 
-                                            onChange={(e) => setReservationName(e.target.value)}
-                                            className="w-full bg-carbon-black border border-accent-gray rounded p-2 text-pure-white text-sm focus:border-blue-500 outline-none"
-                                            placeholder="e.g. Alice Smith"
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => setShowReserveInput(false)}
-                                            disabled={isReserving}
-                                            className="flex-1 bg-transparent border border-highlight-silver text-highlight-silver font-bold py-2 rounded-lg text-xs uppercase hover:text-pure-white"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleReserve}
-                                            disabled={isReserving || !reservationName.trim()}
-                                            className="flex-1 bg-blue-600 hover:bg-blue-500 text-pure-white font-bold py-2 rounded-lg text-xs uppercase"
-                                        >
-                                            {isReserving ? 'Saving...' : 'Confirm'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                !confirmingDelete && (
-                                    <>
-                                        <button
-                                            onClick={handleCopyCode}
-                                            className="w-full bg-pure-white hover:bg-highlight-silver text-carbon-black font-black py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                                        >
-                                            <CopyIcon className="w-4 h-4" /> Copy Code
-                                        </button>
 
-                                        {selectedCodeObj.status === 'active' && !selectedCodeObj.reservedFor && (
-                                            <button
-                                                onClick={() => setShowReserveInput(true)}
-                                                className="w-full bg-blue-600 hover:bg-blue-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-colors shadow-lg shadow-blue-600/20 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                                            >
-                                                Reserve for User
-                                            </button>
-                                        )}
-                                    </>
-                                )
-                            )}
-                            
-                            <div className="h-px bg-pure-white/10 w-full my-2"></div>
-
-                            {confirmingDelete ? (
-                                <div className="bg-red-900/20 p-4 rounded-lg border border-red-500/30 animate-fade-in">
-                                    <p className="text-sm font-bold text-red-400 mb-3">Are you sure? This is permanent.</p>
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setConfirmingDelete(false)}
-                                            disabled={isDeleting}
-                                            className="w-full bg-transparent hover:bg-pure-white/10 text-highlight-silver font-bold py-2 px-4 rounded-lg text-xs uppercase"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={executeDelete}
-                                            disabled={isDeleting}
-                                            className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-2 px-4 rounded-lg text-xs uppercase transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            {isDeleting ? 'Deleting...' : <><TrashIcon className="w-4 h-4" /> Confirm</>}
-                                        </button>
-                                    </div>
+                        {showReserveInput ? (
+                            <div className="mt-4 space-y-3">
+                                <div>
+                                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
+                                        Who are you holding it for?
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={reservationName}
+                                        onChange={e => setReservationName(e.target.value)}
+                                        placeholder="e.g. Alice Smith"
+                                        autoFocus
+                                        className="w-full rounded-lg border border-pure-white/15 bg-carbon-black p-2 text-sm text-pure-white focus:border-primary-red focus:outline-none"
+                                    />
                                 </div>
-                            ) : (
-                                <>
-                                    {!showReserveInput && (
-                                        <button
-                                            onClick={handleDeleteClick}
-                                            disabled={isDeleting}
-                                            className="w-full bg-red-900/10 hover:bg-red-900/30 text-red-500 font-bold py-3 px-6 rounded-lg transition-colors border border-red-500/20 hover:border-red-500/40 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
-                                        >
-                                            <TrashIcon className="w-4 h-4" /> Delete Permanently
-                                        </button>
-                                    )}
-                                    
+                                <div className="flex gap-2">
                                     <button
-                                        onClick={() => setSelectedCodeObj(null)}
-                                        disabled={isDeleting}
-                                        className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-2 px-6 rounded-lg transition-colors text-xs uppercase"
+                                        onClick={() => setShowReserveInput(false)}
+                                        disabled={isReserving}
+                                        className="flex-1 rounded-lg border border-pure-white/15 py-2 text-xs font-bold uppercase tracking-wider text-highlight-silver hover:text-pure-white"
                                     >
-                                        Close
+                                        Cancel
                                     </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Clear Reservation Confirmation Modal */}
-            {showClearConfirm && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowClearConfirm(false)}>
-                    <div className="bg-carbon-fiber border border-red-500 rounded-xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl shadow-red-900/50 ring-1 ring-red-500/30 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
-                            <TrashIcon className="w-8 h-8 text-red-500" />
-                        </div>
-                        
-                        <h2 className="text-2xl font-bold text-pure-white mb-2">Clear Reservation?</h2>
-                        <p className="text-highlight-silver mb-6 text-sm leading-relaxed">
-                            Are you sure you want to clear the reservation for <span className="text-pure-white font-bold">{selectedCodeObj?.reservedFor}</span>?
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={confirmClearReservation}
-                                className="w-full bg-red-600 hover:bg-red-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
-                            >
-                                Yes, Clear Reservation
-                            </button>
-                            <button
-                                onClick={() => setShowClearConfirm(false)}
-                                className="w-full bg-transparent hover:bg-pure-white/5 text-highlight-silver font-bold py-3 px-6 rounded-lg transition-colors border border-transparent hover:border-pure-white/10 uppercase text-xs"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                                    <button
+                                        onClick={handleReserve}
+                                        disabled={isReserving || !reservationName.trim()}
+                                        className="flex-1 rounded-lg bg-primary-red py-2 text-xs font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                                    >
+                                        {isReserving ? 'Saving\u2026' : 'Hold it'}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-4 flex flex-col gap-2">
+                                <button
+                                    onClick={handleCopyCode}
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-pure-white px-4 py-2.5 text-xs font-black uppercase tracking-wider text-carbon-black transition-opacity hover:opacity-90"
+                                >
+                                    <CopyIcon className="w-4 h-4" /> Copy code
+                                </button>
+
+                                {selectedCodeObj.status === 'active' && !selectedCodeObj.reservedFor && (
+                                    <button
+                                        onClick={() => setShowReserveInput(true)}
+                                        className="w-full rounded-lg border border-pure-white/15 bg-pure-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-pure-white/10"
+                                    >
+                                        Hold for someone
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={handleDeleteClick}
+                                    disabled={isDeleting}
+                                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-primary-red/30 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white"
+                                >
+                                    <TrashIcon className="w-4 h-4" /> Delete this code
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </Modal>
+
+            {/*
+              One confirmation, not the two nested layers this used to take — deleting a
+              single unused code is far less consequential than pausing the league, which
+              until this gate took none at all.
+            */}
+            <ConfirmModal
+                isOpen={confirmingDelete}
+                onClose={() => setConfirmingDelete(false)}
+                onConfirm={executeDelete}
+                title="Delete this code"
+                consequence={
+                    <>
+                        Code <strong className="text-pure-white">{selectedCodeObj?.code}</strong> is
+                        removed for good. If you have already given it to someone, they will not be
+                        able to join with it.
+                    </>
+                }
+                confirmLabel="Delete code"
+                busy={isDeleting}
+                busyLabel="Deleting\u2026"
+            />
+
+            <ConfirmModal
+                isOpen={showClearConfirm}
+                onClose={() => setShowClearConfirm(false)}
+                onConfirm={confirmClearReservation}
+                title="Stop holding this code"
+                tone="warning"
+                consequence={
+                    <>
+                        The code stops being held for{' '}
+                        <strong className="text-pure-white">{selectedCodeObj?.reservedFor}</strong> and
+                        goes back to available, so anyone you give it to can use it.
+                    </>
+                }
+                confirmLabel="Stop holding it"
+                busy={isReserving}
+            />
         </div>
     );
 };

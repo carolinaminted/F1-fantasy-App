@@ -1,10 +1,11 @@
 
-import { db, functions } from './firebase.ts';
+import { db } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
-import { httpsCallable } from '@firebase/functions';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
+import { cancelApiEvent, restoreApiEvent, saveApiRaceResults, triggerApiLeaderboardSync } from './apiService.ts';
+import { getCallable } from './callableService.ts';
 
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
@@ -22,7 +23,10 @@ const sanitizeUser = (id: string, data: DocumentData): User => {
 
 // Cloud Function Wrappers
 export const triggerManualLeaderboardSync = async () => {
-    const syncFn = httpsCallable(functions, 'manualLeaderboardSync');
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+    if (apiBaseUrl) return triggerApiLeaderboardSync(apiBaseUrl);
+
+    const syncFn = getCallable<unknown, { success: boolean, usersProcessed: number }>('manualLeaderboardSync');
     const result = await syncFn();
     return result.data as { success: boolean, usersProcessed: number };
 };
@@ -162,6 +166,16 @@ export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {
 export const saveRaceResults = async (results: RaceResults) => {
     const ref = doc(db, 'app_state', 'race_results');
     await setDoc(ref, results, { merge: true });
+};
+
+export const saveEventRaceResults = async (
+    eventId: string,
+    results: RaceResults[string],
+    currentResults: RaceResults,
+) => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+    if (apiBaseUrl) return saveApiRaceResults(apiBaseUrl, eventId, results);
+    return saveRaceResults({ ...currentResults, [eventId]: results });
 };
 
 export const saveScoringSettings = async (settings: ScoringSettingsDoc) => {
@@ -603,6 +617,9 @@ export const onCancelledEvents = (callback: (state: CancelledEventsState | null)
 };
 
 export const cancelEvent = async (eventId: string, adminUid: string, reason?: string) => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+    if (apiBaseUrl) return cancelApiEvent(apiBaseUrl, eventId, reason);
+
     console.log("cancelEvent called:", eventId, adminUid, reason);
     const ref = doc(db, 'app_state', 'cancelled_events');
     await setDoc(ref, {
@@ -617,6 +634,9 @@ export const cancelEvent = async (eventId: string, adminUid: string, reason?: st
 };
 
 export const uncancelEvent = async (eventId: string) => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+    if (apiBaseUrl) return restoreApiEvent(apiBaseUrl, eventId);
+
     const ref = doc(db, 'app_state', 'cancelled_events');
     await updateDoc(ref, {
         [`events.${eventId}`]: deleteField()

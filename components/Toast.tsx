@@ -54,7 +54,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: () => void }> = ({ to
       role="alert"
       aria-live="assertive"
     >
-      <div className="flex-shrink-0 pt-0.5">
+      <div className="shrink-0 pt-0.5">
         {icons[toast.type]}
       </div>
       <p className="text-sm font-medium flex-1 pt-0.5 leading-tight">{toast.message}</p>

@@ -1,0 +1,82 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    generativelanguage.googleapis.com/applet-id: 38d303fb-da24-45cf-a80e-4f4806a31e3d
+    generativelanguage.googleapis.com/type: fullstack-applet
+    run.googleapis.com/build-enable-automatic-updates: 'false'
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/invoker-iam-disabled: 'true'
+    run.googleapis.com/maxScale: '20'
+    run.googleapis.com/urls: '["https://lights-out-league-1020839022884.us-west1.run.app","https://lights-out-league-cvmnuwxsza-uw.a.run.app"]'
+  labels:
+    cloud.googleapis.com/location: us-west1
+    managed-by: google-ai-studio
+  name: lights-out-league
+  namespace: '1020839022884'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '3'
+        autoscaling.knative.dev/minScale: '0'
+        run.googleapis.com/base-images: '{"app-container":"us-central1-docker.pkg.dev/serverless-runtimes/google-22/runtimes/nodejs22"}'
+        run.googleapis.com/client-name: cloud-console
+        run.googleapis.com/container-dependencies: '{"nginx-container":["app-container"]}'
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/sessionAffinity: 'false'
+        run.googleapis.com/sources: '{"app-container":"gs://ai-studio-bucket-1020839022884-us-west1/services/lights-out-league/version-88/compiled/build_artifacts.tar.gz"}'
+      labels:
+        client.knative.dev/nonce: e72c61fc-7c75-48e4-ab15-2321a2c46a47
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 200
+      containers:
+      - env:
+        - name: APPLET_ID
+          value: 38d303fb-da24-45cf-a80e-4f4806a31e3d
+        - name: GEMINI_API_KEY
+        image: us-west1-docker.pkg.dev/ai-studio-registry-prod/ai-studio/deploy-container@sha256:ad9b1d5c6cc21099fa078e6593ef3c70cf20fb84545d6dffd245211c6dcc79eb
+        name: nginx-container
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+      - args:
+        - -c
+        - if [ -f server.js ]; then node server.js; else npm start; fi
+        command:
+        - /bin/sh
+        env:
+        - name: PORT
+          value: '3000'
+        - name: APP_URL
+          value: https://lights-out-league-1020839022884.us-west1.run.app
+        image: scratch
+        name: app-container
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        startupProbe:
+          failureThreshold: 10
+          periodSeconds: 1
+          tcpSocket:
+            port: 3000
+          timeoutSeconds: 1
+      runtimeClassName: run.googleapis.com/linux-base-image-update
+      serviceAccountName: 1020839022884-compute@developer.gserviceaccount.com
+      timeoutSeconds: 60
+  traffic:
+  - latestRevision: true
+    percent: 100
