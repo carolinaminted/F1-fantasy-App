@@ -59,7 +59,7 @@ npm run dev -- --mode staging     # local dev against staging (see above; bare `
 npm run lint                      # tsc --noEmit — this IS the typecheck; there is no ESLint
 npm run build -- --mode staging   # vite build for a given mode
 ./deploy-staging.sh --dry-run     # lint + build, touches no cloud resources
-./deploy-staging.sh               # deploys Functions + frontend to STAGING only
+./deploy-staging.sh               # deploys Functions + Firestore rules/indexes + frontend to STAGING
 ```
 
 `deploy-staging.sh` self-guards: it asserts the `.firebaserc` staging alias, hardcodes its
@@ -67,6 +67,13 @@ targets (`formula-fantasy-staging`, Cloud Run `lights-out-league-staging`, `us-w
 any argument that would redirect it, and explicitly fails if a `formula-fantasy-1` target
 appears. Do not add override flags to it. It also *warns* (never blocks) when run from a branch
 other than `staging` or with a dirty working tree — see Branches.
+
+The Firestore step deploys `firestore.rules` and `firestore.indexes.json` together via
+`--only firestore`, and **never passes `--force`**. Under `--non-interactive`, firebase-tools only
+*warns* about indexes that exist in the project but not in the file; `--force` is what turns that
+warning into a deletion. A rules deploy replaces the whole ruleset, so the script diffs the live
+ruleset first and warns if a console edit is about to be reverted, then re-fetches afterward and
+fails if the project is not actually serving the committed file.
 
 ## Branches
 

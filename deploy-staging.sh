@@ -54,11 +54,12 @@ esac
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-for required_file in package.json package-lock.json firebase.json .firebaserc Dockerfile functions/package.json; do
+for required_file in package.json package-lock.json firebase.json .firebaserc Dockerfile \
+                     functions/package.json firestore.rules firestore.indexes.json; do
   [[ -f "$required_file" ]] || fail "required repository file is missing: $required_file"
 done
 
-for required_command in node npm npx gcloud; do
+for required_command in node npm npx gcloud curl python3; do
   command -v "$required_command" >/dev/null 2>&1 || fail "required command is not installed: $required_command"
 done
 
@@ -117,6 +118,102 @@ if [[ "$dry_run" == true ]]; then
   echo "Dry run passed. No cloud resources were changed."
   exit 0
 fi
+
+# Writes the Firestore ruleset that formula-fantasy-staging is currently serving to $1.
+#
+# The `x-goog-user-project` header is required. Without it the Rules API rejects the call
+# against gcloud's shared ADC quota project and returns 403 SERVICE_DISABLED, which reads like
+# a permission problem but is not one.
+fetch_live_rules() {
+  local out_file="$1"
+  local token releases ruleset_name
+
+  token="$(env -u DEBUG gcloud auth print-access-token \
+    --account "$STAGING_GCLOUD_ACCOUNT" 2>/dev/null || true)"
+  [[ -n "$token" ]] || fail "could not obtain an access token for $STAGING_GCLOUD_ACCOUNT"
+
+  releases="$(curl -sS \
+    -H "Authorization: Bearer $token" \
+    -H "x-goog-user-project: $STAGING_FIREBASE_PROJECT" \
+    "https://firebaserules.googleapis.com/v1/projects/${STAGING_FIREBASE_PROJECT}/releases")"
+
+  ruleset_name="$(printf '%s' "$releases" | python3 -c '
+import json, sys
+
+try:
+    data = json.load(sys.stdin)
+except ValueError:
+    sys.exit(1)
+if "error" in data:
+    print(data["error"].get("message", "unknown Firebase Rules API error"), file=sys.stderr)
+    sys.exit(1)
+for release in data.get("releases", []):
+    if release.get("name", "").endswith("/cloud.firestore"):
+        print(release.get("rulesetName", ""))
+        break
+' || true)"
+  [[ -n "$ruleset_name" ]] || fail "could not resolve the live Firestore ruleset for $STAGING_FIREBASE_PROJECT"
+
+  curl -sS \
+    -H "Authorization: Bearer $token" \
+    -H "x-goog-user-project: $STAGING_FIREBASE_PROJECT" \
+    "https://firebaserules.googleapis.com/v1/${ruleset_name}" \
+    | python3 -c '
+import json, sys
+
+data = json.load(sys.stdin)
+files = data.get("source", {}).get("files", [])
+if not files:
+    sys.exit(1)
+sys.stdout.write(files[0]["content"])
+' > "$out_file" || fail "could not fetch the source of ruleset $ruleset_name"
+
+  [[ -s "$out_file" ]] || fail "the live Firestore ruleset came back empty"
+}
+
+rules_workdir="$(mktemp -d)"
+trap 'rm -rf "$rules_workdir"' EXIT
+
+echo
+echo "Checking the live Firestore ruleset..."
+fetch_live_rules "$rules_workdir/live-before.rules"
+
+if diff -u "$rules_workdir/live-before.rules" firestore.rules >/dev/null 2>&1; then
+  echo "  live ruleset already matches firestore.rules"
+else
+  echo
+  echo "  WARNING: the live staging ruleset differs from firestore.rules."
+  echo "           A rules deploy REPLACES the whole ruleset — there is no additive mode — so"
+  echo "           whatever is shown below is about to be reverted to the committed version."
+  echo "           ('-' is live in $STAGING_FIREBASE_PROJECT, '+' is what will be deployed.)"
+  diff -u "$rules_workdir/live-before.rules" firestore.rules | sed 's/^/             /' || true
+fi
+
+echo
+echo "Deploying staging Firestore rules and indexes..."
+# No --force, deliberately. Under --non-interactive firebase-tools only *warns* about indexes
+# present in the project but absent from firestore.indexes.json; --force is precisely what turns
+# that warning into a deletion. This step must never be able to drop an index someone else made.
+env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
+  --only firestore \
+  --project "$STAGING_FIREBASE_PROJECT" \
+  --non-interactive
+
+# `firebase deploy` exiting 0 is not proof the project is serving this file — same reasoning as
+# the Cloud Run serving check at the bottom of this script. Confirm it directly.
+echo
+echo "Verifying the live ruleset matches firestore.rules..."
+fetch_live_rules "$rules_workdir/live-after.rules"
+
+if ! diff -u "$rules_workdir/live-after.rules" firestore.rules >/dev/null 2>&1; then
+  echo >&2
+  echo "Staging deploy blocked: the firestore deploy reported success, but" >&2
+  echo "$STAGING_FIREBASE_PROJECT is not serving firestore.rules." >&2
+  echo "  ('-' is live, '+' is the repo file it should match.)" >&2
+  diff -u "$rules_workdir/live-after.rules" firestore.rules >&2 || true
+  exit 1
+fi
+echo "  live ruleset verified"
 
 echo
 echo "Deploying staging Functions..."
