@@ -82,6 +82,42 @@ Work flows `feature` → `staging` → `prod`, never the reverse. A release is a
 merge of a commit that has already run in staging — so `prod` never contains code no environment
 has served.
 
+### Both durable branches are merge-only — enforced
+
+`prod` and `staging` are never edited or committed on directly. All work starts on a feature
+branch cut from `staging`:
+
+```bash
+git checkout -b feat/... staging          # make the change here
+git checkout staging && git merge feat/... # land it
+git checkout prod && git merge --ff-only staging && git push origin prod   # release
+```
+
+Three independent layers enforce this:
+
+| Layer | File | Covers |
+|---|---|---|
+| Claude Code `PreToolUse` hook | `.claude/hooks/guard-protected-branch.sh`, registered in `.claude/settings.json` | Agent sessions in this repo — refuses Edit/Write and mutating git commands on a protected branch |
+| Git hooks | `.githooks/pre-commit`, `.githooks/pre-push` | Every commit and push from this clone, including your own terminal |
+| GitHub ruleset on `prod` + `staging` | server-side | Force-push and deletion, from any clone |
+
+**One-time per clone:** `git config core.hooksPath .githooks` — git does not install hooks on
+clone, and nothing else runs this for you.
+
+Merges are unaffected by all of it: fast-forward merges fire no hook, merge commits fire
+`pre-merge-commit` (deliberately not installed), and the commit concluding a conflicted or
+`--squash` merge is allowed via `MERGE_HEAD` / `SQUASH_MSG`. `pre-push` additionally rejects a
+`prod` push carrying a non-merge commit that is not reachable from `origin/staging` — so push
+`staging` before releasing.
+
+`LOL_ALLOW_PROD_EDIT=1` overrides the git hooks for a genuine emergency hotfix. The Claude Code
+hook has no override on purpose: the human can bypass, the agent cannot.
+
+Known gap, stated honestly: `staging` has no `pre-push` content check — its sources are many
+short-lived feature branches, so there is nothing single to compare against. `pre-commit` is the
+real guard there, and a commit made with the override, or in a clone that never set
+`core.hooksPath`, will still push.
+
 The dated branches exist because every environment change used to invent a new one. That cost real
 time: `live-staging-august-24-2026` and `live-prod-staging-august-25-2026` silently drifted 14
 commits apart, and neither name said what either environment was running.

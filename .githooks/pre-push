@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# Server-side rules take a while to notice; this catches the same mistakes locally.
+#
+# For prod and staging, reject:
+#   - deleting the branch
+#   - any non-fast-forward update (i.e. a force-push that rewrites history)
+# For prod additionally, reject a push containing a non-merge commit that is not
+# reachable from staging — that is exactly "someone committed straight onto prod".
+#
+# staging gets no equivalent content check on purpose: its sources are many
+# short-lived feature branches, so there is nothing single to compare against.
+# pre-commit is the real guard for staging. A commit made on staging with
+# LOL_ALLOW_PROD_EDIT=1, or in a clone that never ran `git config core.hooksPath
+# .githooks`, will still push. The GitHub ruleset is the backstop for force-push
+# and deletion only.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Emergency override:     LOL_ALLOW_PROD_EDIT=1 git push ...
+
+set -eu
+
+PROTECTED="prod staging"
+
+[ "${LOL_ALLOW_PROD_EDIT:-}" = "1" ] && exit 0
+
+remote=${1:-origin}
+status=0
+
+is_zero() {
+	case "$1" in
+	*[!0]*) return 1 ;;
+	*) return 0 ;;
+	esac
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+	[ -n "${remote_ref:-}" ] || continue
+	branch=${remote_ref#refs/heads/}
+	protected=no
+	for b in $PROTECTED; do
+		[ "$branch" = "$b" ] && protected=yes
+	done
+	[ "$protected" = yes ] || continue
+
+	if is_zero "$local_sha"; then
+		echo "  Refusing to delete \`$branch\` on $remote." >&2
+		status=1
+		continue
+	fi
+
+	if ! is_zero "$remote_sha" && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+		if ! git merge-base --is-ancestor "$remote_sha" "$local_sha"; then
+			echo "  Refusing a non-fast-forward push to \`$branch\` — it would rewrite published history." >&2
+			status=1
+			continue
+		fi
+	fi
+
+	[ "$branch" = "prod" ] || continue
+
+	git fetch --quiet "$remote" staging 2>/dev/null || \
+		echo "  (could not fetch $remote/staging; comparing against the local ref)" >&2
+	if git rev-parse --verify --quiet FETCH_HEAD >/dev/null 2>&1; then
+		base=FETCH_HEAD
+	elif git rev-parse --verify --quiet "refs/remotes/$remote/staging" >/dev/null 2>&1; then
+		base="refs/remotes/$remote/staging"
+	elif git rev-parse --verify --quiet refs/heads/staging >/dev/null 2>&1; then
+		base=refs/heads/staging
+	else
+		echo "  (no staging ref found; skipping the prod content check)" >&2
+		continue
+	fi
+
+	stray=$(git rev-list --no-merges "$base..$local_sha" 2>/dev/null || true)
+	if [ -n "$stray" ]; then
+		cat >&2 <<MSG
+
+  Refusing to push \`prod\`: it carries commits that never went through staging.
+
+$(git log --no-merges --format='      %h  %s' "$base..$local_sha")
+
+  prod may only receive merges of staging commits that have already been
+  deployed and validated in staging. Land this work on staging and push it
+  there first, then release with: git merge --ff-only staging
+
+MSG
+		status=1
+	fi
+done
+
+exit "$status"
