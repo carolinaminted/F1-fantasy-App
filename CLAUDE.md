@@ -11,7 +11,7 @@ Four Google Cloud projects are in play. Two of them are **live production**.
 
 | Project | Number | Role | Status |
 |---|---|---|---|
-| `lights-out-league-prod` | 45017321387 | New consolidated Cloud Run web + API | Deployed, frozen at image digests, **still pointed at staging Firebase** |
+| `lights-out-league-prod` | 45017321387 | New consolidated Cloud Run web + API (prod-staging) | Deployed, digest-pinned, **pointed at production Firebase since 2026-08-25** |
 | `formula-fantasy-1` | 193463400309 | Production Auth + Firestore + 7 Gen 2 Functions | **LIVE — unchanged** |
 | `gen-lang-client-0034225567` | 1020839022884 | Legacy production frontend | **LIVE — this is the rollback system** |
 | `formula-fantasy-staging` | 342911349882 | Isolated validation data plane | Current target of the new prod compute |
@@ -60,6 +60,13 @@ npm run lint                      # tsc --noEmit — this IS the typecheck; ther
 npm run build -- --mode staging   # vite build for a given mode
 ./deploy-staging.sh --dry-run     # lint + build, touches no cloud resources
 ./deploy-staging.sh               # deploys Functions + Firestore rules/indexes + frontend to STAGING
+
+./scripts/release-gates.sh show   # where this commit stands in the pipeline
+./scripts/release-gates.sh sign local     # record that you tested it locally
+./scripts/release-gates.sh sign staging   # record that you tested it on staging (checks first)
+./deploy-prod-staging.sh          # build `prod` → zero-traffic candidate on prod-staging
+./scripts/release-gates.sh sign candidate # record that you smoke-tested the candidate URL
+./promote-prod-staging.sh         # shift prod-staging traffic to the candidate
 ```
 
 `deploy-staging.sh` self-guards: it asserts the `.firebaserc` staging alias, hardcodes its
@@ -116,6 +123,32 @@ Merges are unaffected by all of it: fast-forward merges fire no hook, merge comm
 `--squash` merge is allowed via `MERGE_HEAD` / `SQUASH_MSG`. `pre-push` additionally rejects a
 `prod` push carrying a non-merge commit that is not reachable from `origin/staging` — so push
 `staging` before releasing.
+
+### Release gates
+
+A commit reaches `prod` only after clearing gates recorded as git notes on
+`refs/notes/release-gates` (`./scripts/release-gates.sh show <ref>`):
+
+| Gate | Kind | Meaning |
+|---|---|---|
+| `local-verified` | attested | a human ran it locally and looked at it |
+| `staging-verified` | attested **+ checked** | recorded only if staging is *actually serving* that commit |
+| `candidate-verified` | attested | a human smoke-tested the zero-traffic prod-staging candidate |
+| `promoted` | recorded | traffic was shifted, all four post-promotion gates passed |
+
+`staging-verified` is the interesting one: signing it runs an objective check first. The staging
+service's 100%-traffic revision → its image digest → that digest's `staging-<sha>` tag → resolved
+back through `git rev-parse`. You cannot sign a commit staging is not running.
+
+`pre-push` enforces the gates on the **tip** commit of a `prod` push. Only the tip, because
+`deploy-staging.sh` deploys HEAD — no intermediate feature commit was ever served on its own.
+The notes check always blocks; the staging-serving check blocks only on a *conclusive* negative
+and warns-then-allows when it cannot reach an answer. Failing closed on an inconclusive check
+would just train you to use the override.
+
+**Three of the four gates are attestation, not verification.** There are no automated functional
+tests in this repo; `npm run lint` is a typecheck. The tooling records who said what and when —
+it cannot know whether you actually looked, and it says so.
 
 `LOL_ALLOW_PROD_EDIT=1` overrides the git hooks for a genuine emergency hotfix. The Claude Code
 hook has no override on purpose: the human can bypass, the agent cannot.

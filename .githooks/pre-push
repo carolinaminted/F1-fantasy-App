@@ -5,8 +5,23 @@
 # For prod and staging, reject:
 #   - deleting the branch
 #   - any non-fast-forward update (i.e. a force-push that rewrites history)
-# For prod additionally, reject a push containing a non-merge commit that is not
-# reachable from staging — that is exactly "someone committed straight onto prod".
+# For prod additionally, reject:
+#   - a push containing a non-merge commit that is not reachable from staging — that is
+#     exactly "someone committed straight onto prod"
+#   - a tip commit that has not cleared its release gates (see scripts/release-gates.sh)
+#
+# Only the TIP commit is gated, on purpose. deploy-staging.sh builds and deploys HEAD, so the
+# tip is the only commit that any environment has actually served as a whole. Demanding gates on
+# every intermediate feature commit would demand a deploy that never happened.
+#
+# Gate enforcement has two tiers, and the split is deliberate:
+#
+#   git notes check     always blocks. It is local, needs no network, and cannot be wrong.
+#   staging-serving     blocks ONLY on a conclusive negative. When it cannot reach an answer
+#                       (no gcloud, offline, expired credentials) it warns and allows.
+#
+# A hook that fails closed on an inconclusive check trains you to reach for the override, which
+# disables every guard at once. Inconclusive is not the same as failed.
 #
 # staging gets no equivalent content check on purpose: its sources are many
 # short-lived feature branches, so there is nothing single to compare against.
@@ -86,7 +101,66 @@ $(git log --no-merges --format='      %h  %s' "$base..$local_sha")
 
 MSG
 		status=1
+		continue
 	fi
+
+	gates="$(git rev-parse --show-toplevel)/scripts/release-gates.sh"
+	[ -x "$gates" ] || continue
+
+	short=$(git rev-parse --short "$local_sha")
+
+	# Assign-and-test, never `cmd | sed`: a pipeline reports the LAST command's status, so
+	# piping this through a formatter would silently discard the gate result.
+	if gate_out=$("$gates" check "$local_sha" local-verified staging-verified 2>&1); then
+		:
+	else
+		cat >&2 <<MSG
+
+  Refusing to push \`prod\`: $short has not cleared its release gates.
+
+      $(git log -1 --format='%s' "$local_sha")
+
+$gate_out
+
+  prod may only receive a commit that was deployed to staging AND looked at by a
+  human. Record those:
+
+      ./scripts/release-gates.sh sign local      # you ran it locally
+      ./deploy-staging.sh                        # it reaches staging
+      ./scripts/release-gates.sh sign staging    # you looked at it on staging
+
+  Status:  ./scripts/release-gates.sh show $short
+
+MSG
+		status=1
+		continue
+	fi
+
+	# `set -e` is on: a bare non-zero command aborts the hook before `case` can read $?, which
+	# looks exactly like a silent unexplained push failure. An `if` context suspends that.
+	if "$gates" serving staging "$local_sha" >/dev/null 2>&1; then
+		serving_rc=0
+	else
+		serving_rc=$?
+	fi
+	case $serving_rc in
+	0) ;;
+	1)
+		cat >&2 <<MSG
+
+  Refusing to push \`prod\`: staging is not currently serving $short.
+
+  The gate says this commit was validated on staging, but staging has moved on
+  since. Redeploy it there, then push:  ./deploy-staging.sh
+
+MSG
+		status=1
+		;;
+	*)
+		echo "  NOTE: could not verify what staging serves (offline, or gcloud auth expired)." >&2
+		echo "        Allowing the push on the git-notes gate alone." >&2
+		;;
+	esac
 done
 
 exit "$status"
