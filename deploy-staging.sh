@@ -14,9 +14,22 @@ readonly STAGING_GCLOUD_ACCOUNT="carolinaminted@gmail.com"
 readonly STAGING_REGISTRY_PATH="us-west1-docker.pkg.dev/formula-fantasy-staging/cloud-run-source-deploy/lights-out-league-staging"
 readonly STAGING_BUILD_SA="projects/formula-fantasy-staging/serviceAccounts/342911349882-compute@developer.gserviceaccount.com"
 readonly STAGING_FUNCTIONS_REGION="us-central1"
+# Every function this project deploys. Gen 2 functions are Cloud Run services underneath, and
+# that service is named with the function name lowercased — hence `run_service_name` below.
+readonly STAGING_FUNCTIONS=(manualLeaderboardSync sendAuthCode sendPasswordResetLink
+                            updateLeaderboardOnCancellation updateLeaderboardOnResults
+                            validateInvitationCode verifyAuthCode)
 # Only these two functions read email credentials. They are re-bound after every
 # functions deploy, because `firebase deploy` clears secret bindings it did not set.
 readonly STAGING_EMAIL_FUNCTIONS=(sendauthcode sendpasswordresetlink)
+readonly STAGING_EMAIL_USER_SECRET="lol-staging-email-user"
+readonly STAGING_EMAIL_PASS_SECRET="lol-staging-email-pass"
+
+# Gen 2 function -> its backing Cloud Run service name. `${x,,}` would be shorter but needs
+# bash 4; macOS still ships 3.2, so this stays portable.
+run_service_name() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
 
 usage() {
   cat <<'EOF'
@@ -217,10 +230,56 @@ echo "  live ruleset verified"
 
 echo
 echo "Deploying staging Functions..."
+# Wall-clock start of the deploy, so the check below can scope itself to builds this step
+# triggered. RFC3339 UTC is what `gcloud builds list --filter` compares against.
+functions_deploy_started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
   --only functions \
   --project "$STAGING_FIREBASE_PROJECT" \
   --non-interactive
+
+# Same failure mode as the Cloud Run serving check at the bottom of this script, one layer down:
+# the deploy reports success while individual functions did not actually update. On 2026-08-26
+# five of seven functions updated and sendAuthCode/sendPasswordResetLink both failed their Cloud
+# Build with "function.js does not exist" — each kept serving its previous image, and the deploy
+# carried on to build the frontend and re-bind secrets as if nothing were wrong.
+#
+# ACTIVE alone does not catch it: a function whose update fails stays ACTIVE on the old revision.
+# The build failure is the signal, so check for one in the window this deploy occupied.
+echo
+echo "Verifying the functions deploy actually landed..."
+
+for fn in "${STAGING_FUNCTIONS[@]}"; do
+  state="$(env -u DEBUG gcloud functions describe "$fn" \
+    --project "$STAGING_FIREBASE_PROJECT" --region "$STAGING_FUNCTIONS_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format='value(state)' 2>/dev/null || true)"
+  [[ "$state" == "ACTIVE" ]] || fail "$fn is in state '${state:-unknown}', expected ACTIVE"
+done
+echo "  all ${#STAGING_FUNCTIONS[@]} functions report ACTIVE"
+
+failed_builds="$(env -u DEBUG gcloud builds list \
+  --project "$STAGING_FIREBASE_PROJECT" \
+  --account "$STAGING_GCLOUD_ACCOUNT" \
+  --region "$STAGING_FUNCTIONS_REGION" \
+  --filter="status=FAILURE AND createTime>=\"$functions_deploy_started\"" \
+  --format='value(id)' 2>/dev/null || true)"
+
+if [[ -n "$failed_builds" ]]; then
+  echo >&2
+  echo "Staging deploy blocked: a function build FAILED during this deploy." >&2
+  echo "  The Firebase CLI can still exit 0 when this happens, leaving the affected function" >&2
+  echo "  serving its PREVIOUS image. Do not treat the functions as deployed." >&2
+  echo >&2
+  while IFS= read -r build_id; do
+    [[ -n "$build_id" ]] || continue
+    echo "    build $build_id" >&2
+    echo "      https://console.cloud.google.com/cloud-build/builds;region=${STAGING_FUNCTIONS_REGION}/${build_id}?project=${STAGING_FIREBASE_PROJECT}" >&2
+  done <<< "$failed_builds"
+  exit 1
+fi
+echo "  no function build failed in this window"
 
 echo
 echo "Building staging image (Cloud Build, pinned digest)..."
@@ -262,23 +321,79 @@ for fn in "${STAGING_EMAIL_FUNCTIONS[@]}"; do
     --project "$STAGING_FIREBASE_PROJECT" \
     --region "$STAGING_FUNCTIONS_REGION" \
     --account "$STAGING_GCLOUD_ACCOUNT" \
-    --set-secrets EMAIL_USER=lol-staging-email-user:latest,EMAIL_PASS=lol-staging-email-pass:latest \
+    --set-secrets "EMAIL_USER=${STAGING_EMAIL_USER_SECRET}:latest,EMAIL_PASS=${STAGING_EMAIL_PASS_SECRET}:latest" \
     --quiet
 done
 
-echo
-echo "Verifying no plaintext credentials landed in function config..."
-for fn in manualLeaderboardSync sendAuthCode sendPasswordResetLink \
-          updateLeaderboardOnCancellation updateLeaderboardOnResults \
-          validateInvitationCode verifyAuthCode; do
-  plaintext="$(gcloud functions describe "$fn" \
-    --project "$STAGING_FIREBASE_PROJECT" --region "$STAGING_FUNCTIONS_REGION" \
+# Prints the environment of the revision actually serving $1, one `NAME=KIND` line per variable,
+# where KIND is `plaintext` or `secret:<secret-name>`.
+#
+# This deliberately reads Cloud Run, not `gcloud functions describe`. The re-bind above goes
+# through `gcloud run services update`, which writes the Cloud Run service directly and bypasses
+# the Cloud Functions v2 API, so GCF metadata for these two functions goes stale: as of
+# 2026-08-29 it still reported updateTime 2026-08-26T02:27:54Z — the timestamp of a FAILED
+# update — and an empty serviceConfig.revision, five Cloud Run revisions behind. The old guard
+# read exactly that view, so it was checking a copy that does not serve traffic.
+serving_env() {
+  local svc="$1" serving_rev
+
+  serving_rev="$(env -u DEBUG gcloud run services describe "$svc" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --region "$STAGING_FUNCTIONS_REGION" \
     --account "$STAGING_GCLOUD_ACCOUNT" \
-    --format="value(serviceConfig.environmentVariables)" 2>/dev/null \
-    | tr ';' '\n' | grep -cE '^(EMAIL_USER|EMAIL_PASS)=' || true)"
-  [[ "$plaintext" == "0" ]] || fail "$fn has plaintext EMAIL_* in its config"
+    --format=json 2>/dev/null | python3 -c '
+import json, sys
+
+try:
+    data = json.load(sys.stdin)
+except ValueError:
+    sys.exit(1)
+# A tagged revision at 0% sorts first in status.traffic, so select on percent, never index.
+for entry in data.get("status", {}).get("traffic", []):
+    if entry.get("percent") == 100:
+        print(entry.get("revisionName", ""))
+        break
+')"
+  [[ -n "$serving_rev" ]] || return 1
+
+  env -u DEBUG gcloud run revisions describe "$serving_rev" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --region "$STAGING_FUNCTIONS_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format=json 2>/dev/null | python3 -c '
+import json, sys
+
+data = json.load(sys.stdin)
+containers = data.get("spec", {}).get("containers", [])
+for var in (containers[0].get("env", []) if containers else []):
+    ref = (var.get("valueFrom") or {}).get("secretKeyRef") or {}
+    kind = "secret:" + ref.get("name", "") if ref else "plaintext"
+    print(var.get("name", "") + "=" + kind)
+'
+}
+
+echo
+echo "Verifying email credentials on the revisions actually serving..."
+for fn in "${STAGING_FUNCTIONS[@]}"; do
+  svc="$(run_service_name "$fn")"
+  env_lines="$(serving_env "$svc")" \
+    || fail "could not read the serving revision of $svc — cannot verify its credentials"
+
+  if printf '%s\n' "$env_lines" | grep -qE '^(EMAIL_USER|EMAIL_PASS)=plaintext$'; then
+    fail "$fn serves plaintext EMAIL_* — the credential is exposed in function config"
+  fi
+
+  # The two email functions must not merely lack plaintext, they must actually have the secrets.
+  # A re-bind that silently did not take would otherwise read as a pass.
+  if [[ " ${STAGING_EMAIL_FUNCTIONS[*]} " == *" $svc "* ]]; then
+    for want in "EMAIL_USER=secret:${STAGING_EMAIL_USER_SECRET}" \
+                "EMAIL_PASS=secret:${STAGING_EMAIL_PASS_SECRET}"; do
+      printf '%s\n' "$env_lines" | grep -qxF "$want" \
+        || fail "$fn is missing '$want' on its serving revision — the secret re-bind did not take"
+    done
+  fi
 done
-echo "  all 7 functions clean"
+echo "  all ${#STAGING_FUNCTIONS[@]} functions clean; email secrets bound on ${#STAGING_EMAIL_FUNCTIONS[@]}"
 
 # `gcloud run deploy` reports the revision the service is SERVING, not the one it just
 # created. When traffic is pinned to an older revision those differ, and a deploy that
