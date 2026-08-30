@@ -11,43 +11,11 @@ const logger = functions.logger;
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const { resolveRuntimeTarget } = require("./runtime-target");
+const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
 
-/**
- * Runtime identity, by deploy project.
- *
- * Left unset, Gen 2 functions run as the project's default compute service account, which holds
- * roles/editor — any function compromise becomes project-wide write access. These deploy instead
- * as a dedicated least-privilege account.
- *
- * Spelled out per project rather than resolved from a bare name: firebase-tools only accepts
- * "name@" or a full "name@{project-id}.iam.gserviceaccount.com", and a full address states which
- * identity lands where without the reader having to know how the short form expands.
- *
- * formula-fantasy-1 is deliberately absent — it has no such account, its Node 20 scoring triggers
- * are retired at cutover, and an emergency deploy there must not be blocked by this. An unlisted
- * project falls through to the platform default. Add one here only after creating the account.
- */
-const RUNTIME_SA_BY_PROJECT = new Map([
-  [
-    "formula-fantasy-staging",
-    "lol-functions-runtime@formula-fantasy-staging.iam.gserviceaccount.com",
-  ],
-  [
-    "lights-out-league-prod",
-    "lol-functions-runtime@lights-out-league-prod.iam.gserviceaccount.com",
-  ],
-]);
-
-const deployProjectId = () => {
-  if (process.env.GCLOUD_PROJECT) return process.env.GCLOUD_PROJECT;
-  try {
-    return JSON.parse(process.env.FIREBASE_CONFIG || "{}").projectId || "";
-  } catch {
-    return "";
-  }
-};
-
-const runtimeServiceAccount = RUNTIME_SA_BY_PROJECT.get(deployProjectId());
+// Run as a dedicated least-privilege account instead of the default compute service account,
+// which holds roles/editor. See runtime-service-account.js for which identity lands where.
+const runtimeServiceAccount = resolveRuntimeServiceAccount();
 if (runtimeServiceAccount) {
   setGlobalOptions({ serviceAccount: runtimeServiceAccount });
 }

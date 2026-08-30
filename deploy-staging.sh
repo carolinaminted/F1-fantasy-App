@@ -126,6 +126,29 @@ echo "Running local validation..."
 npm run lint
 npm run build -- --mode staging
 
+# The first attempt at a dedicated runtime identity configured a bare service account name. It
+# looked correct, passed every local check, and was not rejected until `firebase deploy` had
+# already uploaded source and started updating functions — a live deploy spent to learn about a
+# typo. Resolve the identity here instead, before anything is written: the module throws on a
+# malformed address, and the probe below catches an account that does not exist yet.
+echo
+echo "Checking the functions runtime service account..."
+runtime_sa="$(env -u DEBUG GCLOUD_PROJECT="$STAGING_FIREBASE_PROJECT" node -e \
+  'process.stdout.write(require("./functions/runtime-service-account").resolveRuntimeServiceAccount() || "")')" \
+  || fail "the runtime service account table rejected $STAGING_FIREBASE_PROJECT (see the error above)"
+
+if [[ -z "$runtime_sa" ]]; then
+  echo "  none configured for $STAGING_FIREBASE_PROJECT; functions keep the platform default"
+else
+  echo "  $runtime_sa"
+  env -u DEBUG gcloud iam service-accounts describe "$runtime_sa" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format='value(email)' >/dev/null 2>&1 \
+    || fail "runtime service account does not exist in $STAGING_FIREBASE_PROJECT: $runtime_sa"
+  echo "  exists in $STAGING_FIREBASE_PROJECT"
+fi
+
 if [[ "$dry_run" == true ]]; then
   echo
   echo "Dry run passed. No cloud resources were changed."
