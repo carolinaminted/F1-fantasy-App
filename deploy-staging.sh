@@ -274,13 +274,25 @@ echo
 echo "Verifying the functions deploy actually landed..."
 
 for fn in "${STAGING_FUNCTIONS[@]}"; do
-  state="$(env -u DEBUG gcloud functions describe "$fn" \
+  # One describe, two fields: state, then the revision GCF believes it published.
+  read -r state gcf_revision <<<"$(env -u DEBUG gcloud functions describe "$fn" \
     --project "$STAGING_FIREBASE_PROJECT" --region "$STAGING_FUNCTIONS_REGION" \
     --account "$STAGING_GCLOUD_ACCOUNT" \
-    --format='value(state)' 2>/dev/null || true)"
+    --format='value[separator=" "](state,serviceConfig.revision)' 2>/dev/null || true)"
   [[ "$state" == "ACTIVE" ]] || fail "$fn is in state '${state:-unknown}', expected ACTIVE"
+
+  # ACTIVE is not enough. After the 2026-08-26 build failure both email functions sat ACTIVE for
+  # four days with an EMPTY serviceConfig.revision — GCF had no idea what it had published, and
+  # `firebase deploy --only functions` then skipped them as unchanged, freezing their images
+  # while they served someone else's. An empty revision is the fingerprint of that state.
+  #
+  # Deliberately NOT compared against the Cloud Run serving revision: the secret re-bind below
+  # uses `gcloud run services update`, which bypasses the Cloud Functions v2 API, so the two
+  # diverge by design on every deploy. Non-empty is the invariant that actually holds.
+  [[ -n "$gcf_revision" ]] \
+    || fail "$fn reports ACTIVE but has no serviceConfig.revision — its GCF metadata is broken, and the next deploy will skip it as unchanged"
 done
-echo "  all ${#STAGING_FUNCTIONS[@]} functions report ACTIVE"
+echo "  all ${#STAGING_FUNCTIONS[@]} functions report ACTIVE with a published revision"
 
 failed_builds="$(env -u DEBUG gcloud builds list \
   --project "$STAGING_FIREBASE_PROJECT" \

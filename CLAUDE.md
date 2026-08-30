@@ -172,6 +172,15 @@ those files as *plaintext* function config, readable by any project viewer. Emai
 in Secret Manager, bound to `sendAuthCode` and `sendPasswordResetLink` only. `deploy-staging.sh`
 re-binds them after every deploy and fails if plaintext is detected.
 
+**Re-bind secrets with `gcloud run services update`, never `gcloud functions deploy`.** The latter
+re-uploads the *current directory* as the function's source. Run from the repo root on 2026-08-26 it
+shipped the whole repo (414 KB rather than ~45 KB) as the function source; the root `package.json`
+has no `main`, so the Node buildpack looked for `function.js`, found nothing, and both email function
+builds failed. The Firebase CLI still exited 0, and the two functions sat `ACTIVE` on stale images —
+with an empty `serviceConfig.revision`, which made every later `firebase deploy --only functions`
+skip them as unchanged — until 2026-08-30. `deploy-staging.sh` now fails on both signals: a build
+failure in the deploy's window, and any function reporting `ACTIVE` with no published revision.
+
 ## Layout
 
 - `App.tsx` (986 lines) — page state machine and most app wiring.
