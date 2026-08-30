@@ -150,6 +150,11 @@ would just train you to use the override.
 tests in this repo; `npm run lint` is a typecheck. The tooling records who said what and when —
 it cannot know whether you actually looked, and it says so.
 
+As of 2026-08-30 no gate has ever been recorded: `refs/notes/release-gates` does not exist, locally
+or on `origin`. The notes check in `pre-push` always blocks, so the next `prod` release must
+`./scripts/release-gates.sh sign local` and `sign staging` on its tip commit before the push will
+go through. The script fetches and pushes that notes ref itself on each `sign`.
+
 `LOL_ALLOW_PROD_EDIT=1` overrides the git hooks for a genuine emergency hotfix. The Claude Code
 hook has no override on purpose: the human can bypass, the agent cannot.
 
@@ -169,14 +174,22 @@ REST API and is not in either serving path.
 
 **Never put a credential in `functions/.env.<project>`.** `firebase deploy --only functions` injects
 those files as *plaintext* function config, readable by any project viewer. Email credentials belong
-in Secret Manager, bound to `sendAuthCode` and `sendPasswordResetLink` only. `deploy-staging.sh`
-re-binds them after every deploy and fails if plaintext is detected.
+in Secret Manager, bound to `sendAuthCode` and `sendPasswordResetLink` only. `deploy-staging.sh` no
+longer binds them out of band — it once did, via `gcloud run services update --set-secrets`, which
+turned out to be a trap (see below). It now reads each function's serving revision *after* the deploy
+and fails if a credential is served as plaintext or a declared secret did not attach.
 
 **Email secrets are declared in code, and must not be bound out of band.** `functions/email-secrets.js`
 maps each project to its Secret Manager names and `functions/index.js` passes them as `secrets:` on
 `sendAuthCode` / `sendPasswordResetLink`, so `firebase deploy` binds them itself. `formula-fantasy-1`
 is deliberately unlisted — it still holds the credential as plaintext config, and falls back to
 reading `EMAIL_USER` / `EMAIL_PASS` from the environment so an emergency deploy there is not blocked.
+
+**The Functions runtime identity is declared in code too.** `functions/runtime-service-account.js`
+maps each project to a dedicated least-privilege service account and `functions/index.js` applies it
+via `setGlobalOptions({ serviceAccount })`, so every function runs as that identity instead of the
+default Compute Engine SA. `deploy-staging.sh` resolves the expected account for the target project
+and fails *before* the deploy if it is unset or the account does not exist in the project.
 
 Two commands are traps, both learned the hard way:
 
@@ -199,20 +212,23 @@ does that redeploy.
 
 ## Layout
 
-- `App.tsx` (986 lines) — page state machine and most app wiring.
+- `App.tsx` (~1000 lines) — page state machine and most app wiring.
 - `routes.ts` — URL ↔ Page mapping. Six canonical surfaces plus aliases that resolve to the
   surface which absorbed them, and a separate redirect table for retired URLs.
 - `components/` — 33 top-level `.tsx` files plus 83 more across `admin/`, `league/`, `picks/`,
   `profile/`, `showcase/`, `standings/`, `ui/`, and `icons/`. The largest top-level files are
   `SchedulePage`, `DatabaseManagerPage`, `LeaderboardPage`, `AuthScreen`, and `PicksForm`.
-- `services/` — `firestoreService` (direct Firestore), `callableService` (Functions callables),
-  `apiService` (new containerized API), `scoringService`, `validation`.
+- `services/` — `firebase` (SDK init: `auth`, `db`, `functions`, from root `firebaseConfig.ts`),
+  `firestoreService` (direct Firestore), `callableService` (Functions callables), `apiService`
+  (new containerized API), `scoringService`, `validation`.
 - `functions/` — Gen 2 Functions package, Node 22. Seven exports: `updateLeaderboardOnResults`,
   `updateLeaderboardOnCancellation`, `manualLeaderboardSync`, `sendAuthCode`, `verifyAuthCode`,
   `validateInvitationCode`, `sendPasswordResetLink`.
 - `backend/api/` — the new containerized API (Express + Docker) that admin and auth operations
   are migrating to.
 - `hooks/`, `contexts/` (ToastContext), `utils/`, `styles/`.
+- Scripts: `deploy-staging.sh`, `deploy-prod-staging.sh`, `promote-prod-staging.sh` at the root;
+  `scripts/` holds `release-gates.sh`, `rotate-staging-email-secret.sh`, and `bundle-audit.sh`.
 
 **The scoring engine is implemented twice** — `services/scoringService.ts` (client) and
 `functions/index.js` (server) implement the same math independently. A scoring rule change must
@@ -247,11 +263,21 @@ land in both or the two will disagree. See `SCORING_AUDIT_LOGIC.md`.
 
 Authoritative and current, in `../lol-docs/`:
 
-- `PROD_MIGRATION_SUMMARY.md` — migration state, project inventory, the boundary. Start here.
+- `PROD_MIGRATION_SUMMARY.md` — migration state, project inventory, the boundary. Start here, but
+  note it is a 2026-08-24 snapshot: it predates the 2026-08-25 prod-Firebase repoint of
+  prod-staging and the 2026-08-29 Functions runtime-SA work, both already reflected in this file.
 - `PROD_MIGRATION_SESSION_HANDOFF_2026-08-24.md` — detailed handoff.
 - `STAGING_ENVIRONMENT_SUMMARY.md` — staging inventory.
+- `F1_STAGING_PROGRESS.md` — staging build-out progress log.
 - `documentation/production-cutover-readiness-runbook.md` — the cutover procedure.
+- `documentation/release-and-promotion-sop.md` — the `feature` → `staging` → `prod` → prod-staging
+  release and promotion procedure.
+- `documentation/running-lights-out-league-locally.md` — local dev (with the caveat noted under
+  Environment modes above).
+- `documentation/deploying-lights-out-league-from-macbook.md` — operator deploy walkthrough.
+- `documentation/prod-staging-write-tests.md` — the prod-staging write-path validation.
 - `documentation/carolinaminted-net-domain-sop.md` — domain/DNS.
+- `regression/` — standings-diff regression harness (`verify.sh` against a captured baseline).
 
 In-repo docs (`ADMIN_GUIDE.md`, `PLAYER_GUIDE.md`, `FUNCTION_GUIDE.md`, `SCORING_AUDIT_LOGIC.md`,
 `DEPLOYMENT_GUIDE.md`) date to 2026-08-17 and predate both the staging build-out and the
@@ -264,4 +290,9 @@ staging design and the captured production baseline.
 **Season rollover is unstarted and time-critical.** `constants.ts` still carries 24 hardcoded
 `*_26` event IDs and the Firestore model has no season dimension anywhere — season data lives in
 `app_state/*` singleton docs, `userPicks/{uid}`, and `public_users/{uid}`. Rolling into a new
-season currently means manual database surgery. Plan: `../fable-plans/stage-1-season-rollover.md`.
+season currently means manual database surgery. The old `../fable-plans/stage-1-season-rollover.md`
+plan was lost (only the branch-drift table in the workspace `../CLAUDE.md` survives) and needs to
+be rewritten; tracked items live in the Notion **F1 Work Items** database. A hard dependency to
+carry into that plan: the server scoring engine has no season filter — the client drops
+non-current events, the server scores any event key with a result — so last season's picks and
+results must be partitioned or the two engines diverge the moment new events land.
