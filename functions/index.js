@@ -6,12 +6,14 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { setGlobalOptions } = require("firebase-functions/v2");
+const { defineSecret } = require("firebase-functions/params");
 const functions = require("firebase-functions");
 const logger = functions.logger;
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const { resolveRuntimeTarget } = require("./runtime-target");
 const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
+const { resolveEmailSecretNames } = require("./email-secrets");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -19,6 +21,29 @@ const runtimeServiceAccount = resolveRuntimeServiceAccount();
 if (runtimeServiceAccount) {
   setGlobalOptions({ serviceAccount: runtimeServiceAccount });
 }
+
+// The Gmail app password, declared here rather than bound after the deploy. See email-secrets.js
+// for why that distinction matters and which projects are listed.
+//
+// An unlisted project (formula-fantasy-1) resolves to null: no secrets are declared, and the
+// handlers fall back to reading EMAIL_USER / EMAIL_PASS from the environment, which is what that
+// project does today.
+const emailSecretNames = resolveEmailSecretNames();
+const emailSecrets = emailSecretNames
+  ? { user: defineSecret(emailSecretNames.user), pass: defineSecret(emailSecretNames.pass) }
+  : null;
+
+// Passed as the `secrets:` option on the two email handlers, so firebase-tools binds them.
+const emailSecretParams = emailSecrets ? [emailSecrets.user, emailSecrets.pass] : [];
+
+/**
+ * The Gmail credentials, read at call time. `.value()` must not be hoisted to module scope —
+ * during discovery the secret has no value yet, and reading it there would bake in an empty one.
+ */
+const emailCredentials = () => ({
+  user: emailSecrets ? emailSecrets.user.value() : process.env.EMAIL_USER,
+  pass: emailSecrets ? emailSecrets.pass.value() : process.env.EMAIL_PASS,
+});
 
 const runtimeTarget = resolveRuntimeTarget();
 if (runtimeTarget) {
@@ -276,7 +301,7 @@ exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
     }
 });
 
-exports.sendAuthCode = onCall({ cors: true, memory: "512MiB" }, async (request) => {
+exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
   const email = request.data.email;
   if (!email) throw new HttpsError("invalid-argument", "Email is required");
 
@@ -293,8 +318,9 @@ exports.sendAuthCode = onCall({ cors: true, memory: "512MiB" }, async (request) 
   }
   await rateLimitRef.set({ lastAttempt: admin.firestore.FieldValue.serverTimestamp() });
 
-  let gmailEmail = process.env.EMAIL_USER || "your-email@gmail.com";
-  let gmailPassword = process.env.EMAIL_PASS || "your-app-password";
+  const credentials = emailCredentials();
+  let gmailEmail = credentials.user || "your-email@gmail.com";
+  let gmailPassword = credentials.pass || "your-app-password";
   
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   await db.collection("email_verifications").doc(email.toLowerCase()).set({
@@ -383,15 +409,14 @@ exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
     });
 });
 
-exports.sendPasswordResetLink = onCall({ cors: true, memory: "512MiB" }, async (request) => {
+exports.sendPasswordResetLink = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
     const email = request.data.email;
     if (!email) throw new HttpsError("invalid-argument", "Email is required");
 
     const clientIp = getClientIp(request);
     await checkRateLimit(clientIp, 'password_reset', 3, 600);
 
-    const gmailEmail = process.env.EMAIL_USER;
-    const gmailPassword = process.env.EMAIL_PASS;
+    const { user: gmailEmail, pass: gmailPassword } = emailCredentials();
 
     logger.info(`Password reset requested for ${email.substring(0, 3)}***. Config status: EMAIL_USER=${!!gmailEmail}, EMAIL_PASS=${!!gmailPassword}`);
 

@@ -172,14 +172,30 @@ those files as *plaintext* function config, readable by any project viewer. Emai
 in Secret Manager, bound to `sendAuthCode` and `sendPasswordResetLink` only. `deploy-staging.sh`
 re-binds them after every deploy and fails if plaintext is detected.
 
-**Re-bind secrets with `gcloud run services update`, never `gcloud functions deploy`.** The latter
-re-uploads the *current directory* as the function's source. Run from the repo root on 2026-08-26 it
-shipped the whole repo (414 KB rather than ~45 KB) as the function source; the root `package.json`
-has no `main`, so the Node buildpack looked for `function.js`, found nothing, and both email function
-builds failed. The Firebase CLI still exited 0, and the two functions sat `ACTIVE` on stale images —
-with an empty `serviceConfig.revision`, which made every later `firebase deploy --only functions`
-skip them as unchanged — until 2026-08-30. `deploy-staging.sh` now fails on both signals: a build
-failure in the deploy's window, and any function reporting `ACTIVE` with no published revision.
+**Email secrets are declared in code, and must not be bound out of band.** `functions/email-secrets.js`
+maps each project to its Secret Manager names and `functions/index.js` passes them as `secrets:` on
+`sendAuthCode` / `sendPasswordResetLink`, so `firebase deploy` binds them itself. `formula-fantasy-1`
+is deliberately unlisted — it still holds the credential as plaintext config, and falls back to
+reading `EMAIL_USER` / `EMAIL_PASS` from the environment so an emergency deploy there is not blocked.
+
+Two commands are traps, both learned the hard way:
+
+- **`gcloud run services update --set-secrets`** writes the Cloud Run service behind the Cloud
+  Functions v2 API's back and blanks the function's GCF record. After that, `firebase deploy --only
+  functions` silently stops rebuilding that function. From 2026-08-26 to 2026-08-30 both email
+  functions were in that state — five of seven functions rebuilt on every deploy and these two never
+  did, while the deploy reported success.
+- **`gcloud functions deploy`** re-uploads the *current directory* as the function's source. Run from
+  the repo root on 2026-08-26 it shipped the whole repo (414 KB rather than ~45 KB); the root
+  `package.json` has no `main`, so the Node buildpack looked for `function.js`, found nothing, and
+  both email builds failed while the Firebase CLI still exited 0.
+
+`deploy-staging.sh` fails on both fingerprints: a build failure inside the deploy's window, and any
+function reporting `ACTIVE` with no `serviceConfig.revision`.
+
+Because `defineSecret` pins the secret *version* current at deploy time, rotating a credential
+requires a redeploy — adding a version alone changes nothing. `scripts/rotate-staging-email-secret.sh`
+does that redeploy.
 
 ## Layout
 

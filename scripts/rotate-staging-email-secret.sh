@@ -24,6 +24,12 @@ readonly REGION="us-central1"
 readonly PASS_SECRET="lol-staging-email-pass"
 readonly USER_SECRET="lol-staging-email-user"
 readonly EMAIL_SERVICES=(sendauthcode sendpasswordresetlink)
+# Kept in step with deploy-staging.sh — both drive the same firebase-tools.
+readonly FIREBASE_CLI_VERSION="15.28.1"
+# The redeploy below must run from the repo root, where firebase.json lives, regardless of where
+# the script was invoked from.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly REPO_ROOT
 # Optional drop file. Matched by the .env.* rule in .gitignore and not in its allowlist, so it
 # cannot be committed. Deleted as soon as the new version is stored.
 readonly PASS_FILE=".env.staging-email-pass"
@@ -100,15 +106,22 @@ if [[ -f "$PASS_FILE" ]]; then
   echo "  deleted $PASS_FILE"
 fi
 
-# Both functions bind the secret as ":latest", which Cloud Run resolves when an instance starts.
-# A warm instance keeps the old value, so force a new revision rather than hoping for a cold start.
+# The secrets are declared in functions/index.js with `defineSecret`, and firebase-tools pins the
+# exact version that is current at deploy time — the binding is NOT ":latest". Adding a version
+# therefore changes nothing until the functions are redeployed.
+#
+# This must be a `firebase deploy`, not `gcloud run services update`. The latter writes the Cloud
+# Run service behind the Cloud Functions v2 API's back and blanks the function's GCF record, after
+# which `firebase deploy --only functions` silently stops rebuilding these two functions at all.
+# That is what happened between 2026-08-26 and 2026-08-30.
 echo
-echo "Rolling both email functions onto the new version..."
+echo "Redeploying both email functions onto the new version..."
+( cd "$REPO_ROOT" && env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
+    --only functions:sendAuthCode,functions:sendPasswordResetLink \
+    --project "$PROJECT" --non-interactive ) \
+  || fail "could not redeploy the email functions onto the new secret version"
+
 for svc in "${EMAIL_SERVICES[@]}"; do
-  gcloud run services update "$svc" \
-    --project "$PROJECT" --region "$REGION" --account "$ACCOUNT" \
-    --set-secrets "EMAIL_USER=${USER_SECRET}:latest,EMAIL_PASS=${PASS_SECRET}:latest" \
-    --quiet >/dev/null || fail "could not roll $svc onto the new secret version"
   revision="$(gcloud run services describe "$svc" \
     --project "$PROJECT" --region "$REGION" --account "$ACCOUNT" \
     --format='value(status.latestCreatedRevisionName)')"
@@ -122,11 +135,26 @@ for svc in "${EMAIL_SERVICES[@]}"; do
     --project "$PROJECT" --region "$REGION" --account "$ACCOUNT" --format=json \
     | python3 -c '
 import json, sys
-containers = json.load(sys.stdin)["spec"]["template"]["spec"]["containers"]
-for var in containers[0].get("env", []):
+
+data = json.load(sys.stdin)
+template = data["spec"]["template"]
+
+# A declared secret shows up as an opaque alias; the real path is in an annotation.
+aliases = {}
+annotation = template.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/secrets", "")
+for pair in filter(None, annotation.split(",")):
+    alias, _, path = pair.partition(":")
+    aliases[alias] = path.rsplit("/", 1)[-1]
+
+for var in template["spec"]["containers"][0].get("env", []):
     ref = (var.get("valueFrom") or {}).get("secretKeyRef") or {}
-    if var["name"].startswith("EMAIL_"):
-        print(var["name"] + "=" + ("secret:" + ref.get("name", "") if ref else "PLAINTEXT"))
+    if not ref:
+        if "email" in var["name"].lower() or var["name"].startswith("EMAIL_"):
+            print(var["name"] + "=PLAINTEXT")
+        continue
+    name = aliases.get(ref.get("name", ""), ref.get("name", ""))
+    version = ref.get("key", "")
+    print(var["name"] + "=secret:" + name + (" version " + version if version else ""))
 ')"
   echo "$bound" | sed "s/^/  $svc /"
   grep -q 'PLAINTEXT' <<<"$bound" && fail "$svc has a plaintext EMAIL_* value"

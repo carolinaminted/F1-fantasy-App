@@ -281,14 +281,15 @@ for fn in "${STAGING_FUNCTIONS[@]}"; do
     --format='value[separator=" "](state,serviceConfig.revision)' 2>/dev/null || true)"
   [[ "$state" == "ACTIVE" ]] || fail "$fn is in state '${state:-unknown}', expected ACTIVE"
 
-  # ACTIVE is not enough. After the 2026-08-26 build failure both email functions sat ACTIVE for
-  # four days with an EMPTY serviceConfig.revision — GCF had no idea what it had published, and
-  # `firebase deploy --only functions` then skipped them as unchanged, freezing their images
-  # while they served someone else's. An empty revision is the fingerprint of that state.
+  # ACTIVE is not enough. A function whose build failed stays ACTIVE on its previous revision,
+  # and one whose GCF record has been blanked reports ACTIVE with no revision at all — the state
+  # both email functions were in from 2026-08-26 to 2026-08-30, during which every
+  # `firebase deploy --only functions` skipped them.
   #
-  # Deliberately NOT compared against the Cloud Run serving revision: the secret re-bind below
-  # uses `gcloud run services update`, which bypasses the Cloud Functions v2 API, so the two
-  # diverge by design on every deploy. Non-empty is the invariant that actually holds.
+  # That blanking was caused by the out-of-band `gcloud run services update` re-bind this script
+  # used to run, which is now gone: the secrets are declared in functions/index.js instead. With
+  # nothing writing Cloud Run behind GCF's back, a populated revision is a real invariant rather
+  # than something this script breaks itself two steps later.
   [[ -n "$gcf_revision" ]] \
     || fail "$fn reports ACTIVE but has no serviceConfig.revision — its GCF metadata is broken, and the next deploy will skip it as unchanged"
 done
@@ -350,15 +351,17 @@ env -u DEBUG gcloud run deploy "$STAGING_RUN_SERVICE" \
   --quiet
 
 echo
-echo "Re-binding email secrets (firebase deploy clears them)..."
-for fn in "${STAGING_EMAIL_FUNCTIONS[@]}"; do
-  env -u DEBUG gcloud run services update "$fn" \
-    --project "$STAGING_FIREBASE_PROJECT" \
-    --region "$STAGING_FUNCTIONS_REGION" \
-    --account "$STAGING_GCLOUD_ACCOUNT" \
-    --set-secrets "EMAIL_USER=${STAGING_EMAIL_USER_SECRET}:latest,EMAIL_PASS=${STAGING_EMAIL_PASS_SECRET}:latest" \
-    --quiet
-done
+# No secret re-bind here any more, deliberately.
+#
+# This used to run `gcloud run services update --set-secrets` after every functions deploy. That
+# writes the Cloud Run service directly, bypassing the Cloud Functions v2 API, and blanks the
+# function's GCF record — after which `firebase deploy --only functions` stopped rebuilding these
+# two functions at all. Across three deploys (2026-08-26, and twice on 2026-08-30) only the five
+# non-email functions were ever rebuilt: the two that send email had silently left the deploy path.
+#
+# The secrets are declared in functions/index.js with `defineSecret` instead, so firebase-tools
+# binds them as part of the deploy and never clears them. The verification below is unchanged in
+# spirit and still the thing that must pass.
 
 # Prints the environment of the revision actually serving $1, one `NAME=KIND` line per variable,
 # where KIND is `plaintext` or `secret:<secret-name>`.
@@ -399,10 +402,25 @@ for entry in data.get("status", {}).get("traffic", []):
 import json, sys
 
 data = json.load(sys.stdin)
+
+# `defineSecret` bindings arrive as an opaque alias in secretKeyRef.name
+# ("secret-08eb5f89-..."), with the real secret path in an annotation:
+#   run.googleapis.com/secrets: <alias>:projects/<p>/secrets/<name>,...
+# Without resolving that, every declared secret reads as an unrecognised name.
+aliases = {}
+annotation = data.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/secrets", "")
+for pair in filter(None, annotation.split(",")):
+    alias, _, path = pair.partition(":")
+    aliases[alias] = path.rsplit("/", 1)[-1]
+
 containers = data.get("spec", {}).get("containers", [])
 for var in (containers[0].get("env", []) if containers else []):
     ref = (var.get("valueFrom") or {}).get("secretKeyRef") or {}
-    kind = "secret:" + ref.get("name", "") if ref else "plaintext"
+    if ref:
+        name = ref.get("name", "")
+        kind = "secret:" + aliases.get(name, name)
+    else:
+        kind = "plaintext"
     print(var.get("name", "") + "=" + kind)
 '
 }
@@ -414,17 +432,20 @@ for fn in "${STAGING_FUNCTIONS[@]}"; do
   env_lines="$(serving_env "$svc")" \
     || fail "could not read the serving revision of $svc — cannot verify its credentials"
 
-  if printf '%s\n' "$env_lines" | grep -qE '^(EMAIL_USER|EMAIL_PASS)=plaintext$'; then
-    fail "$fn serves plaintext EMAIL_* — the credential is exposed in function config"
+  # `defineSecret` names the env var after the secret, so both spellings are checked: the legacy
+  # EMAIL_* names still used by formula-fantasy-1, and the lol-*-email-* names used here.
+  if printf '%s\n' "$env_lines" \
+    | grep -qE "^(EMAIL_USER|EMAIL_PASS|${STAGING_EMAIL_USER_SECRET}|${STAGING_EMAIL_PASS_SECRET})=plaintext$"; then
+    fail "$fn serves a plaintext email credential — it is exposed in function config"
   fi
 
   # The two email functions must not merely lack plaintext, they must actually have the secrets.
-  # A re-bind that silently did not take would otherwise read as a pass.
+  # A declaration that silently did not take would otherwise read as a pass.
   if [[ " ${STAGING_EMAIL_FUNCTIONS[*]} " == *" $svc "* ]]; then
-    for want in "EMAIL_USER=secret:${STAGING_EMAIL_USER_SECRET}" \
-                "EMAIL_PASS=secret:${STAGING_EMAIL_PASS_SECRET}"; do
+    for want in "${STAGING_EMAIL_USER_SECRET}=secret:${STAGING_EMAIL_USER_SECRET}" \
+                "${STAGING_EMAIL_PASS_SECRET}=secret:${STAGING_EMAIL_PASS_SECRET}"; do
       printf '%s\n' "$env_lines" | grep -qxF "$want" \
-        || fail "$fn is missing '$want' on its serving revision — the secret re-bind did not take"
+        || fail "$fn is missing '$want' on its serving revision — the secret declaration did not take"
     done
   fi
 done
