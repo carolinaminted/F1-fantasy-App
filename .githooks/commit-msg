@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# Nudge for a work-item trailer so commits correlate to the Notion F1 Work Items
+# database (see CLAUDE.md "Conventions").
+#
+# Format:  Refs: [M-8]        one or more, comma-separated: Refs: [C-1], [C-2]
+#
+# This hook WARNS ONLY and never blocks. Plenty of commits legitimately have no
+# work item — chores, docs, typo fixes — and a blocking check would just train
+# people to write a fake ID. The trailer matters for work that closes or advances
+# a tracked item, and there it saves an archaeology session later: without it the
+# only way to find a fixing commit is `git log -S'<code signature>' -- <path>`.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Silence entirely:       LOL_SKIP_REFS_HINT=1 git commit ...
+
+set -eu
+
+[ "${LOL_SKIP_REFS_HINT:-}" = "1" ] && exit 0
+
+msg_file=${1:-}
+[ -n "$msg_file" ] && [ -r "$msg_file" ] || exit 0
+
+# Never let an unexpected failure in this hint block a commit.
+git_dir=$(git rev-parse --absolute-git-dir 2>/dev/null) || exit 0
+
+# Merges, squashes, and reverts carry generated messages — not the author's to annotate.
+[ -e "$git_dir/MERGE_HEAD" ] && exit 0
+[ -e "$git_dir/SQUASH_MSG" ] && exit 0
+
+# Strip comments before matching so a Refs: line inside the commented template does not count.
+body=$(sed -e '/^#/d' "$msg_file")
+
+# Amend/fixup/squash of an existing commit: the trailer, if any, already rode along.
+case "$body" in
+  "fixup!"*|"squash!"*|"Revert "*) exit 0 ;;
+esac
+
+if printf '%s\n' "$body" | grep -qE '^Refs:[[:space:]]*\[[A-Za-z0-9]+-[0-9]+\]'; then
+  exit 0
+fi
+
+cat >&2 <<'EOF'
+
+  hint: no work-item trailer on this commit.
+
+        If this commit closes or advances a tracked item, add a last line:
+
+            Refs: [M-8]
+
+        Several are fine:  Refs: [C-1], [C-2]
+        IDs come from the Notion "F1 Work Items" database.
+
+        Committing anyway (this is only a hint).
+        Silence with LOL_SKIP_REFS_HINT=1.
+
+EOF
+
+exit 0

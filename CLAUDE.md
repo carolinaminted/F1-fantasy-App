@@ -222,6 +222,17 @@ land in both or the two will disagree. See `SCORING_AUDIT_LOGIC.md`.
 
 - **Commits:** conventional and scoped, matching the existing log — `feat(api):`,
   `chore(functions):`, `docs(design):`, `fix(ui):`.
+- **Work-item trailer:** when a commit closes or advances a tracked item, end the message with
+  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **F1 Work
+  Items** database. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
+  commit with no work item is normal. Silence it with `LOL_SKIP_REFS_HINT=1`.
+
+  This is worth the keystrokes: as of 2026-08-30 not one commit in the history carried an ID, so
+  reconciling the tracker meant recovering each fixing commit by pickaxe —
+  `git log -S'<code signature>' -- <path>`. That works but is slow and misses fixes that arrived
+  incidentally. `[M-2]` was fixed inside an unrelated `getFormLocks` refactor and sat open in the
+  tracker for three months as a result. When closing an item, record the SHA and subject on it,
+  and derive its environment with `git branch --contains <sha>`.
 - **Design:** `DESIGN.md` is the authority, and it is detailed — read it before any UI work.
   Near-black canvas `#0A0A0A`, Rosso Corsa `#DA291C` used sparingly, translucent tiles on dark
   (`bg-accent-gray/40` + hairline border + blur, never opaque cards), Exo 2, headings
