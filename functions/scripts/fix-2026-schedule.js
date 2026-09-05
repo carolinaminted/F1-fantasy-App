@@ -46,19 +46,20 @@ const APP_STATE_DOCUMENTS = [
 const BATCH_LIMIT = 400;
 
 /**
- * Provisional. Sepang runs at UTC+8 and these are stored in league time (America/New_York,
- * UTC-4 on this weekend), so each is the local session minus twelve hours. Correct them in
- * Admin -> Race Schedule once the official timetable is published: an in-the-past qualifying
- * time makes PicksForm treat the race as locked and members cannot enter picks.
+ * The published timetable, in league time (America/New_York). Confirmed against the official
+ * F1 schedule 2026-09-05.
+ *
+ * `qualifying` is the load-bearing one: App.tsx derives the picks deadline from it, so a value
+ * that is late leaves the form open after the session has started.
  */
 const BAHRAIN_SCHEDULE = {
   eventId: MOVED_EVENT_ID,
   name: 'Bahrain GP',
   hasSprint: false,
-  fp1: '2026-10-02T03:00',
-  fp2: '2026-10-02T07:00',
-  fp3: '2026-10-03T03:00',
-  qualifying: '2026-10-03T06:00',
+  fp1: '2026-10-02T00:30',
+  fp2: '2026-10-02T04:00',
+  fp3: '2026-10-03T00:30',
+  qualifying: '2026-10-03T04:00',
   race: '2026-10-04T03:00',
 };
 
@@ -235,7 +236,7 @@ const printReport = (project, summary, backupFile, options) => {
     : '          cancellation entry KEPT as a residual guard');
   console.log(`Bahrain : restore (delete cancellation entry), clear form lock,`);
   console.log(`          clear ${MOVED_EVENT_ID} from ${summary.bahrainPickDocuments} userPicks document(s),`);
-  console.log(`          replace event_schedules.${MOVED_EVENT_ID} with PROVISIONAL Sepang times:`);
+  console.log(`          replace event_schedules.${MOVED_EVENT_ID} with the published Sepang times:`);
   console.log(`            qualifying ${BAHRAIN_SCHEDULE.qualifying}   race ${BAHRAIN_SCHEDULE.race}  (league time)`);
 };
 
@@ -351,7 +352,7 @@ const main = async () => {
       'settled before signing off — the client trusts that cache on its fast path.',
     );
     console.log(
-      `\nBahrain's session times are PROVISIONAL. Set the real ones in Admin -> Race Schedule.`,
+      `\nBahrain's session times are the published timetable, confirmed 2026-09-05.`,
     );
   } finally {
     await deleteApp(app);

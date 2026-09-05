@@ -90,10 +90,14 @@ test('replaces the Bahrain schedule outright so the April customLockAt cannot su
   assert.deepEqual(write.rest[0].sau_26, FieldValue.delete());
 });
 
-test('the provisional Bahrain weekend lands on 2-4 October, qualifying before the race', () => {
-  assert.match(BAHRAIN_SCHEDULE.fp1, /^2026-10-02T/);
-  assert.match(BAHRAIN_SCHEDULE.qualifying, /^2026-10-03T/);
-  assert.match(BAHRAIN_SCHEDULE.race, /^2026-10-04T/);
+test('the Bahrain weekend matches the published timetable', () => {
+  // League time (America/New_York). Qualifying is what App.tsx turns into the picks deadline,
+  // so it is pinned exactly rather than to a date prefix.
+  assert.equal(BAHRAIN_SCHEDULE.fp1, '2026-10-02T00:30');
+  assert.equal(BAHRAIN_SCHEDULE.fp2, '2026-10-02T04:00');
+  assert.equal(BAHRAIN_SCHEDULE.fp3, '2026-10-03T00:30');
+  assert.equal(BAHRAIN_SCHEDULE.qualifying, '2026-10-03T04:00');
+  assert.equal(BAHRAIN_SCHEDULE.race, '2026-10-04T03:00');
   assert.ok(new Date(BAHRAIN_SCHEDULE.qualifying) < new Date(BAHRAIN_SCHEDULE.race));
 });
 
