@@ -1,4 +1,5 @@
 const { FieldValue } = require('firebase-admin/firestore');
+const { SEASON_EVENT_IDS } = require('./season-events');
 
 const DEFAULT_POINTS = {
   grandPrixFinish: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
@@ -142,6 +143,8 @@ const recalculateEntireLeague = async (db) => {
     const breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 
     Object.keys(allUserPicks).forEach((eventId) => {
+      // Not on the current calendar — see season-events.js.
+      if (!SEASON_EVENT_IDS.has(eventId)) return;
       if (cancelledEventIds.has(eventId)) return;
       const result = raceResults[eventId];
       if (!result) return;

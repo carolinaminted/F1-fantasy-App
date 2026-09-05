@@ -14,6 +14,7 @@ const nodemailer = require("nodemailer");
 const { resolveRuntimeTarget } = require("./runtime-target");
 const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
+const { SEASON_EVENT_IDS } = require("./season-events");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -184,6 +185,10 @@ const recalculateEntireLeague = async () => {
         let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 
         Object.keys(allUserPicks).forEach(eventId => {
+            // Skip events that are not on the current calendar. Picks are keyed by event id and
+            // outlive the calendar, so a dropped or prior-season event would otherwise keep
+            // scoring here while the client drops it.
+            if (!SEASON_EVENT_IDS.has(eventId)) return;
             // Skip cancelled events — no points awarded
             if (cancelledEventIds.has(eventId)) return;
             const result = raceResults[eventId];
