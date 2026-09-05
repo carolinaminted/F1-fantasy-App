@@ -33,3 +33,7 @@ functions/.env.*
 *.njsproj
 *.sln
 *.sw?
+
+# Firestore snapshots taken by functions/scripts/fix-2026-schedule.js before it deletes
+# anything. They contain member picks — never commit them.
+.backups/
