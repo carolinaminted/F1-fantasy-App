@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { BrowserRouter } from 'react-router-dom';
 import { ToastProvider } from './contexts/ToastContext.tsx';
+import { ThemeProvider } from './contexts/ThemeContext.tsx';
 import EnvironmentBadge from './components/EnvironmentBadge.tsx';
 
 const rootElement = document.getElementById('root');
@@ -15,10 +16,12 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <ToastProvider>
-        <App />
-        <EnvironmentBadge />
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <App />
+          <EnvironmentBadge />
+        </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
