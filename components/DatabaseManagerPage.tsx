@@ -613,7 +613,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                         </div>
 
                         {/* Editor Area */}
-                        <div className="flex-1 bg-[#1e1e1e] p-0 relative overflow-hidden flex flex-col">
+                        <div className="flex-1 bg-elev-3 p-0 relative overflow-hidden flex flex-col">
                             <div className="absolute top-2 right-2 z-10 flex gap-2">
                                 <button onClick={handleCopyToClipboard} className="p-2 bg-carbon-black/80 rounded hover:bg-pure-white/10 text-highlight-silver transition-colors border border-pure-white/5" title="Copy JSON">
                                     <CopyIcon className="w-4 h-4" />

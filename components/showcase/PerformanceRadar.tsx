@@ -46,7 +46,7 @@ export const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ user, leader
   const userNorms = CATEGORY_KEYS.map((k, i) => categoryOf(user, k) / maxes[i]);
   const leaderNorms = CATEGORY_KEYS.map((k, i) => categoryOf(leader, k) / maxes[i]);
 
-  const subjectColor = isYou ? '#FFFFFF' : '#DA291C';
+  const subjectColor = isYou ? 'var(--color-pure-white)' : 'var(--color-primary-red)';
 
   return (
     <div className="flex flex-col items-center">
@@ -84,7 +84,7 @@ export const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ user, leader
           return (
             <circle
               key={k} cx={C + dx * R * n} cy={C + dy * R * n} r="4"
-              fill={CATEGORY_HEX[k]} stroke="#0A0A0A" strokeWidth="1.5"
+              fill={CATEGORY_HEX[k]} stroke="var(--color-carbon-black)" strokeWidth="1.5"
             />
           );
         })}

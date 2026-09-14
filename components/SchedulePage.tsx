@@ -176,19 +176,19 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             {viewMode === 'full' && events.length > 0 && (
                 <div className="flex items-center gap-2.5 sm:gap-3 bg-carbon-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-pure-white/10 shadow-xl animate-fade-in origin-top flex-wrap justify-center">
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10B981]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_var(--color-status-done)]"></div>
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Complete</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_5px_#EAB308]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_5px_var(--color-category-sprint)]"></div>
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Sprint</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary-red shadow-[0_0_5px_#DA291C]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-red shadow-[0_0_5px_var(--color-primary-red)]"></div>
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Next</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_#EF4444]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_var(--color-status-live)]"></div>
                         <span className="text-[9px] font-bold text-highlight-silver uppercase tracking-wider">Cancelled</span>
                     </div>
                 </div>
@@ -519,11 +519,11 @@ const NextRaceHero: React.FC<{
                             <>
                                 <SessionRow label="Practice 1" time={schedule?.fp1} />
                                 <SessionRow label="Sprint Quali" time={schedule?.sprintQualifying} />
-                                <SessionRow label="Sprint" time={schedule?.sprint} highlight accentColor="#EAB308" />
+                                <SessionRow label="Sprint" time={schedule?.sprint} highlight accentColor="var(--color-category-sprint)" />
                                 <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
                             </>
                         )}
-                        <SessionRow label="Grand Prix" time={raceRaw} isRace accentColor="#DA291C" />
+                        <SessionRow label="Grand Prix" time={raceRaw} isRace accentColor="var(--color-primary-red)" />
                     </div>
                 </div>
             </div>
@@ -578,12 +578,12 @@ const EventDetailsModal: React.FC<{
     const eventIsScored = hasEventResults(results);
 
     const accentColor = isCancelled 
-        ? '#EF4444' 
+        ? 'var(--color-status-live)' 
         : isCompleted 
-            ? '#10B981' 
+            ? 'var(--color-status-done)' 
             : isNext 
-                ? '#DA291C' 
-                : (event.hasSprint ? '#EAB308' : '#C0C0C0');
+                ? 'var(--color-primary-red)' 
+                : (event.hasSprint ? 'var(--color-category-sprint)' : 'var(--color-highlight-silver)');
 
     const borderStyle = isCancelled
         ? 'border-red-500/60 shadow-[0_0_30px_rgba(239,68,68,0.25)]'
@@ -748,7 +748,7 @@ const EventDetailsModal: React.FC<{
                                             <>
                                                 <SessionRow label="Practice 1" time={schedule?.fp1} />
                                                 <SessionRow label="Sprint Quali" time={schedule?.sprintQualifying} />
-                                                <SessionRow label="Sprint" time={schedule?.sprint} highlight accentColor="#EAB308" />
+                                                <SessionRow label="Sprint" time={schedule?.sprint} highlight accentColor="var(--color-category-sprint)" />
                                                 <SessionRow label="Qualifying" time={schedule?.qualifying} highlight />
                                             </>
                                         )}
@@ -875,8 +875,8 @@ const Podium: React.FC<{ data: { label: string; subLabel?: string; color?: strin
                         <div 
                             className="w-full h-20 md:h-28 rounded-t-lg relative shadow-lg" 
                             style={{ 
-                                backgroundColor: `${data[1].color || '#333'}80`, 
-                                borderTop: `4px solid ${data[1].color || '#555'}`,
+                                backgroundColor: `${data[1].color || 'var(--color-neutral-fill)'}80`, 
+                                borderTop: `4px solid ${data[1].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 15px ${data[1].color}20`
                             }}
                         >
@@ -899,8 +899,8 @@ const Podium: React.FC<{ data: { label: string; subLabel?: string; color?: strin
                         <div 
                             className="w-full h-28 md:h-36 rounded-t-lg relative shadow-2xl" 
                             style={{ 
-                                backgroundColor: `${data[0].color || '#333'}`, 
-                                borderTop: `4px solid ${data[0].color || '#555'}`,
+                                backgroundColor: `${data[0].color || 'var(--color-neutral-fill)'}`, 
+                                borderTop: `4px solid ${data[0].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 30px ${data[0].color}40`
                             }}
                         >
@@ -918,8 +918,8 @@ const Podium: React.FC<{ data: { label: string; subLabel?: string; color?: strin
                         <div 
                             className="w-full h-14 md:h-20 rounded-t-lg relative shadow-lg" 
                             style={{ 
-                                backgroundColor: `${data[2].color || '#333'}80`, 
-                                borderTop: `4px solid ${data[2].color || '#555'}`,
+                                backgroundColor: `${data[2].color || 'var(--color-neutral-fill)'}80`, 
+                                borderTop: `4px solid ${data[2].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 15px ${data[2].color}20`
                             }}
                         >
@@ -1059,7 +1059,7 @@ const SessionRow: React.FC<{
     isRace?: boolean;
     accentColor?: string;
 }> = ({ label, time, highlight, isRace, accentColor }) => {
-    const activeColor = accentColor || '#DA291C';
+    const activeColor = accentColor || 'var(--color-primary-red)';
 
     if (!time) return (
         <div className={`flex justify-between items-center ${isRace ? 'pt-3 mt-3 border-t border-pure-white/10' : ''}`}>
@@ -1070,7 +1070,7 @@ const SessionRow: React.FC<{
 
     return (
         <div className={`flex justify-between items-center ${isRace ? 'pt-3 mt-3 border-t border-pure-white/10' : ''}`}>
-            <span className={`text-sm ${isRace ? 'font-bold uppercase' : (highlight ? 'font-bold' : 'font-medium text-highlight-silver')}`} style={(isRace || highlight) && accentColor ? { color: activeColor } : (highlight && !accentColor ? { color: '#FFFFFF' } : (isRace ? { color: activeColor } : undefined))}>
+            <span className={`text-sm ${isRace ? 'font-bold uppercase' : (highlight ? 'font-bold' : 'font-medium text-highlight-silver')}`} style={(isRace || highlight) && accentColor ? { color: activeColor } : (highlight && !accentColor ? { color: 'var(--color-pure-white)' } : (isRace ? { color: activeColor } : undefined))}>
                 {label}
             </span>
             <div className="text-right">
@@ -1151,12 +1151,12 @@ const EventGridCard: React.FC<{
     onViewResults?: (e: React.MouseEvent) => void;
 }> = ({ event, schedule, isNext, onClick, isCompleted, isCancelled, hasResults, onViewResults }) => {
     const accentColor = isCancelled 
-        ? '#EF4444' 
+        ? 'var(--color-status-live)' 
         : isCompleted 
-            ? '#10B981' 
+            ? 'var(--color-status-done)' 
             : isNext 
-                ? '#DA291C' 
-                : (event.hasSprint ? '#EAB308' : '#C0C0C0');
+                ? 'var(--color-primary-red)' 
+                : (event.hasSprint ? 'var(--color-category-sprint)' : 'var(--color-highlight-silver)');
 
     const qualiTime = event.hasSprint ? (schedule?.sprintQualifying || schedule?.qualifying) : schedule?.qualifying;
     const qualiLabel = event.hasSprint ? "Sprint Quali" : "Qualifying";

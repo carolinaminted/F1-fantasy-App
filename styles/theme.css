@@ -133,24 +133,18 @@
   --color-status-live:  #EF4444;  /* red-500    — session in progress */
   --color-status-done:  #10B981;  /* emerald-500 — session complete   */
 
-  /* ---- Stage: deliberately NOT themed -------------------------------------------
-     RedFlagScreen and EasterEgg are full-bleed set pieces — a red-flag alert and a
-     retro start-light gantry. A white red-flag screen would be wrong, so these are
-     declared once and are absent from the light block on purpose. They exist so those
-     screens carry no raw hex, not so they can be recolored.                          */
-  --color-stage-bg:       #0A0A0A;
-  --color-stage-panel:    #151515;
-  --color-stage-rim:      #0D0D0D;
-  --color-stage-edge:     #050505;
-  --color-stage-well:     #0B0B0B;
-  --color-stage-dim:      #1A1A1A;
-  --color-stage-ink:      #F5F5F5;
-  --color-stage-muted:    #C0C0C0;
-  --color-stage-live:     #FF1801;
-  --color-stage-alert:    #FF0000;
-  --color-stage-flare:    #FF3333;
-  --color-stage-ember:    #990000;
-  --color-stage-go:       #04170A;
+  /* ---- Stage: colors that belong to the set pieces ------------------------------
+     RedFlagScreen and EasterEgg pin themselves to dark (see the [data-theme="dark"]
+     block below) so they keep using the ordinary brand tokens. These are the few
+     colors those screens need that the palette does not carry — start-light reds and
+     the go-phase green.                                                              */
+  --color-stage-alert: #FF0000;  /* start lights, lit          */
+  --color-stage-live:  #FF1801;  /* gantry lights, lit         */
+  --color-stage-flare: #FF3333;  /* red-flag gradient, hot end */
+  --color-stage-ember: #990000;  /* red-flag gradient, cool end */
+  --color-stage-go:    #04170A;  /* lights-out go phase        */
+  --color-stage-rim:   #0D0D0D;  /* gantry housing edge        */
+  --color-stage-well:  #0B0B0B;  /* gantry light, unlit        */
 }
 
 /* ---- Light theme ----------------------------------------------------------------
@@ -201,4 +195,45 @@
   --color-tone-info:    #4F46E5;  /* indigo-600 */
   --color-status-live:  #DC2626;  /* red-600     */
   --color-status-done:  #059669;  /* emerald-600 */
+}
+
+/* ---- Pinning a subtree to dark --------------------------------------------------
+   The light block above sets tokens on :root, and custom properties inherit — so any
+   element that redeclares them wins for its own subtree. Repeating the dark values
+   here on the bare attribute selector is what lets a component opt out of theming with
+   a single `data-theme="dark"` on its root element.
+
+   RedFlagScreen and EasterEgg use it. They are full-bleed set pieces — a red-flag alert
+   and a retro start-light gantry — and a white red-flag screen would be wrong. Pinning
+   the subtree beats rewriting their ~40 token classes by hand, and it keeps them
+   readable: inside them, `bg-carbon-black` still means what it has always meant.
+
+   Values are duplicated from the @theme block rather than referenced, because a var()
+   cannot refer to the value it is overriding.                                        */
+[data-theme="dark"] {
+  --color-carbon-black:     #0A0A0A;
+  --color-accent-gray:      #2C2C2C;
+  --color-pure-white:       #FFFFFF;
+  --color-ghost-white:      #F5F5F5;
+  --color-highlight-silver: #C0C0C0;
+  --color-primary-red:      #DA291C;
+
+  --color-category-quali:   var(--color-blue-500);
+  --color-category-sprint:  var(--color-yellow-500);
+  --color-category-fl:      var(--color-purple-500);
+
+  --color-elev-0: #050505;
+  --color-elev-1: #111111;
+  --color-elev-2: #1A1A1A;
+  --color-elev-3: #1E1E1E;
+
+  --color-border-default: oklch(92.8% .006 264.531);
+  --color-neutral-fill: #333333;
+  --color-neutral-edge: #555555;
+
+  --color-tone-success: #4ADE80;
+  --color-tone-warning: #FBBF24;
+  --color-tone-info:    #A5B4FC;
+  --color-status-live:  #EF4444;
+  --color-status-done:  #10B981;
 }

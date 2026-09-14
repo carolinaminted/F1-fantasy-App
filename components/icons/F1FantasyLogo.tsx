@@ -3,6 +3,9 @@ import React from 'react';
 export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg" {...props}>
     <defs>
+      {/* The wordmark's own gradient. Left literal like any brand mark — recoloring a
+          logo is a brand decision, not a theming one, and this red carries on both
+          canvases. The white fills below are different: they were invisible on light. */}
       <linearGradient id="red-grad" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#FF0000" />
         <stop offset="100%" stopColor="#FF4D4D" />
@@ -14,7 +17,7 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
           font-family: 'Exo 2', sans-serif; 
           font-weight: 400;
           font-size: 16px;
-          fill: #FFFFFF;
+          fill: var(--color-pure-white);
           letter-spacing: 0.5em;
           text-anchor: middle;
         }
@@ -28,7 +31,7 @@ export const F1FantasyLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
           text-anchor: middle;
         }
         .one-part {
-          fill: #FFFFFF;
+          fill: var(--color-pure-white);
         }
       `}
     </style>
