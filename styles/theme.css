@@ -114,6 +114,11 @@
   --color-elev-2: #1A1A1A;
   --color-elev-3: #1E1E1E;
 
+  /* The v3 border-color compat default in base.css. Dark keeps gray-200 exactly, which is
+     what ~15 bare-border class lists have always rendered; light needs a gray that is
+     actually visible against a near-white canvas. */
+  --color-border-default: oklch(92.8% .006 264.531); /* exactly Tailwind gray-200 */
+
   /* Fallbacks for a constructor whose brand color is missing from the DB row. */
   --color-neutral-fill: #333333;
   --color-neutral-edge: #555555;
@@ -185,6 +190,8 @@
   --color-elev-1: #FFFFFF;
   --color-elev-2: #F2F2ED;
   --color-elev-3: #FFFFFF;
+
+  --color-border-default: #B4B4AE;
 
   --color-neutral-fill: #C9C9C3;
   --color-neutral-edge: #9A9A94;

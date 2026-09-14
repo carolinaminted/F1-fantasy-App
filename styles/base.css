@@ -13,8 +13,11 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    /* v4 defaults this to currentColor; v3 used gray-200. ~600 border utilities exist. */
-    border-color: var(--color-gray-200, currentColor);
+    /* v4 defaults this to currentColor; v3 used gray-200. ~600 border utilities exist.
+       Theming made the fixed gray wrong: gray-200 is invisible on a near-white canvas. It
+       is now a token whose DARK value is still exactly gray-200 — those 15 borders render
+       as they always have — and which darkens on light. */
+    border-color: var(--color-border-default, currentColor);
   }
 
   body {
@@ -50,11 +53,14 @@
     z-index: 10000;
     pointer-events: none;
     user-select: none;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    /* The amber carries its own contrast and is a deliberate "you are not in prod" signal,
+       so it does not theme. The border and shadow do — a white rim on a light page is
+       invisible, which is the one thing this badge must never be. */
+    border: 1px solid color-mix(in oklab, var(--color-pure-white) 50%, transparent);
     border-radius: 9999px;
     background: #facc15;
     color: #0a0a0a;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 4px 18px color-mix(in oklab, var(--color-carbon-black) 45%, transparent);
     padding: 0.35rem 0.65rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.6875rem;
@@ -79,17 +85,20 @@
     scrollbar-width: none;     /* Firefox */
   }
 
-  /* Carbon Fiber Pattern Class - Updated for visibility and size */
+  /* Carbon Fiber Pattern Class - Updated for visibility and size.
+     Drives off the elevation ramp so the weave lightens with the theme instead of
+     dropping a black slab behind every modal and drawer on a light page. */
   .bg-carbon-fiber {
-    background-color: #111;
+    background-color: var(--color-elev-1);
     background-image:
-      linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a),
-      linear-gradient(45deg, #1a1a1a 25%, transparent 25%, transparent 75%, #1a1a1a 75%, #1a1a1a);
+      linear-gradient(45deg, var(--color-elev-2) 25%, transparent 25%, transparent 75%, var(--color-elev-2) 75%, var(--color-elev-2)),
+      linear-gradient(45deg, var(--color-elev-2) 25%, transparent 25%, transparent 75%, var(--color-elev-2) 75%, var(--color-elev-2));
     background-position: 0 0, 10px 10px;
     background-size: 20px 20px;
   }
 
-  /* Traditional Checkered Flag Pattern Class */
+  /* Traditional Checkered Flag Pattern Class.
+     Stays literal on purpose: a checkered flag is a two-tone illustration, not chrome. */
   .bg-checkered-flag {
     background-color: #e0e0e0; /* Off-white/Light Grey base */
     background-image:
@@ -111,7 +120,9 @@
     left: -100%;
     width: 50%;
     height: 100%;
-    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    /* Derived from the ink token: a white sheen over a light surface is nothing at all,
+       so on light this becomes a dark sweep and the gesture survives. */
+    background: linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--color-pure-white) 10%, transparent) 50%, transparent 100%);
     transform: skewX(-25deg);
     transition: left 0.5s;
     pointer-events: none;
