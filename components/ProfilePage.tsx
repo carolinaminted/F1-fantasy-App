@@ -5,7 +5,7 @@ import useFantasyData from '../hooks/useFantasyData.ts';
 import { CURRENT_SEASON } from '../constants.ts';
 import { getPublicProfileRank } from '../services/firestoreService.ts';
 import {
-  PageHeader, Tile, StatTile, SectionHeader, Modal, teamColor, type Category,
+  PageHeader, Tile, StatTile, SectionHeader, Modal, ThemeModeControl, teamColor, type Category,
 } from './ui/index.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -15,6 +15,7 @@ import { ProfileIcon } from './icons/ProfileIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
+import { SunIcon } from './icons/SunIcon.tsx';
 import { AccountMenu } from './profile/AccountMenu.tsx';
 import { EditProfileForm } from './profile/EditProfileForm.tsx';
 import { UsageSection } from './profile/UsageSection.tsx';
@@ -526,6 +527,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             isPublicView={isPublicView}
           />
         </div>
+
+        {!isPublicView && (
+          <div>
+            <SectionHeader
+              title="Appearance"
+              subtitle="Applies on this device only"
+              icon={SunIcon}
+            />
+            <Tile className="p-4">
+              <ThemeModeControl />
+            </Tile>
+          </div>
+        )}
       </div>
 
       <Modal

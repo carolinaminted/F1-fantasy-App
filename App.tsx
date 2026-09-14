@@ -43,6 +43,8 @@ import {
 } from './routes.ts';
 import { copyright } from './brand.ts';
 import { BrandMark } from './components/ui/BrandMark.tsx';
+import { ThemeToggle } from './components/ui/ThemeToggle.tsx';
+import { ThemeMenuItem } from './components/ui/ThemeMenuItem.tsx';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
@@ -168,6 +170,8 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                                 League Hub
                             </button>
                             
+                            <ThemeMenuItem onSelect={() => setIsDropdownOpen(false)} />
+
                             <div className="h-px bg-pure-white/10 my-1 mx-2"></div>
                             
                             <button 
@@ -840,6 +844,7 @@ const App: React.FC = () => {
                 <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
              <div className="flex items-center gap-3 justify-self-end">
+               <ThemeToggle />
                {isUserAdmin(user) && (
                  <button
                    onClick={() => navigateToPage('admin')}
