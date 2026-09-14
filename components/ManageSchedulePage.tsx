@@ -140,7 +140,7 @@ const ManageSchedulePage: React.FC<ManageSchedulePageProps> = ({ setAdminSubPage
                         <button
                             onClick={() => setShowImportConfirm(true)}
                             disabled={isSyncing || !importData.trim()}
-                            className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                            className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-40"
                         >
                             {isSyncing ? <SyncIcon className="w-4 h-4 animate-spin" /> : <SaveIcon className="w-4 h-4" />}
                             Review and replace
@@ -358,7 +358,7 @@ const ScheduleEditorModal: React.FC<ScheduleEditorModalProps> = ({ event, schedu
 
                 <div className="p-5 border-t border-pure-white/10 bg-carbon-black/50 flex justify-end gap-3">
                     <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-bold text-highlight-silver hover:text-pure-white border border-accent-gray rounded-lg">Cancel</button>
-                    <button onClick={handleSave} disabled={isSaving} className="px-8 py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg flex items-center gap-2 disabled:opacity-50">
+                    <button onClick={handleSave} disabled={isSaving} className="px-8 py-2 bg-primary-red hover:bg-red-600 text-on-primary font-bold rounded-lg shadow-lg flex items-center gap-2 disabled:opacity-50">
                         {isSaving ? 'Saving...' : <><SaveIcon className="w-4 h-4" /> Save Schedule</>}
                     </button>
                 </div>

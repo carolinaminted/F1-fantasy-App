@@ -69,7 +69,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
           <button
             onClick={this.handleReload}
-            className="group relative bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg shadow-lg transition-all transform hover:scale-105 overflow-hidden"
+            className="group relative bg-primary-red hover:bg-red-600 text-on-primary font-bold py-3 px-10 rounded-lg shadow-lg transition-all transform hover:scale-105 overflow-hidden"
           >
             <span className="relative z-10 flex items-center gap-2">
                 BOX BOX (RELOAD)

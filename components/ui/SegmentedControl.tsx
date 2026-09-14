@@ -104,7 +104,7 @@ export function SegmentedControl<T extends string>({
               size === 'sm' ? 'text-[10px] px-2.5 py-1.5' : 'text-xs px-3.5 py-2',
               fullWidth ? 'flex-1' : '',
               active
-                ? 'bg-primary-red text-pure-white'
+                ? 'bg-primary-red text-on-primary'
                 : 'text-highlight-silver hover:text-pure-white hover:bg-pure-white/5',
             ].filter(Boolean).join(' ')}
           >

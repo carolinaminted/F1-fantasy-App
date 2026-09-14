@@ -49,7 +49,7 @@ const RivalCard: React.FC<{
     <CategoryStrip user={user} className="mt-2.5" />
     <button
       onClick={() => onInspect(user)}
-      className="mt-2 w-full py-1.5 rounded-lg bg-pure-white/5 border border-pure-white/10 text-highlight-silver hover:bg-primary-red hover:border-primary-red hover:text-pure-white text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
+      className="mt-2 w-full py-1.5 rounded-lg bg-pure-white/5 border border-pure-white/10 text-highlight-silver hover:bg-primary-red hover:border-primary-red hover:text-on-primary text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
     >
       <EyeIcon className="w-3 h-3" />
       <span>Inspect</span>
@@ -105,7 +105,7 @@ export const BattleRadar: React.FC<BattleRadarProps> = ({
 
       <Tile padding="md" className={isYou ? 'ring-1 ring-inset ring-pure-white/25' : ''}>
         <div className="flex items-center gap-3">
-          <span className={`w-12 h-12 rounded-xl bg-primary-red text-pure-white flex items-center justify-center text-lg font-black ${NUMERIC} shrink-0`}>
+          <span className={`w-12 h-12 rounded-xl bg-primary-red text-on-primary flex items-center justify-center text-lg font-black ${NUMERIC} shrink-0`}>
             {subject.rank}
           </span>
           <div className="min-w-0">

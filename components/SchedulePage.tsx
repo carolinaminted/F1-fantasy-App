@@ -161,13 +161,13 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             <div className="flex bg-accent-gray rounded-lg p-1 shadow-lg">
                 <button
                     onClick={() => setViewMode('upcoming')}
-                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'upcoming' ? 'bg-primary-red text-pure-white shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'upcoming' ? 'bg-primary-red text-on-primary shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
                 >
                     Upcoming
                 </button>
                 <button
                     onClick={() => setViewMode('full')}
-                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'full' ? 'bg-primary-red text-pure-white shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'full' ? 'bg-primary-red text-on-primary shadow-sm' : 'text-highlight-silver hover:text-pure-white'}`}
                 >
                     Full Season
                 </button>
@@ -276,7 +276,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                     <CalendarIcon className="w-24 h-24 text-accent-gray opacity-20 mb-6" />
                     <h2 className="text-3xl font-black text-pure-white italic uppercase mb-3">No Races Found</h2>
                     <p className="text-highlight-silver max-w-md mb-8">The season schedule has not been synchronized.</p>
-                    <button onClick={handleRetry} disabled={isRefreshing} className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-10 rounded-lg">
+                    <button onClick={handleRetry} disabled={isRefreshing} className="bg-primary-red hover:bg-red-600 text-on-primary font-bold py-3 px-10 rounded-lg">
                         {isRefreshing ? 'Syncing...' : 'Sync Calendar'}
                     </button>
                 </div>
@@ -434,7 +434,7 @@ const NextRaceHero: React.FC<{
     return (
         <div className={`relative overflow-hidden rounded-2xl bg-carbon-fiber border ${isCancelled ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.2)] opacity-80' : 'border-primary-red/60 shadow-[0_0_25px_rgba(218,41,28,0.25)]'} shadow-2xl transition-all`}>
             {isCancelled && (
-                <div className="absolute top-4 right-4 bg-red-600 text-pure-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-[0_0_10px_rgba(239,68,68,0.4)]">
+                <div className="absolute top-4 right-4 bg-red-600 text-on-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-[0_0_10px_rgba(239,68,68,0.4)]">
                     Cancelled
                 </div>
             )}
@@ -485,7 +485,7 @@ const NextRaceHero: React.FC<{
                         {hasResults && (
                             <button
                                 onClick={() => onOpenModal('results')}
-                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-pure-white font-black text-xs uppercase tracking-wider px-5 py-4 rounded-xl shadow-lg border border-emerald-400/40 transition-all hover:scale-105"
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-on-primary font-black text-xs uppercase tracking-wider px-5 py-4 rounded-xl shadow-lg border border-emerald-400/40 transition-all hover:scale-105"
                             >
                                 <CheckeredFlagIcon className="w-4 h-4 text-pure-white" />
                                 <span>View Race Results</span>
@@ -702,7 +702,7 @@ const EventDetailsModal: React.FC<{
                             onClick={() => setActiveModalView('results')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs md:text-sm font-bold transition-all relative ${
                                 activeModalView === 'results'
-                                    ? 'bg-primary-red text-pure-white shadow-md border border-red-500/50 shadow-[0_0_15px_rgba(218,41,28,0.4)]'
+                                    ? 'bg-primary-red text-on-primary shadow-md border border-red-500/50 shadow-[0_0_15px_rgba(218,41,28,0.4)]'
                                     : 'text-highlight-silver hover:text-pure-white opacity-70 hover:opacity-100'
                             }`}
                         >
@@ -1242,7 +1242,7 @@ const EventGridCard: React.FC<{
                             ) : isCompleted ? (
                                 <span className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[8px] font-black px-1.5 py-0.5 rounded mb-1 uppercase tracking-wider">PICKS CLOSED</span>
                             ) : (
-                                <span className="bg-primary-red text-pure-white text-[8px] font-black px-1.5 py-0.5 rounded mb-1 uppercase tracking-wider">PICKS DUE</span>
+                                <span className="bg-primary-red text-on-primary text-[8px] font-black px-1.5 py-0.5 rounded mb-1 uppercase tracking-wider">PICKS DUE</span>
                             )}
                             <p className="font-mono text-xs sm:text-base font-bold text-pure-white">{formatSessionTime(qualiTime)}</p>
                         </div>

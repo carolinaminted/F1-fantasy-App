@@ -662,7 +662,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                             onClick={confirmDeletion}
                                             disabled={isSaving}
                                             type="button"
-                                            className="flex-1 md:flex-none px-4 py-3 md:py-2 bg-red-600 hover:bg-red-500 text-pure-white font-bold rounded-lg shadow-lg text-xs uppercase flex items-center justify-center gap-2 transition-all"
+                                            className="flex-1 md:flex-none px-4 py-3 md:py-2 bg-red-600 hover:bg-red-500 text-on-primary font-bold rounded-lg shadow-lg text-xs uppercase flex items-center justify-center gap-2 transition-all"
                                         >
                                             {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <TrashIcon className="w-4 h-4" />}
                                             Yes, Delete
@@ -695,7 +695,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                             onClick={requestSave}
                                             disabled={isSaving || !!jsonError}
                                             type="button"
-                                            className="px-6 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-[2] md:flex-none"
+                                            className="px-6 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-on-primary font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-[2] md:flex-none"
                                         >
                                             {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
                                             Save Changes

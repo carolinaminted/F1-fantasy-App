@@ -262,7 +262,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                             <button
                                 onClick={handleSaveAdminStatus}
                                 disabled={isSavingAdmin || !adminDirty || isSelf}
-                                className="rounded-lg bg-primary-red px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                                className="rounded-lg bg-primary-red px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-40"
                             >
                                 {isSavingAdmin ? 'Saving\u2026' : 'Save'}
                             </button>
@@ -283,7 +283,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                             <button
                                 onClick={handleSaveDuesStatus}
                                 disabled={isSavingDues || !duesDirty}
-                                className="rounded-lg bg-green-600 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-green-500 disabled:opacity-40"
+                                className="rounded-lg bg-green-600 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-on-primary transition-colors hover:bg-green-500 disabled:opacity-40"
                             >
                                 {isSavingDues ? 'Saving\u2026' : 'Save'}
                             </button>
@@ -475,7 +475,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                                 <button
                                     onClick={handleAdminSubmitPicks}
                                     disabled={isSubmittingPicks}
-                                    className="bg-primary-red hover:bg-red-600 text-pure-white font-bold py-2.5 px-6 rounded-lg text-sm disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20 uppercase tracking-wide cursor-pointer flex items-center gap-2"
+                                    className="bg-primary-red hover:bg-red-600 text-on-primary font-bold py-2.5 px-6 rounded-lg text-sm disabled:opacity-50 transition-all shadow-lg shadow-primary-red/20 uppercase tracking-wide cursor-pointer flex items-center gap-2"
                                 >
                                     {isSubmittingPicks && (
                                         <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -531,7 +531,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                     </div>
                     <button
                         onClick={() => setShowPurgeModal(true)}
-                        className="whitespace-nowrap rounded-lg border border-primary-red/40 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white"
+                        className="whitespace-nowrap rounded-lg border border-primary-red/40 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-on-primary"
                     >
                         Delete member
                     </button>

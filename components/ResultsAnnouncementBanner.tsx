@@ -37,7 +37,7 @@ const ResultsAnnouncementBanner: React.FC<ResultsAnnouncementBannerProps> = ({ a
             action={
                 <button
                     onClick={handleNavigate}
-                    className="flex-1 bg-green-600 hover:bg-green-500 text-pure-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg shadow-md transition-colors"
+                    className="flex-1 bg-green-600 hover:bg-green-500 text-on-primary font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg shadow-md transition-colors"
                 >
                     View Results
                 </button>

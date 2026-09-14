@@ -123,13 +123,20 @@
   --color-neutral-fill: #333333;
   --color-neutral-edge: #555555;
 
+  /* ---- Ink on a saturated fill ---------------------------------------------------
+     DESIGN.md calls this on-primary. It is the one ink that must NOT flip: a red, green
+     or blue button is the same color in both themes, so its label stays white. Without
+     it, `bg-primary-red text-pure-white` renders black-on-red the moment ink inverts —
+     which was the single biggest defect in the first light-mode pass.                 */
+  --color-on-primary: #FFFFFF;
+
   /* ---- Semantic tones -----------------------------------------------------------
      TONE_THEME in components/ui/tokens.ts used stock Tailwind steps picked for a dark
      canvas (green-400, amber-400, indigo-300). Those fail contrast on near-white, so
      the tones become tokens and shift a step darker in the light block.              */
-  --color-tone-success: #4ADE80;  /* green-400  */
-  --color-tone-warning: #FBBF24;  /* amber-400  */
-  --color-tone-info:    #A5B4FC;  /* indigo-300 */
+  --color-tone-success: oklch(79.2% .209 151.711);  /* exactly green-400  */
+  --color-tone-warning: oklch(82.8% .189 84.429);   /* exactly amber-400  */
+  --color-tone-info:    oklch(78.5% .115 274.713);  /* exactly indigo-300 */
   --color-status-live:  #EF4444;  /* red-500    — session in progress */
   --color-status-done:  #10B981;  /* emerald-500 — session complete   */
 
@@ -231,9 +238,9 @@
   --color-neutral-fill: #333333;
   --color-neutral-edge: #555555;
 
-  --color-tone-success: #4ADE80;
-  --color-tone-warning: #FBBF24;
-  --color-tone-info:    #A5B4FC;
+  --color-tone-success: oklch(79.2% .209 151.711);
+  --color-tone-warning: oklch(82.8% .189 84.429);
+  --color-tone-info:    oklch(78.5% .115 274.713);
   --color-status-live:  #EF4444;
   --color-status-done:  #10B981;
 }

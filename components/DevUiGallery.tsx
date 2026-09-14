@@ -199,7 +199,7 @@ const DevUiGallery: React.FC = () => {
       <Row label="Triggers">
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setSheetOpen(true)}
-            className="bg-primary-red hover:bg-primary-red/90 text-pure-white font-bold py-2 px-5 rounded-lg text-sm transition-colors">
+            className="bg-primary-red hover:bg-primary-red/90 text-on-primary font-bold py-2 px-5 rounded-lg text-sm transition-colors">
             Open Sheet
           </button>
           <button onClick={() => setModalOpen(true)}
@@ -231,7 +231,7 @@ const DevUiGallery: React.FC = () => {
       <Row label="Confirm">
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setConfirmOpen(true)}
-            className="bg-primary-red text-pure-white font-bold py-2 px-5 rounded-lg text-sm">
+            className="bg-primary-red text-on-primary font-bold py-2 px-5 rounded-lg text-sm">
             Destructive
           </button>
           <button onClick={() => setGuardOpen(true)}
@@ -247,7 +247,7 @@ const DevUiGallery: React.FC = () => {
           <EmptyState icon={PicksIcon} title="No picks submitted"
             description="Your lineup for this Grand Prix has not been locked in yet."
             action={
-              <button className="bg-primary-red text-pure-white font-bold py-2 px-5 rounded-lg text-sm">
+              <button className="bg-primary-red text-on-primary font-bold py-2 px-5 rounded-lg text-sm">
                 Make Picks
               </button>
             } />
@@ -279,7 +279,7 @@ const DevUiGallery: React.FC = () => {
             <button onClick={() => setModalOpen(false)}
               className="text-highlight-silver hover:text-pure-white font-bold py-2 px-4 rounded-lg text-sm">Cancel</button>
             <button onClick={() => setModalOpen(false)}
-              className="bg-primary-red text-pure-white font-bold py-2 px-5 rounded-lg text-sm">Lock In Picks</button>
+              className="bg-primary-red text-on-primary font-bold py-2 px-5 rounded-lg text-sm">Lock In Picks</button>
           </>
         }>
         <p className="text-sm text-highlight-silver">
@@ -291,7 +291,7 @@ const DevUiGallery: React.FC = () => {
         title="Session Expiring" icon={TrophyIcon}
         footer={
           <button onClick={() => setUrgentOpen(false)}
-            className="bg-primary-red text-pure-white font-bold py-2 px-5 rounded-lg text-sm">Stay Signed In</button>
+            className="bg-primary-red text-on-primary font-bold py-2 px-5 rounded-lg text-sm">Stay Signed In</button>
         }>
         <p className="text-sm text-highlight-silver">
           You will be signed out in 2:00 unless you continue.

@@ -118,7 +118,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({ user, onDone }
         <button
           type="submit"
           disabled={isSaving}
-          className="rounded bg-primary-red px-4 py-2 text-sm font-bold text-pure-white transition-colors hover:bg-red-600 disabled:opacity-50"
+          className="rounded bg-primary-red px-4 py-2 text-sm font-bold text-on-primary transition-colors hover:bg-red-600 disabled:opacity-50"
         >
           {isSaving ? 'Saving…' : 'Save Changes'}
         </button>

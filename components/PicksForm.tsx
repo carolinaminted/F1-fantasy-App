@@ -313,7 +313,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                     <button 
                         onClick={() => setIsEditing(true)} 
                         disabled={isFormDisabled}
-                        className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed transition-transform hover:scale-105 shadow-lg shadow-primary-red/20"
+                        className="bg-primary-red hover:opacity-90 text-on-primary font-bold py-2 px-6 rounded-lg disabled:bg-accent-gray disabled:cursor-not-allowed transition-transform hover:scale-105 shadow-lg shadow-primary-red/20"
                     >
                         {isFormDisabled ? 'Editing Locked' : 'Edit Picks'}
                     </button>
@@ -349,7 +349,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <div className="flex items-center justify-center md:justify-start gap-3">
                 <h2 className="text-2xl md:text-3xl font-bold text-pure-white leading-tight">{event.name}</h2>
                 {isEventCancelled && (
-                    <span className="bg-red-500 text-pure-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                    <span className="bg-red-500 text-on-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest animate-pulse">
                         Cancelled
                     </span>
                 )}
@@ -382,7 +382,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
               </div>
               <div>
                 {isSubmitted ? (
-                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-pure-white px-3 py-1 rounded-full shadow-lg shadow-green-900/20">Submitted</span>
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-600/80 text-on-primary px-3 py-1 rounded-full shadow-lg shadow-green-900/20">Submitted</span>
                 ) : (
                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent-gray/50 text-ghost-white px-3 py-1 rounded-full border border-pure-white/10">Unsubmitted</span>
                 )}
@@ -484,7 +484,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 <button
                     type="submit"
                     disabled={!isSelectionComplete() || isFormDisabled}
-                    className="w-full h-14 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-pure-white font-bold text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
+                    className="w-full h-14 flex items-center justify-center gap-3 bg-primary-red hover:opacity-90 text-on-primary font-bold text-xl rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-primary-red/30 disabled:bg-accent-gray disabled:shadow-none disabled:cursor-not-allowed disabled:scale-100"
                 >
                     {isFormDisabled ? <LockIcon className="w-6 h-6" /> : <SubmitIcon className="w-6 h-6" />}
                     {isFormDisabled ? 'Event Locked' : (hasEmptySlots() && hasExhaustedCategory ? 'Lock In Partial Lineup' : 'Lock In Picks')}

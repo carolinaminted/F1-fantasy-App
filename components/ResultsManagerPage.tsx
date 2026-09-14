@@ -338,7 +338,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                             type="button"
                                             onClick={handleRestoreEvent}
                                             disabled={isSaving}
-                                            className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-green-500 disabled:opacity-50"
+                                            className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-on-primary transition-colors hover:bg-green-500 disabled:opacity-50"
                                         >
                                             <RotateCcwIcon className="w-4 h-4" /> Bring this race back
                                         </button>
@@ -364,7 +364,7 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
                                     </div>
                                     <button
                                         onClick={handleInitiateReset}
-                                        className="flex items-center justify-center gap-2 rounded-lg border border-primary-red/40 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white"
+                                        className="flex items-center justify-center gap-2 rounded-lg border border-primary-red/40 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-on-primary"
                                     >
                                         <TrashIcon className="w-4 h-4" /> Delete results
                                     </button>

@@ -91,7 +91,7 @@ export const DuesStatus: React.FC<DuesStatusProps> = ({ user, isOpen, onOpen, on
       ) : (
         <button
           onClick={onOpen}
-          className={`${badgeBase} border-primary-red/50 bg-primary-red/15 text-primary-red hover:bg-primary-red hover:text-pure-white active:scale-95`}
+          className={`${badgeBase} border-primary-red/50 bg-primary-red/15 text-primary-red hover:bg-primary-red hover:text-on-primary active:scale-95`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-primary-red animate-pulse" aria-hidden="true" />
           Dues Due

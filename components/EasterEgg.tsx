@@ -329,7 +329,7 @@ export const EasterEggOverlay: React.FC<OverlayProps> = ({
       {(phase === 'result' || phase === 'jumpstart') && (
         <div className="relative flex items-center gap-3 mt-8">
           <button onClick={restart}
-            className="bg-primary-red hover:opacity-90 text-pure-white font-bold uppercase tracking-wider text-sm py-3 px-7 rounded-xl shadow-lg shadow-primary-red/25 transition-opacity">
+            className="bg-primary-red hover:opacity-90 text-on-primary font-bold uppercase tracking-wider text-sm py-3 px-7 rounded-xl shadow-lg shadow-primary-red/25 transition-opacity">
             Go again
           </button>
           <button onClick={close}

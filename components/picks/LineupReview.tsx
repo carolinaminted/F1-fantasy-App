@@ -54,7 +54,7 @@ export const LineupReview: React.FC<LineupReviewProps> = ({
             Keep Editing
           </button>
           <button type="button" onClick={onConfirm}
-            className="bg-primary-red hover:opacity-90 text-pure-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-primary-red/20 transition-opacity">
+            className="bg-primary-red hover:opacity-90 text-on-primary font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-primary-red/20 transition-opacity">
             {emptyCount > 0 ? 'Lock In Partial Lineup' : 'Lock In Picks'}
           </button>
         </>

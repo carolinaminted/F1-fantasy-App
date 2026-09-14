@@ -368,7 +368,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           <button
             onClick={() => setActivePage?.('duesPayment')}
             disabled={!setActivePage}
-            className="shrink-0 rounded-full border border-primary-red/50 bg-primary-red/15 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white disabled:cursor-default sm:ml-auto"
+            className="shrink-0 rounded-full border border-primary-red/50 bg-primary-red/15 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-on-primary disabled:cursor-default sm:ml-auto"
           >
             Dues: Unpaid
           </button>

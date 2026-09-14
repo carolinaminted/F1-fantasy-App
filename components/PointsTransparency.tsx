@@ -106,7 +106,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
                             title="Grand Prix" 
                             subtitle="Sunday Feature Race (Top 10)" 
                             icon={CheckeredFlagIcon} 
-                            headerColor="bg-primary-red text-pure-white"
+                            headerColor="bg-primary-red text-on-primary"
                         >
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                                 {pointsSystem.grandPrixFinish.map((p, i) => (
@@ -139,7 +139,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
                             title="Qualifying" 
                             subtitle="GP & Sprint Sessions" 
                             icon={PolePositionIcon} 
-                            headerColor="bg-blue-600 text-pure-white"
+                            headerColor="bg-blue-600 text-on-primary"
                             className="flex-none"
                         >
                             <div className="space-y-1">
@@ -153,7 +153,7 @@ const PointsTransparency: React.FC<PointsTransparencyProps> = ({ pointsSystem, s
                         <PointsCard 
                             title="Fastest Lap" 
                             icon={FastestLapIcon} 
-                            headerColor="bg-purple-600 text-pure-white"
+                            headerColor="bg-purple-600 text-on-primary"
                             className="flex-none"
                         >
                             <div className="flex items-center justify-between py-2">

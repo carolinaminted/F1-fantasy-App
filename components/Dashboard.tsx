@@ -146,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                            expiredLabel="Picks Locked" />
                 <button
                   onClick={() => setActivePage('picks', { eventId: nextEvent.id })}
-                  className="w-full h-12 rounded-xl bg-primary-red hover:opacity-90 text-pure-white font-bold uppercase tracking-wider text-sm transition-opacity shadow-lg shadow-primary-red/25"
+                  className="w-full h-12 rounded-xl bg-primary-red hover:opacity-90 text-on-primary font-bold uppercase tracking-wider text-sm transition-opacity shadow-lg shadow-primary-red/25"
                 >
                   {picksReady ? 'Edit Picks' : 'Make Picks'}
                 </button>
@@ -164,7 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               description="No races remain on the calendar. See how the championship finished." 
               action={
                 <button onClick={() => setActivePage('leaderboard')}
-                  className="bg-primary-red text-pure-white font-bold py-2 px-5 rounded-lg text-sm">
+                  className="bg-primary-red text-on-primary font-bold py-2 px-5 rounded-lg text-sm">
                   View Standings
                 </button>
               } />
