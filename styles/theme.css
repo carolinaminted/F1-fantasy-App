@@ -90,3 +90,108 @@
     100% { width: 100%; }
   }
 }
+
+/* ================================================================================
+   THEMING (Gate 1)
+   ================================================================================
+   Tailwind v4 emits these tokens as custom properties on `:root,:host` and compiles
+   `bg-carbon-black` to `background-color: var(--color-carbon-black)`. That indirection
+   is the whole mechanism: redefining the variables under `:root[data-theme="light"]`
+   repaints ~1,800 token-class usages across 40+ components without touching one .tsx.
+
+   A second @theme block is fine — v4 merges them. `static` because v4 prunes any theme
+   variable no utility references, and several of these are consumed only through
+   var() inside style={{}} and arbitrary values, which Tailwind cannot see.       */
+
+@theme static {
+  /* ---- Elevation ramp -----------------------------------------------------------
+     Replaces the ad-hoc darks that were hardcoded across components (#050505, #0b0b0b,
+     #0d0d0d, #111, #151515, #1a1a1a, #1e1e1e). elev-0 sits *below* the canvas (inset
+     wells, rims); elev-1..3 sit above it. On light the ramp inverts — elevation reads
+     as lighter, not darker.                                                          */
+  --color-elev-0: #050505;
+  --color-elev-1: #111111;
+  --color-elev-2: #1A1A1A;
+  --color-elev-3: #1E1E1E;
+
+  /* Fallbacks for a constructor whose brand color is missing from the DB row. */
+  --color-neutral-fill: #333333;
+  --color-neutral-edge: #555555;
+
+  /* ---- Semantic tones -----------------------------------------------------------
+     TONE_THEME in components/ui/tokens.ts used stock Tailwind steps picked for a dark
+     canvas (green-400, amber-400, indigo-300). Those fail contrast on near-white, so
+     the tones become tokens and shift a step darker in the light block.              */
+  --color-tone-success: #4ADE80;  /* green-400  */
+  --color-tone-warning: #FBBF24;  /* amber-400  */
+  --color-tone-info:    #A5B4FC;  /* indigo-300 */
+  --color-status-live:  #EF4444;  /* red-500    — session in progress */
+  --color-status-done:  #10B981;  /* emerald-500 — session complete   */
+
+  /* ---- Stage: deliberately NOT themed -------------------------------------------
+     RedFlagScreen and EasterEgg are full-bleed set pieces — a red-flag alert and a
+     retro start-light gantry. A white red-flag screen would be wrong, so these are
+     declared once and are absent from the light block on purpose. They exist so those
+     screens carry no raw hex, not so they can be recolored.                          */
+  --color-stage-bg:       #0A0A0A;
+  --color-stage-panel:    #151515;
+  --color-stage-rim:      #0D0D0D;
+  --color-stage-edge:     #050505;
+  --color-stage-well:     #0B0B0B;
+  --color-stage-dim:      #1A1A1A;
+  --color-stage-ink:      #F5F5F5;
+  --color-stage-muted:    #C0C0C0;
+  --color-stage-live:     #FF1801;
+  --color-stage-alert:    #FF0000;
+  --color-stage-flare:    #FF3333;
+  --color-stage-ember:    #990000;
+  --color-stage-go:       #04170A;
+}
+
+/* ---- Light theme ----------------------------------------------------------------
+   DELIBERATE COMPROMISE, documented in DESIGN.md: these token names describe *roles*,
+   not literal colors. `text-pure-white` renders near-black here and `bg-carbon-black`
+   renders near-white. Renaming them to --color-ink / --color-canvas would be honest
+   but is a ~1,800-site rewrite; flipping the values is a 40-line change. Read the
+   names as: carbon-black = canvas, accent-gray = surface, pure-white = ink,
+   ghost-white = body copy, highlight-silver = muted.
+
+   Left unlayered on purpose — unlayered CSS beats every layered rule, so this wins
+   over the @theme output regardless of source order (same reasoning as the
+   @layer components note in base.css).
+
+   The canvas is #F7F7F5 rather than pure white so the surface token can sit *darker*
+   than it: TILE_BASE paints `bg-accent-gray/40`, and a 40% tint needs somewhere to go
+   in both directions to still read as a lifted surface.                              */
+:root[data-theme="light"] {
+  --color-carbon-black:     #F7F7F5;  /* canvas            */
+  --color-accent-gray:      #D9D9D4;  /* surface (used /40) */
+  --color-pure-white:       #0A0A0A;  /* ink + hairlines    */
+  --color-ghost-white:      #1C1C1C;  /* body copy          */
+  --color-highlight-silver: #56565A;  /* muted / micro-labels */
+  --color-primary-red:      #C41E12;  /* same hue, darkened for AA on light */
+
+  /* Category colors shift luminance only — never hue. DESIGN.md protects the
+     GP=red / Quali=blue / Sprint=yellow / FL=purple mapping, and that mapping is
+     preserved; yellow-500 and blue-500 simply cannot carry text on near-white.
+     Literal values rather than var(--color-blue-600): Tailwind only emits palette
+     vars that some utility actually uses, and the 600 steps are not all in use. */
+  --color-category-quali:   #2563EB;  /* blue-600   */
+  --color-category-sprint:  #CA8A04;  /* yellow-600 */
+  --color-category-fl:      #9333EA;  /* purple-600 */
+  /* category-gp follows --color-primary-red automatically. */
+
+  --color-elev-0: #E4E4DF;  /* ramp inverts: recessed is darker than canvas */
+  --color-elev-1: #FFFFFF;
+  --color-elev-2: #F2F2ED;
+  --color-elev-3: #FFFFFF;
+
+  --color-neutral-fill: #C9C9C3;
+  --color-neutral-edge: #9A9A94;
+
+  --color-tone-success: #16A34A;  /* green-600  */
+  --color-tone-warning: #D97706;  /* amber-600  */
+  --color-tone-info:    #4F46E5;  /* indigo-600 */
+  --color-status-live:  #DC2626;  /* red-600     */
+  --color-status-done:  #059669;  /* emerald-600 */
+}
