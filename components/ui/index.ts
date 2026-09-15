@@ -15,7 +15,6 @@ export { Countdown } from './Countdown.tsx';
 export { EmptyState } from './EmptyState.tsx';
 export { Banner } from './Banner.tsx';
 export { ThemeToggle } from './ThemeToggle.tsx';
-export { ThemeModeControl } from './ThemeModeControl.tsx';
 export { ThemeMenuItem } from './ThemeMenuItem.tsx';
 export {
   CATEGORY_THEME, TONE_THEME, TILE_BASE, TILE_INTERACTIVE, NUMERIC,
