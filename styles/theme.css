@@ -183,7 +183,7 @@
      Literal values rather than var(--color-blue-600): Tailwind only emits palette
      vars that some utility actually uses, and the 600 steps are not all in use. */
   --color-category-quali:   #2563EB;  /* blue-600   */
-  --color-category-sprint:  #CA8A04;  /* yellow-600 */
+  --color-category-sprint:  #A16207;  /* yellow-700 — 600 only reaches 2.7:1 on this canvas */
   --color-category-fl:      #9333EA;  /* purple-600 */
   /* category-gp follows --color-primary-red automatically. */
 
@@ -197,8 +197,8 @@
   --color-neutral-fill: #C9C9C3;
   --color-neutral-edge: #9A9A94;
 
-  --color-tone-success: #16A34A;  /* green-600  */
-  --color-tone-warning: #D97706;  /* amber-600  */
+  --color-tone-success: #15803D;  /* green-700 — 600 only reaches 3.1:1 */
+  --color-tone-warning: #B45309;  /* amber-700 — 600 only reaches 3.0:1 */
   --color-tone-info:    #4F46E5;  /* indigo-600 */
   --color-status-live:  #DC2626;  /* red-600     */
   --color-status-done:  #059669;  /* emerald-600 */
