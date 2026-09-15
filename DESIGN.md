@@ -130,8 +130,8 @@ Three rules carry most of the weight:
 
 The app ships two themes. **Dark is the default and the design's home** — every value in this
 document is its dark value, and an absent preference resolves to dark, never to the OS setting.
-Light is opt-in, per device, from the sun/moon toggle in the app header (mobile), the
-profile page header (desktop), or the SideNav dropdown.
+Light is opt-in, per device, from the sun/moon toggle in the app header (mobile), the profile
+page header (desktop), or the sliding switch under the last item in the desktop SideNav.
 
 The mechanism is one indirection. Tailwind v4 compiles `bg-carbon-black` to
 `background-color: var(--color-carbon-black)`, so `styles/theme.css` redefines the brand tokens
