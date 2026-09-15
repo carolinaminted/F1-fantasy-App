@@ -8,6 +8,7 @@ import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { PolePositionIcon } from './icons/PolePositionIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { EventSelector } from './ui/EventSelector.tsx';
+import { alphaOf } from './ui/tokens.ts';
 import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
@@ -56,13 +57,6 @@ const formatSessionTime = (isoString?: string) => {
         minute: '2-digit',
         timeZone: LEAGUE_TIMEZONE
     }).format(date);
-};
-
-const hexToRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 const SchedulePage: React.FC<SchedulePageProps> = ({ 
@@ -718,7 +712,7 @@ const EventDetailsModal: React.FC<{
                     <div className="relative z-10 mt-4">
                         {activeModalView === 'timetable' ? (
                             <div className="flex flex-col md:flex-row gap-6">
-                                <div className="flex-1 bg-carbon-black/60 p-6 rounded-xl border shadow-lg flex flex-col items-center justify-center text-center" style={{ borderColor: `${accentColor}40` }}>
+                                <div className="flex-1 bg-carbon-black/60 p-6 rounded-xl border shadow-lg flex flex-col items-center justify-center text-center" style={{ borderColor: alphaOf(accentColor, 0.25) }}>
                                     <p className="text-xs uppercase tracking-widest font-black mb-3" style={{ color: accentColor }}>
                                         Grand Prix Start
                                     </p>
@@ -875,7 +869,7 @@ const Podium: React.FC<{ data: { label: string; subLabel?: string; color?: strin
                         <div 
                             className="w-full h-20 md:h-28 rounded-t-lg relative shadow-lg" 
                             style={{ 
-                                backgroundColor: `${data[1].color || 'var(--color-neutral-fill)'}80`, 
+                                backgroundColor: `color-mix(in oklab, ${data[1].color || 'var(--color-neutral-fill)'} 50%, transparent)`, 
                                 borderTop: `4px solid ${data[1].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 15px ${data[1].color}20`
                             }}
@@ -918,7 +912,7 @@ const Podium: React.FC<{ data: { label: string; subLabel?: string; color?: strin
                         <div 
                             className="w-full h-14 md:h-20 rounded-t-lg relative shadow-lg" 
                             style={{ 
-                                backgroundColor: `${data[2].color || 'var(--color-neutral-fill)'}80`, 
+                                backgroundColor: `color-mix(in oklab, ${data[2].color || 'var(--color-neutral-fill)'} 50%, transparent)`, 
                                 borderTop: `4px solid ${data[2].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 15px ${data[2].color}20`
                             }}
@@ -1174,8 +1168,8 @@ const EventGridCard: React.FC<{
                             : 'bg-carbon-black'
             }`}
             style={{ 
-                borderColor: !isCancelled && !isCompleted && !isNext ? `${accentColor}60` : undefined, 
-                boxShadow: isNext && !isCancelled && !isCompleted ? `0 0 20px ${hexToRgba(accentColor, 0.25)}` : undefined
+                borderColor: !isCancelled && !isCompleted && !isNext ? alphaOf(accentColor, 0.38) : undefined, 
+                boxShadow: isNext && !isCancelled && !isCompleted ? `0 0 20px ${alphaOf(accentColor, 0.25)}` : undefined
             }} 
         >
             <div className="absolute inset-0 z-0 opacity-10" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, transparent 75%)` }} />

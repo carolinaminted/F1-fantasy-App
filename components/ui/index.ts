@@ -18,5 +18,5 @@ export { ThemeToggle } from './ThemeToggle.tsx';
 export { ThemeSwitch } from './ThemeSwitch.tsx';
 export {
   CATEGORY_THEME, TONE_THEME, TILE_BASE, TILE_INTERACTIVE, NUMERIC,
-  teamColor, withAlpha, type Category, type Tone,
+  teamColor, withAlpha, alphaOf, type Category, type Tone,
 } from './tokens.ts';

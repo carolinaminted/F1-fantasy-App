@@ -24,7 +24,7 @@ export const ConstructorPodium: React.FC<{ data: { label: string; value: number;
                         <div 
                             className="w-full h-28 md:h-40 rounded-t-lg relative shadow-lg" 
                             style={{ 
-                                backgroundColor: `${data[1].color || 'var(--color-neutral-fill)'}80`, 
+                                backgroundColor: `color-mix(in oklab, ${data[1].color || 'var(--color-neutral-fill)'} 50%, transparent)`, 
                                 borderTop: `4px solid ${data[1].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 15px ${data[1].color}20`
                             }}
@@ -63,7 +63,7 @@ export const ConstructorPodium: React.FC<{ data: { label: string; value: number;
                         <div 
                             className="w-full h-20 md:h-28 rounded-t-lg relative shadow-lg" 
                             style={{ 
-                                backgroundColor: `${data[2].color || 'var(--color-neutral-fill)'}80`, 
+                                backgroundColor: `color-mix(in oklab, ${data[2].color || 'var(--color-neutral-fill)'} 50%, transparent)`, 
                                 borderTop: `4px solid ${data[2].color || 'var(--color-neutral-edge)'}`,
                                 boxShadow: `0 0 15px ${data[2].color}20`
                             }}

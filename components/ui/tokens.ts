@@ -67,7 +67,18 @@ export const teamColor = (
       ?? CONSTRUCTORS.find(c => c.id === constructorId)?.color;
 };
 
-/** Hex -> rgba, for tinted backgrounds built from a team color. */
+/**
+ * Alpha for *any* CSS color — a hex from the data, or a `var(--color-*)` token.
+ *
+ * Use this instead of `withAlpha` whenever the input might be a token, and never append hex
+ * alpha to a token by hand: `var(--color-pure-white)33` is not a color. It parses as garbage
+ * and the declaration is dropped, which is how the category radar ended up filled with SVG's
+ * default opaque black and the next-event card lost its glow.
+ */
+export const alphaOf = (color: string, alpha: number): string =>
+  `color-mix(in oklab, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+
+/** Hex -> rgba, for tinted backgrounds built from a team color. Hex only — see `alphaOf`. */
 export const withAlpha = (hex: string, alpha: number): string => {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
