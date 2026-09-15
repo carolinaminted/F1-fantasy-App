@@ -78,6 +78,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     <div className="flex flex-col md:h-full animate-fade-in pb-24 md:pb-safe pt-1 md:overflow-y-auto custom-scrollbar pr-1">
       <SectionHeader
         title="The Battle Board"
+        subtitle="Tap a principal to break the gap down"
         icon={F1CarIcon}
         action={
           <button
