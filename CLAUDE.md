@@ -5,25 +5,50 @@ Mobile-first fantasy F1 league app, ~40 members. React 19 + TypeScript + Vite 6,
 
 ---
 
-## ⚠️ Cloud projects and the migration boundary
+## ⚠️ Cloud projects — the migration is DONE (2026-09-17)
 
-Four Google Cloud projects are in play. Two of them are **live production**.
+**The cutover happened on 2026-09-17.** `f1.carolinaminted.net` now serves
+`lights-out-league-web` in `lights-out-league-prod`. The legacy frontend no longer holds the
+domain. Do not read anything below as "pending".
 
 | Project | Number | Role | Status |
 |---|---|---|---|
-| `lights-out-league-prod` | 45017321387 | New consolidated Cloud Run web + API (prod-staging) | Deployed, digest-pinned, **pointed at production Firebase since 2026-08-25** |
-| `formula-fantasy-1` | 193463400309 | Production Auth + Firestore + 7 Gen 2 Functions | **LIVE — unchanged** |
-| `gen-lang-client-0034225567` | 1020839022884 | Legacy production frontend | **LIVE — this is the rollback system** |
-| `formula-fantasy-staging` | 342911349882 | Isolated validation data plane | Current target of the new prod compute |
+| `lights-out-league-prod` | 45017321387 | Cloud Run web + Node 22 portal callables | **LIVE — serves members at `f1.carolinaminted.net`** |
+| `formula-fantasy-1` | 193463400309 | Production Auth + Firestore + 7 Gen 2 Functions | **LIVE — the data plane, still Node 20** |
+| `gen-lang-client-0034225567` | 1020839022884 | Legacy frontend, no longer mapped | Idle. Console display name is `formula-fantasy-one` |
+| `formula-fantasy-staging` | 342911349882 | Isolated validation data plane | Staging only |
 
-**The migration is intentionally paused at the last safe preparation point.** Do not mutate
-`formula-fantasy-1` or `gen-lang-client-0034225567` — no Firestore writes, Functions deploys,
-domain or DNS changes, IAM edits, or traffic shifts — without explicit per-action approval from
-the user. Production cutover is a separate approval and follows
-`../lol-docs/documentation/production-cutover-readiness-runbook.md`.
+**Production is still approval-gated, for a different reason now.** The boundary is no longer
+"a migration is mid-flight" — it is simply that these are live member-facing systems. Do not
+mutate `formula-fantasy-1` or `lights-out-league-prod` — Firestore writes, Functions deploys,
+domain or DNS changes, IAM edits, traffic shifts — without explicit per-action approval.
 
-Current state is documented in `../lol-docs/PROD_MIGRATION_SUMMARY.md`. Read it before
-proposing any infrastructure work.
+**Rollback handles from the cutover, both still valid. Do not delete either:**
+
+- Revision: `lights-out-league-web-00007-lez` (`sha256:d92febcb…`), still warm.
+- Data: `.backups/schedule-correction-formula-fantasy-1-2026-09-17T22-50-25-510Z.json`.
+  **Use this file, not the 2026-09-10 one** — the older backup predates Madrid being scored on
+  2026-09-13 and restoring it would wipe those results.
+
+⚠️ **`gen-lang-client-0034225567` vs `formula-fantasy-1` is a trap that has bitten twice.** The
+console shows the *display name* `formula-fantasy-one` for the legacy project, but `--project`
+needs the *ID* `gen-lang-client-0034225567`. Querying `--project formula-fantasy-1` returns
+`Listed 0 items`, which reads as "nothing there." Two different projects.
+
+⚠️ **The legacy project is only visible to `carolinaminted@gmail.com`.** `jhh@carolinaminted.net`
+gets `PERMISSION_DENIED` there, and gmail is in turn excluded from `lights-out-league-prod` by
+Domain Restricted Sharing. Any operation spanning both needs two `--account` values.
+
+**Node runtime is split, deliberately.** `formula-fantasy-1` runs all 7 functions on **nodejs20**;
+the 5-function portal in `lights-out-league-prod` runs **nodejs22** (last deployed 2026-08-25).
+Members' callables hit the Node 22 portal while Firestore triggers fire on Node 20. `functions/`
+declares `"node": "22"`, so **the next `formula-fantasy-1` deploy attempts a runtime upgrade** —
+treat it as a runtime change, not a routine deploy. There is still **no deploy script for the
+portal at all**; writing a guarded one is the top open infrastructure item.
+
+Full record: `../worklog/2026-calendar-cutover.md`. Note that
+`../lol-docs/PROD_MIGRATION_SUMMARY.md` is a 2026-08-24 snapshot and now predates both the
+prod-Firebase repoint and this cutover — this file is more current.
 
 ## Environment modes — read before running the app
 
