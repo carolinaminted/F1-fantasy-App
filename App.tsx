@@ -235,6 +235,10 @@ const App: React.FC = () => {
   // Whether Firebase has told us yet if there is a session. Until it has, neither the app nor
   // the auth screen is the right answer, so nothing but the skeleton may render.
   const [authResolved, setAuthResolved] = useState(false);
+  // A signed-in session whose profile document has not arrived within the grace period. The
+  // loading gate stays shut — a slow profile is not a missing session — but the skeleton gains
+  // a way out, so a signup that died half-written is not an eternal wait.
+  const [profileStalled, setProfileStalled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   // Gate 2: the URL is the source of truth for which surface is showing. Everything
@@ -446,13 +450,43 @@ const App: React.FC = () => {
         // rather than queueing behind the whole auth chain.
         setHasSession(true);
 
-        // Escape hatch for a session whose profile document never arrives — a signup that died
-        // half-written, say. Releasing the loading gate drops the user on the auth screen,
-        // which beats an eternal skeleton now that the gate no longer lets them past it.
+        setProfileStalled(false);
+        // Grace period for the profile document. This used to release the loading gate, which
+        // dropped a valid session on the auth screen whenever Firestore was slow — and the
+        // profile listener, still attached, then logged them straight back in. Now it only
+        // offers retry / sign-out; the listener below still lets them in the moment it lands.
         const safetyTimeout = setTimeout(() => {
             setIsTransitioning(false);
-            setIsLoading(false);
+            setProfileStalled(true);
         }, 10000);
+
+        // Listener 1: User Profile (Details). Attached before the entities read below, so that
+        // read's latency never counts against the profile's grace period.
+        const profileRef = doc(db, 'users', firebaseUser.uid);
+        unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
+          if (profileSnap.exists()) {
+            const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
+            userProfileDataRef.current = userProfile;
+            
+            const publicData = publicProfileDataRef.current;
+            setUser({
+                ...userProfile,
+                rank: publicData ? publicData.rank : undefined,
+                totalPoints: publicData ? publicData.totalPoints : undefined
+            });
+            
+            // Only set authenticated once profile is loaded
+            setIsAuthenticated(true);
+            setIsLoading(false);
+            setProfileStalled(false);
+            
+            clearTimeout(safetyTimeout);
+            setTimeout(() => setIsTransitioning(false), 2200);
+          }
+          // No `else`: a brand new signup reaches here before createUserProfileDocument has
+          // written the document, and this listener fires again the moment it lands. The
+          // grace period above offers the way out when it never does.
+        });
 
         const entities = await getLeagueEntities();
         if (entities) {
@@ -537,32 +571,6 @@ const App: React.FC = () => {
             }
         }, (error) => console.error("Firestore listener error (cancelled_events):", error));
 
-        // Listener 1: User Profile (Details)
-        const profileRef = doc(db, 'users', firebaseUser.uid);
-        unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
-          if (profileSnap.exists()) {
-            const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
-            userProfileDataRef.current = userProfile;
-            
-            const publicData = publicProfileDataRef.current;
-            setUser({
-                ...userProfile,
-                rank: publicData ? publicData.rank : undefined,
-                totalPoints: publicData ? publicData.totalPoints : undefined
-            });
-            
-            // Only set authenticated once profile is loaded
-            setIsAuthenticated(true);
-            setIsLoading(false);
-            
-            clearTimeout(safetyTimeout);
-            setTimeout(() => setIsTransitioning(false), 2200);
-          }
-          // No `else`: a brand new signup reaches here before createUserProfileDocument has
-          // written the document, and this listener fires again the moment it lands. The
-          // safety timeout below is what rescues the case where it never does.
-        });
-
         // Listener 2: User Picks (Realtime Penalties/Selections)
         const picksRef = doc(db, 'userPicks', firebaseUser.uid);
         unsubscribePicks = onSnapshot(picksRef, (picksSnap) => {
@@ -587,6 +595,7 @@ const App: React.FC = () => {
         setHasSession(false);
         setIsLoading(false);
         setIsTransitioning(false);
+        setProfileStalled(false);
       }
     });
     
@@ -789,8 +798,24 @@ const App: React.FC = () => {
   }
 
   // Signed in, but the profile document is still in flight — skeleton, never the auth screen.
+  // Past the grace period the skeleton stays, with a way out on top of it.
   if (auth.currentUser && isLoading) {
-    return <AppSkeleton />;
+    if (!profileStalled) return <AppSkeleton />;
+    return (
+      <>
+        <AppSkeleton />
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-carbon-black/60 p-4">
+          <div role="alertdialog" aria-labelledby="profile-stalled-title" className="w-full max-w-sm rounded-2xl border border-pure-white/10 bg-accent-gray/40 backdrop-blur-md p-6 text-center">
+            <h2 id="profile-stalled-title" className="text-lg font-black uppercase italic text-pure-white">Still connecting…</h2>
+            <p className="mt-2 text-sm text-highlight-silver">Your profile is taking longer than usual to load. You can keep waiting, retry, or sign out.</p>
+            <div className="mt-6 flex flex-col gap-3">
+              <button type="button" onClick={() => window.location.reload()} className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20">Retry</button>
+              <button type="button" onClick={handleLogout} className="w-full border border-pure-white/10 hover:bg-pure-white/5 text-ghost-white font-bold py-3 px-4 rounded-lg">Sign out</button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
   }
 
   // Maintenance Mode Check
