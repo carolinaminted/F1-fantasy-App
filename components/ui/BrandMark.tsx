@@ -5,7 +5,8 @@ import { F1CarIcon } from '../icons/F1CarIcon.tsx';
 interface BrandMarkProps {
   /** `mark` is the glyph alone; `lockup` pairs it with the name. */
   variant?: 'mark' | 'lockup';
-  /** Stacks the wordmark across two lines, as the hero and red-flag screens do. */
+  /** Stacks BRAND.wordmark across lines instead of showing BRAND.shortName. No caller
+   *  passes this today; RedFlagScreen draws BRAND.name directly rather than a lockup. */
   stacked?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'hero';
   className?: string;

@@ -14,9 +14,22 @@ readonly STAGING_GCLOUD_ACCOUNT="carolinaminted@gmail.com"
 readonly STAGING_REGISTRY_PATH="us-west1-docker.pkg.dev/formula-fantasy-staging/cloud-run-source-deploy/lights-out-league-staging"
 readonly STAGING_BUILD_SA="projects/formula-fantasy-staging/serviceAccounts/342911349882-compute@developer.gserviceaccount.com"
 readonly STAGING_FUNCTIONS_REGION="us-central1"
+# Every function this project deploys. Gen 2 functions are Cloud Run services underneath, and
+# that service is named with the function name lowercased — hence `run_service_name` below.
+readonly STAGING_FUNCTIONS=(manualLeaderboardSync sendAuthCode sendPasswordResetLink
+                            updateLeaderboardOnCancellation updateLeaderboardOnResults
+                            validateInvitationCode verifyAuthCode)
 # Only these two functions read email credentials. They are re-bound after every
 # functions deploy, because `firebase deploy` clears secret bindings it did not set.
 readonly STAGING_EMAIL_FUNCTIONS=(sendauthcode sendpasswordresetlink)
+readonly STAGING_EMAIL_USER_SECRET="lol-staging-email-user"
+readonly STAGING_EMAIL_PASS_SECRET="lol-staging-email-pass"
+
+# Gen 2 function -> its backing Cloud Run service name. `${x,,}` would be shorter but needs
+# bash 4; macOS still ships 3.2, so this stays portable.
+run_service_name() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
 
 usage() {
   cat <<'EOF'
@@ -54,11 +67,12 @@ esac
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-for required_file in package.json package-lock.json firebase.json .firebaserc Dockerfile functions/package.json; do
+for required_file in package.json package-lock.json firebase.json .firebaserc Dockerfile \
+                     functions/package.json firestore.rules firestore.indexes.json; do
   [[ -f "$required_file" ]] || fail "required repository file is missing: $required_file"
 done
 
-for required_command in node npm npx gcloud; do
+for required_command in node npm npx gcloud curl python3; do
   command -v "$required_command" >/dev/null 2>&1 || fail "required command is not installed: $required_command"
 done
 
@@ -112,18 +126,196 @@ echo "Running local validation..."
 npm run lint
 npm run build -- --mode staging
 
+# The first attempt at a dedicated runtime identity configured a bare service account name. It
+# looked correct, passed every local check, and was not rejected until `firebase deploy` had
+# already uploaded source and started updating functions — a live deploy spent to learn about a
+# typo. Resolve the identity here instead, before anything is written: the module throws on a
+# malformed address, and the probe below catches an account that does not exist yet.
+echo
+echo "Checking the functions runtime service account..."
+runtime_sa="$(env -u DEBUG GCLOUD_PROJECT="$STAGING_FIREBASE_PROJECT" node -e \
+  'process.stdout.write(require("./functions/runtime-service-account").resolveRuntimeServiceAccount() || "")')" \
+  || fail "the runtime service account table rejected $STAGING_FIREBASE_PROJECT (see the error above)"
+
+if [[ -z "$runtime_sa" ]]; then
+  echo "  none configured for $STAGING_FIREBASE_PROJECT; functions keep the platform default"
+else
+  echo "  $runtime_sa"
+  env -u DEBUG gcloud iam service-accounts describe "$runtime_sa" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format='value(email)' >/dev/null 2>&1 \
+    || fail "runtime service account does not exist in $STAGING_FIREBASE_PROJECT: $runtime_sa"
+  echo "  exists in $STAGING_FIREBASE_PROJECT"
+fi
+
 if [[ "$dry_run" == true ]]; then
   echo
   echo "Dry run passed. No cloud resources were changed."
   exit 0
 fi
 
+# Writes the Firestore ruleset that formula-fantasy-staging is currently serving to $1.
+#
+# The `x-goog-user-project` header is required. Without it the Rules API rejects the call
+# against gcloud's shared ADC quota project and returns 403 SERVICE_DISABLED, which reads like
+# a permission problem but is not one.
+fetch_live_rules() {
+  local out_file="$1"
+  local token releases ruleset_name
+
+  token="$(env -u DEBUG gcloud auth print-access-token \
+    --account "$STAGING_GCLOUD_ACCOUNT" 2>/dev/null || true)"
+  [[ -n "$token" ]] || fail "could not obtain an access token for $STAGING_GCLOUD_ACCOUNT"
+
+  releases="$(curl -sS \
+    -H "Authorization: Bearer $token" \
+    -H "x-goog-user-project: $STAGING_FIREBASE_PROJECT" \
+    "https://firebaserules.googleapis.com/v1/projects/${STAGING_FIREBASE_PROJECT}/releases")"
+
+  ruleset_name="$(printf '%s' "$releases" | python3 -c '
+import json, sys
+
+try:
+    data = json.load(sys.stdin)
+except ValueError:
+    sys.exit(1)
+if "error" in data:
+    print(data["error"].get("message", "unknown Firebase Rules API error"), file=sys.stderr)
+    sys.exit(1)
+for release in data.get("releases", []):
+    if release.get("name", "").endswith("/cloud.firestore"):
+        print(release.get("rulesetName", ""))
+        break
+' || true)"
+  [[ -n "$ruleset_name" ]] || fail "could not resolve the live Firestore ruleset for $STAGING_FIREBASE_PROJECT"
+
+  curl -sS \
+    -H "Authorization: Bearer $token" \
+    -H "x-goog-user-project: $STAGING_FIREBASE_PROJECT" \
+    "https://firebaserules.googleapis.com/v1/${ruleset_name}" \
+    | python3 -c '
+import json, sys
+
+data = json.load(sys.stdin)
+files = data.get("source", {}).get("files", [])
+if not files:
+    sys.exit(1)
+sys.stdout.write(files[0]["content"])
+' > "$out_file" || fail "could not fetch the source of ruleset $ruleset_name"
+
+  [[ -s "$out_file" ]] || fail "the live Firestore ruleset came back empty"
+}
+
+rules_workdir="$(mktemp -d)"
+trap 'rm -rf "$rules_workdir"' EXIT
+
+echo
+echo "Checking the live Firestore ruleset..."
+fetch_live_rules "$rules_workdir/live-before.rules"
+
+if diff -u "$rules_workdir/live-before.rules" firestore.rules >/dev/null 2>&1; then
+  echo "  live ruleset already matches firestore.rules"
+else
+  echo
+  echo "  WARNING: the live staging ruleset differs from firestore.rules."
+  echo "           A rules deploy REPLACES the whole ruleset — there is no additive mode — so"
+  echo "           whatever is shown below is about to be reverted to the committed version."
+  echo "           ('-' is live in $STAGING_FIREBASE_PROJECT, '+' is what will be deployed.)"
+  diff -u "$rules_workdir/live-before.rules" firestore.rules | sed 's/^/             /' || true
+fi
+
+echo
+echo "Deploying staging Firestore rules and indexes..."
+# No --force, deliberately. Under --non-interactive firebase-tools only *warns* about indexes
+# present in the project but absent from firestore.indexes.json; --force is precisely what turns
+# that warning into a deletion. This step must never be able to drop an index someone else made.
+env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
+  --only firestore \
+  --project "$STAGING_FIREBASE_PROJECT" \
+  --non-interactive
+
+# `firebase deploy` exiting 0 is not proof the project is serving this file — same reasoning as
+# the Cloud Run serving check at the bottom of this script. Confirm it directly.
+echo
+echo "Verifying the live ruleset matches firestore.rules..."
+fetch_live_rules "$rules_workdir/live-after.rules"
+
+if ! diff -u "$rules_workdir/live-after.rules" firestore.rules >/dev/null 2>&1; then
+  echo >&2
+  echo "Staging deploy blocked: the firestore deploy reported success, but" >&2
+  echo "$STAGING_FIREBASE_PROJECT is not serving firestore.rules." >&2
+  echo "  ('-' is live, '+' is the repo file it should match.)" >&2
+  diff -u "$rules_workdir/live-after.rules" firestore.rules >&2 || true
+  exit 1
+fi
+echo "  live ruleset verified"
+
 echo
 echo "Deploying staging Functions..."
+# Wall-clock start of the deploy, so the check below can scope itself to builds this step
+# triggered. RFC3339 UTC is what `gcloud builds list --filter` compares against.
+functions_deploy_started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
   --only functions \
   --project "$STAGING_FIREBASE_PROJECT" \
   --non-interactive
+
+# Same failure mode as the Cloud Run serving check at the bottom of this script, one layer down:
+# the deploy reports success while individual functions did not actually update. On 2026-08-26
+# five of seven functions updated and sendAuthCode/sendPasswordResetLink both failed their Cloud
+# Build with "function.js does not exist" — each kept serving its previous image, and the deploy
+# carried on to build the frontend and re-bind secrets as if nothing were wrong.
+#
+# ACTIVE alone does not catch it: a function whose update fails stays ACTIVE on the old revision.
+# The build failure is the signal, so check for one in the window this deploy occupied.
+echo
+echo "Verifying the functions deploy actually landed..."
+
+for fn in "${STAGING_FUNCTIONS[@]}"; do
+  # One describe, two fields: state, then the revision GCF believes it published.
+  read -r state gcf_revision <<<"$(env -u DEBUG gcloud functions describe "$fn" \
+    --project "$STAGING_FIREBASE_PROJECT" --region "$STAGING_FUNCTIONS_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format='value[separator=" "](state,serviceConfig.revision)' 2>/dev/null || true)"
+  [[ "$state" == "ACTIVE" ]] || fail "$fn is in state '${state:-unknown}', expected ACTIVE"
+
+  # ACTIVE is not enough. A function whose build failed stays ACTIVE on its previous revision,
+  # and one whose GCF record has been blanked reports ACTIVE with no revision at all — the state
+  # both email functions were in from 2026-08-26 to 2026-08-30, during which every
+  # `firebase deploy --only functions` skipped them.
+  #
+  # That blanking was caused by the out-of-band `gcloud run services update` re-bind this script
+  # used to run, which is now gone: the secrets are declared in functions/index.js instead. With
+  # nothing writing Cloud Run behind GCF's back, a populated revision is a real invariant rather
+  # than something this script breaks itself two steps later.
+  [[ -n "$gcf_revision" ]] \
+    || fail "$fn reports ACTIVE but has no serviceConfig.revision — its GCF metadata is broken, and the next deploy will skip it as unchanged"
+done
+echo "  all ${#STAGING_FUNCTIONS[@]} functions report ACTIVE with a published revision"
+
+failed_builds="$(env -u DEBUG gcloud builds list \
+  --project "$STAGING_FIREBASE_PROJECT" \
+  --account "$STAGING_GCLOUD_ACCOUNT" \
+  --region "$STAGING_FUNCTIONS_REGION" \
+  --filter="status=FAILURE AND createTime>=\"$functions_deploy_started\"" \
+  --format='value(id)' 2>/dev/null || true)"
+
+if [[ -n "$failed_builds" ]]; then
+  echo >&2
+  echo "Staging deploy blocked: a function build FAILED during this deploy." >&2
+  echo "  The Firebase CLI can still exit 0 when this happens, leaving the affected function" >&2
+  echo "  serving its PREVIOUS image. Do not treat the functions as deployed." >&2
+  echo >&2
+  while IFS= read -r build_id; do
+    [[ -n "$build_id" ]] || continue
+    echo "    build $build_id" >&2
+    echo "      https://console.cloud.google.com/cloud-build/builds;region=${STAGING_FUNCTIONS_REGION}/${build_id}?project=${STAGING_FIREBASE_PROJECT}" >&2
+  done <<< "$failed_builds"
+  exit 1
+fi
+echo "  no function build failed in this window"
 
 echo
 echo "Building staging image (Cloud Build, pinned digest)..."
@@ -159,29 +351,105 @@ env -u DEBUG gcloud run deploy "$STAGING_RUN_SERVICE" \
   --quiet
 
 echo
-echo "Re-binding email secrets (firebase deploy clears them)..."
-for fn in "${STAGING_EMAIL_FUNCTIONS[@]}"; do
-  env -u DEBUG gcloud run services update "$fn" \
+# No secret re-bind here any more, deliberately.
+#
+# This used to run `gcloud run services update --set-secrets` after every functions deploy. That
+# writes the Cloud Run service directly, bypassing the Cloud Functions v2 API, and blanks the
+# function's GCF record — after which `firebase deploy --only functions` stopped rebuilding these
+# two functions at all. Across three deploys (2026-08-26, and twice on 2026-08-30) only the five
+# non-email functions were ever rebuilt: the two that send email had silently left the deploy path.
+#
+# The secrets are declared in functions/index.js with `defineSecret` instead, so firebase-tools
+# binds them as part of the deploy and never clears them. The verification below is unchanged in
+# spirit and still the thing that must pass.
+
+# Prints the environment of the revision actually serving $1, one `NAME=KIND` line per variable,
+# where KIND is `plaintext` or `secret:<secret-name>`.
+#
+# This deliberately reads Cloud Run, not `gcloud functions describe`. The re-bind above goes
+# through `gcloud run services update`, which writes the Cloud Run service directly and bypasses
+# the Cloud Functions v2 API, so GCF metadata for these two functions goes stale: as of
+# 2026-08-29 it still reported updateTime 2026-08-26T02:27:54Z — the timestamp of a FAILED
+# update — and an empty serviceConfig.revision, five Cloud Run revisions behind. The old guard
+# read exactly that view, so it was checking a copy that does not serve traffic.
+serving_env() {
+  local svc="$1" serving_rev
+
+  serving_rev="$(env -u DEBUG gcloud run services describe "$svc" \
     --project "$STAGING_FIREBASE_PROJECT" \
     --region "$STAGING_FUNCTIONS_REGION" \
     --account "$STAGING_GCLOUD_ACCOUNT" \
-    --set-secrets EMAIL_USER=lol-staging-email-user:latest,EMAIL_PASS=lol-staging-email-pass:latest \
-    --quiet
-done
+    --format=json 2>/dev/null | python3 -c '
+import json, sys
+
+try:
+    data = json.load(sys.stdin)
+except ValueError:
+    sys.exit(1)
+# A tagged revision at 0% sorts first in status.traffic, so select on percent, never index.
+for entry in data.get("status", {}).get("traffic", []):
+    if entry.get("percent") == 100:
+        print(entry.get("revisionName", ""))
+        break
+')"
+  [[ -n "$serving_rev" ]] || return 1
+
+  env -u DEBUG gcloud run revisions describe "$serving_rev" \
+    --project "$STAGING_FIREBASE_PROJECT" \
+    --region "$STAGING_FUNCTIONS_REGION" \
+    --account "$STAGING_GCLOUD_ACCOUNT" \
+    --format=json 2>/dev/null | python3 -c '
+import json, sys
+
+data = json.load(sys.stdin)
+
+# `defineSecret` bindings arrive as an opaque alias in secretKeyRef.name
+# ("secret-08eb5f89-..."), with the real secret path in an annotation:
+#   run.googleapis.com/secrets: <alias>:projects/<p>/secrets/<name>,...
+# Without resolving that, every declared secret reads as an unrecognised name.
+aliases = {}
+annotation = data.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/secrets", "")
+for pair in filter(None, annotation.split(",")):
+    alias, _, path = pair.partition(":")
+    aliases[alias] = path.rsplit("/", 1)[-1]
+
+containers = data.get("spec", {}).get("containers", [])
+for var in (containers[0].get("env", []) if containers else []):
+    ref = (var.get("valueFrom") or {}).get("secretKeyRef") or {}
+    if ref:
+        name = ref.get("name", "")
+        kind = "secret:" + aliases.get(name, name)
+    else:
+        kind = "plaintext"
+    print(var.get("name", "") + "=" + kind)
+'
+}
 
 echo
-echo "Verifying no plaintext credentials landed in function config..."
-for fn in manualLeaderboardSync sendAuthCode sendPasswordResetLink \
-          updateLeaderboardOnCancellation updateLeaderboardOnResults \
-          validateInvitationCode verifyAuthCode; do
-  plaintext="$(gcloud functions describe "$fn" \
-    --project "$STAGING_FIREBASE_PROJECT" --region "$STAGING_FUNCTIONS_REGION" \
-    --account "$STAGING_GCLOUD_ACCOUNT" \
-    --format="value(serviceConfig.environmentVariables)" 2>/dev/null \
-    | tr ';' '\n' | grep -cE '^(EMAIL_USER|EMAIL_PASS)=' || true)"
-  [[ "$plaintext" == "0" ]] || fail "$fn has plaintext EMAIL_* in its config"
+echo "Verifying email credentials on the revisions actually serving..."
+for fn in "${STAGING_FUNCTIONS[@]}"; do
+  svc="$(run_service_name "$fn")"
+  env_lines="$(serving_env "$svc")" \
+    || fail "could not read the serving revision of $svc — cannot verify its credentials"
+
+  # `defineSecret` names the env var after the secret, so both spellings are checked: the legacy
+  # EMAIL_* names still used by formula-fantasy-1, and the lol-*-email-* names used here.
+  if printf '%s\n' "$env_lines" \
+    | grep -qE "^(EMAIL_USER|EMAIL_PASS|${STAGING_EMAIL_USER_SECRET}|${STAGING_EMAIL_PASS_SECRET})=plaintext$"; then
+    fail "$fn serves a plaintext email credential — it is exposed in function config"
+  fi
+
+  # The two email functions must not merely lack plaintext, they must actually have the secrets.
+  # A declaration that silently did not take would otherwise read as a pass.
+  if [[ " ${STAGING_EMAIL_FUNCTIONS[*]} " == *" $svc "* ]]; then
+    for want in "${STAGING_EMAIL_USER_SECRET}=secret:${STAGING_EMAIL_USER_SECRET}" \
+                "${STAGING_EMAIL_PASS_SECRET}=secret:${STAGING_EMAIL_PASS_SECRET}"; do
+      printf '%s\n' "$env_lines" | grep -qxF "$want" \
+        || fail "$fn is missing '$want' on its serving revision — the secret declaration did not take"
+    done
+  fi
 done
-echo "  all 7 functions clean"
+echo "  all ${#STAGING_FUNCTIONS[@]} functions clean; email secrets bound on ${#STAGING_EMAIL_FUNCTIONS[@]}"
 
 # `gcloud run deploy` reports the revision the service is SERVING, not the one it just
 # created. When traffic is pinned to an older revision those differ, and a deploy that

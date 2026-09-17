@@ -46,31 +46,45 @@ export const DRIVERS: Driver[] = [
   { id: 'bot', name: 'Valtteri Bottas', constructorId: 'cadillac', class: EntityClass.B, isActive: true },
 ];
 
+/**
+ * The 2026 calendar — the single source of truth for which events exist this season.
+ *
+ * Kept in chronological order: `components/SchedulePage.tsx` slices this array for its
+ * "next five races" strip, so array order and `round` must stay in step.
+ *
+ * `lockAtUtc` / `softDeadlineUtc` are intentionally empty. Real session times live in the
+ * Firestore doc `app_state/event_schedules` and are merged in by `App.tsx`.
+ *
+ * ⚠️ The event IDs here are mirrored, for the server scoring engines, in
+ * `functions/season-events.js` and `backend/api/season-events.js`. Those files are CommonJS
+ * and cannot import this one. Change one, change all three.
+ */
 export const EVENTS: Event[] = [
     { id: 'aus_26', round: 1, name: 'Australian GP', country: 'Australia', location: 'Melbourne', circuit: 'Albert Park Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
     { id: 'chn_26', round: 2, name: 'Chinese GP', country: 'China', location: 'Shanghai', circuit: 'Shanghai International Circuit', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
     { id: 'jpn_26', round: 3, name: 'Japanese GP', country: 'Japan', location: 'Suzuka', circuit: 'Suzuka International Racing Course', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'bhr_26', round: 4, name: 'Bahrain GP', country: 'Bahrain', location: 'Sakhir', circuit: 'Bahrain International Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'sau_26', round: 5, name: 'Saudi Arabian GP', country: 'Saudi Arabia', location: 'Jeddah', circuit: 'Jeddah Corniche Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'mia_26', round: 6, name: 'Miami GP', country: 'USA', location: 'Miami', circuit: 'Miami International Autodrome', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'can_26', round: 7, name: 'Canadian GP', country: 'Canada', location: 'Montreal', circuit: 'Circuit Gilles-Villeneuve', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'mco_26', round: 8, name: 'Monaco GP', country: 'Monaco', location: 'Monaco', circuit: 'Circuit de Monaco', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'esp_26', round: 9, name: 'Spanish GP', country: 'Spain', location: 'Barcelona-Catalunya', circuit: 'Circuit de Barcelona-Catalunya', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'aut_26', round: 10, name: 'Austrian GP', country: 'Austria', location: 'Spielberg', circuit: 'Red Bull Ring', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'gbr_26', round: 11, name: 'British GP', country: 'Great Britain', location: 'Silverstone', circuit: 'Silverstone Circuit', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'bel_26', round: 12, name: 'Belgian GP', country: 'Belgium', location: 'Spa-Francorchamps', circuit: 'Circuit de Spa-Francorchamps', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'hun_26', round: 13, name: 'Hungarian GP', country: 'Hungary', location: 'Budapest', circuit: 'Hungaroring', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'nld_26', round: 14, name: 'Dutch GP', country: 'Netherlands', location: 'Zandvoort', circuit: 'Circuit Zandvoort', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'ita_26', round: 15, name: 'Italian GP', country: 'Italy', location: 'Monza', circuit: 'Autodromo Nazionale Monza', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'mad_26', round: 16, name: 'Madrid GP', country: 'Spain', location: 'Madrid (New Circuit)', circuit: 'IFEMA Madrid Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'aze_26', round: 17, name: 'Azerbaijan GP', country: 'Azerbaijan', location: 'Baku', circuit: 'Baku City Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'sgp_26', round: 18, name: 'Singapore GP', country: 'Singapore', location: 'Marina Bay', circuit: 'Marina Bay Street Circuit', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'usa_26', round: 19, name: 'United States GP', country: 'USA', location: 'Austin (COTA)', circuit: 'Circuit of the Americas', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'mex_26', round: 20, name: 'Mexico City GP', country: 'Mexico', location: 'Mexico City', circuit: 'Autódromo Hermanos Rodríguez', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'bra_26', round: 21, name: 'Sao Paulo GP', country: 'Brazil', location: 'Interlagos', circuit: 'Autódromo de Interlagos', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'las_26', round: 22, name: 'Las Vegas GP', country: 'USA', location: 'Las Vegas', circuit: 'Las Vegas Strip Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'qat_26', round: 23, name: 'Qatar GP', country: 'Qatar', location: 'Lusail', circuit: 'Lusail International Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
-    { id: 'abu_26', round: 24, name: 'Abu Dhabi GP', country: 'Abu Dhabi', location: 'Yas Marina', circuit: 'Yas Marina Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'mia_26', round: 4, name: 'Miami GP', country: 'USA', location: 'Miami', circuit: 'Miami International Autodrome', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'can_26', round: 5, name: 'Canadian GP', country: 'Canada', location: 'Montreal', circuit: 'Circuit Gilles-Villeneuve', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'mco_26', round: 6, name: 'Monaco GP', country: 'Monaco', location: 'Monaco', circuit: 'Circuit de Monaco', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'esp_26', round: 7, name: 'Spanish GP', country: 'Spain', location: 'Barcelona-Catalunya', circuit: 'Circuit de Barcelona-Catalunya', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'aut_26', round: 8, name: 'Austrian GP', country: 'Austria', location: 'Spielberg', circuit: 'Red Bull Ring', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'gbr_26', round: 9, name: 'British GP', country: 'Great Britain', location: 'Silverstone', circuit: 'Silverstone Circuit', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'bel_26', round: 10, name: 'Belgian GP', country: 'Belgium', location: 'Spa-Francorchamps', circuit: 'Circuit de Spa-Francorchamps', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'hun_26', round: 11, name: 'Hungarian GP', country: 'Hungary', location: 'Budapest', circuit: 'Hungaroring', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'nld_26', round: 12, name: 'Dutch GP', country: 'Netherlands', location: 'Zandvoort', circuit: 'Circuit Zandvoort', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'ita_26', round: 13, name: 'Italian GP', country: 'Italy', location: 'Monza', circuit: 'Autodromo Nazionale Monza', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'mad_26', round: 14, name: 'Madrid GP', country: 'Spain', location: 'Madrid (New Circuit)', circuit: 'IFEMA Madrid Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'aze_26', round: 15, name: 'Azerbaijan GP', country: 'Azerbaijan', location: 'Baku', circuit: 'Baku City Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    // Round 16 is Bahrain's race, run at Sepang. The `bhr_26` id is deliberately reused rather
+    // than reissued, so existing schedule, lock and admin-log records follow the event.
+    { id: 'bhr_26', round: 16, name: 'Bahrain GP', country: 'Bahrain', location: 'Sepang', circuit: 'Sepang International Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'sgp_26', round: 17, name: 'Singapore GP', country: 'Singapore', location: 'Marina Bay', circuit: 'Marina Bay Street Circuit', hasSprint: true, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'usa_26', round: 18, name: 'United States GP', country: 'USA', location: 'Austin (COTA)', circuit: 'Circuit of the Americas', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'mex_26', round: 19, name: 'Mexico City GP', country: 'Mexico', location: 'Mexico City', circuit: 'Autódromo Hermanos Rodríguez', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'bra_26', round: 20, name: 'Sao Paulo GP', country: 'Brazil', location: 'Interlagos', circuit: 'Autódromo de Interlagos', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'las_26', round: 21, name: 'Las Vegas GP', country: 'USA', location: 'Las Vegas', circuit: 'Las Vegas Strip Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'qat_26', round: 22, name: 'Qatar GP', country: 'Qatar', location: 'Lusail', circuit: 'Lusail International Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
+    { id: 'abu_26', round: 23, name: 'Abu Dhabi GP', country: 'Abu Dhabi', location: 'Yas Marina', circuit: 'Yas Marina Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },
 ];
 
 export const USAGE_LIMITS = {

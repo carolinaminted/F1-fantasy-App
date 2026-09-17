@@ -6,7 +6,7 @@
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
+    "deploy": "echo 'Refusing: use ./deploy-staging.sh (staging) \u2014 there is no scripted production functions deploy. See CLAUDE.md.' >&2 && exit 1",
     "logs": "firebase functions:log",
     "seed:staging": "node scripts/seed-staging.js --project formula-fantasy-staging"
   },

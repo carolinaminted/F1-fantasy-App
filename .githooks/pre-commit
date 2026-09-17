@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# prod and staging are merge-only: reject a commit made directly on either.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Emergency override:     LOL_ALLOW_PROD_EDIT=1 git commit ...
+#
+# Merges are unaffected. A clean merge commit fires pre-merge-commit (a different
+# hook, which we deliberately do not install); a fast-forward merge fires no hook
+# at all; and the commit that concludes a conflicted merge or a `merge --squash`
+# is allowed below via MERGE_HEAD / SQUASH_MSG.
+
+set -eu
+
+PROTECTED="prod staging"
+
+[ "${LOL_ALLOW_PROD_EDIT:-}" = "1" ] && exit 0
+
+branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || exit 0
+git_dir=$(git rev-parse --absolute-git-dir)
+
+[ -e "$git_dir/MERGE_HEAD" ] && exit 0
+[ -e "$git_dir/SQUASH_MSG" ] && exit 0
+
+for b in $PROTECTED; do
+	[ "$branch" = "$b" ] || continue
+	cat >&2 <<MSG
+
+  Refusing to commit directly on \`$branch\` — it is merge-only.
+
+  Move this work onto a feature branch instead:
+
+      git stash
+      git checkout -b feat/... staging
+      git stash pop
+
+  Then merge it back: git checkout staging && git merge feat/...
+  A release is:       git checkout prod && git merge --ff-only staging
+
+  Genuine emergency? LOL_ALLOW_PROD_EDIT=1 git commit ...
+
+MSG
+	exit 1
+done
+
+exit 0
