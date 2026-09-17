@@ -258,8 +258,8 @@ const AdminPage: React.FC<AdminPageProps> = ({
                                 : 'Every finished race is scored'
                         }
                     />
-                    <Tile padding="md" className="col-span-2 lg:col-span-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
+                    <Tile padding="md" className="col-span-2 lg:col-span-1 text-center">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
                             Next Race
                         </span>
                         {nextEvent ? (
