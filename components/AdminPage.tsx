@@ -229,7 +229,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
                         <button
                             onClick={() => !isSyncing && setShowSyncConfirm(true)}
                             disabled={isSyncing}
-                            className="flex items-center gap-2 rounded-lg border border-primary-red/50 bg-carbon-black/60 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white disabled:cursor-wait disabled:opacity-60"
+                            className="flex items-center gap-2 rounded-lg border border-primary-red/50 bg-carbon-black/60 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-on-primary disabled:cursor-wait disabled:opacity-60"
                         >
                             <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                             <span>{isSyncing ? 'Recalculating…' : 'Recalculate scores'}</span>
@@ -354,7 +354,7 @@ const AdminPage: React.FC<AdminPageProps> = ({
                         <button
                             type="submit"
                             disabled={isSavingDues}
-                            className="rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                            className="rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-40"
                         >
                             {isSavingDues ? 'Saving…' : 'Save amount'}
                         </button>

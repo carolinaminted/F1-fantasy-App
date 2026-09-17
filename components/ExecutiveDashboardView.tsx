@@ -78,12 +78,12 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     <div className="flex flex-col md:h-full animate-fade-in pb-24 md:pb-safe pt-1 md:overflow-y-auto custom-scrollbar pr-1">
       <SectionHeader
         title="The Battle Board"
-        subtitle="Every interval on the road — tap a principal to break the gap down"
+        subtitle="Tap a principal to break the gap down"
         icon={F1CarIcon}
         action={
           <button
             onClick={openRadar}
-            className="flex items-center gap-2 rounded-lg bg-primary-red px-3.5 py-2 text-[11px] font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 active:scale-95"
+            className="flex items-center gap-2 rounded-lg bg-primary-red px-3.5 py-2 text-[11px] font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 active:scale-95"
           >
             <F1CarIcon className="w-4 h-4" />
             <span className="hidden sm:inline">My Position</span>

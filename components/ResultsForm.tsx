@@ -384,12 +384,12 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                                 isCancelled ? 'bg-accent-gray/20 border-accent-gray/30 text-accent-gray cursor-not-allowed' :
                                 saveState === 'success'
                                 ? 'bg-green-600 border-green-500 text-white'
-                                : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-white hover:border-pure-white'
+                                : 'bg-carbon-black border-accent-gray text-highlight-silver hover:text-pure-white hover:border-pure-white'
                             }`}
                             title={isCancelled ? 'Event Cancelled' : "Save Results"}
                         >
                             {saveState === 'saving' ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <div className="w-5 h-5 border-2 border-pure-white/30 border-t-pure-white rounded-full animate-spin"></div>
                             ) : saveState === 'success' ? (
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
                             ) : (
@@ -475,7 +475,7 @@ const ResultsForm: React.FC<ResultsFormProps> = ({ event, currentResults, onSave
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={proceedWithSave}
-                                className="w-full bg-yellow-600 hover:bg-yellow-500 text-pure-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-yellow-600/20 uppercase tracking-widest text-xs"
+                                className="w-full bg-yellow-600 hover:bg-yellow-500 text-on-primary font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-yellow-600/20 uppercase tracking-widest text-xs"
                             >
                                 Yes, Proceed Anyway
                             </button>

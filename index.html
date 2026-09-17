@@ -7,6 +7,31 @@
     <link rel="apple-touch-icon" href="https://bronze-generous-halibut-259.mypinata.cloud/ipfs/bafkreigo3gghqdbn2lkbmicr3xslsag7rfgfbkr5lesnujkyw3sicd4y7m">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#DA291C">
+    <meta name="color-scheme" content="dark light">
+    <!--
+      Pre-paint theme. This has to be a blocking inline script in <head>: if the theme were
+      applied by React instead, the page would paint dark for a beat and then flip, which is
+      worse than having no light mode at all.
+
+      The storage key and the 'dark' default are duplicated from contexts/ThemeContext.tsx —
+      an inline script cannot import. Keep them in step.
+    -->
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('lol_theme');
+          if (mode !== 'system' && mode !== 'light' && mode !== 'dark') mode = 'dark';
+          var theme = mode === 'system'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : mode;
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23DA291C' d='M12 1L13.5 3H20V5H14V6H17V12H15V18H18V20H6V18H9V12H7V6H10V5H4V3H10.5L12 1ZM2 6H5V10H2ZM19 6H22V10H19ZM2 15H6V19H2ZM18 15H22V19H18Z'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

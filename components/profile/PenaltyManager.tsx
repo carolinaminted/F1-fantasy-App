@@ -81,7 +81,7 @@ export const PenaltyManager: React.FC<PenaltyManagerProps> = ({
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex-1 rounded bg-primary-red px-4 py-2 text-xs font-bold text-pure-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex-1 rounded bg-primary-red px-4 py-2 text-xs font-bold text-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isSaving ? 'Applying…' : 'Apply Penalty'}
           </button>
@@ -89,7 +89,7 @@ export const PenaltyManager: React.FC<PenaltyManagerProps> = ({
             onClick={handleClear}
             disabled={isSaving}
             type="button"
-            className="rounded bg-green-600 px-4 py-2 text-xs font-bold text-pure-white transition-colors hover:bg-green-500 disabled:opacity-50"
+            className="rounded bg-green-600 px-4 py-2 text-xs font-bold text-on-primary transition-colors hover:bg-green-500 disabled:opacity-50"
           >
             Clear
           </button>

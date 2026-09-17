@@ -242,7 +242,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                     <button
                         onClick={handleSave}
                         disabled={isSaving || !isDirty}
-                        className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                        className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-40"
                     >
                         <SaveIcon className="w-4 h-4" />
                         {isSaving ? 'Saving\u2026' : 'Save changes'}
@@ -417,7 +417,7 @@ const ManageEntitiesPage: React.FC<ManageEntitiesPageProps> = ({ setAdminSubPage
                         </button>
                         <button
                             type="submit"
-                            className="rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600"
+                            className="rounded-lg bg-primary-red px-4 py-2 text-xs font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600"
                         >
                             {editEntityId ? 'Apply' : 'Add'}
                         </button>

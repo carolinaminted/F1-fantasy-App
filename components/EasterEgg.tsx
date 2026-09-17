@@ -229,9 +229,10 @@ export const EasterEggOverlay: React.FC<OverlayProps> = ({
 
   return (
     <div
+      data-theme="dark"
       onPointerDown={armed ? react : undefined}
       className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden select-none transition-colors duration-100 ${
-        phase === 'go' ? 'bg-[#04170a]' : 'bg-carbon-black/98'
+        phase === 'go' ? 'bg-stage-go' : 'bg-carbon-black/98'
       } ${armed ? 'cursor-pointer' : ''}`}
     >
       <div className="absolute inset-0 bg-carbon-fiber opacity-[0.06] pointer-events-none" />
@@ -249,21 +250,21 @@ export const EasterEggOverlay: React.FC<OverlayProps> = ({
 
       {/* ---- The gantry: five pairs, as on a real grid --------------------------- */}
       <div className="relative mb-10">
-        <div className="flex gap-3 md:gap-5 rounded-2xl border-4 border-[#0d0d0d] bg-[#151515] p-4 md:p-6 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
+        <div className="flex gap-3 md:gap-5 rounded-2xl border-4 border-stage-rim bg-elev-1 p-4 md:p-6 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
           {[1, 2, 3, 4, 5].map(col => (
             <div key={col} className="flex flex-col gap-2 md:gap-3">
               {[0, 1].map(row => (
                 <div key={row}
                   className={`w-9 h-9 md:w-16 md:h-16 rounded-full border-2 transition-all duration-75 ${
                     activeLights >= col
-                      ? 'bg-[#ff1801] border-red-950 shadow-[0_0_35px_#ff1801,inset_0_-4px_8px_rgba(0,0,0,0.45)]'
-                      : 'bg-[#0b0b0b] border-[#050505] shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)]'
+                      ? 'bg-stage-live border-red-950 shadow-[0_0_35px_var(--color-stage-live),inset_0_-4px_8px_rgba(0,0,0,0.45)]'
+                      : 'bg-stage-well border-elev-0 shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)]'
                   }`} />
               ))}
             </div>
           ))}
         </div>
-        <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-8 bg-[#151515]" />
+        <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-8 bg-elev-1" />
       </div>
 
       {/* ---- Message ------------------------------------------------------------ */}
@@ -328,7 +329,7 @@ export const EasterEggOverlay: React.FC<OverlayProps> = ({
       {(phase === 'result' || phase === 'jumpstart') && (
         <div className="relative flex items-center gap-3 mt-8">
           <button onClick={restart}
-            className="bg-primary-red hover:opacity-90 text-pure-white font-bold uppercase tracking-wider text-sm py-3 px-7 rounded-xl shadow-lg shadow-primary-red/25 transition-opacity">
+            className="bg-primary-red hover:opacity-90 text-on-primary font-bold uppercase tracking-wider text-sm py-3 px-7 rounded-xl shadow-lg shadow-primary-red/25 transition-opacity">
             Go again
           </button>
           <button onClick={close}

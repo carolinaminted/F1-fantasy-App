@@ -56,7 +56,7 @@ const SessionWarningModal: React.FC<SessionWarningModalProps> = ({ isOpen, expir
                 <div className="space-y-3">
                     <button
                         onClick={onContinue}
-                        className="w-full bg-primary-red hover:bg-red-600 text-pure-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/20"
+                        className="w-full bg-primary-red hover:bg-red-600 text-on-primary font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary-red/20"
                     >
                         Continue Session
                     </button>

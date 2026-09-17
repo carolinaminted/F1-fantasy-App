@@ -28,7 +28,7 @@ interface ConfirmModalProps {
 }
 
 const TONE = {
-  danger:  { button: 'bg-primary-red hover:bg-red-600 text-pure-white', accent: 'text-primary-red' },
+  danger:  { button: 'bg-primary-red hover:bg-red-600 text-on-primary', accent: 'text-primary-red' },
   warning: { button: 'bg-amber-500 hover:bg-amber-400 text-carbon-black', accent: 'text-amber-400' },
   info:    { button: 'bg-pure-white/15 hover:bg-pure-white/25 text-pure-white', accent: 'text-highlight-silver' },
 } as const;

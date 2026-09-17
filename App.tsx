@@ -43,6 +43,8 @@ import {
 } from './routes.ts';
 import { copyright } from './brand.ts';
 import { BrandMark } from './components/ui/BrandMark.tsx';
+import { ThemeToggle } from './components/ui/ThemeToggle.tsx';
+import { ThemeSwitch } from './components/ui/ThemeSwitch.tsx';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
@@ -206,6 +208,13 @@ const SideNav: React.FC<{ user: User | null; activePage: Page; navigateToPage: (
                 {isUserAdmin(user) && (
                   <SideNavItem icon={AdminIcon} label="Admin" page="admin" activePage={activePage} setActivePage={navigateToPage} />
                 )}
+
+                {/* Sits under the last nav item — Admin for admins, Profile for everyone else —
+                    rather than inside the account dropdown, so the current theme is visible
+                    without opening anything. */}
+                <div className="px-1 pt-3">
+                  <ThemeSwitch />
+                </div>
             </nav>
              
              <div className="mt-auto shrink-0 pt-4 pb-2">
@@ -865,6 +874,7 @@ const App: React.FC = () => {
                 <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
              <div className="flex items-center gap-3 justify-self-end">
+               <ThemeToggle />
                {isUserAdmin(user) && (
                  <button
                    onClick={() => navigateToPage('admin')}

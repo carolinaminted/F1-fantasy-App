@@ -274,6 +274,14 @@ land in both or the two will disagree. See `SCORING_AUDIT_LOGIC.md`.
   incidentally. `[M-2]` was fixed inside an unrelated `getFormLocks` refactor and sat open in the
   tracker for three months as a result. When closing an item, record the SHA and subject on it,
   and derive its environment with `git branch --contains <sha>`.
+- **Theming:** the app ships dark (default) and light, switched by `data-theme` on `<html>`.
+  Tailwind v4 compiles token classes to `var()` references, so `styles/theme.css` flips the
+  brand tokens under `:root[data-theme="light"]` and components need no changes. **The token
+  names are roles, not colors** — `text-pure-white` renders near-black on light. Two rules
+  follow: text on a saturated fill uses `text-on-primary` (the one ink that never flips), and a
+  component that must stay dark in both themes puts `data-theme="dark"` on its root, as
+  `RedFlagScreen`, `EasterEgg` and `Toast` do. An absent preference resolves to **dark**, never
+  to the OS. See the Themes section of `DESIGN.md`.
 - **Design:** `DESIGN.md` is the authority, and it is detailed — read it before any UI work.
   Near-black canvas `#0A0A0A`, Rosso Corsa `#DA291C` used sparingly, translucent tiles on dark
   (`bg-accent-gray/40` + hairline border + blur, never opaque cards), Exo 2, headings

@@ -399,7 +399,7 @@ const AuthScreen: React.FC = () => {
                       <button
                         type="submit"
                         disabled={isLoading || isBlocked || !invitationCode.trim()}
-                        className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
+                        className="w-full bg-primary-red hover:opacity-90 text-on-primary font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
                       >
                         {isLoading ? 'Validating...' : 'Validate Code'}
                       </button>
@@ -424,7 +424,7 @@ const AuthScreen: React.FC = () => {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
+                        className="w-full bg-primary-red hover:opacity-90 text-on-primary font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
                       >
                         {isLoading ? 'Checking...' : 'Send Verification Code'}
                       </button>
@@ -453,7 +453,7 @@ const AuthScreen: React.FC = () => {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20"
+                        className="w-full bg-primary-red hover:opacity-90 text-on-primary font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20"
                       >
                         {isLoading ? 'Verifying...' : 'Verify Code'}
                       </button>
@@ -553,7 +553,7 @@ const AuthScreen: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
+                            className="w-full bg-primary-red hover:opacity-90 text-on-primary font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
                         >
                             {isLoading ? 'Creating Account...' : 'Complete Registration'}
                         </button>
@@ -600,7 +600,7 @@ const AuthScreen: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isLoading || resetCooldownTime > 0}
-                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
+                    className="w-full bg-primary-red hover:opacity-90 text-on-primary font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-not-allowed"
                 >
                     {isLoading ? 'Sending...' : resetCooldownTime > 0 ? `Resend in ${resetCooldownTime}s` : 'Send Reset Link'}
                 </button>
@@ -645,7 +645,7 @@ const AuthScreen: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary-red hover:opacity-90 text-pure-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
+                    className="w-full bg-primary-red hover:opacity-90 text-on-primary font-bold py-3 px-4 rounded-lg shadow-lg shadow-primary-red/20 disabled:bg-accent-gray disabled:cursor-wait"
                 >
                     {isLoading ? 'Logging In...' : 'Log In'}
                 </button>

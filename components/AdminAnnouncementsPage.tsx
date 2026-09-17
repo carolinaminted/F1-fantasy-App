@@ -380,7 +380,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                     <button 
                                         onClick={handleGeneralAnnounce}
                                         disabled={isGeneralAnnouncing}
-                                        className="w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-colors bg-primary-red hover:bg-red-600 text-pure-white"
+                                        className="w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-colors bg-primary-red hover:bg-red-600 text-on-primary"
                                     >
                                         {isGeneralAnnouncing ? 'Posting...' : 'Post Announcement'}
                                     </button>

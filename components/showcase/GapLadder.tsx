@@ -276,7 +276,7 @@ export const GapLadder: React.FC<GapLadderProps> = ({ users, currentUser, onInsp
                       <button
                         onClick={e => { e.stopPropagation(); onInspect(user); }}
                         aria-label={`Inspect ${user.displayName}`}
-                        className="p-2 rounded-lg bg-pure-white/5 border border-pure-white/10 text-highlight-silver hover:bg-primary-red hover:border-primary-red hover:text-pure-white transition-colors"
+                        className="p-2 rounded-lg bg-pure-white/5 border border-pure-white/10 text-highlight-silver hover:bg-primary-red hover:border-primary-red hover:text-on-primary transition-colors"
                       >
                         <EyeIcon className="w-4 h-4" />
                       </button>

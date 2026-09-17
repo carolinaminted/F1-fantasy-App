@@ -61,7 +61,7 @@ export const LeagueLinks: React.FC = () => {
           >
             <a
               href={VICTORY_JUNCTION_URL} target="_blank" rel="noopener noreferrer"
-              className={`${ACTION_CLASS} bg-primary-red text-pure-white hover:bg-red-600`}
+              className={`${ACTION_CLASS} bg-primary-red text-on-primary hover:bg-red-600`}
             >
               Donate Now
             </a>

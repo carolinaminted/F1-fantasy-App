@@ -208,7 +208,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                     <button
                         onClick={() => handleSaveProfile(true)}
                         disabled={isSaving || !isDirty}
-                        className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                        className="flex items-center gap-2 rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-40"
                     >
                         <SaveIcon className="w-4 h-4" />
                         {isSaving ? 'Saving\u2026' : 'Save changes'}
@@ -264,7 +264,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                 <button
                                     onClick={() => setShowActivateConfirm(true)}
                                     disabled={isSaving}
-                                    className="rounded-lg border border-green-500/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-600 hover:text-pure-white disabled:opacity-40"
+                                    className="rounded-lg border border-green-500/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-600 hover:text-on-primary disabled:opacity-40"
                                 >
                                     Use for league scoring
                                 </button>

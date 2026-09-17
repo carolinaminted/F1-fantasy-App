@@ -613,7 +613,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                         </div>
 
                         {/* Editor Area */}
-                        <div className="flex-1 bg-[#1e1e1e] p-0 relative overflow-hidden flex flex-col">
+                        <div className="flex-1 bg-elev-3 p-0 relative overflow-hidden flex flex-col">
                             <div className="absolute top-2 right-2 z-10 flex gap-2">
                                 <button onClick={handleCopyToClipboard} className="p-2 bg-carbon-black/80 rounded hover:bg-pure-white/10 text-highlight-silver transition-colors border border-pure-white/5" title="Copy JSON">
                                     <CopyIcon className="w-4 h-4" />
@@ -662,7 +662,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                             onClick={confirmDeletion}
                                             disabled={isSaving}
                                             type="button"
-                                            className="flex-1 md:flex-none px-4 py-3 md:py-2 bg-red-600 hover:bg-red-500 text-pure-white font-bold rounded-lg shadow-lg text-xs uppercase flex items-center justify-center gap-2 transition-all"
+                                            className="flex-1 md:flex-none px-4 py-3 md:py-2 bg-red-600 hover:bg-red-500 text-on-primary font-bold rounded-lg shadow-lg text-xs uppercase flex items-center justify-center gap-2 transition-all"
                                         >
                                             {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <TrashIcon className="w-4 h-4" />}
                                             Yes, Delete
@@ -695,7 +695,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                                             onClick={requestSave}
                                             disabled={isSaving || !!jsonError}
                                             type="button"
-                                            className="px-6 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-pure-white font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-[2] md:flex-none"
+                                            className="px-6 py-3 md:py-2 bg-primary-red hover:bg-red-600 text-on-primary font-bold rounded-lg shadow-lg text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 flex-[2] md:flex-none"
                                         >
                                             {isSaving ? <SyncIcon className="animate-spin w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
                                             Save Changes

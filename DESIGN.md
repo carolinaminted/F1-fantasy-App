@@ -126,6 +126,49 @@ Three rules carry most of the weight:
 
 ## Color
 
+### Themes
+
+The app ships two themes. **Dark is the default and the design's home** — every value in this
+document is its dark value, and an absent preference resolves to dark, never to the OS setting.
+Light is opt-in, per device, from the sun/moon toggle in the app header (mobile), the profile
+page header (desktop), or the sliding switch under the last item in the desktop SideNav.
+
+The mechanism is one indirection. Tailwind v4 compiles `bg-carbon-black` to
+`background-color: var(--color-carbon-black)`, so `styles/theme.css` redefines the brand tokens
+under `:root[data-theme="light"]` and every token class in the app follows without a component
+change.
+
+**The token names describe roles, not literal colors.** This is a deliberate compromise: honest
+names (`--color-ink`, `--color-canvas`) would have meant rewriting ~1,800 usages. Read them as:
+
+| Token | Role | Dark | Light |
+|---|---|---|---|
+| `--color-carbon-black` | canvas | `#0A0A0A` | `#F7F7F5` |
+| `--color-accent-gray` | surface (always `/40`) | `#2C2C2C` | `#D9D9D4` |
+| `--color-pure-white` | ink, and hairlines at low opacity | `#FFFFFF` | `#0A0A0A` |
+| `--color-ghost-white` | body copy | `#F5F5F5` | `#1C1C1C` |
+| `--color-highlight-silver` | muted / micro-labels | `#C0C0C0` | `#56565A` |
+| `--color-primary-red` | brand, CTAs, danger | `#DA291C` | `#C41E12` |
+
+So in light mode `text-pure-white` renders near-black. That reads wrong and is worth knowing
+before you edit anything.
+
+Three consequences you must design around:
+
+1. **The light canvas is `#F7F7F5`, not white**, so the surface token can sit *darker* than it.
+   `bg-accent-gray/40` needs room in both directions to still read as a lifted surface.
+2. **`--color-on-primary` (`#FFFFFF`) is the one ink that never flips.** A red, green or blue
+   button is the same color in both themes, so its label stays white. Use it — not
+   `text-pure-white` — for any text on a saturated fill, or it will render black-on-red.
+3. **A subtree can opt out entirely** with `data-theme="dark"` on its root element, which
+   re-declares the dark palette for everything inside it. `RedFlagScreen`, `EasterEgg` and
+   `Toast` use this: they are full-bleed set pieces and overlays where dark is correct in any
+   theme. A white red-flag screen would be wrong.
+
+Light-mode values are chosen to clear WCAG AA (4.5:1) against the light canvas, which is why
+several sit a step or two darker than their dark-mode counterparts — see the notes under
+Scoring Categories and Semantic Tones.
+
 ### Brand Surfaces
 
 | Token | Value | Use |
@@ -141,21 +184,35 @@ The canvas is **near-black, not pure black** (`#0A0A0A`). Pure black is reserved
 texture. The tile fill is **never opaque** — `bg-accent-gray/40` over the canvas is what produces the
 app's characteristic smoked-glass surface.
 
+Values above are the dark theme. See **Themes** for what each token becomes on light.
+
+There is also an elevation ramp (`--color-elev-0`..`-3`) and two neutral fallbacks
+(`--color-neutral-fill` / `-edge`, for a constructor whose brand color is missing). These exist so
+nothing has to hardcode a hex; the ramp inverts on light, where elevation reads as *lighter*.
+
 ### Scoring Categories — the load-bearing convention
 
 Four categories carry fixed colors on **every** surface that mentions them: the leaderboard, Scoring
 Rules cards, Insights superlatives, the Schedule, and admin Scoring Settings.
 
-| Category | Token | Color | Label |
-|---|---|---|---|
-| Grand Prix | `--color-category-gp` | Rosso Corsa `#DA291C` | "Grand Prix" |
-| Qualifying | `--color-category-quali` | `blue-500` | "Qualifying" |
-| Sprint | `--color-category-sprint` | `yellow-500` | "Sprint" |
-| Fastest Lap | `--color-category-fl` | `purple-500` | "Fastest Lap" |
+| Category | Token | Dark | Light | Label |
+|---|---|---|---|---|
+| Grand Prix | `--color-category-gp` | Rosso Corsa `#DA291C` | `#C41E12` | "Grand Prix" |
+| Qualifying | `--color-category-quali` | `blue-500` | `blue-600` `#2563EB` | "Qualifying" |
+| Sprint | `--color-category-sprint` | `yellow-500` | `yellow-700` `#A16207` | "Sprint" |
+| Fastest Lap | `--color-category-fl` | `purple-500` | `purple-600` `#9333EA` | "Fastest Lap" |
+
+**On light, these shift luminance — never hue.** The convention this section protects is the
+*mapping* (GP red, Quali blue, Sprint yellow, FL purple), and that is unchanged. But `yellow-500`
+reaches only 1.9:1 against the light canvas and `blue-500` 3.3:1; text in them would be unreadable.
+Each light value is the lightest step of the same hue that clears AA, which is why sprint drops two
+steps rather than one — `yellow-600` still only reaches 2.7:1.
 
 **Always consume these through `CATEGORY_THEME` in `tokens.ts`**, which supplies matched `text`,
 `border`, `bg`, `ring`, `from`, and `css` variants plus the canonical label. Do not hand-write
-`text-blue-500` for a qualifying surface — that is exactly how the mapping drifts.
+`text-blue-500` for a qualifying surface — that is exactly how the mapping drifts, and since
+theming it is also how a surface misses the light-mode value entirely. `CATEGORY_THEME` itself
+named Tailwind steps directly until the theme work; the tokens above were consumed by nothing.
 
 > **Known trap, already hit once:** use `CATEGORY_THEME[x].css` (a CSS value) when painting a border,
 > not `.border` (a class). `TILE_BASE` already sets a border-color class, and two competing classes tie —
@@ -165,13 +222,18 @@ Rules cards, Insights superlatives, the Schedule, and admin Scoring Settings.
 
 Consumed through `TONE_THEME` in `tokens.ts`. Each tone is a matched triple of text / border / bg.
 
-| Tone | Text | Meaning in this app |
-|---|---|---|
-| `neutral` | `highlight-silver` | Default chip, inert metadata |
-| `success` | `green-400` | Dues paid, picks submitted, session complete |
-| `warning` | `amber-400` | Sprint weekend, deadline approaching |
-| `danger` | `primary-red` | Locked, error, penalty applied |
-| `info` | `indigo-300` | Advisory notices |
+| Tone | Text (dark) | Text (light) | Meaning in this app |
+|---|---|---|---|
+| `neutral` | `highlight-silver` | flips with the token | Default chip, inert metadata |
+| `success` | `green-400` | `green-700` | Dues paid, picks submitted, session complete |
+| `warning` | `amber-400` | `amber-700` | Sprint weekend, deadline approaching |
+| `danger` | `primary-red` | flips with the token | Locked, error, penalty applied |
+| `info` | `indigo-300` | `indigo-600` | Advisory notices |
+
+The text colors go through `--color-tone-*` so they can drop steps on light: `green-400` and
+`amber-400` were picked against near-black and reach about 1.5:1 on the light canvas. The `/40`
+borders and `/10` fills stay as Tailwind steps — at those opacities they are tints and read on
+either canvas.
 
 ### Constructor Colors
 

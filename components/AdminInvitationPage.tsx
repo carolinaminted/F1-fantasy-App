@@ -297,7 +297,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                         <button
                             onClick={handleCreateCode}
                             disabled={isCreating}
-                            className="rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                            className="rounded-lg bg-primary-red px-4 py-2 text-[11px] font-black uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-50"
                         >
                             {isCreating ? 'Creating\u2026' : 'Create'}
                         </button>
@@ -407,7 +407,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                                     <button
                                         onClick={handleReserve}
                                         disabled={isReserving || !reservationName.trim()}
-                                        className="flex-1 rounded-lg bg-primary-red py-2 text-xs font-bold uppercase tracking-wider text-pure-white transition-colors hover:bg-red-600 disabled:opacity-40"
+                                        className="flex-1 rounded-lg bg-primary-red py-2 text-xs font-bold uppercase tracking-wider text-on-primary transition-colors hover:bg-red-600 disabled:opacity-40"
                                     >
                                         {isReserving ? 'Saving\u2026' : 'Hold it'}
                                     </button>
@@ -434,7 +434,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                                 <button
                                     onClick={handleDeleteClick}
                                     disabled={isDeleting}
-                                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-primary-red/30 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white"
+                                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-primary-red/30 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-on-primary"
                                 >
                                     <TrashIcon className="w-4 h-4" /> Delete this code
                                 </button>

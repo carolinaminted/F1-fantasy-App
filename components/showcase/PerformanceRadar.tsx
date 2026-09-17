@@ -46,7 +46,10 @@ export const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ user, leader
   const userNorms = CATEGORY_KEYS.map((k, i) => categoryOf(user, k) / maxes[i]);
   const leaderNorms = CATEGORY_KEYS.map((k, i) => categoryOf(leader, k) / maxes[i]);
 
-  const subjectColor = isYou ? '#FFFFFF' : '#DA291C';
+  // Ink for yourself, brand red for anyone else. Opacity is applied through fill-opacity,
+  // never by appending hex alpha to this — it is a var(), and `var(--x)33` is not a color.
+  // Doing that silently dropped the fill to SVG's default of opaque black.
+  const subjectColor = isYou ? 'var(--color-pure-white)' : 'var(--color-primary-red)';
 
   return (
     <div className="flex flex-col items-center">
@@ -59,23 +62,23 @@ export const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ user, leader
         {[0.25, 0.5, 0.75, 1].map((ring, i) => (
           <circle
             key={ring} cx={C} cy={C} r={R * ring} fill="none"
-            stroke="rgba(255,255,255,0.09)" strokeWidth="1"
+            stroke="var(--color-pure-white)" strokeOpacity={0.12} strokeWidth="1"
             strokeDasharray={i === 3 ? undefined : '2 3'}
           />
         ))}
-        <line x1={C} y1={C - R} x2={C} y2={C + R} stroke="rgba(255,255,255,0.14)" />
-        <line x1={C - R} y1={C} x2={C + R} y2={C} stroke="rgba(255,255,255,0.14)" />
+        <line x1={C} y1={C - R} x2={C} y2={C + R} stroke="var(--color-pure-white)" strokeOpacity={0.18} />
+        <line x1={C - R} y1={C} x2={C + R} y2={C} stroke="var(--color-pure-white)" strokeOpacity={0.18} />
 
         {leader && (
           <path
-            d={polygon(leaderNorms)} fill={`${GOLD_HEX}14`}
+            d={polygon(leaderNorms)} fill={GOLD_HEX} fillOpacity={0.08}
             stroke={GOLD_HEX} strokeWidth="1.5" strokeDasharray="4 3"
           />
         )}
 
         <path
-          d={polygon(userNorms)} fill={`${subjectColor}33`}
-          stroke={subjectColor} strokeWidth="2.5" strokeLinejoin="round"
+          d={polygon(userNorms)} fill={subjectColor} fillOpacity={0.16}
+          stroke={subjectColor} strokeWidth="2" strokeLinejoin="round"
         />
 
         {CATEGORY_KEYS.map((k, i) => {
@@ -84,7 +87,7 @@ export const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ user, leader
           return (
             <circle
               key={k} cx={C + dx * R * n} cy={C + dy * R * n} r="4"
-              fill={CATEGORY_HEX[k]} stroke="#0A0A0A" strokeWidth="1.5"
+              fill={CATEGORY_HEX[k]} stroke="var(--color-carbon-black)" strokeWidth="1.5"
             />
           );
         })}

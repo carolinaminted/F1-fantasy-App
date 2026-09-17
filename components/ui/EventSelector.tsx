@@ -134,7 +134,7 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveFilter(filter.value); }}
                                 className={`flex-1 min-w-fit px-2 py-1 text-[10px] font-bold rounded-lg transition-colors border whitespace-nowrap ${
                                     activeFilter === filter.value
-                                    ? 'bg-primary-red text-pure-white border-primary-red'
+                                    ? 'bg-primary-red text-on-primary border-primary-red'
                                     : 'bg-carbon-black text-highlight-silver border-pure-white/10 hover:border-highlight-silver hover:text-pure-white'
                                 }`}
                             >

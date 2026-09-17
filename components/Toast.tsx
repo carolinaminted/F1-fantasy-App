@@ -49,6 +49,11 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: () => void }> = ({ to
 
   return (
     <div 
+      // Pinned dark in both themes, like the other overlay set pieces. Two of the three
+      // tone backgrounds (green-900, red-900) are dark whatever the theme, so flipping the
+      // ink would leave those unreadable while fixing only the neutral one. A dark snackbar
+      // over a light page is also the conventional shape.
+      data-theme="dark"
       className={`pointer-events-auto flex items-start gap-3 p-4 rounded-lg border-l-4 shadow-xl backdrop-blur-md text-white animate-fade-in-down transition-all transform hover:scale-[1.02] cursor-pointer ${bgColors[toast.type]}`} 
       onClick={onRemove}
       role="alert"

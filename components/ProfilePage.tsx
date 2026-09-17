@@ -5,7 +5,7 @@ import useFantasyData from '../hooks/useFantasyData.ts';
 import { CURRENT_SEASON } from '../constants.ts';
 import { getPublicProfileRank } from '../services/firestoreService.ts';
 import {
-  PageHeader, Tile, StatTile, SectionHeader, Modal, teamColor, type Category,
+  PageHeader, Tile, StatTile, SectionHeader, Modal, ThemeToggle, teamColor, type Category,
 } from './ui/index.ts';
 import { CheckeredFlagIcon } from './icons/CheckeredFlagIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
@@ -367,7 +367,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           <button
             onClick={() => setActivePage?.('duesPayment')}
             disabled={!setActivePage}
-            className="shrink-0 rounded-full border border-primary-red/50 bg-primary-red/15 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-pure-white disabled:cursor-default sm:ml-auto"
+            className="shrink-0 rounded-full border border-primary-red/50 bg-primary-red/15 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-primary-red transition-colors hover:bg-primary-red hover:text-on-primary disabled:cursor-default sm:ml-auto"
           >
             Dues: Unpaid
           </button>
@@ -383,9 +383,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           <PageHeader
             title="PROFILE"
             icon={ProfileIcon}
-            rightAction={showEditControls
-              ? <AccountMenu user={user} onEditProfile={() => setIsEditingProfile(true)} />
-              : undefined}
+            rightAction={
+              <div className="flex items-center gap-3">
+                {/* Desktop only: the mobile app header already carries this toggle, and two
+                    sun icons on one screen is just a question about which one is real. */}
+                <ThemeToggle className="hidden md:block" iconClassName="w-5 h-5" />
+                {showEditControls && (
+                  <AccountMenu user={user} onEditProfile={() => setIsEditingProfile(true)} />
+                )}
+              </div>
+            }
           />
         )}
 
