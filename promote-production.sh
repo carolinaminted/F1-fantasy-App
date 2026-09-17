@@ -304,8 +304,15 @@ if [[ "$domain_is_ours" == true ]]; then
 else
   cat <<EOF
   $LIVE_LEAGUE_URL still serves the legacy deployment — this was NOT a cutover.
-  To finish: map the domain to $SERVICE, and add $LIVE_LEAGUE_HOST to production
-  Firebase Auth's authorized domains first, or every sign-in will fail.
+  To finish: map the domain to $SERVICE, following
+  ../lol-docs/documentation/f1-domain-cutover-procedure.md (it needs two gcloud accounts).
+
+  Note: $LIVE_LEAGUE_HOST does NOT need to be in Firebase Auth's authorized domains.
+  That list gates OAuth popup/redirect flows and action-link continue URLs; this app has
+  neither — sign-in is email/password only, and password-reset links land on the default
+  firebaseapp.com callback. Verified in production 2026-09-17: sign-in worked on the new
+  host with the hostname absent from that list, exactly as it had on the legacy site since
+  Dec 2025.
 EOF
 fi
 
