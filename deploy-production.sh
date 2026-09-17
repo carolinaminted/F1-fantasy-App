@@ -135,22 +135,39 @@ esac
 
 echo
 echo "Recording the current rollback point..."
+# gcloud's stderr goes to a file rather than /dev/null: when this call fails (an expired
+# token is the usual cause), the JSON parse below would otherwise die with a bare
+# JSONDecodeError and bury the real reason. Cost us two confused runs on 2026-09-17.
+describe_err="$(mktemp)"
+trap 'rm -f "$describe_err"' EXIT
+
 describe_json() {
   env -u DEBUG gcloud run services describe "$SERVICE" \
-    --project "$PROJECT" --region "$REGION" --account "$ACCOUNT" --format=json 2>/dev/null
+    --project "$PROJECT" --region "$REGION" --account "$ACCOUNT" --format=json 2>"$describe_err"
 }
 
 serving_before="$(describe_json | python3 -c '
 import json, sys
 
-data = json.load(sys.stdin)
+raw = sys.stdin.read().strip()
+if not raw:
+    sys.exit(0)
+data = json.loads(raw)
 for entry in data.get("status", {}).get("traffic", []):
     if entry.get("percent") == 100:
         print(entry.get("revisionName", ""))
         break
 ')"
-[[ -n "$serving_before" ]] || fail "could not read the currently serving revision (gcloud auth may have expired:
+if [[ -z "$serving_before" ]]; then
+  if [[ -s "$describe_err" ]]; then
+    echo
+    echo "gcloud said:" >&2
+    sed 's/^/  /' "$describe_err" >&2
+    echo >&2
+  fi
+  fail "could not read the currently serving revision (gcloud auth may have expired:
   gcloud auth login --account $ACCOUNT)"
+fi
 
 image_before="$(env -u DEBUG gcloud run revisions describe "$serving_before" \
   --project "$PROJECT" --region "$REGION" --account "$ACCOUNT" \
