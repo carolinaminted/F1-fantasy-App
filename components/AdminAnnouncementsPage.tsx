@@ -220,7 +220,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                                         What members will see (optional)
                                     </label>
                                     <textarea
-                                        placeholder="e.g. We're adding the Australian GP results \u2014 back in about ten minutes."
+                                        placeholder="e.g. We're adding the Australian GP results — back in about ten minutes."
                                         value={maintenanceMsg}
                                         onChange={e => setMaintenanceMsg(e.target.value)}
                                         className="min-h-[110px] w-full resize-none rounded-xl border border-pure-white/15 bg-carbon-black p-4 text-sm text-pure-white focus:border-primary-red focus:outline-none"
@@ -399,7 +399,7 @@ const AdminAnnouncementsPage: React.FC<AdminAnnouncementsPageProps> = ({ setAdmi
                 consequence="Every member is signed out of the app and cannot get back in until you let them back in. They will see a maintenance screen with your message. You and other admins keep full access."
                 confirmLabel="Pause the league"
                 busy={isTogglingMaintenance}
-                busyLabel="Pausing\u2026"
+                busyLabel="Pausing…"
             />
         </div>
     );

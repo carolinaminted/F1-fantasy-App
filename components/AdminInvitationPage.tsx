@@ -463,7 +463,7 @@ const AdminInvitationPage: React.FC<AdminInvitationPageProps> = ({ setAdminSubPa
                 }
                 confirmLabel="Delete code"
                 busy={isDeleting}
-                busyLabel="Deleting\u2026"
+                busyLabel="Deleting…"
             />
 
             <ConfirmModal

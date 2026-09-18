@@ -263,7 +263,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     <div className="relative flex-1">
                         <input
                             type="text"
-                            placeholder="Search by name or email\u2026"
+                            placeholder="Search by name or email…"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full rounded-xl border border-pure-white/10 bg-carbon-black px-3.5 py-2.5 text-sm text-pure-white placeholder-highlight-silver/50 transition-colors focus:border-primary-red focus:outline-none"
@@ -277,13 +277,22 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                             </button>
                         )}
                     </div>
-                    <SegmentedControl
-                        segments={FILTERS}
-                        value={filterType}
-                        onChange={v => setFilterType(v)}
-                        size="sm"
-                        scrollable
-                    />
+                    {/*
+                      * shrink-0 once the row goes horizontal: a scrollable SegmentedControl
+                      * renders a w-full scroller, which as a flex sibling claims the whole row
+                      * and collapses the basis-0 search field next to it. SectionHeader guards
+                      * its action slot the same way. Left unguarded below lg, where the column
+                      * layout wants the scroller full width so it can actually scroll.
+                      */}
+                    <div className="lg:shrink-0">
+                        <SegmentedControl
+                            segments={FILTERS}
+                            value={filterType}
+                            onChange={v => setFilterType(v)}
+                            size="sm"
+                            scrollable
+                        />
+                    </div>
                 </div>
 
                 <div className={`mb-2 flex items-center justify-between text-[11px] uppercase tracking-wider text-highlight-silver ${NUMERIC}`}>

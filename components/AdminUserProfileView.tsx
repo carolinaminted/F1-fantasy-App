@@ -554,7 +554,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 confirmLabel="Delete member"
                 typedGuard={targetUser.displayName}
                 busy={isPurging}
-                busyLabel="Deleting\u2026"
+                busyLabel="Deleting…"
             />
         </div>
     );
