@@ -62,3 +62,28 @@ export const parseLeagueDate = (isoString?: string): Date | null => {
         return isNaN(fallback.getTime()) ? null : fallback;
     }
 };
+
+/**
+ * The league timezone's name *for a given date*, e.g. "Eastern Daylight Time" in October and
+ * "Eastern Standard Time" in January. `short` gives EDT / EST.
+ *
+ * Exists because the label used to be hardcoded to "Eastern Standard Time", which is wrong from
+ * mid-March to early November — most of a season. The times themselves were always right; only
+ * the label lied. Derive it from the same date being displayed and the two cannot drift apart.
+ */
+export const leagueZoneName = (
+    isoString?: string,
+    style: 'short' | 'long' = 'long',
+): string | null => {
+    const date = parseLeagueDate(isoString);
+    if (!date) return null;
+
+    const part = new Intl.DateTimeFormat('en-US', {
+        timeZone: LEAGUE_TIMEZONE,
+        timeZoneName: style,
+    })
+        .formatToParts(date)
+        .find(p => p.type === 'timeZoneName');
+
+    return part?.value ?? null;
+};

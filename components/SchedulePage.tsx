@@ -11,7 +11,7 @@ import { EventSelector } from './ui/EventSelector.tsx';
 import { alphaOf } from './ui/tokens.ts';
 import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
-import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
+import { parseLeagueDate, LEAGUE_TIMEZONE, leagueZoneName } from '../utils/dateUtils.ts';
 import { hasEventResults } from '../utils/eventStatus.ts';
 
 interface SchedulePageProps {
@@ -209,7 +209,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                         <PageHeader
                             title="RACE RESULTS"
                             icon={CheckeredFlagIcon}
-                            subtitle="Official GP finishing orders in EST"
+                            subtitle="Official GP finishing orders in Eastern Time"
                         />
                     </div>
                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -237,7 +237,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                 <PageHeader
                     title="RACE RESULTS"
                     icon={CheckeredFlagIcon}
-                    subtitle="Official GP finishing orders in EST"
+                    subtitle="Official GP finishing orders in Eastern Time"
                 />
                 <EventDetailsModal
                     inline
@@ -285,7 +285,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                     <PageHeader 
                         title="SCHEDULE & RESULTS" 
                         icon={CalendarIcon} 
-                        subtitle="Race schedules & official GP finishing orders in EST"
+                        subtitle="Race schedules & official GP finishing orders in Eastern Time"
                         rightAction={RightAction}
                         leftAction={hubAction}
                     />
@@ -722,7 +722,8 @@ const EventDetailsModal: React.FC<{
                                         <span className="text-3xl md:text-4xl font-black text-pure-white tracking-tight">{formatSessionTime(raceRaw)}</span>
                                     </div>
                                     <p className="text-highlight-silver/50 mt-4 text-[10px] md:text-xs uppercase font-bold tracking-widest">
-                                        Eastern Standard Time
+                                        {/* Derived from this race's own date: October is EDT, January EST. */}
+                                        {leagueZoneName(raceRaw) ?? 'Eastern Time'}
                                     </p>
                                 </div>
                                 
