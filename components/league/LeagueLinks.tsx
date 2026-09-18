@@ -23,7 +23,7 @@ const LinkCard: React.FC<{
   body: string;
   children: React.ReactNode;
 }> = ({ title, body, children }) => (
-  <Tile padding="md" className="flex flex-col justify-between">
+  <Tile padding="md" className="flex h-full flex-col justify-between">
     <div>
       <h3 className="text-sm font-black uppercase italic tracking-wide text-pure-white">{title}</h3>
       <p className="mt-1.5 text-xs leading-relaxed text-highlight-silver">{body}</p>
@@ -46,15 +46,21 @@ export const LeagueLinks: React.FC = () => {
     );
   };
 
+  /*
+   * No items-start on the outer grid: the two halves must stretch to a common height, otherwise
+   * each pair of tiles sizes against its own column and the four read as two mismatched sets.
+   * Each half is then a flex column whose tile grid takes the leftover space, so every tile
+   * resolves to the same height no matter which body copy is longest.
+   */
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-      <div>
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="flex flex-col">
         <SectionHeader
           title="Give Back"
           subtitle="The league's two donation destinations"
           icon={DonationIcon}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 gap-3">
           <LinkCard
             title="Victory Junction"
             body="Give kids with complex medical needs the chance to experience camp adventures like zip lining, archery, and fishing in a safe, barrier-free environment."
@@ -81,13 +87,13 @@ export const LeagueLinks: React.FC = () => {
         </div>
       </div>
 
-      <div>
+      <div className="flex flex-col">
         <SectionHeader
           title="Get Help"
           subtitle="Feedback, questions, and feature requests"
           icon={LifebuoyIcon}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 gap-3">
           <LinkCard
             title="Feedback & Requests"
             body="General site feedback, plus anything you would like the league platform to do next season."

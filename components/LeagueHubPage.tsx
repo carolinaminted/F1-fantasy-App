@@ -4,7 +4,6 @@ import { PageHeader } from './ui/index.ts';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { DuesStatus } from './league/DuesStatus.tsx';
 import { LeagueLinks } from './league/LeagueLinks.tsx';
-import { CURRENT_SEASON } from '../constants.ts';
 import type { User } from '../types.ts';
 
 interface LeagueHubPageProps {
@@ -40,7 +39,6 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ user }) => {
         <PageHeader
           title="LEAGUE"
           icon={LeagueIcon}
-          subtitle={`${CURRENT_SEASON} membership, donations, and support`}
           rightAction={
             <DuesStatus
               user={user}
