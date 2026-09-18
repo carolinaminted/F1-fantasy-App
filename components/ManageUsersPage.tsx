@@ -263,7 +263,7 @@ const ManageUsersPage: React.FC<ManageUsersPageProps> = ({ setAdminSubPage, race
                     <div className="relative flex-1">
                         <input
                             type="text"
-                            placeholder="Search by name or email\u2026"
+                            placeholder="Search by name or email…"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full rounded-xl border border-pure-white/10 bg-carbon-black px-3.5 py-2.5 text-sm text-pure-white placeholder-highlight-silver/50 transition-colors focus:border-primary-red focus:outline-none"

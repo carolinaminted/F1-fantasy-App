@@ -715,7 +715,7 @@ const DatabaseManagerPage: React.FC<DatabaseManagerPageProps> = ({ setAdminSubPa
                 consequence="This replaces the live document with exactly what is in the editor. There is no undo and no version history."
                 confirmLabel="Overwrite"
                 busy={isSaving}
-                busyLabel="Saving\u2026"
+                busyLabel="Saving…"
             >
                 <p className={`rounded-lg border border-pure-white/10 bg-carbon-black px-3 py-2 text-xs text-highlight-silver ${NUMERIC}`}>
                     {selectedCollection} / {selectedDoc?.id}

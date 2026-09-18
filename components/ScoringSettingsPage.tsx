@@ -387,7 +387,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                 }
                 confirmLabel="Delete"
                 busy={isSaving}
-                busyLabel="Deleting\u2026"
+                busyLabel="Deleting…"
             />
 
             <ConfirmModal
@@ -407,7 +407,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                 }
                 confirmLabel="Use these rules"
                 busy={isSaving}
-                busyLabel="Switching\u2026"
+                busyLabel="Switching…"
             />
         </div>
     );
