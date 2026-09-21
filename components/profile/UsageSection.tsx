@@ -14,10 +14,19 @@ interface UsageListProps {
   entities: UsageEntity[];
   usageData: { [id: string]: number };
   limit: number;
+  /**
+   * Selections the same entity spent in its *other* class, shown as a footnote. A driver who
+   * changed class mid-season has two independent budgets, and without this the current-class
+   * meter reads as though the earlier races never happened.
+   */
+  otherClassUsage?: { [id: string]: number };
+  otherClassLabel?: string;
   onItemClick: (id: string, name: string) => void;
 }
 
-const UsageList: React.FC<UsageListProps> = ({ title, entities, usageData, limit, onItemClick }) => {
+const UsageList: React.FC<UsageListProps> = ({
+  title, entities, usageData, limit, otherClassUsage, otherClassLabel, onItemClick,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const sorted = [...entities].sort((a, b) => {
@@ -63,6 +72,11 @@ const UsageList: React.FC<UsageListProps> = ({ title, entities, usageData, limit
                 color={e.color}
                 showRemaining
               />
+              {(otherClassUsage?.[e.id] ?? 0) > 0 && (
+                <span className={`mt-1 block text-[10px] text-highlight-silver/80 ${NUMERIC}`}>
+                  {otherClassUsage![e.id]} spent earlier as {otherClassLabel}
+                </span>
+              )}
             </button>
           ))}
         </div>

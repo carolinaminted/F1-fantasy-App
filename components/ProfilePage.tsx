@@ -62,7 +62,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   user, seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors,
   setActivePage, onUpdatePenalty, events, isPublicView = false, cancelledEventIds, leaderboardCache,
 }) => {
-  const { scoreRollup, usageRollup, getLimit } = useFantasyData(
+  const { scoreRollup, getUsageMap, getLimit } = useFantasyData(
     seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, cancelledEventIds
   );
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -287,21 +287,39 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     });
   };
 
-  const handleUsageDetailClick = (entityId: string, entityName: string) => {
-    const usageEvents = events.filter(event => {
+  /**
+   * Events where this entity was picked *in a given class*. Scoped per class so the list length
+   * matches the meter it was opened from — a driver who changed class has picks in both buckets,
+   * and unioning them would show more races than the budget it is metered against.
+   */
+  const eventsForClass = (entityId: string, entityClass: EntityClass, type: 'teams' | 'drivers') =>
+    events.filter(event => {
       if (cancelledEventIds.has(event.id)) return false;
       const picks = seasonPicks[event.id];
       if (!picks) return false;
-      const allPicked = [...picks.aTeams, picks.bTeam, ...picks.aDrivers, ...picks.bDrivers].filter(Boolean);
-      return allPicked.includes(entityId);
+      if (type === 'teams') {
+        return entityClass === EntityClass.A ? picks.aTeams.includes(entityId) : picks.bTeam === entityId;
+      }
+      return entityClass === EntityClass.A ? picks.aDrivers.includes(entityId) : picks.bDrivers.includes(entityId);
     });
+
+  const handleUsageDetailClick = (
+    entityId: string,
+    entityName: string,
+    entityClass: EntityClass,
+    type: 'teams' | 'drivers'
+  ) => {
+    const usageEvents = eventsForClass(entityId, entityClass, type);
+    const otherClass = entityClass === EntityClass.A ? EntityClass.B : EntityClass.A;
+    const otherClassEvents = eventsForClass(entityId, otherClass, type);
 
     setModalData({
       title: `Usage History: ${entityName}`,
       content: (
         <div className="space-y-4">
           <p className="text-sm text-highlight-silver">
-            You have selected <span className="font-bold text-pure-white">{entityName}</span> for the following events:
+            You have selected <span className="font-bold text-pure-white">{entityName}</span> as a
+            Class {entityClass} {type === 'teams' ? 'team' : 'driver'} for the following events:
           </p>
           {usageEvents.length > 0 ? (
             <ul className="space-y-2">
@@ -315,6 +333,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           ) : (
             <div className="rounded border border-dashed border-pure-white/15 bg-carbon-black/30 p-4 text-center">
               <p className="text-highlight-silver">No selections made yet.</p>
+            </div>
+          )}
+
+          {/* A class switcher's earlier races, itemised — this is what the meter footnote counts. */}
+          {otherClassEvents.length > 0 && (
+            <div className="border-t border-pure-white/10 pt-3">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-highlight-silver">
+                As Class {otherClass}
+              </p>
+              <ul className="space-y-2 opacity-60">
+                {otherClassEvents.map(e => (
+                  <li key={e.id} className="flex items-center justify-between rounded border border-pure-white/5 bg-carbon-black/50 p-3">
+                    <span className="font-semibold text-ghost-white">R{e.round}: {e.name}</span>
+                    <span className="text-xs text-highlight-silver">{e.country}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -492,30 +527,42 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 {
                   title: 'Class A Teams',
                   entities: aTeams.map(t => ({ id: t.id, name: t.name, color: teamColor(t.id, allConstructors) })),
-                  usageData: usageRollup.teams,
+                  usageData: getUsageMap('teams', EntityClass.A),
                   limit: getLimit(EntityClass.A, 'teams'),
-                  onItemClick: handleUsageDetailClick,
+                  otherClassUsage: getUsageMap('teams', EntityClass.B),
+                  otherClassLabel: 'Class B',
+                  onItemClick: (id: string, name: string) =>
+                    handleUsageDetailClick(id, name, EntityClass.A, 'teams'),
                 },
                 {
                   title: 'Class B Teams',
                   entities: bTeams.map(t => ({ id: t.id, name: t.name, color: teamColor(t.id, allConstructors) })),
-                  usageData: usageRollup.teams,
+                  usageData: getUsageMap('teams', EntityClass.B),
                   limit: getLimit(EntityClass.B, 'teams'),
-                  onItemClick: handleUsageDetailClick,
+                  otherClassUsage: getUsageMap('teams', EntityClass.A),
+                  otherClassLabel: 'Class A',
+                  onItemClick: (id: string, name: string) =>
+                    handleUsageDetailClick(id, name, EntityClass.B, 'teams'),
                 },
                 {
                   title: 'Class A Drivers',
                   entities: aDrivers.map(d => ({ id: d.id, name: d.name, color: teamColor(d.constructorId, allConstructors) })),
-                  usageData: usageRollup.drivers,
+                  usageData: getUsageMap('drivers', EntityClass.A),
                   limit: getLimit(EntityClass.A, 'drivers'),
-                  onItemClick: handleUsageDetailClick,
+                  otherClassUsage: getUsageMap('drivers', EntityClass.B),
+                  otherClassLabel: 'Class B',
+                  onItemClick: (id: string, name: string) =>
+                    handleUsageDetailClick(id, name, EntityClass.A, 'drivers'),
                 },
                 {
                   title: 'Class B Drivers',
                   entities: bDrivers.map(d => ({ id: d.id, name: d.name, color: teamColor(d.constructorId, allConstructors) })),
-                  usageData: usageRollup.drivers,
+                  usageData: getUsageMap('drivers', EntityClass.B),
                   limit: getLimit(EntityClass.B, 'drivers'),
-                  onItemClick: handleUsageDetailClick,
+                  otherClassUsage: getUsageMap('drivers', EntityClass.A),
+                  otherClassLabel: 'Class A',
+                  onItemClick: (id: string, name: string) =>
+                    handleUsageDetailClick(id, name, EntityClass.B, 'drivers'),
                 },
               ]}
             />

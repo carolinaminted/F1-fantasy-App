@@ -180,6 +180,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
                 user={user}
                 event={selectedEvent}
                 initialPicksForEvent={seasonPicks[selectedEvent.id]}
+                seasonPicks={seasonPicks}
                 onPicksSubmit={onPicksSubmit}
                 formLocks={formLocks}
                 allConstructors={allConstructors}

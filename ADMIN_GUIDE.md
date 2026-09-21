@@ -126,6 +126,30 @@ Manage the entities available for selection.
 4. **Edit:** Tap an existing row to change name, team association, or color.
 5. **Retire:** Toggle the **Active** button to hide a driver/team from the player selection screen (history is preserved).
 
+### ⚠️ Changing a driver's Class affects selection budgets
+
+Selection budgets are tracked **per class**, not per driver. A driver who moves from Class B to
+Class A (a mid-season promotion or a loan to a top team) arrives with a **fresh, separate Class A
+budget of 8**, and keeps whatever remains of his Class B budget for when he moves back.
+
+This works because the class a pick was made under is recorded by which slot it filled. That means:
+
+- **Flip the Class as soon as the driver's seat changes**, before picks open for the next race.
+  Picks made before the flip are charged to the old class, picks after it to the new one — so a
+  late flip mis-attributes a race.
+- **Never edit a past lineup to "correct" a driver into his current class.** Those slot
+  assignments are the only record of what each pick actually spent; rewriting them corrupts every
+  budget that driver appears in.
+- Members holding that driver in a now-wrong slot for an **upcoming** race will be asked to change
+  that slot before they can re-submit. Past lineups stay editable as they are.
+
+### Pick overrides
+
+The override form on a member's profile enforces the same rules you'd get in the app, with one
+exception: if a lineup would put someone **over budget**, you are warned and may proceed anyway.
+The override is recorded in the admin action log. Wrong-class, retired-driver, and duplicate
+entries are always refused.
+
 ---
 
 ## 6. Scoring Configuration

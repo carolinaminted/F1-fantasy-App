@@ -11,6 +11,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { auth } from '../services/firebase.ts';
 import { Tile, SectionHeader, Banner, Chip, EventSelector } from './ui/index.ts';
 import { ConfirmModal, Toggle } from './admin/index.ts';
+import { validateLineup } from '../services/pickValidation.ts';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -57,6 +58,9 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
         if (selectedEventId) {
             const existingPicks = seasonPicks[selectedEventId];
             if (existingPicks) {
+                // Copied verbatim on purpose. Which slot array an id sits in is the only record of
+                // the class it was picked under, so "normalising" a stored pick into the entity's
+                // current class list would destroy the history the budgets are calculated from.
                 setAdminPicks({
                     aTeams: Array.isArray(existingPicks.aTeams) ? [...existingPicks.aTeams] : [null, null],
                     bTeam: existingPicks.bTeam || null,
@@ -84,22 +88,33 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
             return;
         }
 
-        const hasDuplicates = (arr: (string | null)[]) => {
-            const filtered = arr.filter(Boolean);
-            return filtered.length !== new Set(filtered).size;
-        };
+        const issues = validateLineup({
+            picks: adminPicks,
+            eventId: selectedEventId,
+            seasonPicks,
+            cancelledEventIds,
+            allDrivers,
+            allConstructors,
+            // Past lineups can legally contain an entity that has since changed class; editing
+            // one should not force the admin to rewrite history to satisfy today's grid.
+            existingPicks: seasonPicks[selectedEventId],
+        });
 
-        if (hasDuplicates(adminPicks.aTeams)) {
-            showToast("Duplicate Class A Teams selected.", 'error');
+        // A structurally invalid lineup is always refused. An over-budget one is not: this screen
+        // exists to repair real mistakes, and after a class flip the only route back can be a
+        // lineup that is temporarily over its allowance. Overrides are logged.
+        const blocking = issues.filter(i => i.code !== 'over-limit');
+        if (blocking.length > 0) {
+            showToast(blocking[0].message, 'error');
             return;
         }
-        if (hasDuplicates(adminPicks.aDrivers)) {
-            showToast("Duplicate Class A Drivers selected.", 'error');
-            return;
-        }
-        if (hasDuplicates(adminPicks.bDrivers)) {
-            showToast("Duplicate Class B Drivers selected.", 'error');
-            return;
+
+        const overLimit = issues.filter(i => i.code === 'over-limit');
+        if (overLimit.length > 0) {
+            const detail = overLimit.map(i => `• ${i.message}`).join('\n');
+            if (!confirm(`Admin override — this lineup is over budget:\n\n${detail}\n\nSave anyway?`)) {
+                return;
+            }
         }
 
         setIsSubmittingPicks(true);
@@ -114,6 +129,9 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
                 eventName: events.find(e => e.id === selectedEventId)?.name || selectedEventId,
                 action: 'admin_pick_override',
                 changes: `Administrative pick submitted on behalf of user ${targetUser.displayName} (${targetUser.email || 'No email'})`
+                    + (overLimit.length > 0
+                        ? ` — OVER-BUDGET OVERRIDE: ${overLimit.map(i => i.message).join('; ')}`
+                        : '')
             });
 
             setSeasonPicks(prev => ({

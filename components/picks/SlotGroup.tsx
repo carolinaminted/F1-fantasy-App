@@ -14,8 +14,13 @@ interface SlotGroupProps {
   entityType: 'teams' | 'drivers';
   allConstructors: Constructor[];
   allDrivers: Driver[];
-  getUsage: (id: string, type: 'teams' | 'drivers') => number;
+  getUsage: (id: string, type: 'teams' | 'drivers', entityClass: EntityClass) => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
+  /**
+   * The class this group spends against — not the entity's current class. A pick stored before
+   * a class change still meters against the budget it actually spent, which is the whole point.
+   */
+  entityClass: EntityClass;
   onOpenSlot: (index: number) => void;
   onClearSlot: (index: number) => void;
   disabled?: boolean;
@@ -26,7 +31,7 @@ interface SlotGroupProps {
 
 export const SlotGroup: React.FC<SlotGroupProps> = ({
   title, icon: Icon, slots, selected, options, entityType, allConstructors, allDrivers,
-  getUsage, getLimit, onOpenSlot, onClearSlot, disabled, readOnly, isExhausted,
+  getUsage, getLimit, entityClass, onOpenSlot, onClearSlot, disabled, readOnly, isExhausted,
 }) => {
   const placeholder = entityType === 'teams' ? 'Team' : 'Driver';
   const filledCount = selected.filter(Boolean).length;
@@ -66,8 +71,8 @@ export const SlotGroup: React.FC<SlotGroupProps> = ({
               subtitle={subtitle}
               color={color}
               placeholder={placeholder}
-              used={entity ? getUsage(entity.id, entityType) : undefined}
-              limit={entity ? getLimit(entity.class, entityType) : undefined}
+              used={entity ? getUsage(entity.id, entityType, entityClass) : undefined}
+              limit={getLimit(entityClass, entityType)}
               onClick={() => onOpenSlot(i)}
               onClear={() => onClearSlot(i)}
               disabled={disabled}
