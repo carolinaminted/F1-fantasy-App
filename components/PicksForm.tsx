@@ -15,6 +15,7 @@ import { LockIcon } from './icons/LockIcon.tsx';
 import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
+import { validateLineup } from '../services/pickValidation.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Countdown } from './ui/index.ts';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
@@ -31,6 +32,8 @@ interface PicksFormProps {
   user: User;
   event: Event;
   initialPicksForEvent?: PickSelection;
+  /** The whole season, needed to check a lineup against its remaining budget before saving. */
+  seasonPicks: { [eventId: string]: PickSelection };
   onPicksSubmit: (eventId: string, picks: PickSelection) => void;
   formLocks: { [eventId: string]: boolean };
   aTeams: Constructor[];
@@ -39,9 +42,9 @@ interface PicksFormProps {
   bDrivers: Driver[];
   allDrivers: Driver[];
   allConstructors: Constructor[];
-  getUsage: (id: string, type: 'teams' | 'drivers') => number;
+  getUsage: (id: string, type: 'teams' | 'drivers', entityClass: EntityClass) => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
-  hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
+  hasRemaining: (id: string, type: 'teams' | 'drivers', entityClass: EntityClass) => boolean;
   cancelledEventIds: Set<string>;
 }
 
@@ -57,6 +60,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   user,
   event,
   initialPicksForEvent,
+  seasonPicks,
   onPicksSubmit,
   formLocks,
   aTeams,
@@ -75,6 +79,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
   /** Which slot the option sheet is currently editing. */
   const [showReview, setShowReview] = useState(false);
+  /** Problems found by the confirm-time re-check; normally empty. */
+  const [reviewIssues, setReviewIssues] = useState<string[]>([]);
   /** Which slot the option sheet is currently editing. */
   const [openSlot, setOpenSlot] = useState<
     { category: 'aTeams' | 'bTeam' | 'aDrivers' | 'bDrivers' | 'fastestLap'; index: number } | null
@@ -137,12 +143,13 @@ const PicksForm: React.FC<PicksFormProps> = ({
     const check = (
       options: { id: string; class: EntityClass }[],
       selectedInSlots: (string | null)[],
-      entityType: 'teams' | 'drivers'
+      entityType: 'teams' | 'drivers',
+      entityClass: EntityClass
     ): ExhaustionStatus => {
       // Calculate distinct fillable options:
       // 1. Options that are available to be picked (hasRemaining = true)
       // 2. Options that are ALREADY picked in this form (even if they have reached limit in global state, e.g. editing)
-      const availableIds = options.filter(o => hasRemaining(o.id, entityType)).map(o => o.id);
+      const availableIds = options.filter(o => hasRemaining(o.id, entityType, entityClass)).map(o => o.id);
       const selectedIds = selectedInSlots.filter((id): id is string => !!id);
       
       const distinctFillableCount = new Set([...availableIds, ...selectedIds]).size;
@@ -160,14 +167,27 @@ const PicksForm: React.FC<PicksFormProps> = ({
     };
 
     return {
-      aTeams: check(aTeams, picks.aTeams, 'teams'),
-      bTeam: check(bTeams, [picks.bTeam], 'teams'),
-      aDrivers: check(aDrivers, picks.aDrivers, 'drivers'),
-      bDrivers: check(bDrivers, picks.bDrivers, 'drivers'),
+      aTeams: check(aTeams, picks.aTeams, 'teams', EntityClass.A),
+      bTeam: check(bTeams, [picks.bTeam], 'teams', EntityClass.B),
+      aDrivers: check(aDrivers, picks.aDrivers, 'drivers', EntityClass.A),
+      bDrivers: check(bDrivers, picks.bDrivers, 'drivers', EntityClass.B),
     };
   }, [aTeams, bTeams, aDrivers, bDrivers, picks, hasRemaining]);
 
   const hasExhaustedCategory = Object.values(exhaustionReport).some((r: any) => r.isExhausted);
+
+  /**
+   * The league rules applied to the assembled lineup. Distinct from the picker's per-option
+   * gating, which can go stale — an entity's class can change while a form is open.
+   */
+  const checkLineup = useCallback(() => validateLineup({
+    picks,
+    eventId: event.id,
+    seasonPicks,
+    cancelledEventIds,
+    allDrivers,
+    allConstructors,
+  }), [picks, event.id, seasonPicks, cancelledEventIds, allDrivers, allConstructors]);
 
   // Helper for submit confirmation check
   const hasEmptySlots = () => {
@@ -226,16 +246,34 @@ const PicksForm: React.FC<PicksFormProps> = ({
         }
     }
     
-    if (isSelectionComplete()) {
-        // Every submission passes through the review step, so the budget a lineup spends is
-        // visible before it is spent — not only when the lineup is partial.
-        setShowReview(true);
-    } else {
+    if (!isSelectionComplete()) {
         showToast("Please complete all available selections before submitting.", 'error');
+        return;
     }
+
+    // The picker already refuses an over-budget or wrong-class option, but it is a UI affordance,
+    // not a rule. Check the assembled lineup against the league rules before spending anything.
+    const issues = checkLineup();
+    if (issues.length > 0) {
+        showToast(issues[0].message, 'error');
+        return;
+    }
+
+    // Every submission passes through the review step, so the budget a lineup spends is
+    // visible before it is spent — not only when the lineup is partial.
+    setReviewIssues([]);
+    setShowReview(true);
   };
 
   const confirmSubmit = () => {
+    // Re-checked here because the sheet can sit open: a class flip or a save from another tab
+    // between review and confirm would otherwise be written through.
+    const issues = checkLineup();
+    if (issues.length > 0) {
+        setReviewIssues(issues.map(i => i.message));
+        showToast(issues[0].message, 'error');
+        return;
+    }
     setShowReview(false);
     onPicksSubmit(event.id, picks);
     setIsEditing(false);
@@ -433,7 +471,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <SlotGroup
                 title="Class A Teams" icon={TeamIcon} slots={2} options={aTeams} selected={picks.aTeams}
                 entityType="teams" allConstructors={allConstructors} allDrivers={allDrivers}
-                getUsage={getUsage} getLimit={getLimit}
+                getUsage={getUsage} getLimit={getLimit} entityClass={EntityClass.A}
                 onOpenSlot={(i) => setOpenSlot({ category: 'aTeams', index: i })}
                 onClearSlot={(i) => handleSelect('aTeams', null, i)}
                 disabled={isFormDisabled} isExhausted={exhaustionReport.aTeams.isExhausted}
@@ -441,7 +479,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <SlotGroup
                 title="Class A Drivers" icon={DriverIcon} slots={3} options={aDrivers} selected={picks.aDrivers}
                 entityType="drivers" allConstructors={allConstructors} allDrivers={allDrivers}
-                getUsage={getUsage} getLimit={getLimit}
+                getUsage={getUsage} getLimit={getLimit} entityClass={EntityClass.A}
                 onOpenSlot={(i) => setOpenSlot({ category: 'aDrivers', index: i })}
                 onClearSlot={(i) => handleSelect('aDrivers', null, i)}
                 disabled={isFormDisabled} isExhausted={exhaustionReport.aDrivers.isExhausted}
@@ -449,7 +487,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <SlotGroup
                 title="Class B Team" icon={TeamIcon} slots={1} options={bTeams} selected={[picks.bTeam]}
                 entityType="teams" allConstructors={allConstructors} allDrivers={allDrivers}
-                getUsage={getUsage} getLimit={getLimit}
+                getUsage={getUsage} getLimit={getLimit} entityClass={EntityClass.B}
                 onOpenSlot={() => setOpenSlot({ category: 'bTeam', index: 0 })}
                 onClearSlot={() => handleSelect('bTeam', null, 0)}
                 disabled={isFormDisabled} isExhausted={exhaustionReport.bTeam.isExhausted}
@@ -457,7 +495,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             <SlotGroup
                 title="Class B Drivers" icon={DriverIcon} slots={2} options={bDrivers} selected={picks.bDrivers}
                 entityType="drivers" allConstructors={allConstructors} allDrivers={allDrivers}
-                getUsage={getUsage} getLimit={getLimit}
+                getUsage={getUsage} getLimit={getLimit} entityClass={EntityClass.B}
                 onOpenSlot={(i) => setOpenSlot({ category: 'bDrivers', index: i })}
                 onClearSlot={(i) => handleSelect('bDrivers', null, i)}
                 disabled={isFormDisabled} isExhausted={exhaustionReport.bDrivers.isExhausted}
@@ -503,6 +541,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
         allConstructors={allConstructors}
         getUsage={getUsage}
         getLimit={getLimit}
+        validationIssues={reviewIssues}
         exhaustedLabels={Object.entries(exhaustionReport)
           .filter(([, r]: [string, any]) => r.isExhausted)
           .map(([key]) => ({
@@ -515,11 +554,12 @@ const PicksForm: React.FC<PicksFormProps> = ({
       {(() => {
         if (!openSlot) return null;
         const CONFIG = {
-          aTeams:     { title: 'Select Class A Team',   options: aTeams,        type: 'teams'   as const, taken: picks.aTeams },
-          bTeam:      { title: 'Select Class B Team',   options: bTeams,        type: 'teams'   as const, taken: [picks.bTeam] },
-          aDrivers:   { title: 'Select Class A Driver', options: aDrivers,      type: 'drivers' as const, taken: picks.aDrivers },
-          bDrivers:   { title: 'Select Class B Driver', options: bDrivers,      type: 'drivers' as const, taken: picks.bDrivers },
-          fastestLap: { title: 'Select Fastest Lap',    options: sortedDrivers, type: 'drivers' as const, taken: [] as (string | null)[] },
+          aTeams:     { title: 'Select Class A Team',   options: aTeams,        type: 'teams'   as const, taken: picks.aTeams,      cls: EntityClass.A },
+          bTeam:      { title: 'Select Class B Team',   options: bTeams,        type: 'teams'   as const, taken: [picks.bTeam],     cls: EntityClass.B },
+          aDrivers:   { title: 'Select Class A Driver', options: aDrivers,      type: 'drivers' as const, taken: picks.aDrivers,    cls: EntityClass.A },
+          bDrivers:   { title: 'Select Class B Driver', options: bDrivers,      type: 'drivers' as const, taken: picks.bDrivers,    cls: EntityClass.B },
+          /* Fastest Lap spends no budget, so its class is never read. */
+          fastestLap: { title: 'Select Fastest Lap',    options: sortedDrivers, type: 'drivers' as const, taken: [] as (string | null)[], cls: EntityClass.A },
         };
         const cfg = CONFIG[openSlot.category];
         const current = openSlot.category === 'bTeam'
@@ -540,6 +580,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
             allConstructors={allConstructors}
             getUsage={getUsage}
             getLimit={getLimit}
+            entityClass={cfg.cls}
             /* Fastest Lap has no usage limit, so every driver stays selectable. */
             hasRemaining={openSlot.category === 'fastestLap' ? () => true : hasRemaining}
             onSelect={(id) => handleSelect(openSlot.category, id, openSlot.index)}

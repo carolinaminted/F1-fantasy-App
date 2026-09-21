@@ -80,6 +80,29 @@ This is the core gameplay. **Submit before the lock-in time** (usually Qualifyin
 | Class B Drivers | Pick **2** |
 | Fastest Lap | Pick **1** driver |
 
+### Season Selection Budgets
+
+Each team and driver can only be picked a limited number of times across the whole season:
+
+| | Teams | Drivers |
+|---|---|---|
+| Class A | 10 | 8 |
+| Class B | 5 | 5 |
+
+Your remaining budget shows on every option in the picker, and in full under **Selection Counts**
+on your profile. Fastest Lap is free — it spends no budget, and you can name a driver you have
+already picked.
+
+**If a driver changes class mid-season** (promoted to a top team, or sent back to the midfield),
+he carries a **separate budget in each class**. Say a driver starts the year in Class B, you pick
+him 3 times, and he is then promoted to Class A: he arrives with a full Class A budget of 8, and
+those 3 earlier races are not charged against it. When he drops back to Class B, he still has
+2 Class B picks left — the 3 you spent, not the 8. Over a season with a swap like that, a single
+driver can be picked up to 13 times.
+
+Picks are never refunded and never retroactively charged: what you spent in a class stays spent in
+that class. Selections for a **cancelled** event are returned to your budget.
+
 ### How to Submit:
 
 1. Tap **Picks** (Steering Wheel icon)

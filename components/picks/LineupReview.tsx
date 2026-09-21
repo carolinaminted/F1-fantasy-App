@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Chip, teamColor, withAlpha, NUMERIC } from '../ui/index.ts';
+import { EntityClass } from '../../types.ts';
 import type { Constructor, Driver, PickSelection } from '../../types.ts';
 
 interface LineupReviewProps {
@@ -10,13 +11,26 @@ interface LineupReviewProps {
   eventName: string;
   allDrivers: Driver[];
   allConstructors: Constructor[];
-  getUsage: (id: string, type: 'teams' | 'drivers') => number;
+  getUsage: (id: string, type: 'teams' | 'drivers', entityClass: EntityClass) => number;
   getLimit: (entityClass: Constructor['class'], type: 'teams' | 'drivers') => number;
   /** Categories with nothing left to pick, so empty slots are expected rather than a mistake. */
   exhaustedLabels: string[];
+  /**
+   * Problems found by the confirm-time re-check — normally empty. It exists so a lineup that
+   * went stale while this sheet was open (a class flipped, another tab saved) says so here
+   * instead of closing silently.
+   */
+  validationIssues?: string[];
 }
 
-interface LineRow { label: string; ids: (string | null)[]; type: 'teams' | 'drivers'; countsUsage: boolean }
+interface LineRow {
+  label: string;
+  ids: (string | null)[];
+  type: 'teams' | 'drivers';
+  countsUsage: boolean;
+  /** The budget this row spends against — the slot's class, not the entity's current one. */
+  entityClass: EntityClass;
+}
 
 /**
  * The confirm step. Shows the whole lineup with the budget each pick will consume, so the
@@ -24,14 +38,16 @@ interface LineRow { label: string; ids: (string | null)[]; type: 'teams' | 'driv
  */
 export const LineupReview: React.FC<LineupReviewProps> = ({
   isOpen, onClose, onConfirm, picks, eventName, allDrivers, allConstructors,
-  getUsage, getLimit, exhaustedLabels,
+  getUsage, getLimit, exhaustedLabels, validationIssues = [],
 }) => {
+  // Fastest Lap carries a class only to satisfy the row shape; `countsUsage: false` means it is
+  // never read, because FL is drawn from the whole grid and spends no budget.
   const rows: LineRow[] = [
-    { label: 'Class A Teams',   ids: picks.aTeams,        type: 'teams',   countsUsage: true },
-    { label: 'Class B Team',    ids: [picks.bTeam],       type: 'teams',   countsUsage: true },
-    { label: 'Class A Drivers', ids: picks.aDrivers,      type: 'drivers', countsUsage: true },
-    { label: 'Class B Drivers', ids: picks.bDrivers,      type: 'drivers', countsUsage: true },
-    { label: 'Fastest Lap',     ids: [picks.fastestLap],  type: 'drivers', countsUsage: false },
+    { label: 'Class A Teams',   ids: picks.aTeams,        type: 'teams',   countsUsage: true,  entityClass: EntityClass.A },
+    { label: 'Class B Team',    ids: [picks.bTeam],       type: 'teams',   countsUsage: true,  entityClass: EntityClass.B },
+    { label: 'Class A Drivers', ids: picks.aDrivers,      type: 'drivers', countsUsage: true,  entityClass: EntityClass.A },
+    { label: 'Class B Drivers', ids: picks.bDrivers,      type: 'drivers', countsUsage: true,  entityClass: EntityClass.B },
+    { label: 'Fastest Lap',     ids: [picks.fastestLap],  type: 'drivers', countsUsage: false, entityClass: EntityClass.A },
   ];
 
   const nameFor = (id: string, type: 'teams' | 'drivers') =>
@@ -53,8 +69,8 @@ export const LineupReview: React.FC<LineupReviewProps> = ({
             className="text-highlight-silver hover:text-pure-white font-bold py-2.5 px-4 rounded-lg text-sm transition-colors">
             Keep Editing
           </button>
-          <button type="button" onClick={onConfirm}
-            className="bg-primary-red hover:opacity-90 text-on-primary font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-primary-red/20 transition-opacity">
+          <button type="button" onClick={onConfirm} disabled={validationIssues.length > 0}
+            className="bg-primary-red hover:opacity-90 text-on-primary font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-primary-red/20 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
             {emptyCount > 0 ? 'Lock In Partial Lineup' : 'Lock In Picks'}
           </button>
         </>
@@ -91,8 +107,8 @@ export const LineupReview: React.FC<LineupReviewProps> = ({
                   row.type === 'teams' ? id : (entity as Driver | undefined)?.constructorId,
                   allConstructors
                 );
-                const used = getUsage(id, row.type);
-                const limit = entity ? getLimit(entity.class, row.type) : 0;
+                const used = getUsage(id, row.type, row.entityClass);
+                const limit = getLimit(row.entityClass, row.type);
 
                 return (
                   <span key={i}
@@ -111,6 +127,17 @@ export const LineupReview: React.FC<LineupReviewProps> = ({
           </div>
         ))}
       </div>
+
+      {validationIssues.length > 0 && (
+        <div className="mt-4 rounded-lg border border-primary-red/40 bg-primary-red/10 p-3">
+          <p className="text-xs font-bold text-primary-red">This lineup can no longer be saved:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {validationIssues.map((issue, i) => (
+              <li key={i} className="text-[11px] text-ghost-white/90">{issue}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {emptyCount > 0 && (
         <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">

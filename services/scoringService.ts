@@ -1,22 +1,45 @@
 import { EVENTS } from '../constants.ts';
-import { PickSelection, RaceResults, EventResult, UsageRollup, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
+import { PickSelection, RaceResults, EventResult, UsageRollup, ClassUsage, EntityClass, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
 
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
-export const calculateUsageRollup = (seasonPicks: { [eventId: string]: PickSelection }, cancelledEventIds: Set<string> = new Set()): UsageRollup => {
-    const teams: { [id: string]: number } = {};
-    const drivers: { [id: string]: number } = {};
+/**
+ * Tally season selections per entity *and per class*.
+ *
+ * Which slot array an id sits in is the record of the class it was picked under, so a driver
+ * promoted from B to A mid-season accrues against two independent budgets. Flattening the four
+ * arrays into one count per id — as this used to — charged his Class A picks against his Class B
+ * allowance the moment he was demoted again.
+ *
+ * `excludeEventId` drops one event from the tally. Pre-submit validation needs it: the lineup
+ * being edited is already saved, so counting it would reject every re-save of an at-limit lineup,
+ * including a no-op one. Display never passes it.
+ */
+export const calculateUsageRollup = (
+    seasonPicks: { [eventId: string]: PickSelection },
+    cancelledEventIds: Set<string> = new Set(),
+    excludeEventId?: string
+): UsageRollup => {
+    const teams: { [id: string]: ClassUsage } = {};
+    const drivers: { [id: string]: ClassUsage } = {};
+
+    const bump = (bucket: { [id: string]: ClassUsage }, id: string, cls: EntityClass) => {
+        const entry = bucket[id] || (bucket[id] = { [EntityClass.A]: 0, [EntityClass.B]: 0 });
+        entry[cls] += 1;
+    };
 
     Object.entries(seasonPicks).forEach(([eventId, p]) => {
         // Ignore picks from previous seasons
         if (!CURRENT_EVENT_IDS.has(eventId)) return;
         // Skip cancelled events — picks don't count against quotas
         if (cancelledEventIds.has(eventId)) return;
+        // Skip the event under edit, when the caller is computing a pre-submit baseline
+        if (excludeEventId && eventId === excludeEventId) return;
 
-        p.aTeams.forEach(id => { if(id) teams[id] = (teams[id] || 0) + 1; });
-        if (p.bTeam) teams[p.bTeam] = (teams[p.bTeam] || 0) + 1;
-        p.aDrivers.forEach(id => { if(id) drivers[id] = (drivers[id] || 0) + 1; });
-        p.bDrivers.forEach(id => { if(id) drivers[id] = (drivers[id] || 0) + 1; });
+        p.aTeams.forEach(id => { if(id) bump(teams, id, EntityClass.A); });
+        if (p.bTeam) bump(teams, p.bTeam, EntityClass.B);
+        p.aDrivers.forEach(id => { if(id) bump(drivers, id, EntityClass.A); });
+        p.bDrivers.forEach(id => { if(id) bump(drivers, id, EntityClass.B); });
     });
     
     return { teams, drivers };

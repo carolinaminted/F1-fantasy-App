@@ -138,9 +138,21 @@ export interface AdminLogEntry {
     timestamp?: any;
 }
 
+/**
+ * A selection budget is per (entity, class), not per entity. A driver who changes class
+ * mid-season carries a separate allowance in each class he has raced in.
+ *
+ * The class a pick was made under is not stored explicitly — the slot array the id sits in
+ * records it. `aTeams`/`aDrivers` mean "picked while Class A", `bTeam`/`bDrivers` mean
+ * "picked while Class B", and nothing ever rewrites those arrays when an entity's class
+ * changes. Anything that normalises a stored pick into the entity's *current* class would
+ * destroy the only record of what it actually spent.
+ */
+export type ClassUsage = Record<EntityClass, number>;
+
 export interface UsageRollup {
-    teams: { [id: string]: number };
-    drivers: { [id: string]: number };
+    teams: { [id: string]: ClassUsage };
+    drivers: { [id: string]: ClassUsage };
 }
 
 export interface EventPointsBreakdown {

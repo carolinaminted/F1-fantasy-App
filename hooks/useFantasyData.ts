@@ -51,25 +51,34 @@ const useFantasyData = (
   const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks, cancelledEventIds), [seasonPicks, cancelledEventIds]);
   const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds), [seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds]);
 
-  const getUsage = useCallback((id: string, type: 'teams' | 'drivers'): number => {
-    return usageRollup[type][id] || 0;
+  // Budgets are per (entity, class), so every reader has to say which class it is spending.
+  // Callers pass the class of the *slot* being filled, not the entity's current class — for a
+  // pick stored before a class change those differ, and the slot is the one that spent the budget.
+  const getUsage = useCallback((id: string, type: 'teams' | 'drivers', entityClass: EntityClass): number => {
+    return usageRollup[type][id]?.[entityClass] ?? 0;
   }, [usageRollup]);
 
   const getLimit = useCallback((entityClass: EntityClass, type: 'teams' | 'drivers'): number => {
     return USAGE_LIMITS[entityClass][type];
   }, []);
 
-  const hasRemaining = useCallback((id: string, type: 'teams' | 'drivers'): boolean => {
-    const entityList = type === 'teams' ? allConstructors : allDrivers;
-    const entity = entityList.find(e => e.id === id);
-    if (!entity) return false;
+  const hasRemaining = useCallback((id: string, type: 'teams' | 'drivers', entityClass: EntityClass): boolean => {
+    return getUsage(id, type, entityClass) < getLimit(entityClass, type);
+  }, [getLimit, getUsage]);
 
-    const usage = getUsage(id, type);
-    const limit = getLimit(entity.class, type);
-    return usage < limit;
-  }, [getLimit, getUsage, allDrivers, allConstructors]);
+  /**
+   * One class's bucket flattened to `{ id: count }`, so presentational components that show a
+   * single class's meters keep taking a plain map and stay class-unaware.
+   */
+  const getUsageMap = useCallback((type: 'teams' | 'drivers', entityClass: EntityClass): { [id: string]: number } => {
+    const out: { [id: string]: number } = {};
+    Object.entries(usageRollup[type]).forEach(([id, usage]) => {
+      if (usage[entityClass] > 0) out[id] = usage[entityClass];
+    });
+    return out;
+  }, [usageRollup]);
 
-  return { ...data, getUsage, getLimit, hasRemaining, usageRollup, scoreRollup, allDrivers, allConstructors };
+  return { ...data, getUsage, getLimit, hasRemaining, getUsageMap, usageRollup, scoreRollup, allDrivers, allConstructors };
 };
 
 export default useFantasyData;

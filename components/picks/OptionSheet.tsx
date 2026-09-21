@@ -15,9 +15,11 @@ interface OptionSheetProps {
   /** The value currently in this slot, which stays selectable. */
   currentId: string | null;
   allConstructors: Constructor[];
-  getUsage: (id: string, type: 'teams' | 'drivers') => number;
+  getUsage: (id: string, type: 'teams' | 'drivers', entityClass: EntityClass) => number;
   getLimit: (entityClass: EntityClass, type: 'teams' | 'drivers') => number;
-  hasRemaining: (id: string, type: 'teams' | 'drivers') => boolean;
+  hasRemaining: (id: string, type: 'teams' | 'drivers', entityClass: EntityClass) => boolean;
+  /** The class this slot spends against. Every option listed here currently holds it. */
+  entityClass: EntityClass;
   onSelect: (id: string) => void;
 }
 
@@ -27,7 +29,7 @@ interface OptionSheetProps {
  */
 export const OptionSheet: React.FC<OptionSheetProps> = ({
   isOpen, onClose, title, options, entityType, takenIds, currentId,
-  allConstructors, getUsage, getLimit, hasRemaining, onSelect,
+  allConstructors, getUsage, getLimit, hasRemaining, entityClass, onSelect,
 }) => {
   const [query, setQuery] = useState('');
 
@@ -65,11 +67,11 @@ export const OptionSheet: React.FC<OptionSheetProps> = ({
             entityType === 'drivers' ? option.constructorId : option.id,
             allConstructors
           );
-          const used = getUsage(option.id, entityType);
-          const limit = getLimit(option.class, entityType);
+          const used = getUsage(option.id, entityType, entityClass);
+          const limit = getLimit(entityClass, entityType);
           const isCurrent = option.id === currentId;
           const isTaken = takenIds.includes(option.id) && !isCurrent;
-          const exhausted = !hasRemaining(option.id, entityType) && !isCurrent;
+          const exhausted = !hasRemaining(option.id, entityType, entityClass) && !isCurrent;
           const unavailable = isTaken || exhausted;
 
           const reason = isTaken ? 'Already picked' : exhausted ? 'Limit reached' : null;
