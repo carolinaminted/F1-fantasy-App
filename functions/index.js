@@ -15,6 +15,7 @@ const { resolveRuntimeTarget } = require("./runtime-target");
 const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
 const { SEASON_EVENT_IDS } = require("./season-events");
+const { computeSurvivalStandings, validateSurvivalPick } = require("./survival");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -304,6 +305,99 @@ exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
         logger.error("manualLeaderboardSync internal failure:", err);
         throw new HttpsError('internal', 'Recalculation failed on server.');
     }
+});
+
+// --- PODIUM SURVIVAL CHALLENGE ---
+
+// The app_state docs whose changes can move survival standings. The standings doc itself lives
+// in app_state too and must never be in this set, or the trigger would re-fire on its own write.
+const SURVIVAL_INPUT_DOCS = new Set(['race_results', 'cancelled_events', 'survival_config']);
+
+const recalculateSurvivalStandings = async () => {
+    const appState = db.collection('app_state');
+    const [configSnap, resultsSnap, cancelledSnap, picksSnap] = await Promise.all([
+        appState.doc('survival_config').get(),
+        appState.doc('race_results').get(),
+        appState.doc('cancelled_events').get(),
+        db.collection('survival_picks').get(),
+    ]);
+
+    const picksByUser = {};
+    picksSnap.forEach((d) => { picksByUser[d.id] = d.data(); });
+
+    const standings = computeSurvivalStandings({
+        config: configSnap.exists ? configSnap.data() : null,
+        picksByUser,
+        results: resultsSnap.exists ? resultsSnap.data() : {},
+        cancelled: cancelledSnap.exists ? (cancelledSnap.data().events || {}) : {},
+        eventOrder: [...SEASON_EVENT_IDS],
+    });
+
+    const standingsRef = appState.doc('survival_standings');
+    if (!standings) {
+        await standingsRef.delete();
+        logger.info('Survival: no active challenge; standings cleared.');
+        return;
+    }
+    await standingsRef.set({ ...standings, computedAt: admin.firestore.FieldValue.serverTimestamp() });
+    logger.info(`Survival: standings recomputed through ${standings.lastProcessedEventId || 'no rounds'} (${standings.status}).`);
+};
+
+exports.updateSurvivalStandings = onDocumentWritten(
+    { document: 'app_state/{docId}', timeoutSeconds: 120 },
+    async (event) => {
+        if (!SURVIVAL_INPUT_DOCS.has(event.params.docId)) return;
+        await recalculateSurvivalStandings();
+    }
+);
+
+exports.submitSurvivalPick = onCall({ cors: true }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Login required.');
+    }
+    const uid = request.auth.uid;
+    const { eventId, driverId } = request.data || {};
+    if (typeof eventId !== 'string' || typeof driverId !== 'string' || !eventId || !driverId) {
+        throw new HttpsError('invalid-argument', 'eventId and driverId are required.');
+    }
+
+    const appState = db.collection('app_state');
+    const picksRef = db.collection('survival_picks').doc(uid);
+
+    await db.runTransaction(async (t) => {
+        const [configSnap, standingsSnap, entitiesSnap, schedulesSnap, locksSnap, cancelledSnap, picksSnap] = await t.getAll(
+            appState.doc('survival_config'),
+            appState.doc('survival_standings'),
+            appState.doc('entities'),
+            appState.doc('event_schedules'),
+            appState.doc('form_locks'),
+            appState.doc('cancelled_events'),
+            picksRef,
+        );
+
+        const verdict = validateSurvivalPick({
+            uid, eventId, driverId,
+            config: configSnap.exists ? configSnap.data() : null,
+            standings: standingsSnap.exists ? standingsSnap.data() : null,
+            picksDoc: picksSnap.exists ? picksSnap.data() : {},
+            drivers: entitiesSnap.exists ? (entitiesSnap.data().drivers || []) : [],
+            schedule: schedulesSnap.exists ? schedulesSnap.data()[eventId] : null,
+            formLocked: locksSnap.exists ? locksSnap.data()[eventId] === true : false,
+            cancelled: cancelledSnap.exists ? (cancelledSnap.data().events || {}) : {},
+            now: new Date(),
+            eventOrder: [...SEASON_EVENT_IDS],
+        });
+        if (!verdict.ok) {
+            throw new HttpsError(verdict.code, verdict.message);
+        }
+
+        t.set(picksRef, {
+            [eventId]: { driverId, submittedAt: admin.firestore.FieldValue.serverTimestamp() },
+        }, { merge: true });
+    });
+
+    logger.info(`Survival: ${uid} picked ${driverId} for ${eventId}.`);
+    return { success: true };
 });
 
 exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {

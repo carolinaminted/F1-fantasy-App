@@ -5,6 +5,7 @@
     "manualLeaderboardSync",
     "sendAuthCode",
     "sendPasswordResetLink",
+    "submitSurvivalPick",
     "validateInvitationCode",
     "verifyAuthCode"
   ]

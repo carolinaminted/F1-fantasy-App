@@ -113,6 +113,14 @@ service cloud.firestore {
        allow write: if isOwner(userId) || isAdmin();
     }
 
+    // --- Podium Survival picks ---
+    // Written only by the submitSurvivalPick callable (Admin SDK), which enforces entry,
+    // elimination, lock time and the three-use budget. Clients never write here.
+    match /survival_picks/{userId} {
+       allow read: if isSignedIn();
+       allow write: if false;
+    }
+
     // --- Global App State ---
     match /app_state/{document=**} {
        allow read: if isSignedIn();

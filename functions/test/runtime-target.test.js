@@ -3,13 +3,14 @@ const assert = require('node:assert/strict');
 const { resolveRuntimeTarget } = require('../runtime-target');
 const portalCallables = require('../portal-callables.json');
 
-test('portal manifest selects only the five callable functions', () => {
+test('portal manifest selects only the six callable functions', () => {
   assert.equal(portalCallables.region, 'us-central1');
   assert.equal(portalCallables.runtime, 'nodejs22');
   assert.deepEqual(portalCallables.functions, [
     'manualLeaderboardSync',
     'sendAuthCode',
     'sendPasswordResetLink',
+    'submitSurvivalPick',
     'validateInvitationCode',
     'verifyAuthCode',
   ]);

@@ -17,7 +17,8 @@ readonly STAGING_FUNCTIONS_REGION="us-central1"
 # Every function this project deploys. Gen 2 functions are Cloud Run services underneath, and
 # that service is named with the function name lowercased — hence `run_service_name` below.
 readonly STAGING_FUNCTIONS=(manualLeaderboardSync sendAuthCode sendPasswordResetLink
-                            updateLeaderboardOnCancellation updateLeaderboardOnResults
+                            submitSurvivalPick updateLeaderboardOnCancellation
+                            updateLeaderboardOnResults updateSurvivalStandings
                             validateInvitationCode verifyAuthCode)
 # Only these two functions read email credentials. They are re-bound after every
 # functions deploy, because `firebase deploy` clears secret bindings it did not set.
