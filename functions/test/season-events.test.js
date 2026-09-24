@@ -36,3 +36,7 @@ test('Bahrain is on the calendar and Saudi Arabia is not', () => {
   assert.ok(SEASON_EVENT_IDS.has('bhr_26'));
   assert.ok(!SEASON_EVENT_IDS.has('sau_26'));
 });
+
+test('keeps calendar order — the survival engine walks rounds in this order', () => {
+  assert.deepEqual([...SEASON_EVENT_IDS], readConstantsEventIds());
+});
