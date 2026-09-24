@@ -208,3 +208,49 @@ export interface GeneralAnnouncementState {
     triggeredBy: string;
     expiresAt: any; // Firestore Timestamp
 }
+/* --------------------------------------------------------- Podium Survival Challenge */
+
+export interface SurvivalConfig {
+    status: 'setup' | 'active';
+    startEventId: string | null;
+    /** Frozen at start: every user whose dues were Paid at that moment. */
+    entrants: string[];
+    prize?: string;
+    startedAt?: any; // Firestore Timestamp
+    startedBy?: string;
+    updatedAt?: any; // Firestore Timestamp
+}
+
+export interface SurvivalPick {
+    driverId: string;
+    submittedAt?: any; // Firestore Timestamp
+}
+
+export type SurvivalPicksDoc = { [eventId: string]: SurvivalPick };
+
+export type SurvivalOutcome = 'survived' | 'eliminated' | 'missed' | 'won';
+
+export interface SurvivalRound {
+    driverId: string | null;
+    position: number | null;
+    outcome: SurvivalOutcome;
+}
+
+export interface SurvivalPlayer {
+    alive: boolean;
+    eliminatedAt: string | null;
+    reason: 'off-podium' | 'missed' | 'final' | null;
+    usage: { [driverId: string]: number };
+    rounds: { [eventId: string]: SurvivalRound };
+}
+
+/** Written only by the updateSurvivalStandings function. */
+export interface SurvivalStandings {
+    status: 'active' | 'complete';
+    winners: string[];
+    decidedAt: string | null;
+    lastProcessedEventId: string | null;
+    finalEventId: string | null;
+    players: { [uid: string]: SurvivalPlayer };
+    computedAt?: any;
+}

@@ -1,7 +1,7 @@
 
 import { db } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState, SurvivalConfig, SurvivalStandings, SurvivalPicksDoc } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
 import { cancelApiEvent, restoreApiEvent, saveApiRaceResults, triggerApiLeaderboardSync } from './apiService.ts';
@@ -641,4 +641,67 @@ export const uncancelEvent = async (eventId: string) => {
     await updateDoc(ref, {
         [`events.${eventId}`]: deleteField()
     });
+};
+
+// --- Podium Survival Challenge ---
+
+const survivalConfigRef = () => doc(db, 'app_state', 'survival_config');
+
+export const onSurvivalConfig = (callback: (config: SurvivalConfig | null) => void) =>
+    onSnapshot(survivalConfigRef(), (snap) => {
+        callback(snap.exists() ? (snap.data() as SurvivalConfig) : null);
+    }, (error) => {
+        console.error("Survival config listener error:", error);
+        callback(null);
+    });
+
+export const onSurvivalStandings = (callback: (standings: SurvivalStandings | null) => void) =>
+    onSnapshot(doc(db, 'app_state', 'survival_standings'), (snap) => {
+        callback(snap.exists() ? (snap.data() as SurvivalStandings) : null);
+    }, (error) => {
+        console.error("Survival standings listener error:", error);
+        callback(null);
+    });
+
+export const onAllSurvivalPicks = (callback: (picks: { [uid: string]: SurvivalPicksDoc }) => void) =>
+    onSnapshot(collection(db, 'survival_picks'), (snap) => {
+        const all: { [uid: string]: SurvivalPicksDoc } = {};
+        snap.forEach(d => { all[d.id] = d.data() as SurvivalPicksDoc; });
+        callback(all);
+    }, (error) => {
+        console.error("Survival picks listener error:", error);
+        callback({});
+    });
+
+/** Any config write also makes the standings function recompute — that is the admin "Recompute". */
+export const saveSurvivalConfig = async (fields: Partial<SurvivalConfig>) => {
+    await setDoc(survivalConfigRef(), { ...fields, updatedAt: serverTimestamp() }, { merge: true });
+};
+
+export const startSurvivalChallenge = async (startEventId: string, entrants: string[], adminUid: string, prize: string) => {
+    await setDoc(survivalConfigRef(), {
+        status: 'active', startEventId, entrants, prize,
+        startedAt: serverTimestamp(), startedBy: adminUid, updatedAt: serverTimestamp(),
+    }, { merge: true });
+};
+
+export const resetSurvivalChallenge = async () => {
+    await setDoc(survivalConfigRef(), {
+        status: 'setup', startEventId: null, entrants: [],
+        startedAt: deleteField(), startedBy: deleteField(), updatedAt: serverTimestamp(),
+    }, { merge: true });
+};
+
+export const submitSurvivalPick = async (eventId: string, driverId: string) => {
+    const fn = getCallable<{ eventId: string; driverId: string }, { success: boolean }>('submitSurvivalPick');
+    const result = await fn({ eventId, driverId });
+    return result.data;
+};
+
+/** uid → public display name, for every member. public_users is world-readable and small. */
+export const getPublicDisplayNames = async (): Promise<{ [uid: string]: string }> => {
+    const snap = await getDocs(collection(db, 'public_users'));
+    const names: { [uid: string]: string } = {};
+    snap.forEach(d => { names[d.id] = (d.data().displayName as string) || 'Unknown Team'; });
+    return names;
 };
