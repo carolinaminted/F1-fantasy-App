@@ -150,3 +150,76 @@ test('an empty challenge is complete with no winner', () => {
   assert.equal(s.status, 'complete');
   assert.deepEqual(s.winners, []);
 });
+
+const { parseLeagueDate, resolveLockAt, validateSurvivalPick } = require('../survival');
+
+test('parseLeagueDate: absolute strings pass through', () => {
+  assert.equal(parseLeagueDate('2026-03-29T18:00:00Z').toISOString(), '2026-03-29T18:00:00.000Z');
+  assert.equal(parseLeagueDate('2026-03-29T14:00:00-04:00').toISOString(), '2026-03-29T18:00:00.000Z');
+});
+
+test('parseLeagueDate: bare times are New York wall time across DST', () => {
+  assert.equal(parseLeagueDate('2026-03-29T14:00').toISOString(), '2026-03-29T18:00:00.000Z'); // EDT
+  assert.equal(parseLeagueDate('2026-01-10 14:00').toISOString(), '2026-01-10T19:00:00.000Z'); // EST
+  assert.equal(parseLeagueDate(''), null);
+  assert.equal(parseLeagueDate('garbage'), null);
+});
+
+test('resolveLockAt mirrors the client precedence', () => {
+  const iso = (s) => resolveLockAt(s)?.toISOString() ?? null;
+  assert.equal(iso({ qualifying: '2026-05-01T12:00:00Z', customLockAt: '2026-05-01T10:00:00Z' }), '2026-05-01T10:00:00.000Z');
+  assert.equal(iso({ hasSprint: true, sprintQualifying: '2026-05-01T08:00:00Z', qualifying: '2026-05-02T12:00:00Z' }), '2026-05-01T08:00:00.000Z');
+  assert.equal(iso({ hasSprint: false, sprintQualifying: '2026-05-01T08:00:00Z', qualifying: '2026-05-02T12:00:00Z' }), '2026-05-02T12:00:00.000Z');
+  assert.equal(iso(null), null);
+  assert.equal(iso({}), null);
+});
+
+const DRIVERS = [
+  { id: 'nor', name: 'Lando Norris', isActive: true },
+  { id: 'ham', name: 'Lewis Hamilton', isActive: true },
+  { id: 'old', name: 'Retired Driver', isActive: false },
+];
+const base = (over = {}) => ({
+  uid: 'a', eventId: 'e2', driverId: 'nor',
+  config: { status: 'active', startEventId: 'e1', entrants: ['a', 'b'] },
+  standings: { status: 'active', players: { a: { alive: true } } },
+  picksDoc: {}, drivers: DRIVERS,
+  schedule: { qualifying: '2026-05-02T12:00:00Z' },
+  formLocked: false, cancelled: {},
+  now: new Date('2026-05-01T00:00:00Z'),
+  eventOrder: ['e1', 'e2', 'e3', 'e4', 'e5'],
+  ...over,
+});
+const code = (over) => validateSurvivalPick(base(over)).code;
+
+test('validateSurvivalPick accepts a good pick', () => {
+  assert.deepEqual(validateSurvivalPick(base()), { ok: true });
+  assert.deepEqual(validateSurvivalPick(base({ standings: null })), { ok: true }); // before the first recompute
+});
+
+test('validateSurvivalPick rejects each failure mode', () => {
+  assert.equal(code({ config: null }), 'failed-precondition');
+  assert.equal(code({ uid: 'z' }), 'permission-denied');
+  assert.equal(code({ standings: { status: 'complete', players: {} } }), 'failed-precondition');
+  assert.equal(code({ standings: { status: 'active', players: { a: { alive: false } } } }), 'failed-precondition');
+  assert.equal(code({ eventId: 'e0' }), 'invalid-argument');
+  assert.equal(code({ config: { status: 'active', startEventId: 'e3', entrants: ['a'] } }), 'invalid-argument');
+  assert.equal(code({ cancelled: { e2: {} } }), 'failed-precondition');
+  assert.equal(code({ schedule: null }), 'failed-precondition');
+  assert.equal(code({ formLocked: true }), 'failed-precondition');
+  assert.equal(code({ now: new Date('2026-05-02T12:00:00Z') }), 'failed-precondition');
+  assert.equal(code({ driverId: 'xxx' }), 'invalid-argument');
+  assert.equal(code({ driverId: 'old' }), 'invalid-argument');
+  assert.equal(code({ drivers: [] }), 'failed-precondition');
+});
+
+test('validateSurvivalPick enforces the three-use budget, excluding the event being changed', () => {
+  const three = { e1: { driverId: 'nor' }, e3: { driverId: 'nor' }, e4: { driverId: 'nor' } };
+  const r = validateSurvivalPick(base({ picksDoc: three }));
+  assert.equal(r.code, 'failed-precondition');
+  assert.match(r.message, /Lando Norris/);
+  // re-picking the same event does not double count
+  assert.deepEqual(validateSurvivalPick(base({ picksDoc: { ...three, e2: { driverId: 'nor' }, e4: { driverId: 'ham' } } })), { ok: true });
+  // picks on cancelled rounds do not count
+  assert.deepEqual(validateSurvivalPick(base({ picksDoc: three, cancelled: { e4: {} } })), { ok: true });
+});

@@ -108,9 +108,86 @@ const computeSurvivalStandings = ({ config, picksByUser = {}, results = {}, canc
   return standings;
 };
 
+const LEAGUE_TIMEZONE = 'America/New_York';
+
+/** How far New York wall-clock time is ahead of UTC at instant `ms` (negative: behind). */
+const leagueOffsetMs = (ms) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: LEAGUE_TIMEZONE, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(new Date(ms));
+  const get = (type) => Number(parts.find((p) => p.type === type).value);
+  return Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')) - ms;
+};
+
+/**
+ * Server twin of utils/dateUtils.ts `parseLeagueDate`. Admin-entered schedule times are bare
+ * `datetime-local` strings meaning New York time; Cloud Functions run in UTC, so they cannot be
+ * handed to `new Date()` as-is.
+ */
+const parseLeagueDate = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (/(Z|[+-]\d{2}:?\d{2})$/.test(trimmed)) {
+    const d = new Date(trimmed);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const m = trimmed.replace(' ', 'T').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return null;
+  const wall = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+  let instant = wall - leagueOffsetMs(wall);
+  const corrected = wall - leagueOffsetMs(instant); // second pass settles DST boundaries
+  if (corrected !== instant) instant = corrected;
+  return new Date(instant);
+};
+
+/**
+ * The picks deadline, with the same precedence as App.tsx `mergedEvents`. The server has no copy
+ * of constants.ts, so an event without an imported schedule resolves to null and the pick is refused.
+ */
+const resolveLockAt = (schedule) => {
+  if (!schedule) return null;
+  const raw = schedule.customLockAt
+    || (schedule.hasSprint !== false ? (schedule.sprintQualifying || schedule.qualifying) : schedule.qualifying);
+  return parseLeagueDate(raw);
+};
+
+const reject = (code, message) => ({ ok: false, code, message });
+
+const validateSurvivalPick = ({
+  uid, eventId, driverId, config, standings, picksDoc = {}, drivers = [], schedule,
+  formLocked, cancelled = {}, now, eventOrder,
+}) => {
+  if (!config || config.status !== 'active') return reject('failed-precondition', 'The Survival Challenge is not running.');
+  if (!(config.entrants || []).includes(uid)) return reject('permission-denied', 'You are not entered in this challenge.');
+  if (standings?.status === 'complete') return reject('failed-precondition', 'The challenge is over.');
+  if (standings?.players?.[uid]?.alive === false) return reject('failed-precondition', 'You have been eliminated.');
+
+  const rounds = eventsInPlay(eventOrder, config.startEventId, {});
+  if (!rounds.includes(eventId)) return reject('invalid-argument', 'That race is not part of the challenge.');
+  if (cancelled[eventId]) return reject('failed-precondition', 'That race has been cancelled.');
+
+  const lockAt = resolveLockAt(schedule);
+  if (!lockAt) return reject('failed-precondition', 'That race has no lock time yet. Picks open once its schedule is set.');
+  if (formLocked || now.getTime() >= lockAt.getTime()) return reject('failed-precondition', 'Picks for that race are locked.');
+
+  if (!drivers.length) return reject('failed-precondition', 'The driver list is unavailable. Try again shortly.');
+  const driver = drivers.find((d) => d.id === driverId && d.isActive !== false);
+  if (!driver) return reject('invalid-argument', 'That driver is not available.');
+
+  const uses = rounds.filter((id) => id !== eventId && !cancelled[id] && picksDoc[id]?.driverId === driverId).length;
+  if (uses >= MAX_DRIVER_USES) {
+    return reject('failed-precondition', `You have already picked ${driver.name} ${MAX_DRIVER_USES} times.`);
+  }
+  return { ok: true };
+};
+
 module.exports = {
   PODIUM_SIZE,
   MAX_DRIVER_USES,
   eventsInPlay,
   computeSurvivalStandings,
+  parseLeagueDate,
+  resolveLockAt,
+  validateSurvivalPick,
 };
