@@ -8,6 +8,7 @@ import AuthScreen from './components/AuthScreen.tsx';
 const ProfilePage = lazy(() => import('./components/ProfilePage.tsx'));
 const DevUiGallery = lazy(() => import('./components/DevUiGallery.tsx'));
 const RacePage = lazy(() => import('./components/RacePage.tsx'));
+const SurvivalPage = lazy(() => import('./components/SurvivalPage.tsx'));
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage.tsx'));
 import Dashboard from './components/Dashboard.tsx';
 const AdminPage = lazy(() => import('./components/AdminPage.tsx'));
@@ -62,7 +63,7 @@ import GeneralAnnouncementBanner from './components/GeneralAnnouncementBanner.ts
 import AdminMaintenanceBanner from './components/AdminMaintenanceBanner.tsx';
 
 
-export type Page = 'home' | 'race' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'gp-results' | 'duesPayment' | 'league-hub';
+export type Page = 'home' | 'race' | 'picks' | 'leaderboard' | 'profile' | 'admin' | 'gp-results' | 'duesPayment' | 'league-hub' | 'survival';
 
 
 // New SideNavItem component for desktop sidebar
@@ -753,6 +754,16 @@ const App: React.FC = () => {
         />;
       case 'league-hub':
         return <LeagueHubPage user={user} />;
+      case 'survival':
+        return <SurvivalPage
+            user={user}
+            events={mergedEvents}
+            allDrivers={allDrivers}
+            allConstructors={allConstructors}
+            cancelledEventIds={cancelledEventIds}
+            formLocks={formLocks}
+            raceResults={raceResults}
+        />;
       case 'profile':
         if(user) return <ProfilePage user={user} seasonPicks={seasonPicks} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} setActivePage={navigateToPage} events={mergedEvents} cancelledEventIds={cancelledEventIds} leaderboardCache={leaderboardCache} />;
         return null;

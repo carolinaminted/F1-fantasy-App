@@ -4,10 +4,11 @@ import type { Page } from './App.tsx';
  * URL <-> Page mapping.
  *
  * Gate 2 gave every surface a URL; Gate 5 merged three of them into Race and Gate 11
- * merged four more into League. Gate 13 pruned the union down to the six canonical
- * surfaces plus three aliases that components still navigate by — each alias resolves to
- * the surface that absorbed it, with the matching view or query. Old *URLs* are covered
- * separately by REDIRECTS below.
+ * merged four more into League. Gate 13 pruned the union down to six canonical surfaces
+ * plus three aliases that components still navigate by — each alias resolves to the
+ * surface that absorbed it, with the matching view or query. Podium Survival is a seventh
+ * canonical surface, reached by link from League and Race rather than from the nav. Old
+ * *URLs* are covered separately by REDIRECTS below.
  */
 export const PAGE_PATHS: Record<Page, string> = {
   'home': '/',
@@ -19,6 +20,7 @@ export const PAGE_PATHS: Record<Page, string> = {
   'gp-results': '/race',       // alias: Race with the results view
   'duesPayment': '/league',    // alias: League with the dues sheet open
   'league-hub': '/league',
+  'survival': '/survival',
 };
 
 /**
@@ -26,7 +28,7 @@ export const PAGE_PATHS: Record<Page, string> = {
  * so this table is built from the canonical entries only.
  */
 const CANONICAL: Page[] = [
-  'home', 'race', 'leaderboard', 'profile', 'admin', 'league-hub',
+  'home', 'race', 'leaderboard', 'profile', 'admin', 'league-hub', 'survival',
 ];
 
 const PATH_PAGES = CANONICAL.reduce<Record<string, Page>>(
