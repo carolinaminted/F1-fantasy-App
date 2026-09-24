@@ -26,10 +26,10 @@ one driver to finish P1–P3 in the **main Grand Prix** (sprints never count).
 | Doc | Writer | Read | Shape |
 |---|---|---|---|
 | `app_state/survival_config` | admin client | signed-in | `{ status: 'setup' \| 'active', startEventId, entrants: uid[], prize?, startedAt?, startedBy?, updatedAt }` |
-| `survival_picks/{uid}` | `submitSurvivalPick` callable only (client writes denied by rules) | public | `{ [eventId]: { driverId, submittedAt } }` |
-| `app_state/survival_standings` | `updateSurvivalStandings` trigger | signed-in | `{ status: 'active' \| 'complete', winners: uid[], decidedAt: eventId \| null, lastProcessedEventId, players: { [uid]: { alive, eliminatedAt, reason, usage, rounds } }, computedAt }` |
+| `survival_picks/{uid}` | `submitSurvivalPick` callable only (client writes denied by rules) | signed-in | `{ [eventId]: { driverId, submittedAt } }` |
+| `app_state/survival_standings` | `updateSurvivalStandings` trigger | signed-in | `{ status: 'active' \| 'complete', winners: uid[], decidedAt: eventId \| null, lastProcessedEventId, finalEventId, players: { [uid]: { alive, eliminatedAt, reason, usage, rounds } }, computedAt }` |
 
-`rounds[eventId] = { driverId \| null, position \| null, outcome: 'survived' \| 'eliminated' \| 'missed' \| 'final' }`.
+`rounds[eventId] = { driverId \| null, position \| null, outcome: 'survived' \| 'eliminated' \| 'missed' \| 'won' }`.
 `reason` is `'off-podium' \| 'missed' \| 'final'`.
 
 Standings are one document rather than a collection: ~40 players, one listener, and it follows
