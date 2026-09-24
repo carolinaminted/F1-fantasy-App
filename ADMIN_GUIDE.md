@@ -45,6 +45,8 @@ The league is invite-only. You must generate codes for players to register.
 
 Manage the roster, verify payments, and handle access.
 
+Dues status is tracking only. Unpaid members can still submit picks; they see a "Dues Due" reminder until you mark them Paid.
+
 ### Approving Dues:
 
 1. Go to **Manage Users** (Profile icon).

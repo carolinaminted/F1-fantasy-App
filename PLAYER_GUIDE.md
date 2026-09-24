@@ -46,12 +46,9 @@ You'll need an **Invitation Code** from the League Administrator.
 
 ## 2. Paying Your Dues
 
-**Before you can make picks, you must pay your entry fee.**
+Every member pays a season entry fee. Unpaid dues never block the app. You can make and edit picks either way.
 
-If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing the Picks screen.
-
-> **📸 Screenshot 4: "Pit Lane Closed" Warning**
-> Show the red overlay with the dues warning and instructions.
+Until an Admin records your payment, a **"Dues Due"** reminder shows in the League Hub and your Profile shows **Dues: Unpaid**.
 
 ### How to Pay:
 
@@ -59,7 +56,7 @@ If dues are unpaid, you'll see a **"Pit Lane Closed"** overlay when accessing th
 2. Tap **Pay Dues**
 3. Copy the **Payment Memo** (this links your payment to your account)
 4. Complete payment via **Venmo**
-5. Once an Admin approves your payment, you're cleared immediately
+5. Once an Admin approves your payment, the reminder disappears
 
 > **📸 Screenshot 5: Dues Payment Screen**
 > Show the payment amount, memo field with copy button, and Venmo button.
@@ -192,7 +189,7 @@ A: Points come from your drivers' finishing positions, team results, qualifying 
 **Q: I forgot my password!**
 A: On the login screen, tap **"Forgot Password?"** to receive a reset link via email.
 
-**Q: I paid but still see "Pit Lane Closed"**
+**Q: I paid but still see the "Dues Due" reminder**
 A: Payments require Admin approval. If it's been more than 24 hours, contact the League Administrator.
 
 **Q: Can I change my Team Name?**
