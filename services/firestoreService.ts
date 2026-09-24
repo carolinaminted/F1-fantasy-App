@@ -647,9 +647,21 @@ export const uncancelEvent = async (eventId: string) => {
 
 const survivalConfigRef = () => doc(db, 'app_state', 'survival_config');
 
+/**
+ * The config doc is written by merge, so it can be partial — saving a prize before any
+ * challenge has started creates `{ prize, updatedAt }` alone. Fill the required fields so
+ * no consumer has to guard `entrants` or `status`.
+ */
+const normalizeSurvivalConfig = (data: DocumentData): SurvivalConfig => ({
+    ...data,
+    status: data.status === 'active' ? 'active' : 'setup',
+    startEventId: typeof data.startEventId === 'string' ? data.startEventId : null,
+    entrants: Array.isArray(data.entrants) ? data.entrants : [],
+});
+
 export const onSurvivalConfig = (callback: (config: SurvivalConfig | null) => void) =>
     onSnapshot(survivalConfigRef(), (snap) => {
-        callback(snap.exists() ? (snap.data() as SurvivalConfig) : null);
+        callback(snap.exists() ? normalizeSurvivalConfig(snap.data()) : null);
     }, (error) => {
         console.error("Survival config listener error:", error);
         callback(null);
