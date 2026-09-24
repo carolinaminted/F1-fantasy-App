@@ -83,7 +83,7 @@ export const DEV_UI_PATH = '/dev/ui';
 /* ---------------------------------------------------------------- admin tools */
 
 /**
- * The nine admin destinations. `dashboard` is the tile menu and is represented by the
+ * The ten admin destinations. `dashboard` is the tile menu and is represented by the
  * *absence* of a `tool` param, so a bare /admin is the home screen.
  *
  * These live in the URL as /admin?tool=<name> rather than in React state, which is what
@@ -93,7 +93,7 @@ export const DEV_UI_PATH = '/dev/ui';
  */
 export const ADMIN_TOOLS = [
   'results', 'manage-users', 'scoring', 'entities',
-  'schedule', 'invitations', 'database', 'announcements',
+  'schedule', 'invitations', 'database', 'announcements', 'survival',
 ] as const;
 
 export type AdminTool = (typeof ADMIN_TOOLS)[number];

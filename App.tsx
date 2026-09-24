@@ -20,6 +20,7 @@ const ScoringSettingsPage = lazy(() => import('./components/ScoringSettingsPage.
 const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.tsx'));
 const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
 const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
+const SurvivalAdminPage = lazy(() => import('./components/SurvivalAdminPage.tsx'));
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -753,7 +754,7 @@ const App: React.FC = () => {
             cancelledEventIds={cancelledEventIds}
         />;
       case 'league-hub':
-        return <LeagueHubPage user={user} />;
+        return <LeagueHubPage user={user} onOpenSurvival={() => navigateToPage('survival')} />;
       case 'survival':
         return <SurvivalPage
             user={user}
@@ -803,6 +804,8 @@ const App: React.FC = () => {
                 return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
             case 'announcements':
                 return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} />;
+            case 'survival':
+                return <SurvivalAdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} cancelledEventIds={cancelledEventIds} formLocks={formLocks} />;
             default:
                 return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }

@@ -20,6 +20,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
 import { User, RaceResults, Event } from '../types.ts';
 import type { AdminDestination } from '../routes.ts';
+import { SurvivalIcon } from './icons/SurvivalIcon.tsx';
 
 interface AdminPageProps {
     setAdminSubPage: (page: AdminDestination) => void;
@@ -154,6 +155,12 @@ const AdminPage: React.FC<AdminPageProps> = ({
                     title: 'Race Schedule',
                     description: 'Set race dates, session times, and when picks stop being accepted.',
                     tool: 'schedule',
+                },
+                {
+                    icon: SurvivalIcon,
+                    title: 'Podium Survival',
+                    description: 'Start the elimination challenge, set the prize, and watch who is left.',
+                    tool: 'survival',
                 },
             ],
         },

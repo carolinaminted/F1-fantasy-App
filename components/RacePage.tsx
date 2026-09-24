@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import HomePage from './HomePage.tsx';
 import SchedulePage from './SchedulePage.tsx';
+import { SurvivalEntryCard } from './survival/SurvivalEntryCard.tsx';
 import { SegmentedControl, type Segment } from './ui/index.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
 import { CalendarIcon } from './icons/CalendarIcon.tsx';
@@ -66,19 +67,24 @@ const RacePage: React.FC<RacePageProps> = ({
     if (view === 'picks') {
       if (!user) return null;
       return (
-        <HomePage
-          user={user}
-          seasonPicks={seasonPicks}
-          onPicksSubmit={onPicksSubmit}
-          formLocks={formLocks}
-          pointsSystem={pointsSystem}
-          allDrivers={allDrivers}
-          allConstructors={allConstructors}
-          events={events}
-          initialEventId={targetEventId}
-          cancelledEventIds={cancelledEventIds}
-          raceResults={raceResults}
-        />
+        <>
+          <div className="px-4 pt-3 max-w-7xl w-full mx-auto">
+            <SurvivalEntryCard onOpen={() => setActivePage('survival')} hideWhenInactive />
+          </div>
+          <HomePage
+            user={user}
+            seasonPicks={seasonPicks}
+            onPicksSubmit={onPicksSubmit}
+            formLocks={formLocks}
+            pointsSystem={pointsSystem}
+            allDrivers={allDrivers}
+            allConstructors={allConstructors}
+            events={events}
+            initialEventId={targetEventId}
+            cancelledEventIds={cancelledEventIds}
+            raceResults={raceResults}
+          />
+        </>
       );
     }
     return (

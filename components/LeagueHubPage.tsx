@@ -4,10 +4,12 @@ import { PageHeader } from './ui/index.ts';
 import { LeagueIcon } from './icons/LeagueIcon.tsx';
 import { DuesStatus } from './league/DuesStatus.tsx';
 import { LeagueLinks } from './league/LeagueLinks.tsx';
+import { SurvivalEntryCard } from './survival/SurvivalEntryCard.tsx';
 import type { User } from '../types.ts';
 
 interface LeagueHubPageProps {
   user: User | null;
+  onOpenSurvival: () => void;
 }
 
 /**
@@ -23,7 +25,7 @@ interface LeagueHubPageProps {
  * shows every team and driver at the moment a member is choosing between them, which is
  * the only moment the line-ups matter.
  */
-const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ user }) => {
+const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ user, onOpenSurvival }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const duesOpen = searchParams.get('dues') === '1';
 
@@ -51,6 +53,9 @@ const LeagueHubPage: React.FC<LeagueHubPageProps> = ({ user }) => {
       </div>
 
       <div className="md:flex-1 md:overflow-y-auto custom-scrollbar px-2 md:px-0 pb-24 md:pb-8 pb-safe">
+        <div className="mb-6">
+          <SurvivalEntryCard onOpen={onOpenSurvival} />
+        </div>
         <LeagueLinks />
       </div>
     </div>
