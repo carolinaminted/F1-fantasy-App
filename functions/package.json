@@ -11,7 +11,7 @@
     "seed:staging": "node scripts/seed-staging.js --project formula-fantasy-staging"
   },
   "engines": {
-    "node": "22"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {
