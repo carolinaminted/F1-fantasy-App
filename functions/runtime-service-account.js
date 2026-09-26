@@ -10,9 +10,10 @@
  * and a full address states which identity lands where without the reader having to know how the
  * short form expands.
  *
- * formula-fantasy-1 is deliberately absent — it has no such account, its Node 20 scoring triggers
- * are retired at cutover, and an emergency deploy there must not be blocked by this. An unlisted
- * project falls through to the platform default. Add one here only after creating the account.
+ * formula-fantasy-1 is deliberately absent — it has no such account, and its two scoring triggers
+ * keep the default identity so the Node 22 upgrade (deploy-data-plane.sh) changes the runtime and
+ * nothing else. Moving them is a separate change, [NODE-04]. An unlisted project falls through to
+ * the platform default. Add one here only after creating the account.
  */
 const SERVICE_ACCOUNT_BY_PROJECT = new Map([
   [

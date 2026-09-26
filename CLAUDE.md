@@ -92,6 +92,9 @@ npm run build -- --mode staging   # vite build for a given mode
 ./deploy-prod-staging.sh          # build `prod` → zero-traffic candidate on prod-staging
 ./scripts/release-gates.sh sign candidate # record that you smoke-tested the candidate URL
 ./promote-prod-staging.sh         # shift prod-staging traffic to the candidate
+
+./deploy-data-plane.sh --dry-run  # PRODUCTION: the 2 triggers to formula-fantasy-1; read-only checks only
+./deploy-data-plane.sh            # PRODUCTION, approval-gated: runs from `prod` or `rollback/data-plane-node20`
 ```
 
 `deploy-staging.sh` self-guards: it asserts the `.firebaserc` staging alias, hardcodes its
