@@ -43,8 +43,14 @@ Domain Restricted Sharing. Any operation spanning both needs two `--account` val
 the 5-function portal in `lights-out-league-prod` runs **nodejs22** (last deployed 2026-08-25).
 Members' callables hit the Node 22 portal while Firestore triggers fire on Node 20. `functions/`
 declares `"node": "22"`, so **the next `formula-fantasy-1` deploy attempts a runtime upgrade** —
-treat it as a runtime change, not a routine deploy. There is still **no deploy script for the
-portal at all**; writing a guarded one is the top open infrastructure item.
+treat it as a runtime change, not a routine deploy. Both deployments now have a guarded script
+(`deploy-portal.sh`, `deploy-data-plane.sh`), neither yet run against production.
+
+The portal is **not a Firebase project**: Firebase is not enabled on `lights-out-league-prod`, and its
+functions were created with `gcloud functions deploy`, so `firebase deploy` cannot target it.
+`deploy-portal.sh` uses gcloud from a `git archive` of `functions/`, never the working directory.
+Public access rests on Cloud Run's `invoker-iam-disabled` (Domain Restricted Sharing forbids
+`allUsers`) — never pass `--allow-unauthenticated` or `--no-allow-unauthenticated` there.
 
 Full record: `../worklog/2026-calendar-cutover.md`. Note that
 `../lol-docs/PROD_MIGRATION_SUMMARY.md` is a 2026-08-24 snapshot and now predates both the
@@ -95,6 +101,8 @@ npm run build -- --mode staging   # vite build for a given mode
 
 ./deploy-data-plane.sh --dry-run  # PRODUCTION: the 2 triggers to formula-fantasy-1; read-only checks only
 ./deploy-data-plane.sh            # PRODUCTION, approval-gated: runs from `prod` or `rollback/data-plane-node20`
+./deploy-portal.sh --dry-run      # PRODUCTION: the 5 callables to lights-out-league-prod; read-only, incl. live drift check
+./deploy-portal.sh                # PRODUCTION, approval-gated: runs from `prod`, or a detached earlier prod commit to roll back
 ```
 
 `deploy-staging.sh` self-guards: it asserts the `.firebaserc` staging alias, hardcodes its
