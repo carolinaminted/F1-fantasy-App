@@ -263,6 +263,15 @@ failed_builds="$(env -u DEBUG gcloud builds list \
 [[ -z "$failed_builds" ]] || fail "a function build FAILED during this deploy: $failed_builds"
 echo "  no function build failed in this window"
 
+# The five dormant callables must be exactly as they were: Phase D deletes them after a fresh
+# log check, and a deploy that touched them would have re-uploaded the mail credential.
+touched="$(env -u DEBUG gcloud functions list \
+  --project "$PROD_FIREBASE_PROJECT" --account "$PROD_ACCOUNT" \
+  --filter="updateTime>=\"$deploy_started\"" --format='value(name.basename())' 2>/dev/null || true)"
+unexpected="$(printf '%s\n' "$touched" | grep -vxF -e "${TRIGGERS[0]}" -e "${TRIGGERS[1]}" | grep . || true)"
+[[ -z "$unexpected" ]] || fail "functions outside the trigger list changed during this deploy: $unexpected"
+echo "  no other function in $PROD_FIREBASE_PROJECT changed"
+
 cat <<EOF
 
 Data-plane deploy complete: ${TRIGGERS[*]} on $expected_runtime from ${head_sha:0:7}.
