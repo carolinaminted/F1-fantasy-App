@@ -15,6 +15,7 @@ const { resolveRuntimeTarget } = require("./runtime-target");
 const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
 const { SEASON_EVENT_IDS } = require("./season-events");
+const { evaluateCodeAttempt } = require("./auth-code");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -386,15 +387,20 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
     const { email, code } = request.data;
     if (!email || !code) return { valid: false, message: "Missing data" };
 
+    const clientIp = getClientIp(request);
+    await checkRateLimit(clientIp, 'verify_auth_code', 10, 600);
+
     const docRef = db.collection("email_verifications").doc(email.toLowerCase());
-    const doc = await docRef.get();
+    // Transactional so parallel guesses cannot all read the same failure count and slip past the cap.
+    const result = await db.runTransaction(async (t) => {
+        const doc = await t.get(docRef);
+        const outcome = evaluateCodeAttempt(doc.exists ? doc.data() : null, code, Date.now());
+        if (outcome.action === 'delete') t.delete(docRef);
+        if (outcome.action === 'increment') t.update(docRef, { failedAttempts: outcome.failedAttempts });
+        return outcome;
+    });
 
-    if (!doc.exists) return { valid: false, message: "Code not found" };
-    const record = doc.data();
-    if (Date.now() > record.expiresAt) return { valid: false, message: "Code expired" };
-    if (record.code !== code) return { valid: false, message: "Invalid code" };
-
-    await docRef.delete();
+    if (!result.valid) return { valid: false, message: result.message };
     return { valid: true };
 });
 
