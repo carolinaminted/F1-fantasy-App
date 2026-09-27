@@ -1,5 +1,5 @@
 const { isDeepStrictEqual } = require('node:util');
-const { computeFinalStandings, podiumOf } = require('./standings');
+const { computeFinalStandings, podiumOf, finalPodiumOf } = require('./standings');
 
 /**
  * Every app_state document must be classified. Season-scoped state is frozen into the archive;
@@ -43,6 +43,7 @@ const planArchive = (live, seasonId) => {
     label: live.seasonConfig.label,
     scoredEventIds: live.seasonConfig.scoredEventIds,
     ...podiumOf(standings),
+    finalPodium: finalPodiumOf(standings),
     counts: { state: count('state'), picks: count('picks'), standings: count('standings') },
   };
   return { writes, meta, standings };

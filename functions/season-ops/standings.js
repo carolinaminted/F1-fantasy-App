@@ -27,4 +27,9 @@ const podiumOf = (standings) => ({
   podium: standings.filter((r) => r.finalRank <= 3).map((r) => r.uid),
 });
 
-module.exports = { computeFinalStandings, podiumOf };
+/** Names and points of everyone at rank 3 or better, for display without further reads. */
+const finalPodiumOf = (standings) => standings
+  .filter((r) => r.finalRank <= 3)
+  .map(({ uid, displayName, totalPoints, finalRank }) => ({ uid, displayName, totalPoints, finalRank }));
+
+module.exports = { computeFinalStandings, podiumOf, finalPodiumOf };

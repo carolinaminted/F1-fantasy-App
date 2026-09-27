@@ -35,6 +35,7 @@ test('meta names the champion and podium and records counts', () => {
   assert.deepEqual(meta.champions, ['u1']);
   assert.deepEqual(meta.counts, { state: 8, picks: 1, standings: 1 });
   assert.deepEqual(meta.scoredEventIds, ['a_26']);
+  assert.deepEqual(meta.finalPodium, [{ uid: 'u1', displayName: 'Uno', totalPoints: 25, finalRank: 1 }]);
 });
 
 test('refuses an unclassified app_state document', () => {

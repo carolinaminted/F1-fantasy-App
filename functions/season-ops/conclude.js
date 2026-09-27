@@ -1,4 +1,4 @@
-const { computeFinalStandings, podiumOf } = require('./standings');
+const { computeFinalStandings, podiumOf, finalPodiumOf } = require('./standings');
 
 /**
  * Mirrors hasAnyResult in components/Dashboard.tsx. Opening the results form and saving nothing
@@ -36,9 +36,7 @@ const concludeSeason = async (db, { seasonId, FieldValue }) => {
   const { champions, podium } = podiumOf(standings);
   // Names and points travel with the season config, so the Dashboard's champion hero needs no
   // reads of its own and shows the finish exactly as it stood when the season was concluded.
-  const finalPodium = standings
-    .filter((r) => r.finalRank <= 3)
-    .map(({ uid, displayName, totalPoints, finalRank }) => ({ uid, displayName, totalPoints, finalRank }));
+  const finalPodium = finalPodiumOf(standings);
 
   await db.doc('season_config/current').update({
     status: 'concluded', concludedAt: FieldValue.serverTimestamp(), champions, podium, finalPodium,
