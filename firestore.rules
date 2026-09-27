@@ -132,6 +132,29 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false;
     }
+
+    // --- Season Archives, Career Stats, Season Ops ---
+    // Written only by the Admin SDK (functions/season-ops). Archives are readable by every member
+    // and editable by no client, admins included, so a finished season cannot be changed from the
+    // browser — and they are never deleted, so past standings keep everyone who took part.
+    match /season_archives/{seasonId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+      match /{document=**} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+    }
+    match /career_stats/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if false;
+      // purgeUserData runs client-side as an admin and removes a deleted member's career stats.
+      allow delete: if isAdmin();
+    }
+    match /season_ops/{seasonId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
     
     // --- Dues Payments ---
     match /dues_payments/{paymentId} {

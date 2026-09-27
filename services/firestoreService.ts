@@ -110,6 +110,10 @@ export const purgeUserData = async (uid: string) => {
     const picksRef = doc(db, 'userPicks', uid);
     await deleteDoc(picksRef);
 
+    // 3b. Delete Career Stats. Archived seasons are kept: past standings keep everyone who took part.
+    const careerRef = doc(db, 'career_stats', uid);
+    await deleteDoc(careerRef);
+
     // 4. Delete Dues Payments (Query)
     const duesQ = query(collection(db, 'dues_payments'), where('uid', '==', uid));
     const duesSnap = await getDocs(duesQ);
