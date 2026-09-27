@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { USAGE_LIMITS, CONSTRUCTORS } from '../constants.ts';
 import { EntityClass, PickSelection, RaceResults, PointsSystem, Driver, Constructor } from '../types.ts';
 import { calculateUsageRollup, calculateScoreRollup } from '../services/scoringService.ts';
+import { useScoredEventIds } from '../contexts/SeasonContext.tsx';
 
 const useFantasyData = (
     seasonPicks: { [eventId: string]: PickSelection },
@@ -48,8 +49,9 @@ const useFantasyData = (
     return { aTeams, bTeams, aDrivers, bDrivers };
   }, [allDrivers, allConstructors]);
 
-  const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks, cancelledEventIds), [seasonPicks, cancelledEventIds]);
-  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds), [seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds]);
+  const scoredEventIds = useScoredEventIds();
+  const usageRollup = useMemo(() => calculateUsageRollup(seasonPicks, scoredEventIds, cancelledEventIds), [seasonPicks, scoredEventIds, cancelledEventIds]);
+  const scoreRollup = useMemo(() => calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers, scoredEventIds, cancelledEventIds), [seasonPicks, raceResults, pointsSystem, allDrivers, scoredEventIds, cancelledEventIds]);
 
   // Budgets are per (entity, class), so every reader has to say which class it is spending.
   // Callers pass the class of the *slot* being filled, not the entity's current class — for a

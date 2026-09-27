@@ -50,6 +50,8 @@ import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveEventRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
+import { NO_SCORED_EVENTS, parseSeasonConfig, type ScoredEventIds } from './services/seasonConfig.ts';
+import { SeasonProvider } from './contexts/SeasonContext.tsx';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 import { useToast } from './contexts/ToastContext.tsx';
@@ -268,6 +270,7 @@ const App: React.FC = () => {
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
   const [cancelledEvents, setCancelledEvents] = useState<CancelledEventsState | null>(null);
+  const [scoredEventIds, setScoredEventIds] = useState<ScoredEventIds>(NO_SCORED_EVENTS);
   const [leaderboardResetToken, setLeaderboardResetToken] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -385,8 +388,8 @@ const App: React.FC = () => {
   // Calculate live points for the current user to ensure SideNav is always up to date
   const currentTotalPoints = useMemo(() => {
       if (!user) return 0;
-      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers, cancelledEventIds).totalPoints;
-  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user, cancelledEventIds]);
+      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers, scoredEventIds, cancelledEventIds).totalPoints;
+  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user, scoredEventIds, cancelledEventIds]);
 
   // Centralized Data Fetch for Leaderboard (Standard Batch)
   const fetchLeaderboardData = useCallback(async () => {
@@ -427,6 +430,7 @@ const App: React.FC = () => {
     let unsubscribeSchedules = () => {};
     let unsubscribePublicProfile = () => {};
     let unsubscribeCancelled = () => {};
+    let unsubscribeSeasonConfig = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       unsubscribeResults();
@@ -437,6 +441,7 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
       unsubscribeCancelled();
+      unsubscribeSeasonConfig();
 
       // Clear caches on auth change
       publicProfileDataRef.current = null;
@@ -580,6 +585,14 @@ const App: React.FC = () => {
             }
         }, (error) => console.error("Firestore listener error (cancelled_events):", error));
 
+        const seasonConfigRef = doc(db, 'season_config', 'current');
+        unsubscribeSeasonConfig = onSnapshot(seasonConfigRef, (docSnap) => {
+            const ids = docSnap.exists() ? parseSeasonConfig(docSnap.data()) : null;
+            // Fail closed, as the server does: no config means nothing scores.
+            if (!ids) console.error('season_config/current is missing or malformed; no events will score.');
+            setScoredEventIds(ids ?? NO_SCORED_EVENTS);
+        }, (error) => console.error("Firestore listener error (season_config):", error));
+
         // Listener 2: User Picks (Realtime Penalties/Selections)
         const picksRef = doc(db, 'userPicks', firebaseUser.uid);
         unsubscribePicks = onSnapshot(picksRef, (picksSnap) => {
@@ -600,6 +613,7 @@ const App: React.FC = () => {
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
         setCancelledEvents(null);
+        setScoredEventIds(NO_SCORED_EVENTS);
         setIsAuthenticated(false);
         setHasSession(false);
         setIsLoading(false);
@@ -618,6 +632,7 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
       unsubscribeCancelled();
+      unsubscribeSeasonConfig();
     };
   }, []); 
 
@@ -1001,7 +1016,11 @@ const App: React.FC = () => {
     </div>
   );
   
-  return isAuthenticated ? appContent : authFlow;
+  return (
+    <SeasonProvider scoredEventIds={scoredEventIds}>
+      {isAuthenticated ? appContent : authFlow}
+    </SeasonProvider>
+  );
 };
 
 interface NavItemProps {

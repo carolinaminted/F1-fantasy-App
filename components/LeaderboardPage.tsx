@@ -8,6 +8,7 @@ import { InsightsView } from './standings/InsightsView.tsx';
 import { TrendsView } from './standings/TrendsView.tsx';
 import { EntityPointsView } from './standings/EntityPointsView.tsx';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
+import { useScoredEventIds } from '../contexts/SeasonContext.tsx';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
@@ -298,6 +299,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
     cancelledEventIds
 }) => {
   // The view and the rules drawer both live in the URL, so a specific view is linkable.
+  const scoredEventIds = useScoredEventIds();
   const [searchParams, setSearchParams] = useSearchParams();
   // The classification comes first: a bare /standings lands on the race track, and Battle
   // Zone sits one segment over for the reader who wants the gaps rather than the order.
@@ -431,13 +433,13 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   // [S1A-03] Extract scoring transformations out of React Effects
   const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
       // Logic extracted to service module processLeaderboardStats
-      const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser, cancelledEventIds);
+      const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser, scoredEventIds, cancelledEventIds);
       if (isMore) {
           setProcessedUsers(prev => [...prev, ...processedBatch]);
       } else {
           setProcessedUsers(processedBatch);
       }
-  }, [raceResults, pointsSystem, allDrivers, currentUser]);
+  }, [raceResults, pointsSystem, allDrivers, currentUser, scoredEventIds, cancelledEventIds]);
 
   // Timer Effect
   useEffect(() => {

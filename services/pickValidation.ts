@@ -1,5 +1,6 @@
 import { USAGE_LIMITS } from '../constants.ts';
 import { calculateUsageRollup } from './scoringService.ts';
+import type { ScoredEventIds } from './seasonConfig.ts';
 import {
   Constructor, Driver, EntityClass, PickSelection,
 } from '../types.ts';
@@ -45,6 +46,7 @@ export interface ValidateLineupArgs {
   picks: PickSelection;
   eventId: string;
   seasonPicks: { [eventId: string]: PickSelection };
+  scoredEventIds: ScoredEventIds;
   cancelledEventIds?: Set<string>;
   allDrivers: Driver[];
   allConstructors: Constructor[];
@@ -62,6 +64,7 @@ export const validateLineup = ({
   picks,
   eventId,
   seasonPicks,
+  scoredEventIds,
   cancelledEventIds = new Set<string>(),
   allDrivers,
   allConstructors,
@@ -152,7 +155,7 @@ export const validateLineup = ({
   if (!cancelledEventIds.has(eventId)) {
     // The lineup being edited is already saved, so it has to come out of the baseline — otherwise
     // re-saving an at-limit lineup unchanged would be rejected.
-    const baseline = calculateUsageRollup(seasonPicks, cancelledEventIds, eventId);
+    const baseline = calculateUsageRollup(seasonPicks, scoredEventIds, cancelledEventIds, eventId);
 
     buckets.forEach(({ ids, type, entityClass }) => {
       const counted = new Set<string>();

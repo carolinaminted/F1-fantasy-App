@@ -16,6 +16,7 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { validateLineup } from '../services/pickValidation.ts';
+import { useScoredEventIds } from '../contexts/SeasonContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Countdown } from './ui/index.ts';
 import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
@@ -74,6 +75,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   hasRemaining,
   cancelledEventIds
 }) => {
+  const scoredEventIds = useScoredEventIds();
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
@@ -184,10 +186,11 @@ const PicksForm: React.FC<PicksFormProps> = ({
     picks,
     eventId: event.id,
     seasonPicks,
+    scoredEventIds,
     cancelledEventIds,
     allDrivers,
     allConstructors,
-  }), [picks, event.id, seasonPicks, cancelledEventIds, allDrivers, allConstructors]);
+  }), [picks, event.id, seasonPicks, scoredEventIds, cancelledEventIds, allDrivers, allConstructors]);
 
   // Helper for submit confirmation check
   const hasEmptySlots = () => {

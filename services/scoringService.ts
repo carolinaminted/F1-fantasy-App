@@ -1,7 +1,6 @@
-import { EVENTS } from '../constants.ts';
-import { PickSelection, RaceResults, EventResult, UsageRollup, ClassUsage, EntityClass, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
-
-const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
+import { EntityClass } from '../types.ts';
+import type { PickSelection, RaceResults, EventResult, UsageRollup, ClassUsage, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
+import type { ScoredEventIds } from './seasonConfig.ts';
 
 /**
  * Tally season selections per entity *and per class*.
@@ -17,6 +16,7 @@ const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
  */
 export const calculateUsageRollup = (
     seasonPicks: { [eventId: string]: PickSelection },
+    scoredEventIds: ScoredEventIds,
     cancelledEventIds: Set<string> = new Set(),
     excludeEventId?: string
 ): UsageRollup => {
@@ -29,8 +29,8 @@ export const calculateUsageRollup = (
     };
 
     Object.entries(seasonPicks).forEach(([eventId, p]) => {
-        // Ignore picks from previous seasons
-        if (!CURRENT_EVENT_IDS.has(eventId)) return;
+        // Only events the season config names count — picks outlive the calendar
+        if (!scoredEventIds.has(eventId)) return;
         // Skip cancelled events — picks don't count against quotas
         if (cancelledEventIds.has(eventId)) return;
         // Skip the event under edit, when the caller is computing a pre-submit baseline
@@ -185,6 +185,7 @@ export const calculateScoreRollup = (
   raceResults: RaceResults,
   pointsSystem: PointsSystem,
   driversList: Driver[],
+  scoredEventIds: ScoredEventIds,
   cancelledEventIds: Set<string> = new Set()
 ) => {
     let grandPrixPoints = 0;
@@ -197,8 +198,8 @@ export const calculateScoreRollup = (
     let p22Count = 0;
 
     Object.entries(seasonPicks).forEach(([eventId, picks]) => {
-      // Filter: Only include events that are in the current season configuration
-      if (!CURRENT_EVENT_IDS.has(eventId)) return;
+      // Only events the season config names count — picks outlive the calendar
+      if (!scoredEventIds.has(eventId)) return;
       // Skip cancelled events — no points awarded
       if (cancelledEventIds.has(eventId)) return;
 
@@ -233,6 +234,7 @@ export const processLeaderboardStats = async (
     pointsSystem: PointsSystem,
     allDrivers: Driver[],
     currentUser: User | null,
+    scoredEventIds: ScoredEventIds,
     cancelledEventIds: Set<string> = new Set()
 ): Promise<User[]> => {
     // Non-blocking yield to allow UI rendering before heavy processing
@@ -258,7 +260,7 @@ export const processLeaderboardStats = async (
 
         // SLOW PATH: Calculate from raw picks (Fallback / Private Collection Data)
         const userPicks = allPicks[user.id] || {};
-        const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds);
+        const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers, scoredEventIds, cancelledEventIds);
         
         const safeNum = (val: any) => Number.isNaN(Number(val)) ? 0 : Number(val);
 
