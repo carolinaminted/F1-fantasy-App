@@ -2,7 +2,6 @@
 // Fix: Implement the HomePage component to act as the main screen for making picks.
 import React, { useState, useMemo } from 'react';
 import PicksForm from './PicksForm.tsx';
-import { RACE_RESULTS } from '../constants.ts';
 import { Event, PickSelection, User, PointsSystem, Driver, Constructor, RaceResults } from '../types.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
 import { PicksIcon } from './icons/PicksIcon.tsx';
@@ -59,7 +58,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, seasonPicks, onPicksSubmit, f
     return events[events.length - 1] || events[0];
   });
   
-  const fantasyData = useFantasyData(seasonPicks, RACE_RESULTS, pointsSystem, allDrivers, allConstructors, cancelledEventIds);
+  const fantasyData = useFantasyData(seasonPicks, raceResults, pointsSystem, allDrivers, allConstructors, cancelledEventIds);
 
   // Identify the next immediate race (for status logic)
   const nextRace = useMemo(() => {

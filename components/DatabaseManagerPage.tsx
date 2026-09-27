@@ -143,6 +143,7 @@ const COLLECTION_CONFIG: Record<string, {
         getFields: (doc) => [
             doc.userEmail || doc.uid || '-', 
             `$${doc.amount ?? 0}`, 
+            // Rows written before `season` existed are all from 2026 — not the active season.
             doc.season || '2026', 
             doc.status || 'completed', 
             formatTimestamp(doc.timestamp || doc.createdAt)
