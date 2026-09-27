@@ -595,14 +595,21 @@ const App: React.FC = () => {
             const parsed = docSnap.exists() ? parseSeasonConfig(docSnap.data()) : null;
             if (!parsed) console.error('season_config/current is missing or malformed.');
             setSeasonConfig(parsed);
-        }, (error) => console.error("Firestore listener error (season_config):", error));
+        }, (error) => {
+            // A refused read must end the skeleton too, or the app hangs on it forever.
+            console.error("Firestore listener error (season_config):", error);
+            setSeasonConfig(null);
+        });
 
         const calendarRef = doc(db, 'app_state', 'season_calendar');
         unsubscribeCalendar = onSnapshot(calendarRef, (docSnap) => {
             const parsed = docSnap.exists() ? parseSeasonCalendar(docSnap.data()) : null;
             if (!parsed) console.error('app_state/season_calendar is missing or malformed.');
             setCalendarEvents(parsed);
-        }, (error) => console.error("Firestore listener error (season_calendar):", error));
+        }, (error) => {
+            console.error("Firestore listener error (season_calendar):", error);
+            setCalendarEvents(null);
+        });
 
         // Listener 2: User Picks (Realtime Penalties/Selections)
         const picksRef = doc(db, 'userPicks', firebaseUser.uid);
