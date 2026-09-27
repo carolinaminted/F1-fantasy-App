@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { User, PickSelection, RaceResults, EntityClass, PointsSystem, Driver, Constructor, Event, LeaderboardCache } from '../types.ts';
 import { rankInCategory } from '../utils/categoryRank.ts';
 import useFantasyData from '../hooks/useFantasyData.ts';
-import { CURRENT_SEASON } from '../constants.ts';
 import { getPublicProfileRank } from '../services/firestoreService.ts';
 import {
   PageHeader, Tile, StatTile, SectionHeader, Modal, ThemeToggle, teamColor, type Category,

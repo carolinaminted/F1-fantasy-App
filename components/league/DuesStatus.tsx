@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Sheet, NUMERIC } from '../ui/index.ts';
 import { CopyIcon } from '../icons/CopyIcon.tsx';
 import { VenmoIcon } from '../icons/VenmoIcon.tsx';
-import { LEAGUE_DUES_AMOUNT, CURRENT_SEASON, VENMO_PROFILE_URL } from '../../constants.ts';
+import { LEAGUE_DUES_AMOUNT, VENMO_PROFILE_URL } from '../../constants.ts';
 import { logDuesPaymentInitiation, getLeagueConfig } from '../../services/firestoreService.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
+import { useSeason } from '../../contexts/SeasonContext.tsx';
 import type { User } from '../../types.ts';
 
 interface DuesStatusProps {
@@ -28,6 +29,7 @@ interface DuesStatusProps {
  * is built exactly as the old page built it.
  */
 export const DuesStatus: React.FC<DuesStatusProps> = ({ user, isOpen, onOpen, onClose }) => {
+  const { seasonId } = useSeason();
   const [amount, setAmount] = useState<number>(LEAGUE_DUES_AMOUNT);
   const [isProcessing, setIsProcessing] = useState(false);
   const [copyState, setCopyState] = useState('');
@@ -63,7 +65,7 @@ export const DuesStatus: React.FC<DuesStatusProps> = ({ user, isOpen, onOpen, on
     if (!user) return;
     setIsProcessing(true);
     try {
-      await logDuesPaymentInitiation(user, amount, CURRENT_SEASON, memo + ` [VENMO]`);
+      await logDuesPaymentInitiation(user, amount, seasonId, memo + ` [VENMO]`);
       window.open(VENMO_PROFILE_URL, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('Payment initiation failed:', error);
@@ -83,7 +85,7 @@ export const DuesStatus: React.FC<DuesStatusProps> = ({ user, isOpen, onOpen, on
       {isPaid ? (
         <span
           className={`${badgeBase} border-green-500/40 bg-green-500/10 text-green-400`}
-          title={`Dues settled for the ${CURRENT_SEASON} season`}
+          title={`Dues settled for the ${seasonId} season`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true" />
           Dues Paid
@@ -110,7 +112,7 @@ export const DuesStatus: React.FC<DuesStatusProps> = ({ user, isOpen, onOpen, on
               <span className="text-sm font-bold uppercase text-highlight-silver">USD</span>
             </span>
             <span className="mt-1 block text-xs text-highlight-silver">
-              Entry fee for the {CURRENT_SEASON} season.
+              Entry fee for the {seasonId} season.
             </span>
           </div>
 
