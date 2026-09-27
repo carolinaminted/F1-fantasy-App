@@ -1,14 +1,16 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import type { ScoredEventIds } from '../services/seasonConfig.ts';
+import type { ScoredEventIds, SeasonConfig } from '../services/seasonConfig.ts';
 
-const SeasonContext = createContext<ScoredEventIds | undefined>(undefined);
+const SeasonContext = createContext<SeasonConfig | undefined>(undefined);
 
-export const SeasonProvider: React.FC<{ scoredEventIds: ScoredEventIds; children: ReactNode }> = ({ scoredEventIds, children }) => (
-  <SeasonContext.Provider value={scoredEventIds}>{children}</SeasonContext.Provider>
+export const SeasonProvider: React.FC<{ season: SeasonConfig; children: ReactNode }> = ({ season, children }) => (
+  <SeasonContext.Provider value={season}>{children}</SeasonContext.Provider>
 );
 
-export const useScoredEventIds = (): ScoredEventIds => {
+export const useSeason = (): SeasonConfig => {
   const value = useContext(SeasonContext);
-  if (!value) throw new Error('useScoredEventIds must be used within a SeasonProvider');
+  if (!value) throw new Error('useSeason must be used within a SeasonProvider');
   return value;
 };
+
+export const useScoredEventIds = (): ScoredEventIds => useSeason().scoredEventIds;
