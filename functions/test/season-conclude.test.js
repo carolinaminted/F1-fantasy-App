@@ -38,6 +38,11 @@ test('concludes: co-champions on equal points, podium, status and ops record', a
   const config = db.docs.get('season_config/current');
   assert.equal(config.status, 'concluded');
   assert.deepEqual(config.champions, ['u2', 'u1']);
+  assert.deepEqual(config.finalPodium, [
+    { uid: 'u2', displayName: 'Dos', totalPoints: 90, finalRank: 1 },
+    { uid: 'u1', displayName: 'Uno', totalPoints: 90, finalRank: 1 },
+    { uid: 'u3', displayName: 'Tres', totalPoints: 50, finalRank: 3 },
+  ]);
   assert.deepEqual(config.scoredEventIds, ['a_26', 'b_26', 'c_26']);
   assert.equal(db.docs.get('season_ops/2026').conclude.state, 'done');
 });

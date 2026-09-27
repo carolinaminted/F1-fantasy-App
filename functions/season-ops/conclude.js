@@ -34,9 +34,14 @@ const concludeSeason = async (db, { seasonId, FieldValue }) => {
 
   const standings = computeFinalStandings(publicSnap.docs.map((d) => ({ uid: d.id, data: d.data() })));
   const { champions, podium } = podiumOf(standings);
+  // Names and points travel with the season config, so the Dashboard's champion hero needs no
+  // reads of its own and shows the finish exactly as it stood when the season was concluded.
+  const finalPodium = standings
+    .filter((r) => r.finalRank <= 3)
+    .map(({ uid, displayName, totalPoints, finalRank }) => ({ uid, displayName, totalPoints, finalRank }));
 
   await db.doc('season_config/current').update({
-    status: 'concluded', concludedAt: FieldValue.serverTimestamp(), champions, podium,
+    status: 'concluded', concludedAt: FieldValue.serverTimestamp(), champions, podium, finalPodium,
   });
   await db.doc(`season_ops/${seasonId}`).set({ conclude: {
     state: 'done', at: FieldValue.serverTimestamp(), champions, podium,
