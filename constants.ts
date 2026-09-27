@@ -55,9 +55,10 @@ export const DRIVERS: Driver[] = [
  * `lockAtUtc` / `softDeadlineUtc` are intentionally empty. Real session times live in the
  * Firestore doc `app_state/event_schedules` and are merged in by `App.tsx`.
  *
- * ⚠️ The event IDs here are mirrored, for the server scoring engines, in
- * `functions/season-events.js` and `backend/api/season-events.js`. Those files are CommonJS
- * and cannot import this one. Change one, change all three.
+ * ⚠️ This array is the display calendar only. Which events *score* is `scoredEventIds` in the
+ * Firestore doc `season_config/current`, seeded from these ids by
+ * `functions/scripts/seed-season-config.js`. Adding or dropping an event here does not change
+ * scoring until that doc is updated too.
  */
 export const EVENTS: Event[] = [
     { id: 'aus_26', round: 1, name: 'Australian GP', country: 'Australia', location: 'Melbourne', circuit: 'Albert Park Circuit', hasSprint: false, lockAtUtc: '', softDeadlineUtc: '' },

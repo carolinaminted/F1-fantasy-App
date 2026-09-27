@@ -14,7 +14,7 @@ const nodemailer = require("nodemailer");
 const { resolveRuntimeTarget } = require("./runtime-target");
 const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
-const { SEASON_EVENT_IDS } = require("./season-events");
+const { parseScoredEventIds } = require("./season-config");
 const { evaluateCodeAttempt } = require("./auth-code");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
@@ -132,14 +132,17 @@ const recalculateEntireLeague = async () => {
     logger.info("Starting recalculateEntireLeague...");
     
     // Fetch picks, results, config, user profiles, AND cancelled events
-    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap, cancelledSnap] = await Promise.all([
+    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap, cancelledSnap, seasonSnap] = await Promise.all([
         db.collection('app_state').doc('race_results').get(),
         db.collection('userPicks').get(),
         db.collection('app_state').doc('scoring_config').get(),
         db.collection('app_state').doc('entities').get(),
         db.collection('users').get(),
-        db.collection('app_state').doc('cancelled_events').get()
+        db.collection('app_state').doc('cancelled_events').get(),
+        db.collection('season_config').doc('current').get()
     ]);
+
+    const scoredEventIds = parseScoredEventIds(seasonSnap);
 
     if (!resultsSnap.exists) {
         logger.warn("Recalculation aborted: No race results found.");
@@ -186,10 +189,9 @@ const recalculateEntireLeague = async () => {
         let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 
         Object.keys(allUserPicks).forEach(eventId => {
-            // Skip events that are not on the current calendar. Picks are keyed by event id and
-            // outlive the calendar, so a dropped or prior-season event would otherwise keep
-            // scoring here while the client drops it.
-            if (!SEASON_EVENT_IDS.has(eventId)) return;
+            // Picks are keyed by event id and outlive the calendar, so only events the season
+            // config names may score — otherwise a prior-season pick keeps scoring here.
+            if (!scoredEventIds.has(eventId)) return;
             // Skip cancelled events — no points awarded
             if (cancelledEventIds.has(eventId)) return;
             const result = raceResults[eventId];
