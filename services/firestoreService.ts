@@ -36,6 +36,16 @@ export const concludeSeasonCall = async (seasonId: string) => {
     return (await fn({ seasonId })).data;
 };
 
+export const startNewSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { nextSeasonId: string; counts: Record<string, number> }>('startNewSeason');
+    return (await fn({ seasonId })).data;
+};
+
+export const openSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { scoredEventIds: string[] }>('openSeason');
+    return (await fn({ seasonId })).data;
+};
+
 export const archiveSeasonCall = async (seasonId: string) => {
     const fn = getCallable<{ seasonId: string }, { ok: boolean; mismatches: string[]; counts: Record<string, number> }>('archiveSeason');
     return (await fn({ seasonId })).data;

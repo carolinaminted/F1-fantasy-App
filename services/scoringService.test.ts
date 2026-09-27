@@ -36,6 +36,9 @@ test('parseSeasonConfig returns ids, season id and label, and rejects anything i
   assert.deepEqual(parseSeasonConfig({ activeSeasonId: '2026', label: 'x', status: 'concluded', champions: ['u1', 7], scoredEventIds: ['a_26'] })!.champions, ['u1']);
   assert.equal(parseSeasonConfig({ activeSeasonId: '2026', label: 'x', status: 'paused', scoredEventIds: ['a_26'] }), null);
   assert.equal(parseSeasonConfig({ activeSeasonId: '2026', label: 'x', scoredEventIds: ['a_26'] }), null);
+  // Setup mode has no scored events yet; any other status must have some.
+  assert.equal(parseSeasonConfig({ activeSeasonId: '2027', label: 'x', status: 'setup', scoredEventIds: [] })!.scoredEventIds.size, 0);
+  assert.equal(parseSeasonConfig({ activeSeasonId: '2027', label: 'x', status: 'active', scoredEventIds: [] }), null);
   assert.equal(parseSeasonConfig(undefined), null);
   assert.equal(parseSeasonConfig({ activeSeasonId: '2026', label: '2026 Season', scoredEventIds: [] }), null);
   assert.equal(parseSeasonConfig({ activeSeasonId: '2026', scoredEventIds: ['a_26'] }), null);

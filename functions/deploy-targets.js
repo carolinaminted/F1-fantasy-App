@@ -28,6 +28,8 @@ const CALLABLES = Object.freeze([
 const STAGING_ONLY_CALLABLES = Object.freeze([
   'archiveSeason',
   'concludeSeason',
+  'openSeason',
+  'startNewSeason',
 ]);
 
 const target = (functions) =>

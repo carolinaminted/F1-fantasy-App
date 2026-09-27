@@ -31,9 +31,11 @@ export const parseSeasonConfig = (data: unknown): SeasonConfig | null => {
     scoredEventIds?: unknown; activeSeasonId?: unknown; label?: unknown; status?: unknown; champions?: unknown;
   } | undefined;
   const ids = d?.scoredEventIds;
-  if (!Array.isArray(ids) || ids.length === 0 || !ids.every(isNonEmptyString)) return null;
-  if (!isNonEmptyString(d?.activeSeasonId) || !isNonEmptyString(d?.label)) return null;
-  if (typeof d.status !== 'string' || !SEASON_STATUSES.includes(d.status)) return null;
+  if (typeof d?.status !== 'string' || !SEASON_STATUSES.includes(d.status)) return null;
+  // Setup mode (between Start new season and Open season) has no scored events yet.
+  const minIds = d.status === 'setup' ? 0 : 1;
+  if (!Array.isArray(ids) || ids.length < minIds || !ids.every(isNonEmptyString)) return null;
+  if (!isNonEmptyString(d.activeSeasonId) || !isNonEmptyString(d.label)) return null;
   const champions = Array.isArray(d.champions) ? d.champions.filter(isNonEmptyString) : [];
   return {
     scoredEventIds: toScoredEventIds(ids), seasonId: d.activeSeasonId, label: d.label,
