@@ -20,11 +20,21 @@ const CALLABLES = Object.freeze([
   'verifyAuthCode',
 ]);
 
+/**
+ * The season lifecycle callables ([ROLL-08]). Staging only for now: deploy-portal.sh verifies every
+ * function it deploys against the live portal before deploying, so it cannot yet create one that
+ * does not exist. Moving these into CALLABLES waits on that change, which is a production decision.
+ */
+const STAGING_ONLY_CALLABLES = Object.freeze([
+  'archiveSeason',
+  'concludeSeason',
+]);
+
 const target = (functions) =>
   Object.freeze({ region: 'us-central1', runtime: 'nodejs22', functions: Object.freeze(functions) });
 
 const DEPLOY_TARGETS = Object.freeze({
-  'formula-fantasy-staging': target([...CALLABLES, ...TRIGGERS].sort()),
+  'formula-fantasy-staging': target([...CALLABLES, ...STAGING_ONLY_CALLABLES, ...TRIGGERS].sort()),
   'formula-fantasy-1': target([...TRIGGERS]),
   'lights-out-league-prod': target([...CALLABLES]),
 });
@@ -41,7 +51,7 @@ const resolveDeployTarget = (projectId) => {
 const onlyFunctionsFlag = (projectId) =>
   resolveDeployTarget(projectId).functions.map((name) => `functions:${name}`).join(',');
 
-module.exports = { TRIGGERS, CALLABLES, DEPLOY_TARGETS, resolveDeployTarget, onlyFunctionsFlag };
+module.exports = { TRIGGERS, CALLABLES, STAGING_ONLY_CALLABLES, DEPLOY_TARGETS, resolveDeployTarget, onlyFunctionsFlag };
 
 // `node deploy-targets.js <project> --only` prints the --only value; `--list` prints one name per
 // line. Shell scripts read it this way rather than keeping their own copy.

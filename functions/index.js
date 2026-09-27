@@ -15,6 +15,8 @@ const { resolveRuntimeTarget } = require("./runtime-target");
 const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
 const { parseScoredEventIds } = require("./season-config");
+const { concludeSeason } = require("./season-ops/conclude");
+const { archiveSeason } = require("./season-ops/archive");
 const { evaluateCodeAttempt } = require("./auth-code");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
@@ -267,6 +269,17 @@ const checkRateLimit = async (ip, operation, limit, windowSeconds) => {
     });
 };
 
+const requireAdmin = async (request, action) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Login required.');
+    }
+    const userDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!userDoc.exists || !userDoc.data().isAdmin) {
+        logger.error(`Unauthorized ${action} attempt from ${request.auth.uid}`);
+        throw new HttpsError('permission-denied', 'Only admins can do this.');
+    }
+};
+
 // --- EXPORTED FUNCTIONS ---
 
 exports.updateLeaderboardOnResults = onDocumentWritten(
@@ -287,15 +300,7 @@ exports.updateLeaderboardOnCancellation = onDocumentWritten(
 );
 
 exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
-    if (!request.auth) {
-        throw new HttpsError('unauthenticated', 'Login required.');
-    }
-
-    const userDoc = await db.collection('users').doc(request.auth.uid).get();
-    if (!userDoc.exists || !userDoc.data().isAdmin) {
-        logger.error(`Unauthorized manual sync attempt from ${request.auth.uid}`);
-        throw new HttpsError('permission-denied', 'Only admins can trigger a league sync.');
-    }
+    await requireAdmin(request, 'manual sync');
 
     const clientIp = getClientIp(request);
     await checkRateLimit(clientIp, 'manual_sync', 5, 300);
@@ -308,6 +313,34 @@ exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
         throw new HttpsError('internal', 'Recalculation failed on server.');
     }
 });
+
+/**
+ * One admin-only callable per season lifecycle step. The step modules enforce every precondition
+ * and throw a message written for the admin, which is passed back as failed-precondition.
+ */
+const seasonOpCallable = (action, run, options = {}) => onCall({ cors: true, ...options }, async (request) => {
+    await requireAdmin(request, action);
+    await checkRateLimit(getClientIp(request), 'season_ops', 5, 300);
+    const seasonId = request.data && request.data.seasonId;
+    if (typeof seasonId !== 'string' || !seasonId) {
+        throw new HttpsError('invalid-argument', 'seasonId is required.');
+    }
+    const log = (ok) => db.collection('admin_logs').add({
+        action, seasonId, uid: request.auth.uid, ok, at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    try {
+        const result = await run(db, { seasonId, FieldValue: admin.firestore.FieldValue });
+        await log(result.ok !== false);
+        return result;
+    } catch (err) {
+        await log(false);
+        logger.error(`${action} failed:`, err);
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.concludeSeason = seasonOpCallable('season_conclude', concludeSeason);
+exports.archiveSeason = seasonOpCallable('season_archive', archiveSeason, { timeoutSeconds: 540, memory: '512MiB' });
 
 exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
   const email = request.data.email;

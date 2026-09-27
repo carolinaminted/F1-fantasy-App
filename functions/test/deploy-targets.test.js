@@ -6,6 +6,7 @@ const { execFileSync } = require('node:child_process');
 const {
   CALLABLES,
   DEPLOY_TARGETS,
+  STAGING_ONLY_CALLABLES,
   TRIGGERS,
   onlyFunctionsFlag,
   resolveDeployTarget,
@@ -19,7 +20,7 @@ const exportedFunctions = () =>
     .sort();
 
 test('every exported function is either a trigger or a callable', () => {
-  assert.deepEqual([...TRIGGERS, ...CALLABLES].sort(), exportedFunctions());
+  assert.deepEqual([...TRIGGERS, ...CALLABLES, ...STAGING_ONLY_CALLABLES].sort(), exportedFunctions());
   assert.equal(TRIGGERS.filter((name) => CALLABLES.includes(name)).length, 0);
 });
 
@@ -45,6 +46,14 @@ test('the portal deploys only the five callables', () => {
       'validateInvitationCode',
       'verifyAuthCode',
     ],
+  });
+});
+
+test('the season lifecycle callables run on staging but not yet on the portal', () => {
+  assert.deepEqual([...STAGING_ONLY_CALLABLES], ['archiveSeason', 'concludeSeason']);
+  STAGING_ONLY_CALLABLES.forEach((name) => {
+    assert.ok(DEPLOY_TARGETS['formula-fantasy-staging'].functions.includes(name), name);
+    assert.ok(!DEPLOY_TARGETS['lights-out-league-prod'].functions.includes(name), name);
   });
 });
 
