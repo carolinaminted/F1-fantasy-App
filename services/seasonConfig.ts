@@ -34,7 +34,7 @@ export interface SeasonConfig {
   finalPodium: PodiumEntry[];
 }
 
-const parsePodium = (value: unknown): PodiumEntry[] => {
+export const parsePodium = (value: unknown): PodiumEntry[] => {
   if (!Array.isArray(value)) return [];
   return value
     .filter((p) => isNonEmptyString(p?.uid) && typeof p.displayName === 'string'

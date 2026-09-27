@@ -53,7 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const egg = useRaceStartEasterEgg();
   const scoredEventIds = useScoredEventIds();
-  const { status, label, finalPodium } = useSeason();
+  const { status, label, finalPodium, seasonId } = useSeason();
   const seasonOver = status === 'concluded' || status === 'archived';
   const { easterEggState, activeLights, handleTriggerClick } = egg;
 
@@ -112,7 +112,10 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* ---- Next race ---------------------------------------------------------- */}
       <div className="pt-4 md:pt-6">
         {seasonOver ? (
-          <ChampionHero label={label} finalPodium={finalPodium} onViewStandings={() => setActivePage('leaderboard')} />
+          <ChampionHero label={label} finalPodium={finalPodium} onViewStandings={() => setActivePage('leaderboard')}
+            onOpenHallOfFame={status === 'archived'
+              ? () => setActivePage('leaderboard', { search: `view=hall&season=${seasonId}` })
+              : undefined} />
         ) : nextEvent ? (
           <Tile glow padding="lg" className="relative overflow-hidden">
             <div className="absolute inset-0 bg-carbon-fiber opacity-[0.07] pointer-events-none" />

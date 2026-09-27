@@ -6,6 +6,7 @@ import { User as FirebaseUser } from '@firebase/auth';
 import { LEAGUE_DUES_AMOUNT } from '../constants.ts';
 import { cancelApiEvent, restoreApiEvent, saveApiRaceResults, triggerApiLeaderboardSync } from './apiService.ts';
 import { getCallable } from './callableService.ts';
+import { parsePodium, type PodiumEntry } from './seasonConfig.ts';
 
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
@@ -29,6 +30,43 @@ export const triggerManualLeaderboardSync = async () => {
     const syncFn = getCallable<unknown, { success: boolean, usersProcessed: number }>('manualLeaderboardSync');
     const result = await syncFn();
     return result.data as { success: boolean, usersProcessed: number };
+};
+
+export interface SeasonArchiveSummary {
+    seasonId: string;
+    label: string;
+    finalPodium: PodiumEntry[];
+}
+
+/** Every archived season, newest first. Archives are read-only to every client. */
+export const getSeasonArchives = async (): Promise<SeasonArchiveSummary[]> => {
+    const snap = await getDocs(collection(db, 'season_archives'));
+    return snap.docs
+        .map(d => ({
+            seasonId: d.id,
+            label: typeof d.data().label === 'string' ? d.data().label : d.id,
+            finalPodium: parsePodium(d.data().finalPodium),
+        }))
+        .sort((a, b) => b.seasonId.localeCompare(a.seasonId));
+};
+
+/** A season's final standings as archived, ranked with shared places. */
+export const getArchivedStandings = async (seasonId: string): Promise<User[]> => {
+    const snap = await getDocs(collection(db, 'season_archives', seasonId, 'standings'));
+    return snap.docs
+        .map(d => {
+            const data = d.data();
+            return {
+                id: d.id,
+                email: '',
+                displayName: data.displayName || 'Unknown Team',
+                totalPoints: Number(data.totalPoints) || 0,
+                breakdown: data.breakdown,
+                rank: data.finalRank,
+                displayRank: data.finalRank,
+            } as User;
+        })
+        .sort((a, b) => ((a.rank ?? 999) - (b.rank ?? 999)) || a.displayName.localeCompare(b.displayName));
 };
 
 export const concludeSeasonCall = async (seasonId: string) => {

@@ -11,9 +11,11 @@ interface ChampionHeroProps {
   label: string;
   finalPodium: PodiumEntry[];
   onViewStandings: () => void;
+  /** Present once the season is archived, and so in the Hall of Fame. */
+  onOpenHallOfFame?: () => void;
 }
 
-const ChampionHero: React.FC<ChampionHeroProps> = ({ label, finalPodium, onViewStandings }) => {
+const ChampionHero: React.FC<ChampionHeroProps> = ({ label, finalPodium, onViewStandings, onOpenHallOfFame }) => {
   const champions = finalPodium.filter((p) => p.finalRank === 1);
   const rest = finalPodium.filter((p) => p.finalRank > 1);
   const year = label.match(/^\d{4}/)?.[0];
@@ -82,10 +84,18 @@ const ChampionHero: React.FC<ChampionHeroProps> = ({ label, finalPodium, onViewS
         {year && (
           <p className="mt-5 text-sm text-highlight-silver">The {Number(year) + 1} season is coming.</p>
         )}
-        <button onClick={onViewStandings}
-          className="mt-4 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider bg-primary-red text-pure-white">
-          View final standings
-        </button>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <button onClick={onViewStandings}
+            className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider bg-primary-red text-pure-white">
+            View final standings
+          </button>
+          {onOpenHallOfFame && (
+            <button onClick={onOpenHallOfFame}
+              className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider border border-pure-white/15 text-highlight-silver">
+              Hall of Fame
+            </button>
+          )}
+        </div>
       </div>
     </Tile>
   );
