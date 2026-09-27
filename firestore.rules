@@ -124,6 +124,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // --- Season Config ---
+    // Which events score. Read by every client and both Functions deployments; written only by
+    // functions/scripts/seed-season-config.js (Admin SDK) and, later, the Season Control callables.
+    match /season_config/{document} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
     
     // --- Dues Payments ---
     match /dues_payments/{paymentId} {
