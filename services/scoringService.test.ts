@@ -55,3 +55,16 @@ test('parseSeasonCalendar restores the Event shape in round order and rejects ba
   assert.equal(parseSeasonCalendar({ events: [] }), null);
   assert.equal(parseSeasonCalendar({ events: [{ id: 'a_26' }] }), null);
 });
+
+test('parseSeasonConfig exposes a well-formed final podium, sorted, and drops bad entries', () => {
+  const base = { activeSeasonId: '2026', label: '2026 Season', status: 'concluded', scoredEventIds: ['a_26'] };
+  const parsed = parseSeasonConfig({ ...base, finalPodium: [
+    { uid: 'u3', displayName: 'Tres', totalPoints: 50, finalRank: 3 },
+    { uid: 'u1', displayName: 'Uno', totalPoints: 90, finalRank: 1 },
+    { displayName: 'No uid', totalPoints: 10, finalRank: 2 },
+    { uid: 'u9', displayName: 'Bad rank', totalPoints: 10, finalRank: 'two' },
+    { uid: 'u2', displayName: 'Dos', totalPoints: 90, finalRank: 1 },
+  ] })!;
+  assert.deepEqual(parsed.finalPodium.map((p) => p.uid), ['u2', 'u1', 'u3']);
+  assert.deepEqual(parseSeasonConfig(base)!.finalPodium, []);
+});

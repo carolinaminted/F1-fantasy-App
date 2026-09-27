@@ -15,7 +15,8 @@ import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
 import { calculatePointsForEvent, calculateScoreRollup } from '../services/scoringService.ts';
-import { useScoredEventIds } from '../contexts/SeasonContext.tsx';
+import { useScoredEventIds, useSeason } from '../contexts/SeasonContext.tsx';
+import ChampionHero from './ChampionHero.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
 import { rankInCategory } from '../utils/categoryRank.ts';
 
@@ -52,6 +53,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const egg = useRaceStartEasterEgg();
   const scoredEventIds = useScoredEventIds();
+  const { status, label, finalPodium } = useSeason();
+  const seasonOver = status === 'concluded' || status === 'archived';
   const { easterEggState, activeLights, handleTriggerClick } = egg;
 
   const nextEvent = useMemo(() => {
@@ -108,7 +111,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* ---- Next race ---------------------------------------------------------- */}
       <div className="pt-4 md:pt-6">
-        {nextEvent ? (
+        {seasonOver ? (
+          <ChampionHero label={label} finalPodium={finalPodium} onViewStandings={() => setActivePage('leaderboard')} />
+        ) : nextEvent ? (
           <Tile glow padding="lg" className="relative overflow-hidden">
             <div className="absolute inset-0 bg-carbon-fiber opacity-[0.07] pointer-events-none" />
             <div className="relative flex flex-col lg:flex-row lg:items-center gap-6">

@@ -15,6 +15,14 @@ export const toScoredEventIds = (ids: readonly string[]): ScoredEventIds =>
 export type SeasonStatus = 'active' | 'concluded' | 'archived' | 'setup';
 const SEASON_STATUSES: readonly string[] = ['active', 'concluded', 'archived', 'setup'];
 
+/** A top-three finish as fixed when the season was concluded. */
+export interface PodiumEntry {
+  uid: string;
+  displayName: string;
+  totalPoints: number;
+  finalRank: number;
+}
+
 export interface SeasonConfig {
   scoredEventIds: ScoredEventIds;
   seasonId: string;
@@ -22,13 +30,25 @@ export interface SeasonConfig {
   status: SeasonStatus;
   /** Set when the season is concluded; more than one on a tie. */
   champions: string[];
+  /** Everyone at rank 3 or better when the season was concluded; empty before that. */
+  finalPodium: PodiumEntry[];
 }
+
+const parsePodium = (value: unknown): PodiumEntry[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((p) => isNonEmptyString(p?.uid) && typeof p.displayName === 'string'
+      && typeof p.totalPoints === 'number' && typeof p.finalRank === 'number')
+    .map(({ uid, displayName, totalPoints, finalRank }) => ({ uid, displayName, totalPoints, finalRank }))
+    .sort((a, b) => (a.finalRank - b.finalRank) || a.displayName.localeCompare(b.displayName));
+};
 
 const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 
 export const parseSeasonConfig = (data: unknown): SeasonConfig | null => {
   const d = data as {
     scoredEventIds?: unknown; activeSeasonId?: unknown; label?: unknown; status?: unknown; champions?: unknown;
+    finalPodium?: unknown;
   } | undefined;
   const ids = d?.scoredEventIds;
   if (typeof d?.status !== 'string' || !SEASON_STATUSES.includes(d.status)) return null;
@@ -39,7 +59,7 @@ export const parseSeasonConfig = (data: unknown): SeasonConfig | null => {
   const champions = Array.isArray(d.champions) ? d.champions.filter(isNonEmptyString) : [];
   return {
     scoredEventIds: toScoredEventIds(ids), seasonId: d.activeSeasonId, label: d.label,
-    status: d.status as SeasonStatus, champions,
+    status: d.status as SeasonStatus, champions, finalPodium: parsePodium(d.finalPodium),
   };
 };
 
