@@ -27,10 +27,15 @@ test('usage only counts scored events', () => {
 });
 
 test('parseSeasonConfig returns ids, season id and label, and rejects anything incomplete', () => {
-  const parsed = parseSeasonConfig({ activeSeasonId: '2026', label: '2026 Season', scoredEventIds: ['a_26'] })!;
+  const parsed = parseSeasonConfig({ activeSeasonId: '2026', label: '2026 Season', status: 'active', scoredEventIds: ['a_26'] })!;
   assert.deepEqual([...parsed.scoredEventIds], ['a_26']);
   assert.equal(parsed.seasonId, '2026');
   assert.equal(parsed.label, '2026 Season');
+  assert.equal(parsed.status, 'active');
+  assert.deepEqual(parsed.champions, []);
+  assert.deepEqual(parseSeasonConfig({ activeSeasonId: '2026', label: 'x', status: 'concluded', champions: ['u1', 7], scoredEventIds: ['a_26'] })!.champions, ['u1']);
+  assert.equal(parseSeasonConfig({ activeSeasonId: '2026', label: 'x', status: 'paused', scoredEventIds: ['a_26'] }), null);
+  assert.equal(parseSeasonConfig({ activeSeasonId: '2026', label: 'x', scoredEventIds: ['a_26'] }), null);
   assert.equal(parseSeasonConfig(undefined), null);
   assert.equal(parseSeasonConfig({ activeSeasonId: '2026', label: '2026 Season', scoredEventIds: [] }), null);
   assert.equal(parseSeasonConfig({ activeSeasonId: '2026', scoredEventIds: ['a_26'] }), null);

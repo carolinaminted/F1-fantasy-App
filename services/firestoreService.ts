@@ -31,6 +31,16 @@ export const triggerManualLeaderboardSync = async () => {
     return result.data as { success: boolean, usersProcessed: number };
 };
 
+export const concludeSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { champions: string[]; podium: string[] }>('concludeSeason');
+    return (await fn({ seasonId })).data;
+};
+
+export const archiveSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { ok: boolean; mismatches: string[]; counts: Record<string, number> }>('archiveSeason');
+    return (await fn({ seasonId })).data;
+};
+
 export const getUserProfile = async (uid: string): Promise<User | null> => {
     const docRef = doc(db, 'users', uid);
     const snap = await getDoc(docRef);

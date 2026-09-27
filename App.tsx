@@ -19,6 +19,7 @@ const ScoringSettingsPage = lazy(() => import('./components/ScoringSettingsPage.
 const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.tsx'));
 const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
 const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
+const SeasonControlPage = lazy(() => import('./components/admin/SeasonControlPage.tsx'));
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -825,6 +826,8 @@ const App: React.FC = () => {
                 return <AdminInvitationPage setAdminSubPage={setAdminSubPage} user={user} />;
             case 'database':
                 return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
+            case 'season':
+                return <SeasonControlPage setAdminSubPage={setAdminSubPage} />;
             case 'announcements':
                 return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} />;
             default:

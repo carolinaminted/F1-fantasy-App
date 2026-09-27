@@ -11,20 +11,34 @@ export type ScoredEventIds = ReadonlySet<string> & { readonly __brand: 'ScoredEv
 export const toScoredEventIds = (ids: readonly string[]): ScoredEventIds =>
   new Set(ids) as unknown as ScoredEventIds;
 
+/** The season lifecycle, advanced only by the Season Control callables. */
+export type SeasonStatus = 'active' | 'concluded' | 'archived' | 'setup';
+const SEASON_STATUSES: readonly string[] = ['active', 'concluded', 'archived', 'setup'];
+
 export interface SeasonConfig {
   scoredEventIds: ScoredEventIds;
   seasonId: string;
   label: string;
+  status: SeasonStatus;
+  /** Set when the season is concluded; more than one on a tie. */
+  champions: string[];
 }
 
 const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 
 export const parseSeasonConfig = (data: unknown): SeasonConfig | null => {
-  const d = data as { scoredEventIds?: unknown; activeSeasonId?: unknown; label?: unknown } | undefined;
+  const d = data as {
+    scoredEventIds?: unknown; activeSeasonId?: unknown; label?: unknown; status?: unknown; champions?: unknown;
+  } | undefined;
   const ids = d?.scoredEventIds;
   if (!Array.isArray(ids) || ids.length === 0 || !ids.every(isNonEmptyString)) return null;
   if (!isNonEmptyString(d?.activeSeasonId) || !isNonEmptyString(d?.label)) return null;
-  return { scoredEventIds: toScoredEventIds(ids), seasonId: d.activeSeasonId, label: d.label };
+  if (typeof d.status !== 'string' || !SEASON_STATUSES.includes(d.status)) return null;
+  const champions = Array.isArray(d.champions) ? d.champions.filter(isNonEmptyString) : [];
+  return {
+    scoredEventIds: toScoredEventIds(ids), seasonId: d.activeSeasonId, label: d.label,
+    status: d.status as SeasonStatus, champions,
+  };
 };
 
 /** `app_state/season_calendar`, restored to the `Event` shape; lock times come from the schedule. */
