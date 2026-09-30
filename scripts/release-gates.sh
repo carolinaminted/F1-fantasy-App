@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Release gates for the feature -> staging -> prod -> prod-staging pipeline.
+# Release gates for the feature -> staging -> prod -> production pipeline.
 #
 # Two kinds of gate live here, and the difference matters:
 #
@@ -18,7 +18,7 @@
 #   release-gates.sh sign local|staging|candidate [<ref>]
 #   release-gates.sh check <ref> <gate>...
 #   release-gates.sh show <ref>
-#   release-gates.sh serving staging|prod-staging <ref>
+#   release-gates.sh serving staging|production <ref>
 
 set -Eeuo pipefail
 
@@ -155,10 +155,10 @@ gates_serving_commit() {
     staging)
       project="$STAGING_PROJECT"; service="$STAGING_SERVICE"; account="$STAGING_ACCOUNT"
       registry="$STAGING_REGISTRY"; prefix="$STAGING_TAG_PREFIX" ;;
-    prod-staging)
+    production)
       project="$PRODSTAGING_PROJECT"; service="$PRODSTAGING_SERVICE"; account="$PRODSTAGING_ACCOUNT"
       registry="$PRODSTAGING_REGISTRY"; prefix="$PRODSTAGING_TAG_PREFIX" ;;
-    *) gates_die "unknown environment '$env_name' (expected staging or prod-staging)" ;;
+    *) gates_die "unknown environment '$env_name' (expected staging or production)" ;;
   esac
 
   command -v gcloud >/dev/null 2>&1 || return "$EXIT_UNKNOWN"
@@ -279,9 +279,9 @@ cmd_sign() {
       ;;
 
     candidate)
-      echo "Signing CANDIDATE verification of ${short} on prod-staging."
+      echo "Signing CANDIDATE verification of ${short} on the production candidate."
       echo
-      echo "  The candidate revision receives no traffic, but prod-staging reads and writes"
+      echo "  The candidate revision receives no traffic, but it reads and writes"
       echo "  PRODUCTION Firestore (formula-fantasy-1). Picks, profile edits and admin saves"
       echo "  made while smoke-testing are real writes to real member data."
       echo
@@ -342,18 +342,18 @@ cmd_show() {
   esac
 
   set +e
-  out="$(gates_is_serving prod-staging "$sha")"; rc=$?
+  out="$(gates_is_serving production "$sha")"; rc=$?
   set -e
   case $rc in
-    0) read -r revision _ <<<"$out"; echo "  prod-staging: SERVING this commit (${revision})" ;;
-    1) read -r revision _ other <<<"$out"; echo "  prod-staging: serving ${other:0:7} (${revision}) — NOT this commit" ;;
-    *) echo "  prod-staging: could not determine" ;;
+    0) read -r revision _ <<<"$out"; echo "  production:   SERVING this commit (${revision})" ;;
+    1) read -r revision _ other <<<"$out"; echo "  production:   serving ${other:0:7} (${revision}) — NOT this commit" ;;
+    *) echo "  production:   could not determine" ;;
   esac
 }
 
 cmd_serving() {
   local env_name="${1:-}" ref="${2:-HEAD}"
-  [[ -n "$env_name" ]] || gates_die "usage: release-gates.sh serving staging|prod-staging <ref>"
+  [[ -n "$env_name" ]] || gates_die "usage: release-gates.sh serving staging|production <ref>"
   local out rc
   set +e
   out="$(gates_is_serving "$env_name" "$ref")"; rc=$?

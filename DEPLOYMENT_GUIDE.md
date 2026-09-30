@@ -1,3 +1,7 @@
+> **Domain logic only.** Written 2026-08-17, before the staging build-out and the production
+> migration. Trust it for how the app and its functions behave; do not trust it for infrastructure,
+> project names, or deploy procedure. Current: `CLAUDE.md` and `../lol-docs/documentation/release-and-promotion-sop.md`.
+
 
 # Deployment Guide
 

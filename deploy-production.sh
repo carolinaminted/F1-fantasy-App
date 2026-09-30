@@ -3,25 +3,13 @@
 # Builds `prod` in PRODUCTION mode and deploys it as a ZERO-TRAFFIC candidate revision on
 # lights-out-league-web.
 #
-# This is the sibling of ./deploy-prod-staging.sh and deliberately almost identical to it. The
-# only differences that matter are the build mode and the two things that mode changes:
+# The build members see. Production mode differs from the retired prod-staging build in two
+# things only: no PROD STAGING badge, and no X-Robots-Tag noindex header. Everything else, meaning
+# production Firebase (formula-fantasy-1) and the Node 22 portal callables in lights-out-league-prod,
+# is what the validated staging build already exercised against the staging data plane.
 #
-#   prod-staging          production
-#   ------------          ----------
-#   PROD STAGING badge    no badge
-#   X-Robots-Tag noindex  indexable
-#
-# Everything else — production Firebase (formula-fantasy-1), the Node 22 portal callables in
-# lights-out-league-prod — is identical, which is the point. A production revision is the
-# validated prod-staging application with its scaffolding removed, not a different build.
-#
-# ⚠️ This is the build that members will eventually see. It writes to production Firestore, and
-# once f1.carolinaminted.net is mapped to this service, a promoted production revision IS the
-# live league. This script never promotes and never touches DNS.
-#
-# Prerequisite that is NOT checked here because it lives outside GCP: f1.carolinaminted.net must
-# be in production Firebase Auth's authorized domains before the domain is mapped, or every
-# sign-in fails.
+# ⚠️ f1.carolinaminted.net has been mapped to this service since 2026-09-17. A promoted revision IS
+# the live league. This script never promotes: the candidate gets 0% traffic and its own URL.
 
 set -Eeuo pipefail
 
@@ -319,10 +307,7 @@ Production candidate deployed and audited. It is serving NO traffic.
 Next:
   1. Smoke-test the candidate URL above. It writes to PRODUCTION Firestore.
   2. Record that you did:   ./scripts/release-gates.sh sign candidate
-  3. Promote it, then map f1.carolinaminted.net to this service.
-
-  Note: ./promote-prod-staging.sh will REFUSE this candidate. Its third gate asserts the
-  noindex header is still present, which a production revision deliberately does not send.
+  3. Promote it:            ./promote-production.sh --dry-run, then ./promote-production.sh
 
 Rollback point if anything later goes wrong:
   gcloud run services update-traffic $SERVICE \\

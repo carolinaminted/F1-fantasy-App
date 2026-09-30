@@ -1,3 +1,7 @@
+> **Domain logic only.** A legacy simulation protocol. Nothing in the repo references it, and it
+> predates the season filter on both scoring engines. Trust it for the scoring math it exercises;
+> not for infrastructure or current engine structure. Current: `CLAUDE.md`.
+
 # Scoring Accuracy Simulation Protocol
 
 This file contains the legacy simulation engine used to audit the Formula 1 Fantasy scoring logic.

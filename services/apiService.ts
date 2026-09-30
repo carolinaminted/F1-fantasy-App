@@ -1,3 +1,7 @@
+// RETIRED. The containerized REST API this client talks to (backend/api/, deleted 2026-09-29 under
+// [DOCS-04]) is out of every serving path: VITE_API_BASE_URL is set in no environment, so every
+// export here takes its fallback branch. Kept only because AuthScreen, AccountMenu and
+// firestoreService still import the fallbacks; removing those imports is the next step.
 import { auth } from './firebase.ts';
 import type { EventResult } from '../types.ts';
 
