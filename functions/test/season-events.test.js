@@ -3,12 +3,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { SEASON_EVENT_IDS } = require('../season-events');
-const { SEASON_EVENT_IDS: apiSeasonEventIds } = require('../../backend/api/season-events');
 
 /**
- * The calendar lives in three places — the repo-root `constants.ts` (the source of truth, read by
- * the browser) and a CommonJS mirror in each server package, because neither server can import
- * TypeScript. These tests are what keeps the three from drifting.
+ * The calendar lives in two places — the repo-root `constants.ts` (the source of truth, read by
+ * the browser) and a CommonJS mirror here, because Functions cannot import TypeScript. These
+ * tests are what keeps the two from drifting.
  */
 const readConstantsEventIds = () => {
   const source = fs.readFileSync(
@@ -22,10 +21,6 @@ const readConstantsEventIds = () => {
 
 test('mirrors every event id in constants.ts', () => {
   assert.deepEqual([...SEASON_EVENT_IDS].sort(), readConstantsEventIds().sort());
-});
-
-test('the containerised API mirror matches the Functions one', () => {
-  assert.deepEqual([...apiSeasonEventIds].sort(), [...SEASON_EVENT_IDS].sort());
 });
 
 test('holds the 23-round 2026 calendar', () => {
