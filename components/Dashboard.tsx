@@ -26,6 +26,8 @@ interface DashboardProps {
   allDrivers?: Driver[];
   allConstructors?: Constructor[];
   events: Event[];
+  /** False until the event_schedules snapshot lands; before then no event has a lock time. */
+  schedulesLoaded: boolean;
   cancelledEventIds: Set<string>;
   seasonPicks?: { [eventId: string]: PickSelection };
   /** Populated once Standings has been visited. Never fetched from here. */
@@ -47,7 +49,7 @@ const hasAnyResult = (r?: RaceResults[string]) =>
  */
 const Dashboard: React.FC<DashboardProps> = ({
   user, setActivePage, raceResults = {}, pointsSystem, allDrivers = [], allConstructors = [],
-  events, cancelledEventIds, seasonPicks = {}, leaderboardCache,
+  events, schedulesLoaded, cancelledEventIds, seasonPicks = {}, leaderboardCache,
 }) => {
   const egg = useRaceStartEasterEgg();
   const { easterEggState, activeLights, handleTriggerClick } = egg;
@@ -106,7 +108,21 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* ---- Next race ---------------------------------------------------------- */}
       <div className="pt-4 md:pt-6">
-        {nextEvent ? (
+        {!schedulesLoaded ? (
+          <Tile glow padding="lg">
+            <div className="animate-pulse flex flex-col lg:flex-row lg:items-center gap-6">
+              <div className="flex-1 flex flex-col items-center lg:items-start gap-3">
+                <div className="h-4 w-40 rounded bg-pure-white/10" />
+                <div className="h-10 w-64 max-w-full rounded bg-pure-white/10" />
+                <div className="h-4 w-48 rounded bg-pure-white/10" />
+              </div>
+              <div className="lg:w-72 shrink-0 flex flex-col gap-3">
+                <div className="h-16 rounded-xl bg-pure-white/10" />
+                <div className="h-12 rounded-xl bg-pure-white/10" />
+              </div>
+            </div>
+          </Tile>
+        ) : nextEvent ? (
           <Tile glow padding="lg" className="relative overflow-hidden">
             <div className="absolute inset-0 bg-carbon-fiber opacity-[0.07] pointer-events-none" />
             <div className="relative flex flex-col lg:flex-row lg:items-center gap-6">
