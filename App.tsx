@@ -267,6 +267,8 @@ const App: React.FC = () => {
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
+  // EVENTS ships with empty lock times, so until this snapshot lands every event looks past.
+  const [schedulesLoaded, setSchedulesLoaded] = useState(false);
   const [cancelledEvents, setCancelledEvents] = useState<CancelledEventsState | null>(null);
   const [leaderboardResetToken, setLeaderboardResetToken] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -510,6 +512,7 @@ const App: React.FC = () => {
             if (docSnap.exists()) {
                 setEventSchedules(docSnap.data() as { [eventId: string]: EventSchedule });
             }
+            setSchedulesLoaded(true);
         });
 
         const resultsRef = doc(db, 'app_state', 'race_results');
@@ -595,6 +598,7 @@ const App: React.FC = () => {
         setRaceResults({});
         setFormLocks({});
         setEventSchedules({});
+        setSchedulesLoaded(false);
         setScoringSettings(defaultSettings);
         setLeaderboardCache(null);
         setAllDrivers(DRIVERS);
@@ -717,6 +721,7 @@ const App: React.FC = () => {
             allDrivers={allDrivers} 
             allConstructors={allConstructors} 
             events={mergedEvents} 
+            schedulesLoaded={schedulesLoaded}
             cancelledEventIds={cancelledEventIds}
             seasonPicks={seasonPicks}
             leaderboardCache={leaderboardCache}
@@ -758,7 +763,7 @@ const App: React.FC = () => {
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
@@ -796,7 +801,7 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
     }
   };
   
