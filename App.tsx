@@ -321,18 +321,10 @@ const App: React.FC = () => {
   const prevAuthRef = useRef<'pending' | 'signed-out' | 'signed-in'>('pending');
 
   // Implement Session Security
-  const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
-  
-  // Handling Session Expiration Notification after reload
-  useEffect(() => {
-      if (localStorage.getItem('ff1_session_expired')) {
-          localStorage.removeItem('ff1_session_expired');
-          // Give it a tiny delay to ensure Toast system is ready
-          setTimeout(() => {
-              showToast("Your session has expired. Please log in again.", 'info');
-          }, 500);
-      }
+  const onSessionExpired = useCallback(() => {
+      showToast("Your session has expired. Please log in again.", 'info');
   }, [showToast]);
+  const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user, onSessionExpired);
 
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
