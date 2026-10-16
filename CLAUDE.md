@@ -265,11 +265,14 @@ does that redeploy.
 - `services/` — `firebase` (SDK init: `auth`, `db`, `functions`, from root `firebaseConfig.ts`),
   `firestoreService` (direct Firestore), `callableService` (Functions callables), `apiService`
   (**retired**: its REST API is deleted and `VITE_API_BASE_URL` is set nowhere, so every export
-  takes its fallback), `scoringService`, `validation`.
-- `functions/` — Gen 2 Functions package, Node 22. Seven exports: `updateLeaderboardOnResults`,
-  `updateLeaderboardOnCancellation`, `manualLeaderboardSync`, `sendAuthCode`, `verifyAuthCode`,
-  `validateInvitationCode`, `sendPasswordResetLink`.
-- `hooks/`, `contexts/` (ToastContext), `utils/`, `styles/`.
+  takes its fallback), `scoringService`, `seasonConfig`, `validation`.
+- `functions/` — Gen 2 Functions package, Node 22. Twelve exports: the seven deployed everywhere —
+  `updateLeaderboardOnResults`, `updateLeaderboardOnCancellation`, `manualLeaderboardSync`,
+  `sendAuthCode`, `verifyAuthCode`, `validateInvitationCode`, `sendPasswordResetLink` — plus five
+  admin-only season callables that are **staging-only** (`STAGING_ONLY_CALLABLES` in
+  `deploy-targets.js`): `concludeSeason`, `archiveSeason`, `backupLeague`, `startNewSeason`,
+  `openSeason`. Their logic lives in `functions/season-ops/`.
+- `hooks/`, `contexts/` (`SeasonContext`, `ThemeContext`, `ToastContext`), `utils/`, `styles/`.
 - Scripts: `deploy-staging.sh`, `deploy-production.sh`, `promote-production.sh`, `deploy-portal.sh`,
   `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `portal-rollback.sh`,
   `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
@@ -277,6 +280,15 @@ does that redeploy.
 **The scoring engine is implemented twice** — `services/scoringService.ts` (client) and
 `functions/index.js` (server) implement the same math independently. A scoring rule change must
 land in both or the two will disagree. See `SCORING_AUDIT_LOGIC.md`.
+
+**The season lives in Firestore, not in code.** `season_config/current` holds the active season id,
+label, lifecycle status (`active` → `concluded` → `archived` → `setup` → `active`) and
+`scoredEventIds`, the one list of events either engine scores. The calendar is
+`app_state/season_calendar`. Both are seeded from `functions/scripts/data/season-<year>.json` by
+`functions/scripts/seed-season.js`; there is no `EVENTS` or `CURRENT_SEASON` constant any more.
+Finished seasons are copied to `season_archives/{seasonId}` (read-only to every client, admins
+included), with `career_stats/{uid}` derived from them and each lifecycle step recorded in
+`season_ops/{seasonId}`. Season Control (admin) drives the lifecycle through the callables above.
 
 ## Conventions
 
@@ -341,8 +353,16 @@ staging design and the captured production baseline.
 ## Known open work
 
 **Season rollover is built, not deployed.** Plan 2 (Notion: Plan 2 — Season-Ending Cutover, tracked
-as `[ROLL-xx]` in F1 Work Items) is implemented on `feat/season-config`: `season_config/current` is the
-single source of scored events on both engines, the calendar lives in Firestore, and Season Control
-drives conclude, archive, reset and open. The branch is **local-only by the user's rule** until the
-October release ships; then it deploys to staging for two rehearsals with the `verify.sh` zero-drift
-gate. `[ROLL-06]`, `[ROLL-07]` and `[ROLL-10]` remain open.
+as `[ROLL-xx]` in F1 Work Items) is implemented on this branch, `feat/season-config`, including the
+`[ROLL-10]` backup step. It is **local-only by the user's rule** — no push, no merge to `staging`, no
+staging deploy — until the user lifts it, even though the October release shipped 2026-10-15. After
+that it deploys to staging for two rehearsals with the `verify.sh` zero-drift gate.
+
+- **Staging rules lag this branch.** The season rules in `firestore.rules` exist only here. Any
+  `deploy-staging.sh` from `staging` replaces the live ruleset and removes them (last on 2026-10-15),
+  after which local dev on this branch shows the outage screen until a rules-only deploy from here.
+- **`[ROLL-10]` needs infra** before Take backup can succeed: the buckets in `functions/backup-buckets.js`
+  and their IAM, in both staging and production. Start new season refuses without a backup.
+- **The portal cannot create the season callables.** `deploy-portal.sh` only updates functions that
+  already exist, so they need a first-create path before `[ROLL-06]` (Dec 6–13).
+- `[ROLL-06]` and `[ROLL-07]` are the operations themselves. Progress: `../worklog/season-rollover.md`.
