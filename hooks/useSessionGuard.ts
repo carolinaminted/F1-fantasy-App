@@ -7,36 +7,36 @@ import { SESSION_STORAGE_KEY } from '../constants.ts';
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 const WARNING_THRESHOLD = 10 * 60 * 1000; // 10 minutes (Warning triggers 5 mins before timeout)
 
-export const useSessionGuard = (user: User | null) => {
+export const useSessionGuard = (user: User | null, onExpired: () => void) => {
     // Track last activity in a Ref so it persists across re-renders
     const lastActivity = useRef(Date.now());
+    // On resume the visibility check and the interval both fire; only one sign-out should run.
+    const loggingOut = useRef(false);
     const [showWarning, setShowWarning] = useState(false);
     const [idleExpiryTime, setIdleExpiryTime] = useState(0);
     
     // Forced Logout Function
     const forceLogout = useCallback(async (reason: string) => {
+        if (loggingOut.current) return;
+        loggingOut.current = true;
         try {
             console.log(`Session Guard Logout Triggered: ${reason}`);
-            setShowWarning(false); 
-            
-            // Clear the persistence key so the next session is clean
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-
-            // Set a flag in localStorage so App.tsx can show a friendly toast after reload
-            localStorage.setItem('ff1_session_expired', 'true');
-            
-            // Sign out from Firebase
+            setShowWarning(false);
             await signOut(auth);
-            
-            // CRITICAL: We use location.replace to force a clean browser state.
-            // We avoid alert() because it is synchronous and can cause browser hangs on mobile resume.
-            window.location.replace(window.location.origin);
+            // Everything below waits for signOut to land. This used to set an "expired" flag and
+            // clear the activity key first, then hard-reload: whenever signOut threw or the resumed
+            // page died mid-way, the next load announced a logout over a session that was still
+            // valid, and with a freshly reset idle clock. App's auth listener resets all state on
+            // sign-out, so no reload is needed.
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+            onExpired();
         } catch (error) {
+            // Still signed in; the interval retries on its next tick.
             console.error("Session guard logout error:", error);
-            // Absolute fallback if everything fails: force reload
-            window.location.reload();
+        } finally {
+            loggingOut.current = false;
         }
-    }, []);
+    }, [onExpired]);
 
     // Manual Logout (Exposed to UI)
     const logout = useCallback(async () => {
@@ -64,14 +64,18 @@ export const useSessionGuard = (user: User | null) => {
             const elapsed = Date.now() - lastActiveTime;
             
             if (elapsed > IDLE_TIMEOUT) {
+                lastActivity.current = lastActiveTime;
                 forceLogout("Session expired across reload/restart.");
                 return; // Stop setting up listeners
             }
             // Sync ref with stored time
             lastActivity.current = lastActiveTime;
         } else {
-            // New session or cleaned storage, mark now
-            localStorage.setItem(SESSION_STORAGE_KEY, Date.now().toString());
+            // New session or cleaned storage, mark now. The ref too: with no reload after a
+            // timeout sign-out, it still holds the expired session's time.
+            const now = Date.now();
+            lastActivity.current = now;
+            localStorage.setItem(SESSION_STORAGE_KEY, now.toString());
         }
 
         // If warning is active, we STOP listening to passive events.
@@ -134,7 +138,6 @@ export const useSessionGuard = (user: User | null) => {
             
             // Check Idle Time
             if (timeSinceLastActivity > IDLE_TIMEOUT) {
-                clearInterval(checkInterval);
                 forceLogout("Inactivity limit reached.");
                 return;
             }

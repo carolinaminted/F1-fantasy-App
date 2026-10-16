@@ -14,7 +14,7 @@ domain. Do not read anything below as "pending".
 | Project | Number | Role | Status |
 |---|---|---|---|
 | `lights-out-league-prod` | 45017321387 | Cloud Run web + Node 22 portal callables | **LIVE — serves members at `f1.carolinaminted.net`** |
-| `formula-fantasy-1` | 193463400309 | Production Auth + Firestore + 7 Gen 2 Functions | **LIVE — the data plane, still Node 20** |
+| `formula-fantasy-1` | 193463400309 | Production Auth + Firestore + the 2 scoring triggers (plus 5 idle functions) | **LIVE — the data plane, triggers on Node 22 since 2026-10-15** |
 | `gen-lang-client-0034225567` | 1020839022884 | Legacy frontend, no longer mapped | Idle. Console display name is `formula-fantasy-one` |
 | `formula-fantasy-staging` | 342911349882 | Isolated validation data plane | Staging only |
 
@@ -23,9 +23,14 @@ domain. Do not read anything below as "pending".
 mutate `formula-fantasy-1` or `lights-out-league-prod` — Firestore writes, Functions deploys,
 domain or DNS changes, IAM edits, traffic shifts — without explicit per-action approval.
 
-**Rollback handles from the cutover, both still valid. Do not delete either:**
+**Current production and its rollback handles (as of the 2026-10-15 release):**
 
-- Revision: `lights-out-league-web-00007-lez` (`sha256:d92febcb…`), still warm.
+- Web: `lights-out-league-web-00013-zas` (commit `6319050`) serves members. Rollback is
+  `lights-out-league-web-00011-vat`, still warm.
+- Portal: the 5 callables on their `-00004` revisions. The pre-deploy `-00003` revisions and the
+  `update-traffic` lines to restore them are in `.backups/portal-revisions-2026-10-15T21-07-41Z.txt`.
+- Data plane: `rollback/data-plane-node20` redeploys the two triggers on Node 20 — **only until
+  2026-10-30**, when nodejs20 is decommissioned.
 - Data: `.backups/schedule-correction-formula-fantasy-1-2026-09-17T22-50-25-510Z.json`.
   **Use this file, not the 2026-09-10 one** — the older backup predates Madrid being scored on
   2026-09-13 and restoring it would wipe those results.
@@ -39,12 +44,14 @@ needs the *ID* `gen-lang-client-0034225567`. Querying `--project formula-fantasy
 gets `PERMISSION_DENIED` there, and gmail is in turn excluded from `lights-out-league-prod` by
 Domain Restricted Sharing. Any operation spanning both needs two `--account` values.
 
-**Node runtime is split, deliberately.** `formula-fantasy-1` runs all 7 functions on **nodejs20**;
-the 5-function portal in `lights-out-league-prod` runs **nodejs22** (last deployed 2026-08-25).
-Members' callables hit the Node 22 portal while Firestore triggers fire on Node 20. `functions/`
-declares `"node": "22"`, so **the next `formula-fantasy-1` deploy attempts a runtime upgrade** —
-treat it as a runtime change, not a routine deploy. Both deployments now have a guarded script
-(`deploy-portal.sh`, `deploy-data-plane.sh`), neither yet run against production.
+**Both production Functions deployments run Node 22 since 2026-10-15.** The 5-function portal in
+`lights-out-league-prod` and the 2 scoring triggers in `formula-fantasy-1` were both deployed from
+`6319050` with the guarded scripts (`deploy-portal.sh`, `deploy-data-plane.sh`). The other 5
+functions still registered in `formula-fantasy-1` were left on nodejs20 and are in no serving path.
+Three scripts refuse to run without a human at a terminal: `promote-production.sh` needs a TTY, and
+`deploy-portal.sh` / `deploy-data-plane.sh` read the project ID from `/dev/tty`. An agent runs the
+dry-runs and the post-deploy checks; the user runs the deploys. Full record:
+`../worklog/october-2026-release.md`.
 
 The portal is **not a Firebase project**: Firebase is not enabled on `lights-out-league-prod`, and its
 functions were created with `gcloud functions deploy`, so `firebase deploy` cannot target it.
@@ -67,7 +74,7 @@ Always pass a mode:
 | Mode | File | Firebase project |
 |---|---|---|
 | `staging` | `.env.staging` | `formula-fantasy-staging` — safe |
-| `prod-staging` | `.env.prod-staging` | **`formula-fantasy-1` — live member data.** Callables in `lights-out-league-prod` |
+| `prod-staging` | `.env.prod-staging` | **`formula-fantasy-1` — live member data.** Legacy badged build; its deploy scripts were deleted 2026-09-29 |
 | `production` | `.env.production` | `formula-fantasy-1` — **live member data; sign-ins, picks and profile edits are real writes** |
 
 Both `staging` and `prod-staging` set `VITE_PORTAL_FUNCTIONS_BASE_URL`, so `getCallable()` takes the
@@ -95,9 +102,10 @@ npm run build -- --mode staging   # vite build for a given mode
 ./scripts/release-gates.sh show   # where this commit stands in the pipeline
 ./scripts/release-gates.sh sign local     # record that you tested it locally
 ./scripts/release-gates.sh sign staging   # record that you tested it on staging (checks first)
-./deploy-prod-staging.sh          # build `prod` → zero-traffic candidate on prod-staging
+./deploy-production.sh --dry-run  # PRODUCTION: gates + locked targets, touches nothing
+./deploy-production.sh --expect-string <s>  # PRODUCTION: build `prod` → zero-traffic candidate on lights-out-league-web
 ./scripts/release-gates.sh sign candidate # record that you smoke-tested the candidate URL
-./promote-prod-staging.sh         # shift prod-staging traffic to the candidate
+./promote-production.sh           # PRODUCTION, approval-gated: shift member traffic to the candidate
 
 ./deploy-data-plane.sh --dry-run  # PRODUCTION: the 2 triggers to formula-fantasy-1; read-only checks only
 ./deploy-data-plane.sh            # PRODUCTION, approval-gated: runs from `prod` or `rollback/data-plane-node20`
@@ -169,7 +177,7 @@ A commit reaches `prod` only after clearing gates recorded as git notes on
 |---|---|---|
 | `local-verified` | attested | a human ran it locally and looked at it |
 | `staging-verified` | attested **+ checked** | recorded only if staging is *actually serving* that commit |
-| `candidate-verified` | attested | a human smoke-tested the zero-traffic prod-staging candidate |
+| `candidate-verified` | attested | a human smoke-tested the zero-traffic production candidate |
 | `promoted` | recorded | traffic was shifted, all four post-promotion gates passed |
 
 `staging-verified` is the interesting one: signing it runs an objective check first. The staging
@@ -186,10 +194,10 @@ would just train you to use the override.
 tests in this repo; `npm run lint` is a typecheck. The tooling records who said what and when —
 it cannot know whether you actually looked, and it says so.
 
-As of 2026-08-30 no gate has ever been recorded: `refs/notes/release-gates` does not exist, locally
-or on `origin`. The notes check in `pre-push` always blocks, so the next `prod` release must
-`./scripts/release-gates.sh sign local` and `sign staging` on its tip commit before the push will
-go through. The script fetches and pushes that notes ref itself on each `sign`.
+Gates have been recorded since the 2026-09-17 cutover; all four exist on `8915806` and `f1baf3a`.
+Every `prod` release still needs `./scripts/release-gates.sh sign local` and `sign staging` on its
+tip commit before `pre-push` lets it through. The script fetches and pushes that notes ref itself
+on each `sign`. An agent never signs a gate: signing says a human looked.
 
 `LOL_ALLOW_PROD_EDIT=1` overrides the git hooks for a genuine emergency hotfix. The Claude Code
 hook has no override on purpose: the human can bypass, the agent cannot.
@@ -256,15 +264,15 @@ does that redeploy.
   `SchedulePage`, `DatabaseManagerPage`, `LeaderboardPage`, `AuthScreen`, and `PicksForm`.
 - `services/` — `firebase` (SDK init: `auth`, `db`, `functions`, from root `firebaseConfig.ts`),
   `firestoreService` (direct Firestore), `callableService` (Functions callables), `apiService`
-  (new containerized API), `scoringService`, `validation`.
+  (**retired**: its REST API is deleted and `VITE_API_BASE_URL` is set nowhere, so every export
+  takes its fallback), `scoringService`, `validation`.
 - `functions/` — Gen 2 Functions package, Node 22. Seven exports: `updateLeaderboardOnResults`,
   `updateLeaderboardOnCancellation`, `manualLeaderboardSync`, `sendAuthCode`, `verifyAuthCode`,
   `validateInvitationCode`, `sendPasswordResetLink`.
-- `backend/api/` — the new containerized API (Express + Docker) that admin and auth operations
-  are migrating to.
 - `hooks/`, `contexts/` (ToastContext), `utils/`, `styles/`.
-- Scripts: `deploy-staging.sh`, `deploy-prod-staging.sh`, `promote-prod-staging.sh` at the root;
-  `scripts/` holds `release-gates.sh`, `rotate-staging-email-secret.sh`, and `bundle-audit.sh`.
+- Scripts: `deploy-staging.sh`, `deploy-production.sh`, `promote-production.sh`, `deploy-portal.sh`,
+  `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `portal-rollback.sh`,
+  `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
 
 **The scoring engine is implemented twice** — `services/scoringService.ts` (client) and
 `functions/index.js` (server) implement the same math independently. A scoring rule change must
@@ -314,12 +322,13 @@ Authoritative and current, in `../lol-docs/`:
 - `STAGING_ENVIRONMENT_SUMMARY.md` — staging inventory.
 - `F1_STAGING_PROGRESS.md` — staging build-out progress log.
 - `documentation/production-cutover-readiness-runbook.md` — the cutover procedure.
-- `documentation/release-and-promotion-sop.md` — the `feature` → `staging` → `prod` → prod-staging
-  release and promotion procedure.
+- `documentation/release-and-promotion-sop.md` — **current (2026-09-29)**: the `feature` → `staging` →
+  `prod` → candidate → promote release procedure, plus the Functions stage.
 - `documentation/running-lights-out-league-locally.md` — local dev (with the caveat noted under
   Environment modes above).
 - `documentation/deploying-lights-out-league-from-macbook.md` — operator deploy walkthrough.
-- `documentation/prod-staging-write-tests.md` — the prod-staging write-path validation.
+- `documentation/prod-staging-write-tests.md` — manual write-path tests, written pre-cutover; still
+  apply to a production candidate URL.
 - `documentation/carolinaminted-net-domain-sop.md` — domain/DNS.
 - `regression/` — standings-diff regression harness (`verify.sh` against a captured baseline).
 
@@ -331,12 +340,9 @@ staging design and the captured production baseline.
 
 ## Known open work
 
-**Season rollover is unstarted and time-critical.** `constants.ts` still carries 24 hardcoded
-`*_26` event IDs and the Firestore model has no season dimension anywhere — season data lives in
-`app_state/*` singleton docs, `userPicks/{uid}`, and `public_users/{uid}`. Rolling into a new
-season currently means manual database surgery. The old `../fable-plans/stage-1-season-rollover.md`
-plan was lost (only the branch-drift table in the workspace `../CLAUDE.md` survives) and needs to
-be rewritten; tracked items live in the Notion **F1 Work Items** database. A hard dependency to
-carry into that plan: the server scoring engine has no season filter — the client drops
-non-current events, the server scores any event key with a result — so last season's picks and
-results must be partitioned or the two engines diverge the moment new events land.
+**Season rollover is built, not deployed.** Plan 2 (Notion: Plan 2 — Season-Ending Cutover, tracked
+as `[ROLL-xx]` in F1 Work Items) is implemented on `feat/season-config`: `season_config/current` is the
+single source of scored events on both engines, the calendar lives in Firestore, and Season Control
+drives conclude, archive, reset and open. The branch is **local-only by the user's rule** until the
+October release ships; then it deploys to staging for two rehearsals with the `verify.sh` zero-drift
+gate. `[ROLL-06]`, `[ROLL-07]` and `[ROLL-10]` remain open.

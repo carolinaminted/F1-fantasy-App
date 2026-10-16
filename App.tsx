@@ -270,6 +270,8 @@ const App: React.FC = () => {
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
+  // The season calendar ships with empty lock times, so until this snapshot lands every event looks past.
+  const [schedulesLoaded, setSchedulesLoaded] = useState(false);
   const [cancelledEvents, setCancelledEvents] = useState<CancelledEventsState | null>(null);
   // 'loading' until the first snapshot; null when the document is missing or malformed.
   const [seasonConfig, setSeasonConfig] = useState<SeasonConfig | null | 'loading'>('loading');
@@ -327,18 +329,10 @@ const App: React.FC = () => {
   const prevAuthRef = useRef<'pending' | 'signed-out' | 'signed-in'>('pending');
 
   // Implement Session Security
-  const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user);
-  
-  // Handling Session Expiration Notification after reload
-  useEffect(() => {
-      if (localStorage.getItem('ff1_session_expired')) {
-          localStorage.removeItem('ff1_session_expired');
-          // Give it a tiny delay to ensure Toast system is ready
-          setTimeout(() => {
-              showToast("Your session has expired. Please log in again.", 'info');
-          }, 500);
-      }
+  const onSessionExpired = useCallback(() => {
+      showToast("Your session has expired. Please log in again.", 'info');
   }, [showToast]);
+  const { showWarning, idleExpiryTime, continueSession, logout: sessionLogout } = useSessionGuard(user, onSessionExpired);
 
   // Scoring State
   const defaultSettings: ScoringSettingsDoc = {
@@ -521,6 +515,7 @@ const App: React.FC = () => {
             if (docSnap.exists()) {
                 setEventSchedules(docSnap.data() as { [eventId: string]: EventSchedule });
             }
+            setSchedulesLoaded(true);
         });
 
         const resultsRef = doc(db, 'app_state', 'race_results');
@@ -627,6 +622,7 @@ const App: React.FC = () => {
         setRaceResults({});
         setFormLocks({});
         setEventSchedules({});
+        setSchedulesLoaded(false);
         setScoringSettings(defaultSettings);
         setLeaderboardCache(null);
         setAllDrivers(DRIVERS);
@@ -753,6 +749,7 @@ const App: React.FC = () => {
             allDrivers={allDrivers} 
             allConstructors={allConstructors} 
             events={mergedEvents} 
+            schedulesLoaded={schedulesLoaded}
             cancelledEventIds={cancelledEventIds}
             seasonPicks={seasonPicks}
             leaderboardCache={leaderboardCache}
@@ -794,7 +791,7 @@ const App: React.FC = () => {
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
@@ -834,7 +831,7 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
     }
   };
   
@@ -913,14 +910,18 @@ const App: React.FC = () => {
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden shrink-0 z-50">
          {user ? (
            <>
-             <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">
-               <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
+             <div className="flex items-center gap-3 justify-self-start">
+               <div onClick={() => navigateToPage('home')} className="cursor-pointer">
+                 <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
+               </div>
+               {/* Admins carry an extra gear icon on the right, which pushed the toggle into the name on narrow phones. */}
+               {isUserAdmin(user) && <ThemeToggle />}
              </div>
              <div className="text-center justify-self-center">
                 <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
              <div className="flex items-center gap-3 justify-self-end">
-               <ThemeToggle />
+               {!isUserAdmin(user) && <ThemeToggle />}
                {isUserAdmin(user) && (
                  <button
                    onClick={() => navigateToPage('admin')}

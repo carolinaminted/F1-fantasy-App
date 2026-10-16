@@ -2,18 +2,16 @@
 #
 # Shifts traffic to a production candidate built by ./deploy-production.sh.
 #
-# Sibling of ./promote-prod-staging.sh, and deliberately near-identical to it. Two gates differ,
-# because the production build differs in exactly two ways:
+# Four gates run after the shift. Two of them are specific to a production build:
 #
 #   * Gate 3 asserts the noindex header is ABSENT. A production build strips it; if it is still
-#     there, a prod-staging image is serving.
-#   * Gate 4 adapts to whether f1.carolinaminted.net has been cut over yet. Before the cutover it
-#     asserts the live league site was untouched, exactly as the prod-staging script does. After
-#     the cutover this service IS the live league, so it asserts the domain now serves the
-#     promoted bundle instead. The script detects which case it is in rather than being told.
+#     there, a badged prod-staging image (retired 2026-09-29) is serving.
+#   * Gate 4 adapts to whether f1.carolinaminted.net is mapped to this service. It has been since
+#     2026-09-17, so the gate asserts the domain serves the promoted bundle. The pre-cutover branch
+#     (domain untouched) is kept so the script still works if the mapping is ever removed.
 #
-# ⚠️ Unlike promote-prod-staging.sh, this CAN reach league members — once the domain is mapped,
-# promoting here changes what 40 people see. It also reads and writes production Firestore.
+# ⚠️ This reaches league members. Promoting here changes what ~40 people see, and the service
+# reads and writes production Firestore.
 
 set -Eeuo pipefail
 
@@ -63,7 +61,7 @@ done
 current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
 commit="$(git rev-parse HEAD)"
 short_sha="$(git rev-parse --short HEAD)"
-revision_tag="p${short_sha}"   # deploy-production.sh tags with p<sha>; prod-staging uses c<sha>
+revision_tag="p${short_sha}"   # deploy-production.sh tags the candidate p<sha>
 
 [[ "$current_branch" == "$REQUIRED_BRANCH" ]] || fail \
   "must promote from '$REQUIRED_BRANCH', not '$current_branch'."
@@ -240,8 +238,8 @@ else
   flunk "default URL serves ${default_bundle:-nothing}, candidate serves ${candidate_bundle:-nothing}"
 fi
 
-# Gate 3 — INVERTED from the prod-staging script. A production build strips the header; if it is
-# present, a prod-staging image just went live.
+# Gate 3 — a production build strips the header; if it is present, a badged prod-staging image
+# (retired) just went live.
 robots="$(curl -sS -o /dev/null -D - "$default_url/" 2>/dev/null | grep -i '^x-robots-tag:' | tr -d '\r' || true)"
 if [[ -z "$robots" ]]; then
   pass "no X-Robots-Tag — this is a production build"
@@ -264,7 +262,7 @@ if [[ "$domain_is_ours" == true ]]; then
            bundle ${live_bundle_after:-?} (expected ${default_bundle:-?})"
   fi
 else
-  # Pre-cutover: the domain must be untouched, same assertion as promote-prod-staging.sh.
+  # Domain not mapped to this service: it must be untouched by the shift.
   if [[ "$live_status_after" == "$live_status_before" \
      && "$live_bundle_after" == "$live_bundle_before" \
      && "$live_cname_after" == "$live_cname_before" ]]; then

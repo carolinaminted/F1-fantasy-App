@@ -69,8 +69,12 @@ Deploys the five callables to lights-out-league-prod (production), one at a time
 verifying each before starting the next.
 
 Runs from `prod` at origin/prod with the local and staging release gates signed.
-To roll back, check out an earlier gated commit on origin/prod (detached HEAD) and
-run it from there.
+
+Rollback: before deploying, this script records the Cloud Run revision each callable
+is serving to .backups/portal-revisions-<UTC>.txt and prints the traffic-shift commands
+that restore them. Those commands work for any release. Rerunning this script from an
+earlier gated prod commit (detached HEAD) also works, but only when that commit already
+carries functions/deploy-targets.js, which the first release using this script does not.
 
   --dry-run  Run every local and read-only check, including a check that the live
              portal already matches this script's configuration, then stop.
@@ -97,6 +101,9 @@ cd "$SCRIPT_DIR"
 for required_command in node npm gcloud git python3 curl tar; do
   command -v "$required_command" >/dev/null 2>&1 || fail "required command is not installed: $required_command"
 done
+
+# shellcheck source=scripts/portal-rollback.sh
+source ./scripts/portal-rollback.sh || fail "scripts/portal-rollback.sh is missing"
 
 # --- Targets -------------------------------------------------------------------------------------
 
@@ -277,6 +284,17 @@ if [[ "$live_ok" != true ]]; then
   fail "live configuration drift"
 fi
 
+echo
+echo "Recording the revision each callable is serving (the rollback point)..."
+mkdir -p .backups
+readonly revisions_file=".backups/portal-revisions-$(date -u +%Y-%m-%dT%H-%M-%SZ).txt"
+portal_capture_revisions "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" \
+  "${DEPLOY_ORDER[@]}" || fail "could not record a rollback point for every callable (see above)"
+echo "  saved to $revisions_file"
+echo "  to roll back after this deploy, run the lines in that order:"
+portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" \
+  | sed 's/^/    /'
+
 if [[ "$dry_run" == true ]]; then
   echo
   echo "Dry run passed. No cloud resources were changed."
@@ -296,13 +314,20 @@ LOL_ENV=prod "$VERIFY_SCRIPT" baseline
 
 deployed=()
 stop_after() {
+  local at="$1"
   echo >&2
-  echo "Portal deploy stopped at $1." >&2
+  echo "Portal deploy stopped at $at." >&2
   if [[ ${#deployed[@]} -gt 0 ]]; then
     echo "  Already updated to ${head_sha:0:7}: ${deployed[*]}" >&2
   fi
-  echo "  Not touched: the functions after $1 in: ${DEPLOY_ORDER[*]}" >&2
-  echo "  Recovery: check out the previous gated prod commit (detached) and rerun this script." >&2
+  echo "  Not touched: the functions after $fn in: ${DEPLOY_ORDER[*]}" >&2
+  echo "  Rollback (seconds, rebuilds nothing): shift traffic back on each changed callable." >&2
+  echo "  $fn is included because gcloud may have created its new revision before the check failed:" >&2
+  # ${arr[@]+"${arr[@]}"}: bash 3.2 (macOS default) treats an empty array as unbound under set -u.
+  portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" \
+    ${deployed[@]+"${deployed[@]}"} "$fn" | sed 's/^/    /' >&2
+  echo "  Recorded in $revisions_file. After a traffic rollback, \`gcloud functions describe\` still names the" >&2
+  echo "  new revision; that mismatch is expected until the next real deploy." >&2
   exit 1
 }
 
@@ -356,4 +381,7 @@ Not done yet. Finish by hand:
   2. Check the standings did not move:
        LOL_ENV=prod $VERIFY_SCRIPT check
   3. Sign in on a second device to exercise sendAuthCode and verifyAuthCode end to end.
+
+If any of that fails, the pre-deploy revisions are in $revisions_file. Roll back with:
 EOF
+portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" | sed 's/^/  /'
