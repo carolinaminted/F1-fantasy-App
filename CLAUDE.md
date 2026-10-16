@@ -269,9 +269,11 @@ does that redeploy.
 - `functions/` — Gen 2 Functions package, Node 22. Twelve exports: the seven deployed everywhere —
   `updateLeaderboardOnResults`, `updateLeaderboardOnCancellation`, `manualLeaderboardSync`,
   `sendAuthCode`, `verifyAuthCode`, `validateInvitationCode`, `sendPasswordResetLink` — plus five
-  admin-only season callables that are **staging-only** (`STAGING_ONLY_CALLABLES` in
-  `deploy-targets.js`): `concludeSeason`, `archiveSeason`, `backupLeague`, `startNewSeason`,
-  `openSeason`. Their logic lives in `functions/season-ops/`.
+  admin-only season callables (`SEASON_CALLABLES` in `deploy-targets.js`): `concludeSeason`,
+  `archiveSeason`, `backupLeague`, `startNewSeason`, `openSeason`. Their logic lives in
+  `functions/season-ops/`. Staging and the portal host them; the portal does not have them yet.
+  Their 540s/512MiB limits are declared once, in `LONG_RUNNING`, read by both `index.js` and
+  `deploy-portal.sh`.
 - `hooks/`, `contexts/` (`SeasonContext`, `ThemeContext`, `ToastContext`), `utils/`, `styles/`.
 - Scripts: `deploy-staging.sh`, `deploy-production.sh`, `promote-production.sh`, `deploy-portal.sh`,
   `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `portal-rollback.sh`,
@@ -363,6 +365,8 @@ that it deploys to staging for two rehearsals with the `verify.sh` zero-drift ga
   after which local dev on this branch shows the outage screen until a rules-only deploy from here.
 - **`[ROLL-10]` needs infra** before Take backup can succeed: the buckets in `functions/backup-buckets.js`
   and their IAM, in both staging and production. Start new season refuses without a backup.
-- **The portal cannot create the season callables.** `deploy-portal.sh` only updates functions that
-  already exist, so they need a first-create path before `[ROLL-06]` (Dec 6–13).
+- **The portal create path is built but gated.** `deploy-portal.sh` on this branch detects callables
+  the portal lacks and lists them as "will CREATE", but a real run refuses (`CREATE_SUPPORTED=false`)
+  until a staging rehearsal settles how to turn on invoker-iam-disabled for a new function without
+  blanking its GCF record. Needed before `[ROLL-06]` (Dec 6–13).
 - `[ROLL-06]` and `[ROLL-07]` are the operations themselves. Progress: `../worklog/season-rollover.md`.

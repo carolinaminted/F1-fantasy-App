@@ -20,6 +20,7 @@ const { archiveSeason } = require("./season-ops/archive");
 const { resetSeason } = require("./season-ops/reset");
 const { backupLeague } = require("./season-ops/backup");
 const { resolveBackupBucket } = require("./backup-buckets");
+const { LONG_RUNNING } = require("./deploy-targets");
 const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
 
@@ -344,7 +345,7 @@ const seasonOpCallable = (action, run, options = {}) => onCall({ cors: true, ...
 });
 
 exports.concludeSeason = seasonOpCallable('season_conclude', concludeSeason);
-exports.archiveSeason = seasonOpCallable('season_archive', archiveSeason, { timeoutSeconds: 540, memory: '512MiB' });
+exports.archiveSeason = seasonOpCallable('season_archive', archiveSeason, LONG_RUNNING.archiveSeason);
 // The export runs against the data plane, which on the portal is not the hosting project.
 const dataProjectId = runtimeTarget ? runtimeTarget.firebaseProjectId : resolveDeployProjectId();
 const exportDocuments = async (request) => {
@@ -355,8 +356,8 @@ const exportDocuments = async (request) => {
 };
 exports.backupLeague = seasonOpCallable('season_backup', (database, { seasonId, FieldValue }) => backupLeague(database, {
     seasonId, FieldValue, exportDocuments, projectId: dataProjectId, bucket: resolveBackupBucket(dataProjectId),
-}), { timeoutSeconds: 540, memory: '512MiB' });
-exports.startNewSeason = seasonOpCallable('season_start', resetSeason, { timeoutSeconds: 540, memory: '512MiB' });
+}), LONG_RUNNING.backupLeague);
+exports.startNewSeason = seasonOpCallable('season_start', resetSeason, LONG_RUNNING.startNewSeason);
 exports.openSeason = seasonOpCallable('season_open', openSeason);
 
 exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {

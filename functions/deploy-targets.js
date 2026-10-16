@@ -4,8 +4,8 @@
  * silently skips something it must.
  *
  * formula-fantasy-1 is the data plane: it runs the two Firestore triggers and nothing else, which
- * keeps the mail credential out of it. lights-out-league-prod hosts the member-facing callables
- * against formula-fantasy-1's data (see runtime-target.js). Staging runs everything in one project.
+ * keeps the mail credential out of it. lights-out-league-prod hosts every callable against
+ * formula-fantasy-1's data (see runtime-target.js). Staging runs everything in one project.
  */
 const TRIGGERS = Object.freeze([
   'updateLeaderboardOnCancellation',
@@ -21,11 +21,10 @@ const CALLABLES = Object.freeze([
 ]);
 
 /**
- * The season lifecycle callables ([ROLL-08]). Staging only for now: deploy-portal.sh verifies every
- * function it deploys against the live portal before deploying, so it cannot yet create one that
- * does not exist. Moving these into CALLABLES waits on that change, which is a production decision.
+ * The admin-only season lifecycle callables ([ROLL-08]). The portal hosts them alongside CALLABLES;
+ * deploy-portal.sh creates any that do not exist there yet.
  */
-const STAGING_ONLY_CALLABLES = Object.freeze([
+const SEASON_CALLABLES = Object.freeze([
   'archiveSeason',
   'backupLeague',
   'concludeSeason',
@@ -33,13 +32,23 @@ const STAGING_ONLY_CALLABLES = Object.freeze([
   'startNewSeason',
 ]);
 
+/**
+ * Callables that need more than the portal's default 60s timeout and 256Mi. functions/index.js
+ * passes these to onCall and deploy-portal.sh passes them to gcloud, so the two cannot drift.
+ */
+const LONG_RUNNING = Object.freeze({
+  archiveSeason: Object.freeze({ timeoutSeconds: 540, memory: '512MiB' }),
+  backupLeague: Object.freeze({ timeoutSeconds: 540, memory: '512MiB' }),
+  startNewSeason: Object.freeze({ timeoutSeconds: 540, memory: '512MiB' }),
+});
+
 const target = (functions) =>
   Object.freeze({ region: 'us-central1', runtime: 'nodejs22', functions: Object.freeze(functions) });
 
 const DEPLOY_TARGETS = Object.freeze({
-  'formula-fantasy-staging': target([...CALLABLES, ...STAGING_ONLY_CALLABLES, ...TRIGGERS].sort()),
+  'formula-fantasy-staging': target([...CALLABLES, ...SEASON_CALLABLES, ...TRIGGERS].sort()),
   'formula-fantasy-1': target([...TRIGGERS]),
-  'lights-out-league-prod': target([...CALLABLES]),
+  'lights-out-league-prod': target([...CALLABLES, ...SEASON_CALLABLES].sort()),
 });
 
 const resolveDeployTarget = (projectId) => {
@@ -54,16 +63,23 @@ const resolveDeployTarget = (projectId) => {
 const onlyFunctionsFlag = (projectId) =>
   resolveDeployTarget(projectId).functions.map((name) => `functions:${name}`).join(',');
 
-module.exports = { TRIGGERS, CALLABLES, STAGING_ONLY_CALLABLES, DEPLOY_TARGETS, resolveDeployTarget, onlyFunctionsFlag };
+module.exports = { TRIGGERS, CALLABLES, SEASON_CALLABLES, LONG_RUNNING, DEPLOY_TARGETS, resolveDeployTarget, onlyFunctionsFlag };
 
 // `node deploy-targets.js <project> --only` prints the --only value; `--list` prints one name per
-// line. Shell scripts read it this way rather than keeping their own copy.
+// line; `--long-running` prints "<name> <timeoutSeconds> <memory in gcloud's Mi form>" per line for
+// the project's long-running functions. Shell scripts read it this way rather than keeping a copy.
 if (require.main === module) {
   const [projectId, mode = '--only'] = process.argv.slice(2);
   try {
     if (mode === '--only') console.log(onlyFunctionsFlag(projectId));
+    else if (mode === '--long-running') {
+      resolveDeployTarget(projectId).functions.filter((name) => LONG_RUNNING[name]).forEach((name) => {
+        const { timeoutSeconds, memory } = LONG_RUNNING[name];
+        console.log(`${name} ${timeoutSeconds} ${memory.replace(/MiB$/, 'Mi')}`);
+      });
+    }
     else if (mode === '--list') console.log(resolveDeployTarget(projectId).functions.join('\n'));
-    else throw new Error(`Unknown mode "${mode}". Use --only or --list.`);
+    else throw new Error(`Unknown mode "${mode}". Use --only, --list or --long-running.`);
   } catch (error) {
     console.error(error.message);
     process.exit(1);
