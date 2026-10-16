@@ -74,6 +74,11 @@ export const concludeSeasonCall = async (seasonId: string) => {
     return (await fn({ seasonId })).data;
 };
 
+export const backupLeagueCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { outputUri: string }>('backupLeague');
+    return (await fn({ seasonId })).data;
+};
+
 export const startNewSeasonCall = async (seasonId: string) => {
     const fn = getCallable<{ seasonId: string }, { nextSeasonId: string; counts: Record<string, number> }>('startNewSeason');
     return (await fn({ seasonId })).data;

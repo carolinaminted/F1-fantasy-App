@@ -5,7 +5,7 @@ import { ConfirmModal } from './ConfirmModal.tsx';
 import { CheckeredFlagIcon } from '../icons/CheckeredFlagIcon.tsx';
 import { useSeason } from '../../contexts/SeasonContext.tsx';
 import { useToast } from '../../contexts/ToastContext.tsx';
-import { concludeSeasonCall, archiveSeasonCall, startNewSeasonCall, openSeasonCall } from '../../services/firestoreService.ts';
+import { concludeSeasonCall, archiveSeasonCall, backupLeagueCall, startNewSeasonCall, openSeasonCall } from '../../services/firestoreService.ts';
 import type { SeasonStatus } from '../../services/seasonConfig.ts';
 import type { AdminDestination } from '../../routes.ts';
 
@@ -16,9 +16,7 @@ interface Step {
   title: string;
   description: string;
   /** The status this step moves the season out of; the step is current while status equals it. */
-  from: SeasonStatus | null;
-  /** Steps not built yet show only a label naming what they wait on, and no button. */
-  comingWith?: string;
+  from: SeasonStatus;
 }
 
 const STEPS: Step[] = [
@@ -26,7 +24,7 @@ const STEPS: Step[] = [
     description: 'Once every race has results or is cancelled: fix the champion and podium from the final standings.' },
   { id: 'archive', title: 'Archive season', from: 'concluded',
     description: 'Copy the season into the Hall of Fame, check the copy, and update career stats. Safe to re-run.' },
-  { id: 'backup', title: 'Take backup', from: null, comingWith: 'backup bucket',
+  { id: 'backup', title: 'Take backup', from: 'archived',
     description: 'Export the whole league database before anything is reset. Start new season requires it.' },
   { id: 'start', title: 'Start new season', from: 'archived',
     description: 'Reset standings, results and picks, set every member to Unpaid, and enter setup mode.' },
@@ -55,7 +53,7 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
   const isCurrent = (step: Step) =>
     step.id === 'archive' ? status === 'concluded' || status === 'archived' : step.from === status;
   const isDone = (step: Step) =>
-    step.from !== null && STATUS_ORDER.indexOf(status) > STATUS_ORDER.indexOf(step.from) && !isCurrent(step);
+    STATUS_ORDER.indexOf(status) > STATUS_ORDER.indexOf(step.from) && !isCurrent(step);
 
   const run = async () => {
     const step = confirming;
@@ -67,6 +65,9 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
         showToast(champions.length > 1
           ? `${label} concluded — ${champions.length} co-champions.`
           : `${label} concluded — champion decided.`, 'success');
+      } else if (step === 'backup') {
+        const { outputUri } = await backupLeagueCall(seasonId);
+        showToast(`Backup saved to ${outputUri}`, 'success');
       } else if (step === 'start') {
         const { nextSeasonId: next } = await startNewSeasonCall(seasonId);
         showToast(`${next} season set up. Members see maintenance until you open it.`, 'success');
@@ -107,7 +108,6 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
         {STEPS.map((step, i) => {
           const current = isCurrent(step);
           const done = isDone(step);
-          const actionable = current && !step.comingWith;
           return (
             <li key={step.id}>
               <Tile padding="md" glow={current}>
@@ -116,21 +116,18 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-highlight-silver">Step {i + 1}</span>
                       {done && <Chip label="Done" tone="success" size="xs" />}
-                      {step.comingWith && <Chip label={`Needs ${step.comingWith}`} tone="neutral" size="xs" />}
                     </div>
                     <h3 className="mt-1 text-base font-black uppercase italic tracking-wide text-pure-white">{step.title}</h3>
                     <p className="mt-1 text-sm text-highlight-silver">{step.description}</p>
                   </div>
-                  {!step.comingWith && (
-                    <button
-                      type="button"
-                      disabled={!actionable || busy}
-                      onClick={() => setConfirming(step.id)}
-                      className="shrink-0 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider bg-primary-red text-pure-white disabled:opacity-40"
-                    >
-                      {step.id === 'archive' && status === 'archived' ? 'Re-run' : 'Run'}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    disabled={!current || busy}
+                    onClick={() => setConfirming(step.id)}
+                    className="shrink-0 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider bg-primary-red text-pure-white disabled:opacity-40"
+                  >
+                    {step.id === 'archive' && status === 'archived' ? 'Re-run' : 'Run'}
+                  </button>
                 </div>
               </Tile>
             </li>
@@ -162,6 +159,17 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
         typedGuard={`ARCHIVE ${seasonId}`}
         busy={busy}
         busyLabel="Archiving…"
+      />
+      <ConfirmModal
+        isOpen={confirming === 'backup'}
+        onClose={() => !busy && setConfirming(null)}
+        onConfirm={run}
+        title="Back up the league database"
+        consequence="Exports every collection to Cloud Storage. Nothing in the league changes. Take one after the archive, right before starting the new season."
+        confirmLabel="Take backup"
+        tone="info"
+        busy={busy}
+        busyLabel="Backing up…"
       />
       <ConfirmModal
         isOpen={confirming === 'start'}
