@@ -12,12 +12,14 @@ const logger = functions.logger;
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const { resolveRuntimeTarget } = require("./runtime-target");
-const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
+const { resolveRuntimeServiceAccount, resolveDeployProjectId } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
 const { parseScoredEventIds } = require("./season-config");
 const { concludeSeason } = require("./season-ops/conclude");
 const { archiveSeason } = require("./season-ops/archive");
 const { resetSeason } = require("./season-ops/reset");
+const { backupLeague } = require("./season-ops/backup");
+const { resolveBackupBucket } = require("./backup-buckets");
 const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
 
@@ -343,6 +345,17 @@ const seasonOpCallable = (action, run, options = {}) => onCall({ cors: true, ...
 
 exports.concludeSeason = seasonOpCallable('season_conclude', concludeSeason);
 exports.archiveSeason = seasonOpCallable('season_archive', archiveSeason, { timeoutSeconds: 540, memory: '512MiB' });
+// The export runs against the data plane, which on the portal is not the hosting project.
+const dataProjectId = runtimeTarget ? runtimeTarget.firebaseProjectId : resolveDeployProjectId();
+const exportDocuments = async (request) => {
+    const client = new admin.firestore.v1.FirestoreAdminClient();
+    const [operation] = await client.exportDocuments(request);
+    await operation.promise();
+    return { name: operation.name };
+};
+exports.backupLeague = seasonOpCallable('season_backup', (database, { seasonId, FieldValue }) => backupLeague(database, {
+    seasonId, FieldValue, exportDocuments, projectId: dataProjectId, bucket: resolveBackupBucket(dataProjectId),
+}), { timeoutSeconds: 540, memory: '512MiB' });
 exports.startNewSeason = seasonOpCallable('season_start', resetSeason, { timeoutSeconds: 540, memory: '512MiB' });
 exports.openSeason = seasonOpCallable('season_open', openSeason);
 

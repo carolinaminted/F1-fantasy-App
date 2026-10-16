@@ -50,7 +50,7 @@ test('the portal deploys only the five callables', () => {
 });
 
 test('the season lifecycle callables run on staging but not yet on the portal', () => {
-  assert.deepEqual([...STAGING_ONLY_CALLABLES], ['archiveSeason', 'concludeSeason', 'openSeason', 'startNewSeason']);
+  assert.deepEqual([...STAGING_ONLY_CALLABLES], ['archiveSeason', 'backupLeague', 'concludeSeason', 'openSeason', 'startNewSeason']);
   STAGING_ONLY_CALLABLES.forEach((name) => {
     assert.ok(DEPLOY_TARGETS['formula-fantasy-staging'].functions.includes(name), name);
     assert.ok(!DEPLOY_TARGETS['lights-out-league-prod'].functions.includes(name), name);
