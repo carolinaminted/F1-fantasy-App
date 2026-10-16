@@ -864,14 +864,18 @@ const App: React.FC = () => {
         <header className="relative py-4 px-6 grid grid-cols-3 items-center bg-carbon-black/50 backdrop-blur-sm border-b border-accent-gray md:hidden shrink-0 z-50">
          {user ? (
            <>
-             <div onClick={() => navigateToPage('home')} className="cursor-pointer justify-self-start">
-               <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
+             <div className="flex items-center gap-3 justify-self-start">
+               <div onClick={() => navigateToPage('home')} className="cursor-pointer">
+                 <F1CarIcon className="w-10 h-10 text-primary-red" aria-hidden="true" />
+               </div>
+               {/* Admins carry an extra gear icon on the right, which pushed the toggle into the name on narrow phones. */}
+               {isUserAdmin(user) && <ThemeToggle />}
              </div>
              <div className="text-center justify-self-center">
                 <span className="font-semibold text-lg truncate">{getUserRealName(user)}</span>
              </div>
              <div className="flex items-center gap-3 justify-self-end">
-               <ThemeToggle />
+               {!isUserAdmin(user) && <ThemeToggle />}
                {isUserAdmin(user) && (
                  <button
                    onClick={() => navigateToPage('admin')}
