@@ -297,8 +297,12 @@ included), with `career_stats/{uid}` derived from them and each lifecycle step r
 - **Commits:** conventional and scoped, matching the existing log — `feat(api):`,
   `chore(functions):`, `docs(design):`, `fix(ui):`.
 - **Work-item trailer:** when a commit closes or advances a tracked item, end the message with
-  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **F1 Work
-  Items** database. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
+  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **Lights Out
+  League** database in the **JHH_Workspace** workspace
+  (<https://app.notion.com/p/9ac6781e0d2a414780901d150d90a88b>, data source
+  `collection://00be8388-7def-4d77-9962-c9dd2745a8c3`). It replaced the old **F1 Work Items**
+  database on 2026-10-16; plan pages linked from rows (Plans 1–3, AI SDLC Factory, codex-files)
+  still live in the old workspace. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
   commit with no work item is normal. Silence it with `LOL_SKIP_REFS_HINT=1`.
 
   This is worth the keystrokes: as of 2026-08-30 not one commit in the history carried an ID, so
@@ -355,7 +359,7 @@ staging design and the captured production baseline.
 ## Known open work
 
 **Season rollover is built, not deployed.** Plan 2 (Notion: Plan 2 — Season-Ending Cutover, tracked
-as `[ROLL-xx]` in F1 Work Items) is implemented on this branch, `feat/season-config`, including the
+as `[ROLL-xx]` in the Lights Out League work-item database) is implemented on this branch, `feat/season-config`, including the
 `[ROLL-10]` backup step. It is **local-only by the user's rule** — no push, no merge to `staging`, no
 staging deploy — until the user lifts it, even though the October release shipped 2026-10-15. After
 that it deploys to staging for two rehearsals with the `verify.sh` zero-drift gate.
