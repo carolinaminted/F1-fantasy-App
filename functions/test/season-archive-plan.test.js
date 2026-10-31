@@ -8,6 +8,7 @@ const live = () => ({
     race_results: { a_26: { grandPrixFinish: ['nor'] } },
     event_schedules: {}, form_locks: {}, cancelled_events: {}, scoring_config: {}, entities: {}, season_calendar: {},
     maintenance: { enabled: false }, league_config: {}, general_announcement: {}, results_announcement: {},
+    staging_seed_metadata: { seededAt: 'x' },
   },
   // The slot array is the only record of a pick's class, so it must survive byte-for-byte.
   picks: { u1: { a_26: { aTeams: ['mcl', null], bTeam: 'hass', aDrivers: ['nor'], bDrivers: [] } } },
