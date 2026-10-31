@@ -5,6 +5,14 @@
  */
 const clone = (v) => (v === undefined ? v : structuredClone(v));
 
+/** Stands in for FieldValue.delete(): an update that carries it removes the field. */
+const DELETE = Symbol('FieldValue.delete');
+const applyUpdate = (existing, data) => {
+  const next = { ...existing };
+  Object.entries(data).forEach(([k, v]) => { if (v === DELETE) delete next[k]; else next[k] = clone(v); });
+  return next;
+};
+
 const fakeFirestore = (seed = {}) => {
   const docs = new Map(Object.entries(seed).map(([p, d]) => [p, clone(d)]));
 
@@ -17,7 +25,7 @@ const fakeFirestore = (seed = {}) => {
     },
     update: async (data) => {
       if (!docs.has(path)) throw new Error(`update of missing doc ${path}`);
-      docs.set(path, { ...docs.get(path), ...clone(data) });
+      docs.set(path, applyUpdate(docs.get(path), data));
     },
   });
 
@@ -52,4 +60,4 @@ const fakeFirestore = (seed = {}) => {
   };
 };
 
-module.exports = { fakeFirestore };
+module.exports = { fakeFirestore, DELETE };
