@@ -8,6 +8,7 @@ import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { Tile, EmptyState, Chip, CATEGORY_THEME } from './ui/index.ts';
 import { AdminToolShell, ConfirmModal, useUnsavedChanges, UnsavedChangesBanner } from './admin/index.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { useSeason } from '../contexts/SeasonContext.tsx';
 import { SaveIcon } from './icons/SaveIcon.tsx';
 import { FastestLapIcon } from './icons/FastestLapIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -19,6 +20,7 @@ interface ScoringSettingsPageProps {
 }
 
 const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, setAdminSubPage }) => {
+    const { seasonId } = useSeason();
     const [localSettings, setLocalSettings] = useState<ScoringSettingsDoc>(settings);
     const [editForm, setEditForm] = useState<ScoringProfile | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -298,7 +300,7 @@ const ScoringSettingsPage: React.FC<ScoringSettingsPageProps> = ({ settings, set
                                         value={editForm.name}
                                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                                         className="w-full rounded-lg border border-pure-white/15 bg-carbon-black px-3 py-2.5 text-lg font-bold text-pure-white placeholder-highlight-silver/40 focus:border-primary-red focus:outline-none"
-                                        placeholder="Season 2026"
+                                        placeholder={`Season ${seasonId}`}
                                         disabled={isSaving}
                                     />
                                 </div>

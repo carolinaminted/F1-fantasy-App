@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
-# Deploys the five member-facing callables to lights-out-league-prod, the production portal that
-# serves formula-fantasy-1's data. Plan 3, Phase B: https://app.notion.com/p/3e30c2f763aa81a2938dc294cdf7d205
+# Deploys the callables to lights-out-league-prod, the production portal that serves
+# formula-fantasy-1's data: the five member-facing ones and the five admin-only season ones. A
+# callable the portal does not have yet is created; see "Creating" below for the one step that
+# still blocks a real create. Plan 3, Phase B: https://app.notion.com/p/3e30c2f763aa81a2938dc294cdf7d205
 #
 # Production. Every run needs explicit approval, on a weekday between race weekends.
 #
@@ -32,23 +34,50 @@ readonly DATA_PROJECT="formula-fantasy-1"
 readonly EMAIL_USER_SECRET="lol-prod-email-user"
 readonly EMAIL_PASS_SECRET="lol-prod-email-pass"
 readonly VERIFY_SCRIPT="../lol-docs/regression/verify.sh"
-# Lowest member impact first: Manual Sync is admin-only, so if a deploy breaks public access it
-# breaks there and the script stops before any sign-in path is touched.
-readonly DEPLOY_ORDER=(manualLeaderboardSync validateInvitationCode verifyAuthCode
+# Lowest member impact first: the season callables and Manual Sync are admin-only, so if a deploy
+# breaks public access it breaks there and the script stops before any sign-in path is touched.
+readonly DEPLOY_ORDER=(concludeSeason archiveSeason backupLeague startNewSeason openSeason
+                       manualLeaderboardSync validateInvitationCode verifyAuthCode
                        sendPasswordResetLink sendAuthCode)
 
 is_email_function() {
   [[ "$1" == "sendAuthCode" || "$1" == "sendPasswordResetLink" ]]
 }
 
+is_season_function() {
+  case "$1" in
+    concludeSeason|archiveSeason|backupLeague|startNewSeason|openSeason) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# "<name> <timeoutSeconds> <memory>" lines from functions/deploy-targets.js, which index.js also
+# reads, so the deployed limits are the ones the code declares. Filled in once targets are checked.
+long_running=""
+
+long_running_field() {
+  printf '%s\n' "$long_running" | awk -v fn="$1" -v col="$2" '$1 == fn { print $col }'
+}
+
 memory_for() {
-  if is_email_function "$1"; then echo "512Mi"; else echo "256Mi"; fi
+  local declared
+  declared="$(long_running_field "$1" 3)"
+  if [[ -n "$declared" ]]; then echo "$declared"
+  elif is_email_function "$1"; then echo "512Mi"
+  else echo "256Mi"; fi
+}
+
+timeout_for() {
+  local declared
+  declared="$(long_running_field "$1" 2)"
+  echo "${declared:-60}"
 }
 
 # What an anonymous POST of {"data":{}} must return. Each is a guard rejecting the call inside the
 # function, so a match proves the request reached the code. A 403 means Cloud Run refused it
 # before the code ran: public access is gone.
 expected_probe_code() {
+  if is_season_function "$1"; then echo 401; return; fi
   case "$1" in
     manualLeaderboardSync) echo 401 ;;
     verifyAuthCode) echo 200 ;;
@@ -65,8 +94,9 @@ usage() {
   cat <<'EOF'
 Usage: ./deploy-portal.sh [--dry-run]
 
-Deploys the five callables to lights-out-league-prod (production), one at a time,
-verifying each before starting the next.
+Deploys the ten callables to lights-out-league-prod (production), one at a time,
+verifying each before starting the next. A callable the portal does not have yet is
+created, not updated; the dry run lists which is which.
 
 Runs from `prod` at origin/prod with the local and staging release gates signed.
 
@@ -78,6 +108,9 @@ carries functions/deploy-targets.js, which the first release using this script d
 
   --dry-run  Run every local and read-only check, including a check that the live
              portal already matches this script's configuration, then stop.
+
+A newly created callable has no earlier revision, so it has no rollback: it is left
+in place, idle. Nothing calls a season callable until an admin uses Season Control.
 EOF
 }
 
@@ -112,6 +145,8 @@ declared="$(node functions/deploy-targets.js "$PORTAL_PROJECT" --list | sort)" \
 ordered="$(printf '%s\n' "${DEPLOY_ORDER[@]}" | sort)"
 [[ "$declared" == "$ordered" ]] \
   || fail "deploy-targets.js lists [$(echo $declared)] for $PORTAL_PROJECT, but this script deploys [$(echo $ordered)]"
+long_running="$(node functions/deploy-targets.js "$PORTAL_PROJECT" --long-running)" \
+  || fail "functions/deploy-targets.js could not list the long-running functions"
 
 # --- Source --------------------------------------------------------------------------------------
 
@@ -208,8 +243,8 @@ verify_function() {
   } | python3 -c '
 import json, sys
 
-(fn, started, runtime, sa, app_env, data_project, memory, email_fn,
- user_secret, pass_secret) = sys.argv[1:11]
+(fn, started, runtime, sa, app_env, data_project, memory, timeout, email_fn,
+ user_secret, pass_secret) = sys.argv[1:12]
 gcf_raw, run_raw = sys.stdin.read().split("@@RUN@@")
 f, run = json.loads(gcf_raw), json.loads(run_raw)
 sc = f.get("serviceConfig", {})
@@ -224,7 +259,7 @@ expect("runtime", f.get("buildConfig", {}).get("runtime"), runtime)
 expect("entry point", f.get("buildConfig", {}).get("entryPoint"), fn)
 expect("service account", sc.get("serviceAccountEmail"), sa)
 expect("memory", sc.get("availableMemory"), memory)
-expect("timeout", sc.get("timeoutSeconds"), 60)
+expect("timeout", sc.get("timeoutSeconds"), int(timeout))
 expect("max instances", sc.get("maxInstanceCount"), 2)
 expect("concurrency", sc.get("maxInstanceRequestConcurrency"), 80)
 expect("ingress", sc.get("ingressSettings"), "ALLOW_ALL")
@@ -250,7 +285,7 @@ if problems:
     sys.exit(1)
 print("  %s: config matches" % fn)
 ' "$fn" "$started" "$RUNTIME" "$RUNTIME_SERVICE_ACCOUNT" "$DATA_APP_ENV" "$DATA_PROJECT" \
-    "$(memory_for "$fn")" "$(is_email_function "$fn" && echo yes || echo no)" \
+    "$(memory_for "$fn")" "$(timeout_for "$fn")" "$(is_email_function "$fn" && echo yes || echo no)" \
     "$EMAIL_USER_SECRET" "$EMAIL_PASS_SECRET"
 }
 
@@ -269,10 +304,37 @@ probe_function() {
   echo "  $fn: anonymous probe HTTP $code, as expected"
 }
 
+# Only a not-found means "create". describe also fails on auth or network errors, and treating one
+# of those as missing would send an existing function down the create path.
+function_exists() {
+  local out
+  out="$(env -u DEBUG gcloud functions describe "$1" \
+    --project "$PORTAL_PROJECT" --region "$FUNCTIONS_REGION" --account "$PORTAL_ACCOUNT" \
+    --format='value(name)' 2>&1)" && return 0
+  [[ "$out" == *NOT_FOUND* || "$out" == *"does not exist"* || "$out" == *"status=[404]"* ]] && return 1
+  echo "$out" >&2
+  fail "could not tell whether $1 exists on $PORTAL_PROJECT (see above)"
+}
+
+echo
+echo "Asking the portal which callables it already has..."
+existing=()
+to_create=()
+for fn in "${DEPLOY_ORDER[@]}"; do
+  if function_exists "$fn"; then
+    existing+=("$fn")
+    echo "  $fn: exists, will update"
+  else
+    to_create+=("$fn")
+    echo "  $fn: not on the portal, will CREATE"
+  fi
+done
+
 echo
 echo "Checking the live portal against this script's configuration..."
 live_ok=true
-for fn in "${DEPLOY_ORDER[@]}"; do
+# ${arr[@]+"${arr[@]}"}: bash 3.2 (macOS default) treats an empty array as unbound under set -u.
+for fn in ${existing[@]+"${existing[@]}"}; do
   verify_function "$fn" || live_ok=false
   probe_function "$fn" || live_ok=false
 done
@@ -289,16 +351,36 @@ echo "Recording the revision each callable is serving (the rollback point)..."
 mkdir -p .backups
 readonly revisions_file=".backups/portal-revisions-$(date -u +%Y-%m-%dT%H-%M-%SZ).txt"
 portal_capture_revisions "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" \
-  "${DEPLOY_ORDER[@]}" || fail "could not record a rollback point for every callable (see above)"
+  ${existing[@]+"${existing[@]}"} || fail "could not record a rollback point for every callable (see above)"
 echo "  saved to $revisions_file"
 echo "  to roll back after this deploy, run the lines in that order:"
 portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" \
   | sed 's/^/    /'
+if [[ ${#to_create[@]} -gt 0 ]]; then
+  echo "  no rollback point for ${to_create[*]}: new, so a rollback leaves them in place, idle"
+fi
+
+# --- Creating ------------------------------------------------------------------------------------
+# A newly created function's Cloud Run service lacks invoker-iam-disabled, the only way this portal
+# is public (Domain Restricted Sharing forbids allUsers), so its probe would return 403. Setting it
+# means writing the Cloud Run service directly, which is how two functions' GCF records were
+# blanked in 2026-08. The safe sequence waits on a staging rehearsal (worklog/season-rollover.md,
+# 2026-10-15); until it is written into the deploy loop below, a real run refuses to create.
+readonly CREATE_SUPPORTED=false
 
 if [[ "$dry_run" == true ]]; then
   echo
-  echo "Dry run passed. No cloud resources were changed."
+  if [[ ${#to_create[@]} -gt 0 && "$CREATE_SUPPORTED" != true ]]; then
+    echo "Dry run passed, but a real run would refuse: creating ${to_create[*]} needs the"
+    echo "public-access step, which waits on a staging rehearsal. No cloud resources were changed."
+  else
+    echo "Dry run passed. No cloud resources were changed."
+  fi
   exit 0
+fi
+
+if [[ ${#to_create[@]} -gt 0 && "$CREATE_SUPPORTED" != true ]]; then
+  fail "creating ${to_create[*]} needs the public-access step, which waits on a staging rehearsal. Nothing was changed."
 fi
 
 echo
@@ -326,6 +408,9 @@ stop_after() {
   # ${arr[@]+"${arr[@]}"}: bash 3.2 (macOS default) treats an empty array as unbound under set -u.
   portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" \
     ${deployed[@]+"${deployed[@]}"} "$fn" | sed 's/^/    /' >&2
+  if [[ ${#to_create[@]} -gt 0 ]]; then
+    echo "  Newly created callables have nothing to roll back to and are left in place, idle." >&2
+  fi
   echo "  Recorded in $revisions_file. After a traffic rollback, \`gcloud functions describe\` still names the" >&2
   echo "  new revision; that mismatch is expected until the next real deploy." >&2
   exit 1
@@ -357,7 +442,7 @@ for fn in "${DEPLOY_ORDER[@]}"; do
     --build-service-account "$BUILD_SERVICE_ACCOUNT" \
     --memory "$(memory_for "$fn")" \
     --cpu 1 \
-    --timeout 60s \
+    --timeout "$(timeout_for "$fn")s" \
     --min-instances 0 \
     --max-instances 2 \
     --concurrency 80 \
@@ -366,6 +451,8 @@ for fn in "${DEPLOY_ORDER[@]}"; do
     "${secret_flags[@]}" \
     --quiet \
     || stop_after "$fn (gcloud reported a failure)"
+
+  # Creating: a newly created function's public-access step goes here (see "Creating" above).
 
   verify_function "$fn" "$started" || stop_after "$fn (configuration check failed)"
   probe_function "$fn" || stop_after "$fn (anonymous probe failed)"
@@ -390,6 +477,9 @@ Not done yet. Finish by hand:
 If any of that fails, the pre-deploy revisions are in $revisions_file. Roll back with:
 EOF
 portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" | sed 's/^/  /'
+if [[ ${#to_create[@]} -gt 0 ]]; then
+  echo "  Created this run, left in place on rollback: ${to_create[*]}"
+fi
 
 echo
 node scripts/release-work-items.mjs || true

@@ -15,6 +15,8 @@ import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { SprintIcon } from './icons/SprintIcon.tsx';
 import { useRaceStartEasterEgg, EasterEggOverlay } from './EasterEgg.tsx';
 import { calculatePointsForEvent, calculateScoreRollup } from '../services/scoringService.ts';
+import { useScoredEventIds, useSeason } from '../contexts/SeasonContext.tsx';
+import ChampionHero from './ChampionHero.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
 import { rankInCategory } from '../utils/categoryRank.ts';
 
@@ -52,6 +54,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   events, schedulesLoaded, cancelledEventIds, seasonPicks = {}, leaderboardCache,
 }) => {
   const egg = useRaceStartEasterEgg();
+  const scoredEventIds = useScoredEventIds();
+  const { status, label, finalPodium, seasonId } = useSeason();
+  const seasonOver = status === 'concluded' || status === 'archived';
   const { easterEggState, activeLights, handleTriggerClick } = egg;
 
   const nextEvent = useMemo(() => {
@@ -82,8 +87,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const rollup = useMemo(() => {
     if (!pointsSystem) return null;
-    return calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds);
-  }, [seasonPicks, raceResults, pointsSystem, allDrivers, cancelledEventIds]);
+    return calculateScoreRollup(seasonPicks, raceResults, pointsSystem, allDrivers, scoredEventIds, cancelledEventIds);
+  }, [seasonPicks, raceResults, pointsSystem, allDrivers, scoredEventIds, cancelledEventIds]);
 
   const nextPicks = nextEvent ? seasonPicks[nextEvent.id] : undefined;
   const picksReady = isPicksComplete(nextPicks);
@@ -108,7 +113,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* ---- Next race ---------------------------------------------------------- */}
       <div className="pt-4 md:pt-6">
-        {!schedulesLoaded ? (
+        {seasonOver ? (
+          <ChampionHero label={label} finalPodium={finalPodium} onViewStandings={() => setActivePage('leaderboard')}
+            onOpenHallOfFame={status === 'archived'
+              ? () => setActivePage('leaderboard', { search: `view=hall&season=${seasonId}` })
+              : undefined} />
+        ) : !schedulesLoaded ? (
           <Tile glow padding="lg">
             <div className="animate-pulse flex flex-col lg:flex-row lg:items-center gap-6">
               <div className="flex-1 flex flex-col items-center lg:items-start gap-3">

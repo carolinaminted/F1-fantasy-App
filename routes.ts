@@ -91,7 +91,7 @@ export const DEV_UI_PATH = '/dev/ui';
  */
 export const ADMIN_TOOLS = [
   'results', 'manage-users', 'scoring', 'entities',
-  'schedule', 'invitations', 'database', 'announcements',
+  'schedule', 'invitations', 'database', 'announcements', 'season',
 ] as const;
 
 export type AdminTool = (typeof ADMIN_TOOLS)[number];

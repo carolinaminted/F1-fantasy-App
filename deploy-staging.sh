@@ -16,7 +16,8 @@ readonly STAGING_BUILD_SA="projects/formula-fantasy-staging/serviceAccounts/3429
 readonly STAGING_FUNCTIONS_REGION="us-central1"
 # Every function this project deploys. Gen 2 functions are Cloud Run services underneath, and
 # that service is named with the function name lowercased — hence `run_service_name` below.
-readonly STAGING_FUNCTIONS=(manualLeaderboardSync sendAuthCode sendPasswordResetLink
+readonly STAGING_FUNCTIONS=(archiveSeason backupLeague concludeSeason manualLeaderboardSync openSeason
+                            sendAuthCode sendPasswordResetLink startNewSeason
                             updateLeaderboardOnCancellation updateLeaderboardOnResults
                             validateInvitationCode verifyAuthCode)
 # Only these two functions read email credentials. They are re-bound after every

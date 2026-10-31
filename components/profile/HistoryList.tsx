@@ -12,7 +12,7 @@ import { LockIcon } from '../icons/LockIcon.tsx';
 import { pickSubmittedAt, formatLeagueDateTime, parseLeagueDate } from '../../utils/dateUtils.ts';
 import { classifyEvent, type EventStatus } from '../../utils/eventStatus.ts';
 import { calculatePointsForEvent } from '../../services/scoringService.ts';
-import { CURRENT_SEASON } from '../../constants.ts';
+import { useSeason } from '../../contexts/SeasonContext.tsx';
 import type { Event, PickSelection, RaceResults, PointsSystem, Driver } from '../../types.ts';
 
 export type EventCategory = 'gp' | 'sprint' | 'quali' | 'fl' | 'sprintQuali';
@@ -67,6 +67,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
   events, seasonPicks, raceResults, pointsSystem, allDrivers,
   getEntityName, onDetailClick, onUpdatePenalty, isPublicView, cancelledEventIds, joinedAt,
 }) => {
+  const { seasonId } = useSeason();
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const now = Date.now();
 
@@ -99,7 +100,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
           <EmptyState
             icon={PicksIcon}
             title="No History Yet"
-            description={`Your Grand Prix picks and scoring results will appear here once you submit your first entry for the ${CURRENT_SEASON} season.`}
+            description={`Your Grand Prix picks and scoring results will appear here once you submit your first entry for the ${seasonId} season.`}
           />
         </Tile>
       )}

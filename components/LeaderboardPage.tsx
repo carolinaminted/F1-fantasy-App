@@ -7,6 +7,7 @@ import { P22View } from './standings/P22View.tsx';
 import { InsightsView } from './standings/InsightsView.tsx';
 import { TrendsView } from './standings/TrendsView.tsx';
 import { EntityPointsView } from './standings/EntityPointsView.tsx';
+import HallOfFameView from './standings/HallOfFameView.tsx';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
 import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -40,7 +41,7 @@ const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
 // --- Shared Types & Helpers ---
 
-type ViewState = 'standings' | 'popular' | 'insights' | 'entities' | 'p22' | 'executive';
+type ViewState = 'standings' | 'popular' | 'insights' | 'entities' | 'p22' | 'executive' | 'hall';
 
 const VIEWS: Segment<ViewState>[] = [
     { value: 'standings', label: 'Standings' },
@@ -49,6 +50,7 @@ const VIEWS: Segment<ViewState>[] = [
     { value: 'entities',  label: 'Driver & Team Points' },
     { value: 'insights',  label: 'Insights' },
     { value: 'p22',       label: 'P22' },
+    { value: 'hall',      label: 'Hall of Fame' },
 ];
 
 const isCategory = (v: string | null): v is Category =>
@@ -656,6 +658,16 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
             {view === 'insights' && <InsightsView users={processedUsers} currentUser={currentUser} initialCategory={insightsCategory} />}
             {view === 'entities' && <EntityPointsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'p22' && <P22View users={processedUsers} currentUser={currentUser} />}
+            {view === 'hall' && (
+              <HallOfFameView
+                seasonId={searchParams.get('season')}
+                onSelectSeason={(id) => setParam('season', id)}
+                // Read-only: no profile modal from archived rows, which would show live data.
+                renderLeaderboard={(users) => (
+                  <RaceChart users={users} currentUser={currentUser} hasMore={false} onFetchMore={() => {}} isPaging={false} />
+                )}
+              />
+            )}
           </div>
 
           <Drawer

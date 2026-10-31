@@ -3,9 +3,10 @@ import { db, auth } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
-import { EVENTS, LEAGUE_DUES_AMOUNT } from '../constants.ts';
+import { LEAGUE_DUES_AMOUNT } from '../constants.ts';
 import { cancelApiEvent, restoreApiEvent, saveApiRaceResults, triggerApiLeaderboardSync } from './apiService.ts';
 import { getCallable } from './callableService.ts';
+import { parsePodium, type PodiumEntry } from './seasonConfig.ts';
 
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
@@ -29,6 +30,68 @@ export const triggerManualLeaderboardSync = async () => {
     const syncFn = getCallable<unknown, { success: boolean, usersProcessed: number }>('manualLeaderboardSync');
     const result = await syncFn();
     return result.data as { success: boolean, usersProcessed: number };
+};
+
+export interface SeasonArchiveSummary {
+    seasonId: string;
+    label: string;
+    finalPodium: PodiumEntry[];
+}
+
+/** Every archived season, newest first. Archives are read-only to every client. */
+export const getSeasonArchives = async (): Promise<SeasonArchiveSummary[]> => {
+    const snap = await getDocs(collection(db, 'season_archives'));
+    return snap.docs
+        .map(d => ({
+            seasonId: d.id,
+            label: typeof d.data().label === 'string' ? d.data().label : d.id,
+            finalPodium: parsePodium(d.data().finalPodium),
+        }))
+        .sort((a, b) => b.seasonId.localeCompare(a.seasonId));
+};
+
+/** A season's final standings as archived, ranked with shared places. */
+export const getArchivedStandings = async (seasonId: string): Promise<User[]> => {
+    const snap = await getDocs(collection(db, 'season_archives', seasonId, 'standings'));
+    return snap.docs
+        .map(d => {
+            const data = d.data();
+            return {
+                id: d.id,
+                email: '',
+                displayName: data.displayName || 'Unknown Team',
+                totalPoints: Number(data.totalPoints) || 0,
+                breakdown: data.breakdown,
+                rank: data.finalRank,
+                displayRank: data.finalRank,
+            } as User;
+        })
+        .sort((a, b) => ((a.rank ?? 999) - (b.rank ?? 999)) || a.displayName.localeCompare(b.displayName));
+};
+
+export const concludeSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { champions: string[]; podium: string[] }>('concludeSeason');
+    return (await fn({ seasonId })).data;
+};
+
+export const backupLeagueCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { outputUri: string }>('backupLeague');
+    return (await fn({ seasonId })).data;
+};
+
+export const startNewSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { nextSeasonId: string; counts: Record<string, number> }>('startNewSeason');
+    return (await fn({ seasonId })).data;
+};
+
+export const openSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { scoredEventIds: string[] }>('openSeason');
+    return (await fn({ seasonId })).data;
+};
+
+export const archiveSeasonCall = async (seasonId: string) => {
+    const fn = getCallable<{ seasonId: string }, { ok: boolean; mismatches: string[]; counts: Record<string, number> }>('archiveSeason');
+    return (await fn({ seasonId })).data;
 };
 
 export const getUserProfile = async (uid: string): Promise<User | null> => {
@@ -109,6 +172,10 @@ export const purgeUserData = async (uid: string) => {
     // 3. Delete Picks
     const picksRef = doc(db, 'userPicks', uid);
     await deleteDoc(picksRef);
+
+    // 3b. Delete Career Stats. Archived seasons are kept: past standings keep everyone who took part.
+    const careerRef = doc(db, 'career_stats', uid);
+    await deleteDoc(careerRef);
 
     // 4. Delete Dues Payments (Query)
     const duesQ = query(collection(db, 'dues_payments'), where('uid', '==', uid));

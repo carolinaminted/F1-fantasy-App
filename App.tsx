@@ -19,10 +19,11 @@ const ScoringSettingsPage = lazy(() => import('./components/ScoringSettingsPage.
 const AdminInvitationPage = lazy(() => import('./components/AdminInvitationPage.tsx'));
 const DatabaseManagerPage = lazy(() => import('./components/DatabaseManagerPage.tsx'));
 const AdminAnnouncementsPage = lazy(() => import('./components/AdminAnnouncementsPage.tsx'));
+const SeasonControlPage = lazy(() => import('./components/admin/SeasonControlPage.tsx'));
 import LeagueHubPage from './components/LeagueHubPage.tsx';
 import SessionWarningModal from './components/SessionWarningModal.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
-import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule, LeaderboardCache, CancelledEventsState } from './types.ts';
+import { User, PickSelection, RaceResults, PointsSystem, Driver, Constructor, ScoringSettingsDoc, EventSchedule, LeaderboardCache, CancelledEventsState, Event } from './types.ts';
 import { HomeIcon } from './components/icons/HomeIcon.tsx';
 import { DonationIcon } from './components/icons/DonationIcon.tsx';
 import { PicksIcon } from './components/icons/PicksIcon.tsx';
@@ -36,7 +37,7 @@ import { GarageIcon } from './components/icons/GarageIcon.tsx';
 import { CalendarIcon } from './components/icons/CalendarIcon.tsx';
 import { LeagueIcon } from './components/icons/LeagueIcon.tsx';
 import { ChevronDownIcon } from './components/icons/ChevronDownIcon.tsx';
-import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS, EVENTS } from './constants.ts';
+import { RACE_RESULTS, DEFAULT_POINTS_SYSTEM, DRIVERS, CONSTRUCTORS } from './constants.ts';
 import {
   pathForPage, pageForPath, DEV_UI_PATH, REDIRECTS,
   isAdminTool, LOCKED_ADMIN_TOOLS, type AdminDestination,
@@ -50,6 +51,8 @@ import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
 import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveEventRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
+import { parseSeasonConfig, parseSeasonCalendar, type SeasonConfig } from './services/seasonConfig.ts';
+import { SeasonProvider } from './contexts/SeasonContext.tsx';
 import { useSessionGuard } from './hooks/useSessionGuard.ts';
 import { AppSkeleton } from './components/LoadingSkeleton.tsx';
 import { useToast } from './contexts/ToastContext.tsx';
@@ -267,9 +270,12 @@ const App: React.FC = () => {
   const [raceResults, setRaceResults] = useState<RaceResults>({});
   const [formLocks, setFormLocks] = useState<{ [eventId: string]: boolean }>({});
   const [eventSchedules, setEventSchedules] = useState<{ [eventId: string]: EventSchedule }>({});
-  // EVENTS ships with empty lock times, so until this snapshot lands every event looks past.
+  // The season calendar ships with empty lock times, so until this snapshot lands every event looks past.
   const [schedulesLoaded, setSchedulesLoaded] = useState(false);
   const [cancelledEvents, setCancelledEvents] = useState<CancelledEventsState | null>(null);
+  // 'loading' until the first snapshot; null when the document is missing or malformed.
+  const [seasonConfig, setSeasonConfig] = useState<SeasonConfig | null | 'loading'>('loading');
+  const [calendarEvents, setCalendarEvents] = useState<Event[] | null | 'loading'>('loading');
   const [leaderboardResetToken, setLeaderboardResetToken] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -352,7 +358,8 @@ const App: React.FC = () => {
 
   // Dynamic Events State - Merge static constants with DB overrides
   const mergedEvents = useMemo(() => {
-      return EVENTS.map(e => {
+      if (!Array.isArray(calendarEvents)) return [];
+      return calendarEvents.map(e => {
           const sched = eventSchedules[e.id];
           const hasSprint = sched?.hasSprint !== undefined ? sched.hasSprint : e.hasSprint;
           
@@ -374,13 +381,13 @@ const App: React.FC = () => {
               raceAtUtc: sched?.race || lockAt
           };
       });
-  }, [eventSchedules]);
+  }, [calendarEvents, eventSchedules]);
 
   // Calculate live points for the current user to ensure SideNav is always up to date
   const currentTotalPoints = useMemo(() => {
-      if (!user) return 0;
-      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers, cancelledEventIds).totalPoints;
-  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user, cancelledEventIds]);
+      if (!user || !seasonConfig || seasonConfig === 'loading') return 0;
+      return calculateScoreRollup(seasonPicks, raceResults, activePointsSystem, allDrivers, seasonConfig.scoredEventIds, cancelledEventIds).totalPoints;
+  }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user, seasonConfig, cancelledEventIds]);
 
   // Centralized Data Fetch for Leaderboard (Standard Batch)
   const fetchLeaderboardData = useCallback(async () => {
@@ -421,6 +428,8 @@ const App: React.FC = () => {
     let unsubscribeSchedules = () => {};
     let unsubscribePublicProfile = () => {};
     let unsubscribeCancelled = () => {};
+    let unsubscribeSeasonConfig = () => {};
+    let unsubscribeCalendar = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       unsubscribeResults();
@@ -431,6 +440,8 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
       unsubscribeCancelled();
+      unsubscribeSeasonConfig();
+      unsubscribeCalendar();
 
       // Clear caches on auth change
       publicProfileDataRef.current = null;
@@ -575,6 +586,27 @@ const App: React.FC = () => {
             }
         }, (error) => console.error("Firestore listener error (cancelled_events):", error));
 
+        const seasonConfigRef = doc(db, 'season_config', 'current');
+        unsubscribeSeasonConfig = onSnapshot(seasonConfigRef, (docSnap) => {
+            const parsed = docSnap.exists() ? parseSeasonConfig(docSnap.data()) : null;
+            if (!parsed) console.error('season_config/current is missing or malformed.');
+            setSeasonConfig(parsed);
+        }, (error) => {
+            // A refused read must end the skeleton too, or the app hangs on it forever.
+            console.error("Firestore listener error (season_config):", error);
+            setSeasonConfig(null);
+        });
+
+        const calendarRef = doc(db, 'app_state', 'season_calendar');
+        unsubscribeCalendar = onSnapshot(calendarRef, (docSnap) => {
+            const parsed = docSnap.exists() ? parseSeasonCalendar(docSnap.data()) : null;
+            if (!parsed) console.error('app_state/season_calendar is missing or malformed.');
+            setCalendarEvents(parsed);
+        }, (error) => {
+            console.error("Firestore listener error (season_calendar):", error);
+            setCalendarEvents(null);
+        });
+
         // Listener 2: User Picks (Realtime Penalties/Selections)
         const picksRef = doc(db, 'userPicks', firebaseUser.uid);
         unsubscribePicks = onSnapshot(picksRef, (picksSnap) => {
@@ -596,6 +628,8 @@ const App: React.FC = () => {
         setAllDrivers(DRIVERS);
         setAllConstructors(CONSTRUCTORS);
         setCancelledEvents(null);
+        setSeasonConfig('loading');
+        setCalendarEvents('loading');
         setIsAuthenticated(false);
         setHasSession(false);
         setIsLoading(false);
@@ -614,6 +648,8 @@ const App: React.FC = () => {
       unsubscribeSchedules();
       unsubscribePublicProfile();
       unsubscribeCancelled();
+      unsubscribeSeasonConfig();
+      unsubscribeCalendar();
     };
   }, []); 
 
@@ -783,11 +819,13 @@ const App: React.FC = () => {
             case 'entities':
                 return <ManageEntitiesPage setAdminSubPage={setAdminSubPage} currentDrivers={allDrivers} currentConstructors={allConstructors} onUpdateEntities={handleEntitiesUpdate} />;
             case 'schedule':
-                return <ManageSchedulePage setAdminSubPage={setAdminSubPage} existingSchedules={eventSchedules} onScheduleUpdate={handleScheduleUpdate} />;
+                return <ManageSchedulePage setAdminSubPage={setAdminSubPage} events={calendarEvents as Event[]} existingSchedules={eventSchedules} onScheduleUpdate={handleScheduleUpdate} />;
             case 'invitations':
                 return <AdminInvitationPage setAdminSubPage={setAdminSubPage} user={user} />;
             case 'database':
                 return <DatabaseManagerPage setAdminSubPage={setAdminSubPage} />;
+            case 'season':
+                return <SeasonControlPage setAdminSubPage={setAdminSubPage} />;
             case 'announcements':
                 return <AdminAnnouncementsPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} />;
             default:
@@ -828,6 +866,14 @@ const App: React.FC = () => {
   // Maintenance Mode Check
   if (maintenance?.enabled && user && !user.isAdmin) {
       return <RedFlagScreen message={maintenance.message} />;
+  }
+
+  // The season documents define what exists at all; without them there is nothing to show.
+  if (isAuthenticated && (seasonConfig === 'loading' || calendarEvents === 'loading')) {
+    return <AppSkeleton />;
+  }
+  if (isAuthenticated && (!seasonConfig || !calendarEvents)) {
+    return <RedFlagScreen message="The season calendar is unavailable. The league admins have been notified." />;
   }
 
   const appContent = (
@@ -1003,7 +1049,9 @@ const App: React.FC = () => {
     </div>
   );
   
-  return isAuthenticated ? appContent : authFlow;
+  return isAuthenticated && seasonConfig && seasonConfig !== 'loading'
+    ? <SeasonProvider season={seasonConfig}>{appContent}</SeasonProvider>
+    : authFlow;
 };
 
 interface NavItemProps {

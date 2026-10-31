@@ -12,6 +12,7 @@ import { auth } from '../services/firebase.ts';
 import { Tile, SectionHeader, Banner, Chip, EventSelector } from './ui/index.ts';
 import { ConfirmModal, Toggle } from './admin/index.ts';
 import { validateLineup } from '../services/pickValidation.ts';
+import { useScoredEventIds } from '../contexts/SeasonContext.tsx';
 
 interface AdminUserProfileViewProps {
     targetUser: User;
@@ -26,6 +27,7 @@ interface AdminUserProfileViewProps {
 }
 
 const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser, raceResults, pointsSystem, onUpdateUser, onDeleteUser, allDrivers, allConstructors, events, cancelledEventIds }) => {
+    const scoredEventIds = useScoredEventIds();
     const [seasonPicks, setSeasonPicks] = useState<{ [eventId: string]: PickSelection }>({});
     const [isLoading, setIsLoading] = useState(true);
     
@@ -92,6 +94,7 @@ const AdminUserProfileView: React.FC<AdminUserProfileViewProps> = ({ targetUser,
             picks: adminPicks,
             eventId: selectedEventId,
             seasonPicks,
+            scoredEventIds,
             cancelledEventIds,
             allDrivers,
             allConstructors,

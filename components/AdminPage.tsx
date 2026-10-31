@@ -194,6 +194,18 @@ const AdminPage: React.FC<AdminPageProps> = ({
             ],
         },
         {
+            title: 'Season',
+            subtitle: 'End one season, start the next',
+            tools: [
+                {
+                    icon: CheckeredFlagIcon,
+                    title: 'Season Control',
+                    description: 'Conclude and archive the season, then set up the next one.',
+                    tool: 'season',
+                },
+            ],
+        },
+        {
             title: 'Announcements',
             subtitle: 'Talking to the league',
             tools: [

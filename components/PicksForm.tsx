@@ -16,6 +16,7 @@ import { F1CarIcon } from './icons/F1CarIcon.tsx';
 import { XCircleIcon } from './icons/XCircleIcon.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { validateLineup } from '../services/pickValidation.ts';
+import { useScoredEventIds, useSeason } from '../contexts/SeasonContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Countdown } from './ui/index.ts';
 import { parseLeagueDate, LEAGUE_TIMEZONE, pickSubmittedAt, formatLeagueDateTime } from '../utils/dateUtils.ts';
@@ -90,6 +91,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
   hasRemaining,
   cancelledEventIds
 }) => {
+  const scoredEventIds = useScoredEventIds();
+  const { seasonId } = useSeason();
   const [picks, setPicks] = useState<PickSelection>(initialPicksForEvent || getInitialPicks());
   const [isEditing, setIsEditing] = useState<boolean>(!initialPicksForEvent);
   const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
@@ -219,10 +222,11 @@ const PicksForm: React.FC<PicksFormProps> = ({
     picks,
     eventId: event.id,
     seasonPicks,
+    scoredEventIds,
     cancelledEventIds,
     allDrivers,
     allConstructors,
-  }), [picks, event.id, seasonPicks, cancelledEventIds, allDrivers, allConstructors]);
+  }), [picks, event.id, seasonPicks, scoredEventIds, cancelledEventIds, allDrivers, allConstructors]);
 
   // Helper for submit confirmation check
   const hasEmptySlots = () => {
@@ -507,7 +511,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
                 <div className="flex-1 text-center md:text-left">
                     <h3 className="text-xl md:text-2xl font-black text-pure-white uppercase tracking-tighter italic mb-1">Session Officially Cancelled</h3>
                     <p className="text-highlight-silver text-sm leading-relaxed max-w-2xl">
-                        This Grand Prix has been removed from the 2026 championship calendar. 
+                        This Grand Prix has been removed from the {seasonId} championship calendar. 
                         Picks for this event will <span className="text-red-500 font-bold">not count</span> towards usage limits or seasonal scoring.
                     </p>
                 </div>

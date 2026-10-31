@@ -13,6 +13,7 @@ import { Page } from '../App.tsx';
 import { BackIcon } from './icons/BackIcon.tsx';
 import { parseLeagueDate, LEAGUE_TIMEZONE, leagueZoneName } from '../utils/dateUtils.ts';
 import { hasEventResults } from '../utils/eventStatus.ts';
+import { useSeason } from '../contexts/SeasonContext.tsx';
 
 interface SchedulePageProps {
     schedules: { [eventId: string]: EventSchedule };
@@ -72,6 +73,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
     initialViewResults = false,
     detailMode = 'modal'
 }) => {
+  const { label: seasonLabel } = useSeason();
     const [viewMode, setViewMode] = useState<'upcoming' | 'full'>('upcoming');
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [modalInitialView, setModalInitialView] = useState<'timetable' | 'results'>('timetable');
@@ -309,7 +311,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
                                 </div>
                             ) : (
                                 <div className="bg-carbon-fiber rounded-2xl p-8 border border-pure-white/5 text-center mb-6 opacity-60">
-                                    <p className="text-highlight-silver italic">The 2026 Season has concluded.</p>
+                                    <p className="text-highlight-silver italic">The {seasonLabel} has concluded.</p>
                                 </div>
                             )}
 

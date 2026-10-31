@@ -12,9 +12,16 @@ const logger = functions.logger;
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const { resolveRuntimeTarget } = require("./runtime-target");
-const { resolveRuntimeServiceAccount } = require("./runtime-service-account");
+const { resolveRuntimeServiceAccount, resolveDeployProjectId } = require("./runtime-service-account");
 const { resolveEmailSecretNames } = require("./email-secrets");
-const { SEASON_EVENT_IDS } = require("./season-events");
+const { parseScoredEventIds } = require("./season-config");
+const { concludeSeason } = require("./season-ops/conclude");
+const { archiveSeason } = require("./season-ops/archive");
+const { resetSeason } = require("./season-ops/reset");
+const { backupLeague } = require("./season-ops/backup");
+const { resolveBackupBucket } = require("./backup-buckets");
+const { LONG_RUNNING } = require("./deploy-targets");
+const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
 const { resolveClientIp } = require("./client-ip");
 const { normalizeEmail } = require("./email-address");
@@ -134,14 +141,17 @@ const recalculateEntireLeague = async () => {
     logger.info("Starting recalculateEntireLeague...");
     
     // Fetch picks, results, config, user profiles, AND cancelled events
-    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap, cancelledSnap] = await Promise.all([
+    const [resultsSnap, picksSnap, scoringSnap, entitiesSnap, usersSnap, cancelledSnap, seasonSnap] = await Promise.all([
         db.collection('app_state').doc('race_results').get(),
         db.collection('userPicks').get(),
         db.collection('app_state').doc('scoring_config').get(),
         db.collection('app_state').doc('entities').get(),
         db.collection('users').get(),
-        db.collection('app_state').doc('cancelled_events').get()
+        db.collection('app_state').doc('cancelled_events').get(),
+        db.collection('season_config').doc('current').get()
     ]);
+
+    const scoredEventIds = parseScoredEventIds(seasonSnap);
 
     if (!resultsSnap.exists) {
         logger.warn("Recalculation aborted: No race results found.");
@@ -188,10 +198,9 @@ const recalculateEntireLeague = async () => {
         let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 
         Object.keys(allUserPicks).forEach(eventId => {
-            // Skip events that are not on the current calendar. Picks are keyed by event id and
-            // outlive the calendar, so a dropped or prior-season event would otherwise keep
-            // scoring here while the client drops it.
-            if (!SEASON_EVENT_IDS.has(eventId)) return;
+            // Picks are keyed by event id and outlive the calendar, so only events the season
+            // config names may score — otherwise a prior-season pick keeps scoring here.
+            if (!scoredEventIds.has(eventId)) return;
             // Skip cancelled events — no points awarded
             if (cancelledEventIds.has(eventId)) return;
             const result = raceResults[eventId];
@@ -274,6 +283,17 @@ const checkRateLimit = async (request, operation, limit, windowSeconds) => {
     });
 };
 
+const requireAdmin = async (request, action) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Login required.');
+    }
+    const userDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!userDoc.exists || !userDoc.data().isAdmin) {
+        logger.error(`Unauthorized ${action} attempt from ${request.auth.uid}`);
+        throw new HttpsError('permission-denied', 'Only admins can do this.');
+    }
+};
+
 // --- EXPORTED FUNCTIONS ---
 
 exports.updateLeaderboardOnResults = onDocumentWritten(
@@ -294,15 +314,7 @@ exports.updateLeaderboardOnCancellation = onDocumentWritten(
 );
 
 exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
-    if (!request.auth) {
-        throw new HttpsError('unauthenticated', 'Login required.');
-    }
-
-    const userDoc = await db.collection('users').doc(request.auth.uid).get();
-    if (!userDoc.exists || !userDoc.data().isAdmin) {
-        logger.error(`Unauthorized manual sync attempt from ${request.auth.uid}`);
-        throw new HttpsError('permission-denied', 'Only admins can trigger a league sync.');
-    }
+    await requireAdmin(request, 'manual sync');
 
     await checkRateLimit(request, 'manual_sync', 5, 300);
 
@@ -314,6 +326,47 @@ exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
         throw new HttpsError('internal', 'Recalculation failed on server.');
     }
 });
+
+/**
+ * One admin-only callable per season lifecycle step. The step modules enforce every precondition
+ * and throw a message written for the admin, which is passed back as failed-precondition.
+ */
+const seasonOpCallable = (action, run, options = {}) => onCall({ cors: true, ...options }, async (request) => {
+    await requireAdmin(request, action);
+    await checkRateLimit(getClientIp(request), 'season_ops', 5, 300);
+    const seasonId = request.data && request.data.seasonId;
+    if (typeof seasonId !== 'string' || !seasonId) {
+        throw new HttpsError('invalid-argument', 'seasonId is required.');
+    }
+    const log = (ok) => db.collection('admin_logs').add({
+        action, seasonId, uid: request.auth.uid, ok, at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    try {
+        const result = await run(db, { seasonId, FieldValue: admin.firestore.FieldValue });
+        await log(result.ok !== false);
+        return result;
+    } catch (err) {
+        await log(false);
+        logger.error(`${action} failed:`, err);
+        throw new HttpsError('failed-precondition', err.message);
+    }
+});
+
+exports.concludeSeason = seasonOpCallable('season_conclude', concludeSeason);
+exports.archiveSeason = seasonOpCallable('season_archive', archiveSeason, LONG_RUNNING.archiveSeason);
+// The export runs against the data plane, which on the portal is not the hosting project.
+const dataProjectId = runtimeTarget ? runtimeTarget.firebaseProjectId : resolveDeployProjectId();
+const exportDocuments = async (request) => {
+    const client = new admin.firestore.v1.FirestoreAdminClient();
+    const [operation] = await client.exportDocuments(request);
+    await operation.promise();
+    return { name: operation.name };
+};
+exports.backupLeague = seasonOpCallable('season_backup', (database, { seasonId, FieldValue }) => backupLeague(database, {
+    seasonId, FieldValue, exportDocuments, projectId: dataProjectId, bucket: resolveBackupBucket(dataProjectId),
+}), LONG_RUNNING.backupLeague);
+exports.startNewSeason = seasonOpCallable('season_start', resetSeason, LONG_RUNNING.startNewSeason);
+exports.openSeason = seasonOpCallable('season_open', openSeason);
 
 exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
   const email = normalizeEmail(request.data.email);
