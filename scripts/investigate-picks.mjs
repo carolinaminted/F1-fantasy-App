@@ -6,8 +6,9 @@
 // Usage:
 //   scripts/investigate-picks.mjs --inv INV-002 --email member@example.com --event sgp_26 [--event usa_26] [--slug short-name]
 //
-// Run it the day a dispute arrives. Picks carry no timestamp and nothing logs a member's save, so
-// the only write history is Firestore point-in-time recovery, which reaches back 7 days.
+// Run it the day a dispute arrives. Picks saved since [PICK-02] carry a server submittedAt, but only
+// for their latest save and nothing logs earlier ones, so the write history is still Firestore
+// point-in-time recovery, which reaches back 7 days.
 //
 // It only ever issues GETs plus the two read-shaped POSTs (accounts:lookup, :runQuery), and it is
 // pinned to formula-fantasy-1 with no override: there is nothing here that should run anywhere else.
@@ -17,6 +18,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { calculatePointsForEvent } from '../services/scoringService.ts';
+import { EVENTS } from '../constants.ts';
+import { parseLeagueDate } from '../utils/dateUtils.ts';
 
 const PROJECT = 'formula-fantasy-1';
 const ACCOUNT = 'jhh@carolinaminted.net';
@@ -161,8 +164,18 @@ for (const eventId of args.events) {
   say(`\n${eventId}: qualifying ${s?.qualifying ?? '?'} / race ${s?.race ?? '?'} (league time, America/New_York)`);
   if (!(eventId in picks)) { say('  no picks for this event in the current document'); continue; }
   say(`  picks ${JSON.stringify(picks[eventId])}`);
+  // The lock rule App.tsx applies to the picks form, so "before lock" means what the member saw.
+  const hasSprint = s?.hasSprint ?? EVENTS.find((e) => e.id === eventId)?.hasSprint;
+  const lockAt = parseLeagueDate(s?.customLockAt || (hasSprint ? s?.sprintQualifying || s?.qualifying : s?.qualifying)
+    || EVENTS.find((e) => e.id === eventId)?.lockAtUtc);
+  const submittedAt = picks[eventId].submittedAt;
+  if (!submittedAt) say(`  submittedAt none (saved before [PICK-02] shipped, or by an edit that dropped it); lock ${fmt(lockAt)}`);
+  else {
+    const verdict = !lockAt ? 'lock time unknown' : new Date(submittedAt) <= lockAt ? 'BEFORE lock' : 'AFTER lock';
+    say(`  submittedAt ${fmt(submittedAt)}; lock ${fmt(lockAt)} — ${verdict} (server clock; marks the latest save only)`);
+  }
   const res = allResults[eventId];
-  if (!res) { say('  no results entered yet — every member shows 0 until they are'); continue; }
+  if (!res) { say('  no results entered yet'); continue; }
   const pts = calculatePointsForEvent(picks[eventId], res, res.scoringSnapshot || activeSystem, drivers);
   say(`  re-scored with the client engine: ${pts.totalPoints} (GP ${pts.grandPrixPoints}, sprint ${pts.sprintPoints}, quali ${pts.gpQualifyingPoints + pts.sprintQualifyingPoints}, FL ${pts.fastestLapPoints}, penalty ${pts.penaltyPoints})`);
 }
