@@ -419,6 +419,20 @@ const App: React.FC = () => {
     }
   }, [hasSession, leaderboardCache, fetchLeaderboardData]);
 
+  // The league cache is a one-off read, so a season step (conclude, start new season, open)
+  // would leave every open tab showing the old season's standings on Home until someone
+  // visited Standings. Drop it whenever the season's id or status changes; the warm-up effect
+  // above refetches and the Standings page reloads from the new cache.
+  const seasonKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (seasonConfig === 'loading' || !seasonConfig) return;
+    const key = `${seasonConfig.seasonId}:${seasonConfig.status}`;
+    if (seasonKeyRef.current !== null && seasonKeyRef.current !== key) {
+      setLeaderboardCache(null);
+    }
+    seasonKeyRef.current = key;
+  }, [seasonConfig]);
+
   useEffect(() => {
     let unsubscribeResults = () => {};
     let unsubscribeLocks = () => {};

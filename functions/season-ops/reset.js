@@ -54,8 +54,11 @@ const resetSeason = async (db, { seasonId, FieldValue }) => {
   usersSnap.docs.forEach((d) => duesWriter.set(d.ref, { ...d.data(), duesPaidStatus: 'Unpaid' }));
   await duesWriter.close();
 
+  // The old season's finish stays in its archive; the new config must not carry it.
   await db.doc('season_config/current').update({
     activeSeasonId: nextSeasonId, label: `${nextSeasonId} Season`, status: 'setup', scoredEventIds: [],
+    champions: FieldValue.delete(), podium: FieldValue.delete(),
+    finalPodium: FieldValue.delete(), concludedAt: FieldValue.delete(),
   });
   const counts = { members: publicSnap.size, picksCleared: picksSnap.size, users: usersSnap.size };
   await db.doc(`season_ops/${seasonId}`).set({ reset: {

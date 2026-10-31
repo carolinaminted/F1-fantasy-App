@@ -1,12 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fakeFirestore } = require('./helpers/fake-firestore');
+const { fakeFirestore, DELETE } = require('./helpers/fake-firestore');
 const { resetSeason } = require('../season-ops/reset');
 
-const FieldValue = { serverTimestamp: () => 'SERVER_TIME' };
+const FieldValue = { serverTimestamp: () => 'SERVER_TIME', delete: () => DELETE };
 const ZERO = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
 const seed = (over = {}) => ({
-  'season_config/current': { activeSeasonId: '2026', label: '2026 Season', status: 'archived', scoredEventIds: ['a_26'] },
+  'season_config/current': {
+    activeSeasonId: '2026', label: '2026 Season', status: 'archived', scoredEventIds: ['a_26'],
+    champions: ['u1'], podium: ['u1'], finalPodium: [{ uid: 'u1', finalRank: 1 }], concludedAt: 'T',
+  },
   'season_archives/2026': { seasonId: '2026' },
   'season_ops/2026': { archive: { state: 'verified', finishedAt: 1000 }, backup: { state: 'done', at: 2000 } },
   'app_state/maintenance': { enabled: false },

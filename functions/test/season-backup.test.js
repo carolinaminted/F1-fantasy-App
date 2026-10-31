@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fakeFirestore } = require('./helpers/fake-firestore');
+const { fakeFirestore, DELETE } = require('./helpers/fake-firestore');
 const { backupLeague } = require('../season-ops/backup');
 
-const FieldValue = { serverTimestamp: () => 'SERVER_TIME' };
+const FieldValue = { serverTimestamp: () => 'SERVER_TIME', delete: () => DELETE };
 const now = () => new Date('2027-01-10T15:30:00.000Z');
 const seed = (over = {}) => ({
   'season_config/current': { activeSeasonId: '2026', label: '2026 Season', status: 'archived', scoredEventIds: ['a_26'] },
