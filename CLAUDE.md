@@ -100,6 +100,7 @@ npm run build -- --mode staging   # vite build for a given mode
 ./deploy-staging.sh               # deploys Functions + Firestore rules/indexes + frontend to STAGING
 
 ./scripts/release-gates.sh show   # where this commit stands in the pipeline
+node scripts/release-work-items.mjs  # work items in the latest release, and which have reached members
 ./scripts/release-gates.sh sign local     # record that you tested it locally
 ./scripts/release-gates.sh sign staging   # record that you tested it on staging (checks first)
 ./deploy-production.sh --dry-run  # PRODUCTION: gates + locked targets, touches nothing
@@ -199,6 +200,19 @@ Every `prod` release still needs `./scripts/release-gates.sh sign local` and `si
 tip commit before `pre-push` lets it through. The script fetches and pushes that notes ref itself
 on each `sign`. An agent never signs a gate: signing says a human looked.
 
+**Closing out work items after a production deploy.** `promote-production.sh` writes a
+`promoted:` note; `deploy-data-plane.sh` and `deploy-portal.sh` write `data-plane-deployed:` and
+`portal-deployed:` notes (via `release-gates.sh record`) on the commit they shipped. On success all
+three print `scripts/release-work-items.mjs`, which reads each commit's `Refs:` lines and changed
+files and reports every item as `LIVE` or `WAITING` on a deploy. A `functions/` change counts as live
+only once both Functions deploys include it. When the user asks to close out a release, the agent
+runs it with `--json`, shows the LIVE and WAITING lists and waits for one confirmation. Then, for
+each LIVE tracker item, it sets Status `Completed`, Released In `prod`, and appends the prod
+revision and SHAs to Commits. WAITING items stay at `staging`. Epics (`*-00`) and `INV-###` items
+are never closed this way, and an ID with no tracker row is reported, never created. Scripts hold no
+Notion credentials; the agent writes through its Notion connector. The 2026-10-15 Functions deploys
+were backfilled onto `6319050` on 2026-10-31.
+
 `LOL_ALLOW_PROD_EDIT=1` overrides the git hooks for a genuine emergency hotfix. The Claude Code
 hook has no override on purpose: the human can bypass, the agent cannot.
 
@@ -271,8 +285,8 @@ does that redeploy.
   `validateInvitationCode`, `sendPasswordResetLink`.
 - `hooks/`, `contexts/` (ToastContext), `utils/`, `styles/`.
 - Scripts: `deploy-staging.sh`, `deploy-production.sh`, `promote-production.sh`, `deploy-portal.sh`,
-  `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `portal-rollback.sh`,
-  `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
+  `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `release-work-items.mjs`,
+  `portal-rollback.sh`, `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
 
 **The scoring engine is implemented twice** — `services/scoringService.ts` (client) and
 `functions/index.js` (server) implement the same math independently. A scoring rule change must

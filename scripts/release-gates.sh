@@ -19,6 +19,11 @@
 #   release-gates.sh check <ref> <gate>...
 #   release-gates.sh show <ref>
 #   release-gates.sh serving staging|production <ref>
+#   release-gates.sh record data-plane-deployed|portal-deployed <ref> <detail>
+#
+# `record` is called by deploy-data-plane.sh and deploy-portal.sh after a successful production
+# deploy. Those notes are a record, not gates: scripts/release-work-items.mjs reads them to tell
+# which work items have actually reached members.
 
 set -Eeuo pipefail
 
@@ -312,6 +317,23 @@ cmd_check() {
   return $status
 }
 
+cmd_record() {
+  local kind="${1:-}" ref="${2:-}" detail="${3:-}"
+  case "$kind" in
+    data-plane-deployed|portal-deployed) ;;
+    *) gates_die "record: kind must be data-plane-deployed or portal-deployed" ;;
+  esac
+  [[ -n "$ref" ]] || gates_die "record: missing <ref>"
+  local sha now who
+  sha="$(git rev-parse --verify "${ref}^{commit}")"
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  who="$(git config user.email 2>/dev/null || echo unknown)"
+  gates_fetch_notes
+  gates_append "$sha" "${kind}: ${now} by ${who} ${detail}"
+  gates_push_notes
+  echo "  recorded ${kind} on $(git rev-parse --short "$sha")"
+}
+
 cmd_show() {
   local ref="${1:-HEAD}" sha short
   sha="$(git rev-parse --verify "${ref}^{commit}")"
@@ -329,6 +351,8 @@ cmd_show() {
       echo "  [ ] ${gate}"
     fi
   done
+  # Deploy records, not gates: only shown when present.
+  gates_notes_body "$sha" | grep -E '^(data-plane|portal)-deployed:' | sed 's/^/  [-] /' || true
 
   echo
   local out rc
@@ -374,8 +398,9 @@ main() {
     check)   cmd_check "$@" ;;
     show)    cmd_show "$@" ;;
     serving) cmd_serving "$@" ;;
+    record)  cmd_record "$@" ;;
     ""|-h|--help)
-      sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
       ;;
     *) gates_die "unknown command '$cmd'" ;;
   esac
