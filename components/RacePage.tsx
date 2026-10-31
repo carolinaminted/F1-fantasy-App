@@ -25,7 +25,7 @@ const isRaceView = (v: string | null): v is RaceView =>
 interface RacePageProps {
   user: User | null;
   seasonPicks: { [eventId: string]: PickSelection };
-  onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  onPicksSubmit: (eventId: string, picks: PickSelection) => Promise<void>;
   formLocks: { [eventId: string]: boolean };
   pointsSystem: PointsSystem;
   allDrivers: Driver[];

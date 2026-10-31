@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Chip, teamColor, withAlpha, NUMERIC } from '../ui/index.ts';
 import { EntityClass } from '../../types.ts';
 import type { Constructor, Driver, PickSelection } from '../../types.ts';
+import type { SubmitState } from '../PicksForm.tsx';
 
 interface LineupReviewProps {
   isOpen: boolean;
@@ -21,6 +22,9 @@ interface LineupReviewProps {
    * instead of closing silently.
    */
   validationIssues?: string[];
+  submitState?: SubmitState;
+  /** Why the last save failed; the draft is kept so confirming again is the retry. */
+  submitError?: string | null;
 }
 
 interface LineRow {
@@ -39,7 +43,10 @@ interface LineRow {
 export const LineupReview: React.FC<LineupReviewProps> = ({
   isOpen, onClose, onConfirm, picks, eventName, allDrivers, allConstructors,
   getUsage, getLimit, exhaustedLabels, validationIssues = [],
+  submitState = 'idle', submitError = null,
 }) => {
+  const isSaving = submitState === 'saving' || submitState === 'slow';
+
   // Fastest Lap carries a class only to satisfy the row shape; `countsUsage: false` means it is
   // never read, because FL is drawn from the whole grid and spends no budget.
   const rows: LineRow[] = [
@@ -69,9 +76,17 @@ export const LineupReview: React.FC<LineupReviewProps> = ({
             className="text-highlight-silver hover:text-pure-white font-bold py-2.5 px-4 rounded-lg text-sm transition-colors">
             Keep Editing
           </button>
-          <button type="button" onClick={onConfirm} disabled={validationIssues.length > 0}
-            className="bg-primary-red hover:opacity-90 text-on-primary font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-primary-red/20 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
-            {emptyCount > 0 ? 'Lock In Partial Lineup' : 'Lock In Picks'}
+          <button type="button" onClick={onConfirm} disabled={validationIssues.length > 0 || isSaving}
+            aria-busy={isSaving}
+            className="inline-flex items-center justify-center gap-2 bg-primary-red hover:opacity-90 text-on-primary font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-primary-red/20 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
+            {isSaving && (
+              <span aria-hidden className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+            )}
+            {isSaving
+              ? 'Locking In…'
+              : submitState === 'error'
+                ? 'Try Again'
+                : emptyCount > 0 ? 'Lock In Partial Lineup' : 'Lock In Picks'}
           </button>
         </>
       }
@@ -126,6 +141,20 @@ export const LineupReview: React.FC<LineupReviewProps> = ({
             </div>
           </div>
         ))}
+      </div>
+
+      <div aria-live="polite">
+        {submitState === 'slow' && (
+          <p className="mt-4 text-xs text-highlight-silver">
+            Still waiting for the server to confirm. Keep this screen open.
+          </p>
+        )}
+        {submitState === 'error' && submitError && (
+          <div className="mt-4 rounded-lg border border-primary-red/40 bg-primary-red/10 p-3">
+            <p className="text-xs font-bold text-primary-red">Your picks are not locked in.</p>
+            <p className="mt-1 text-[11px] text-ghost-white/90">{submitError}</p>
+          </div>
+        )}
       </div>
 
       {validationIssues.length > 0 && (

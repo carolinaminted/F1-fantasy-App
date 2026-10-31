@@ -630,15 +630,16 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [location.pathname, adminSubPage]);
 
-  const handlePicksSubmit = async (eventId: string, picks: PickSelection) => {
-    if (!user) return;
+  // Rethrows so PicksForm only shows "locked in" once Firestore has acknowledged the write.
+  const handlePicksSubmit = async (eventId: string, picks: PickSelection): Promise<void> => {
+    if (!user) throw new Error('Not signed in');
     try {
       await saveUserPicks(user.id, eventId, picks, !!user.isAdmin);
-      // Removed getUserPicks re-fetch here because onSnapshot handles it now
-      showToast(`Picks for ${eventId} submitted successfully!`, 'success');
+      const eventName = mergedEvents.find(e => e.id === eventId)?.name ?? 'this event';
+      showToast(`Picks for the ${eventName} are locked in.`, 'success');
     } catch (error) {
       console.error("Failed to submit picks:", error);
-      showToast(`Error: Could not submit picks for ${eventId}.`, 'error');
+      throw error;
     }
   };
   
