@@ -372,6 +372,11 @@ for fn in "${DEPLOY_ORDER[@]}"; do
   deployed+=("$fn")
 done
 
+# What reached members, for scripts/release-work-items.mjs. Never fails the deploy.
+./scripts/release-gates.sh record portal-deployed "$head_sha" \
+  "project=$PORTAL_PROJECT functions=$(IFS=,; echo "${DEPLOY_ORDER[*]}") runtime=$RUNTIME" \
+  || echo "  (could not record the deploy note; add it with ./scripts/release-gates.sh record)"
+
 cat <<EOF
 
 Portal deploy complete: ${DEPLOY_ORDER[*]} on $RUNTIME from ${head_sha:0:7}.
@@ -385,3 +390,8 @@ Not done yet. Finish by hand:
 If any of that fails, the pre-deploy revisions are in $revisions_file. Roll back with:
 EOF
 portal_rollback_commands "$PORTAL_PROJECT" "$FUNCTIONS_REGION" "$PORTAL_ACCOUNT" "$revisions_file" | sed 's/^/  /'
+
+echo
+node scripts/release-work-items.mjs || true
+echo
+echo 'Next: ask Claude to "close out the release" to update the tracker.'

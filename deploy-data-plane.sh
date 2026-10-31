@@ -272,6 +272,11 @@ unexpected="$(printf '%s\n' "$touched" | grep -vxF -e "${TRIGGERS[0]}" -e "${TRI
 [[ -z "$unexpected" ]] || fail "functions outside the trigger list changed during this deploy: $unexpected"
 echo "  no other function in $PROD_FIREBASE_PROJECT changed"
 
+# What reached members, for scripts/release-work-items.mjs. Never fails the deploy.
+./scripts/release-gates.sh record data-plane-deployed "$head_sha" \
+  "project=$PROD_FIREBASE_PROJECT triggers=$(IFS=,; echo "${TRIGGERS[*]}") runtime=$expected_runtime" \
+  || echo "  (could not record the deploy note; add it with ./scripts/release-gates.sh record)"
+
 cat <<EOF
 
 Data-plane deploy complete: ${TRIGGERS[*]} on $expected_runtime from ${head_sha:0:7}.
@@ -286,4 +291,8 @@ Not done yet. Finish the runbook by hand:
 
 If the standings drift or a trigger errors: run Manual Sync from the admin portal first, then
 roll the runtime back from $ROLLBACK_BRANCH with this same script.
+
 EOF
+node scripts/release-work-items.mjs || true
+echo
+echo 'Next: ask Claude to "close out the release" to update the tracker.'
