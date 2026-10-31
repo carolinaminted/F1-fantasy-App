@@ -217,14 +217,21 @@ const recalculateEntireLeague = async () => {
 
     leaderboardScores.sort((a, b) => b.totalPoints - a.totalPoints);
 
-    const batch = db.batch();
+    // public_users.rank is the only rank the app shows; the client never re-ranks.
+    // Standard competition ranking: tied points share a rank (1, 2, 2, 4).
     leaderboardScores.forEach((score, index) => {
+        const prev = leaderboardScores[index - 1];
+        score.rank = prev && prev.totalPoints === score.totalPoints ? prev.rank : index + 1;
+    });
+
+    const batch = db.batch();
+    leaderboardScores.forEach((score) => {
         const publicRef = db.collection('public_users').doc(score.userId);
         batch.set(publicRef, {
             displayName: score.displayName, // Repair name
             totalPoints: score.totalPoints,
             breakdown: score.breakdown,
-            rank: index + 1,
+            rank: score.rank,
             lastUpdated: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     });

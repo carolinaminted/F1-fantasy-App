@@ -429,15 +429,14 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   }, [selectedUserProfile, leaderboardCache]);
 
   // [S1A-03] Extract scoring transformations out of React Effects
-  const loadProcessedData = useCallback(async (usersBatch: User[], picksBatch: any, isMore = false) => {
-      // Logic extracted to service module processLeaderboardStats
-      const processedBatch = await processLeaderboardStats(usersBatch, picksBatch, raceResults, pointsSystem, allDrivers, currentUser, cancelledEventIds);
+  const loadProcessedData = useCallback((usersBatch: User[], isMore = false) => {
+      const processedBatch = processLeaderboardStats(usersBatch, currentUser);
       if (isMore) {
           setProcessedUsers(prev => [...prev, ...processedBatch]);
       } else {
           setProcessedUsers(processedBatch);
       }
-  }, [raceResults, pointsSystem, allDrivers, currentUser]);
+  }, [currentUser]);
 
   // Timer Effect
   useEffect(() => {
@@ -476,7 +475,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
       if (!leaderboardCache) {
           refreshLeaderboard();
       } else {
-          loadProcessedData(leaderboardCache.users, leaderboardCache.allPicks);
+          loadProcessedData(leaderboardCache.users);
           setHasMore(leaderboardCache.users.length === DEFAULT_PAGE_SIZE);
       }
   }, [leaderboardCache]); // Only re-run when cache itself changes
@@ -502,7 +501,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   useEffect(() => {
     if (leaderboardCache) {
         const timeout = setTimeout(() => {
-            loadProcessedData(leaderboardCache.users, leaderboardCache.allPicks);
+            loadProcessedData(leaderboardCache.users);
         }, 300);
         return () => clearTimeout(timeout);
     }
@@ -512,8 +511,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
     if (isPaging || !hasMore) return;
     setIsPaging(true);
     try {
-        const { users, allPicks, lastDoc } = await getAllUsersAndPicks(DEFAULT_PAGE_SIZE, lastVisible || (leaderboardCache as any)?.lastDoc);
-        await loadProcessedData(users, allPicks, true);
+        const { users, lastDoc } = await getAllUsersAndPicks(DEFAULT_PAGE_SIZE, lastVisible || (leaderboardCache as any)?.lastDoc);
+        loadProcessedData(users, true);
         setLastVisible(lastDoc);
         setHasMore(users.length === DEFAULT_PAGE_SIZE);
     } catch (e) {
