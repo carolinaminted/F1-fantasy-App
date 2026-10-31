@@ -283,8 +283,8 @@ land in both or the two will disagree. See `SCORING_AUDIT_LOGIC.md`.
 - **Commits:** conventional and scoped, matching the existing log — `feat(api):`,
   `chore(functions):`, `docs(design):`, `fix(ui):`.
 - **Work-item trailer:** when a commit closes or advances a tracked item, end the message with
-  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **F1 Work
-  Items** database. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
+  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **🏁 Lights Out League** work-item tracker; its
+  IDs and workspace are recorded only in `../CLAUDE.md`. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
   commit with no work item is normal. Silence it with `LOL_SKIP_REFS_HINT=1`.
 
   This is worth the keystrokes: as of 2026-08-30 not one commit in the history carried an ID, so
@@ -341,7 +341,7 @@ staging design and the captured production baseline.
 ## Known open work
 
 **Season rollover is built, not deployed.** Plan 2 (Notion: Plan 2 — Season-Ending Cutover, tracked
-as `[ROLL-xx]` in F1 Work Items) is implemented on `feat/season-config`: `season_config/current` is the
+as `[ROLL-xx]` in the Lights Out League tracker) is implemented on `feat/season-config`: `season_config/current` is the
 single source of scored events on both engines, the calendar lives in Firestore, and Season Control
 drives conclude, archive, reset and open. The branch is **local-only by the user's rule** until the
 October release ships; then it deploys to staging for two rehearsals with the `verify.sh` zero-drift
