@@ -5,3 +5,5 @@ staging-verified: 2026-10-13T23:32:03Z by carolinaminted@gmail.com revision=ligh
 candidate-verified: 2026-10-15T21:03:41Z by carolinaminted@gmail.com
 
 promoted: 2026-10-15T21:05:11Z by carolinaminted@gmail.com from=lights-out-league-web-00011-vat to=lights-out-league-web-00013-zas mode=production
+
+portal-deployed: 2026-10-15T21:07:41Z by carolinaminted@gmail.com project=lights-out-league-prod revisions=-00004 (backfilled 2026-10-31 from worklog/october-2026-release.md)
