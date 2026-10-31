@@ -258,14 +258,12 @@ const ResultsManagerPage: React.FC<ResultsManagerPageProps> = ({ raceResults, on
         const hasResults = checkHasResults(event);
         const isLocked = formLocks[event.id];
         const isEventCancelled = cancelledEventIds.has(event.id);
-        
-        return (
-            <div className="flex items-center gap-2">
-                {isEventCancelled && <Chip label="Cancelled" tone="danger" size="xs" />}
-                {isLocked && !isEventCancelled && <Chip label="Picks closed" tone="warning" size="xs" />}
-                {hasResults && <Chip label="Scored" tone="success" size="xs" />}
-            </div>
-        );
+
+        // One chip per row: the menu can be 15rem wide, and "Scored" already implies picks are closed.
+        if (isEventCancelled) return <Chip label="Cancelled" tone="danger" size="xs" />;
+        if (hasResults) return <Chip label="Scored" tone="success" size="xs" />;
+        if (isLocked) return <Chip label="Picks closed" tone="warning" size="xs" />;
+        return null;
     };
 
     return (

@@ -148,13 +148,15 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
                                 <button
                                     key={event.id}
                                     onClick={() => handleSelect(event)}
-                                    className={`w-full text-left px-3 py-2 border-b border-pure-white/5 last:border-0 hover:bg-pure-white/5 transition-colors flex items-center justify-between group ${selectedEventId === event.id ? 'bg-pure-white/10' : ''}`}
+                                    className={`w-full text-left px-3 py-2 border-b border-pure-white/5 last:border-0 hover:bg-pure-white/5 transition-colors flex items-center justify-between gap-2 group ${selectedEventId === event.id ? 'bg-pure-white/10' : ''}`}
                                 >
-                                    <div>
-                                        <div className="font-bold text-pure-white text-xs">R{event.round}: {event.name}</div>
-                                        <div className="text-[10px] text-highlight-silver">{event.location}</div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-pure-white text-xs truncate">R{event.round}: {event.name}</div>
+                                        <div className="text-[10px] text-highlight-silver truncate">{event.location}</div>
                                     </div>
-                                    {renderStatus ? renderStatus(event) : defaultStatus(event)}
+                                    <div className="shrink-0">
+                                        {renderStatus ? renderStatus(event) : defaultStatus(event)}
+                                    </div>
                                 </button>
                             ))
                         ) : (
