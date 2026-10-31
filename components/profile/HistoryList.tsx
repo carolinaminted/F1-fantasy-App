@@ -9,7 +9,8 @@ import { PicksIcon } from '../icons/PicksIcon.tsx';
 import { HistoryIcon } from '../icons/HistoryIcon.tsx';
 import { PenaltyManager } from './PenaltyManager.tsx';
 import { LockIcon } from '../icons/LockIcon.tsx';
-import { pickSubmittedAt, formatLeagueDateTime } from '../../utils/dateUtils.ts';
+import { pickSubmittedAt, formatLeagueDateTime, parseLeagueDate } from '../../utils/dateUtils.ts';
+import { classifyEvent, type EventStatus } from '../../utils/eventStatus.ts';
 import { calculatePointsForEvent } from '../../services/scoringService.ts';
 import { CURRENT_SEASON } from '../../constants.ts';
 import type { Event, PickSelection, RaceResults, PointsSystem, Driver } from '../../types.ts';
@@ -26,7 +27,19 @@ interface HistoryListProps {
   onDetailClick: (eventId: string, category: EventCategory) => void;
   onUpdatePenalty?: (eventId: string, penalty: number, reason: string) => Promise<void>;
   isPublicView: boolean;
+  cancelledEventIds: Set<string>;
+  /** When the member's account was created; races that locked before it never count as missed. */
+  joinedAt: Date | null;
 }
+
+const lockTime = (event: Event) => parseLeagueDate(event.lockAtUtc)?.getTime() ?? null;
+
+/** What the right-hand side of a row says instead of a score, for every state but `completed`. */
+const STATUS_LABEL: Record<Exclude<EventStatus, 'completed'>, string> = {
+  upcoming: 'Not yet raced',
+  unscored: 'Results pending',
+  cancelled: 'Cancelled',
+};
 
 const PointChip: React.FC<{
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
@@ -52,10 +65,26 @@ const PointChip: React.FC<{
  */
 export const HistoryList: React.FC<HistoryListProps> = ({
   events, seasonPicks, raceResults, pointsSystem, allDrivers,
-  getEntityName, onDetailClick, onUpdatePenalty, isPublicView,
+  getEntityName, onDetailClick, onUpdatePenalty, isPublicView, cancelledEventIds, joinedAt,
 }) => {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
-  const hasHistory = events.some(event => seasonPicks[event.id]);
+  const now = Date.now();
+
+  // public_users carries no createdAt, so another member's profile falls back to their first
+  // submitted race: nothing before it can be told apart from "had not joined yet".
+  const firstPickLock = events
+    .filter(event => seasonPicks[event.id])
+    .map(lockTime)
+    .filter((t): t is number => t !== null)
+    .reduce<number | null>((min, t) => (min === null || t < min ? t : min), null);
+  const cutoff = joinedAt?.getTime() ?? firstPickLock;
+
+  const isMissed = (event: Event) => {
+    const lock = lockTime(event);
+    return !seasonPicks[event.id] && !cancelledEventIds.has(event.id)
+      && lock !== null && lock <= now && cutoff !== null && lock >= cutoff;
+  };
+  const hasHistory = events.some(event => seasonPicks[event.id] || isMissed(event));
 
   return (
     <div>
@@ -79,8 +108,25 @@ export const HistoryList: React.FC<HistoryListProps> = ({
         {events.map(event => {
           const picks = seasonPicks[event.id];
           const results = raceResults[event.id];
-          if (!picks) return null;
 
+          if (!picks) {
+            if (!isMissed(event)) return null;
+            return (
+              <Tile key={event.id} padding="none" className="overflow-hidden">
+                <div className="flex w-full items-center justify-between px-4 py-4">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-bold text-highlight-silver">
+                      R{event.round}: {event.name}
+                    </h3>
+                    <p className="text-xs text-highlight-silver">{event.country}</p>
+                  </div>
+                  <Chip label="Picks not submitted" tone="neutral" />
+                </div>
+              </Tile>
+            );
+          }
+
+          const status = classifyEvent(event, { raceResults, cancelledEventIds, now });
           const eventPoints = results
             ? calculatePointsForEvent(picks, results, pointsSystem, allDrivers)
             : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0, penaltyPoints: 0 };
@@ -110,13 +156,17 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                   <p className="text-xs text-highlight-silver">{event.country}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <div className="text-right">
-                    <span className={`block text-xl font-black text-pure-white ${NUMERIC}`}>
-                      {eventPoints.totalPoints}
-                      <span className="ml-1 text-[10px] font-bold uppercase text-highlight-silver">pts</span>
-                    </span>
-                    {hasPenalty && <span className="block text-[10px] font-bold text-primary-red">Adjusted</span>}
-                  </div>
+                  {status === 'completed' ? (
+                    <div className="text-right">
+                      <span className={`block text-xl font-black text-pure-white ${NUMERIC}`}>
+                        {eventPoints.totalPoints}
+                        <span className="ml-1 text-[10px] font-bold uppercase text-highlight-silver">pts</span>
+                      </span>
+                      {hasPenalty && <span className="block text-[10px] font-bold text-primary-red">Adjusted</span>}
+                    </div>
+                  ) : (
+                    <Chip label={STATUS_LABEL[status]} tone={status === 'unscored' ? 'warning' : 'neutral'} />
+                  )}
                   <ChevronDownIcon className={`w-5 h-5 text-highlight-silver transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
               </button>
@@ -149,7 +199,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                     </div>
                   )}
 
-                  {results && (
+                  {status === 'completed' && results && (
                     <div className="mt-4 border-t border-pure-white/10 pt-4">
                       <div className="flex flex-wrap justify-center gap-3">
                         <PointChip icon={CheckeredFlagIcon} label="GP Finish" category="gp"

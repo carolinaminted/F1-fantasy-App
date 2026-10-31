@@ -58,6 +58,7 @@ export interface User {
   };
   displayRank?: number; // Client-side calc
   dismissedAnnouncements?: string[];
+  createdAt?: unknown; // Timestamp; only on users/{uid}, never on public_users
 }
 
 export interface PickSelection {
