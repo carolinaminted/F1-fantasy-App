@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# Nudge for a work-item trailer so commits correlate to the Notion F1 Work Items
-# database (see CLAUDE.md "Conventions").
+# Nudge for a work-item trailer so commits correlate to the Notion Lights Out League
+# work-item tracker (see CLAUDE.md "Conventions"; its IDs live in ../CLAUDE.md).
 #
 # Format:  Refs: [M-8]        one or more, comma-separated: Refs: [C-1], [C-2]
 #
@@ -49,7 +49,7 @@ cat >&2 <<'EOF'
             Refs: [M-8]
 
         Several are fine:  Refs: [C-1], [C-2]
-        IDs come from the Notion "F1 Work Items" database.
+        IDs come from the Notion "Lights Out League" tracker.
 
         Committing anyway (this is only a hint).
         Silence with LOL_SKIP_REFS_HINT=1.

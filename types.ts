@@ -1,4 +1,5 @@
 
+import type { Timestamp } from '@firebase/firestore';
 
 export enum EntityClass {
   A = 'A',
@@ -57,6 +58,7 @@ export interface User {
   };
   displayRank?: number; // Client-side calc
   dismissedAnnouncements?: string[];
+  createdAt?: unknown; // Timestamp; only on users/{uid}, never on public_users
 }
 
 export interface PickSelection {
@@ -67,6 +69,8 @@ export interface PickSelection {
   fastestLap: string | null;
   penalty?: number;
   penaltyReason?: string;
+  /** Server time of the member's own last save. Null until acked; absent before Nov 2026. */
+  submittedAt?: Timestamp | null;
 }
 
 export interface EventResult {

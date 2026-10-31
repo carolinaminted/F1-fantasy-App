@@ -1,8 +1,8 @@
 /**
- * Final standings exactly as the Standings page shows them (services/scoringService.ts,
- * processLeaderboardStats): points descending, then name; tied points share a place ("1224"),
- * so a season can have co-champions. The stored public_users.rank is not used — the server
- * assigns it by array position, so it never shares a place.
+ * Final standings exactly as the Standings page shows them: points descending, tied points share
+ * a place ("1224"), so a season can have co-champions. Recomputed here rather than read from
+ * public_users.rank so the archive is self-consistent even if a recalc is pending; the ranking
+ * rule must stay identical to recalculateEntireLeague in functions/index.js ([M-5]).
  */
 const EXCLUDED_DISPLAY_NAMES = new Set(['Admin Principal']);
 

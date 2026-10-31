@@ -320,4 +320,8 @@ Rollback:
   gcloud run services update-traffic $SERVICE \\
     --to-revisions $serving_before=100 \\
     --region $REGION --project $PROJECT --account $ACCOUNT
+
 EOF
+node scripts/release-work-items.mjs || true
+echo
+echo 'Next: ask Claude to "close out the release" to update the tracker.'

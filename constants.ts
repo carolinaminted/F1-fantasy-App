@@ -1,4 +1,5 @@
-import { Constructor, Driver, EntityClass, PointsSystem, RaceResults } from './types.ts';
+import { EntityClass } from './types.ts';
+import type { Constructor, Driver, Event, PointsSystem, RaceResults } from './types.ts';
 
 export const LEAGUE_TIMEZONE = 'America/New_York';
 export const LEAGUE_DUES_AMOUNT = 25; // in USD

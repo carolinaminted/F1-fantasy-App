@@ -222,96 +222,17 @@ export const calculateScoreRollup = (
 };
 
 /**
- * Optimized Leaderboard Calculation
- * 1. Checks for pre-calculated stats (Public Profile) first.
- * 2. Falls back to raw calculation only if necessary.
- * 3. Yields to main thread to avoid blocking UI.
+ * Shapes public_users rows for the leaderboard views. Points, breakdown and rank are all
+ * server-calculated (recalculateEntireLeague) and shown as stored: the client never scores or
+ * ranks the league, so Standings and the Dashboard cannot disagree. Rows arrive already ordered
+ * by totalPoints from the query.
  */
-export const processLeaderboardStats = async (
-    users: User[],
-    allPicks: { [userId: string]: { [eventId: string]: PickSelection } },
-    raceResults: RaceResults,
-    pointsSystem: PointsSystem,
-    allDrivers: Driver[],
-    currentUser: User | null,
-    scoredEventIds: ScoredEventIds,
-    cancelledEventIds: Set<string> = new Set()
-): Promise<User[]> => {
-    // Non-blocking yield to allow UI rendering before heavy processing
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    const validUsers = users.filter(u => u.displayName !== 'Admin Principal');
-
-    const processed = validUsers.map(user => {
-        // FAST PATH: Use pre-calculated public data if available
-        // Requires totalPoints and breakdown to be present in the public record.
-        if (typeof user.totalPoints === 'number' && user.breakdown) {
-             const isCurrentUser = currentUser && user.id === currentUser.id;
-             // Ensure p22 exists for legacy records
-             if (user.breakdown.p22 === undefined) {
-                 user.breakdown.p22 = 0;
-             }
-             return {
-                 ...user,
-                 displayName: isCurrentUser ? currentUser.displayName : user.displayName,
-                 // displayRank will be re-calculated after sorting to ensure client-side consistency
-             };
-        }
-
-        // SLOW PATH: Calculate from raw picks (Fallback / Private Collection Data)
-        const userPicks = allPicks[user.id] || {};
-        const scoreData = calculateScoreRollup(userPicks, raceResults, pointsSystem, allDrivers, scoredEventIds, cancelledEventIds);
-        
-        const safeNum = (val: any) => Number.isNaN(Number(val)) ? 0 : Number(val);
-
-        const breakdown = {
-            gp: safeNum(scoreData.grandPrixPoints),
-            sprint: safeNum(scoreData.sprintPoints),
-            quali: safeNum(scoreData.gpQualifyingPoints) + safeNum(scoreData.sprintQualifyingPoints),
-            fl: safeNum(scoreData.fastestLapPoints),
-            p22: safeNum(scoreData.p22Count)
-        };
-
-        const isCurrentUser = currentUser && user.id === currentUser.id;
-        
-        return {
-            ...user,
-            displayName: isCurrentUser ? currentUser.displayName : user.displayName,
-            totalPoints: safeNum(scoreData.totalPoints),
-            breakdown
-        };
-    });
-
-    // Sort by points descending, then alphabetically for tie-breaking
-    processed.sort((a, b) => {
-        const pointsDiff = (b.totalPoints || 0) - (a.totalPoints || 0);
-        if (pointsDiff !== 0) return pointsDiff;
-        return (a.displayName || '').localeCompare(b.displayName || '');
-    });
-
-    // Assign ranks using "1224" standard competition ranking
-    if (processed.length > 0) {
-        // Handle first item
-        processed[0].displayRank = 1;
-        processed[0].rank = 1;
-
-        for (let i = 1; i < processed.length; i++) {
-            const prev = processed[i - 1];
-            const curr = processed[i];
-            
-            // Check points against previous user in the sorted list
-            if ((curr.totalPoints || 0) === (prev.totalPoints || 0)) {
-                // Same rank as previous
-                curr.displayRank = prev.displayRank;
-                curr.rank = prev.rank;
-            } else {
-                // New rank matches array position
-                const newRank = i + 1;
-                curr.displayRank = newRank;
-                curr.rank = newRank;
-            }
-        }
-    }
-
-    return processed;
-};
+export const processLeaderboardStats = (users: User[], currentUser: User | null): User[] =>
+    users.map(user => ({
+        ...user,
+        // Show a just-edited name before the next recalc repairs public_users.
+        displayName: currentUser && user.id === currentUser.id ? currentUser.displayName : user.displayName,
+        totalPoints: user.totalPoints ?? 0,
+        breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0, ...user.breakdown },
+        displayRank: user.rank,
+    }));

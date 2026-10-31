@@ -23,6 +23,8 @@ const { resolveBackupBucket } = require("./backup-buckets");
 const { LONG_RUNNING } = require("./deploy-targets");
 const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
+const { resolveClientIp } = require("./client-ip");
+const { normalizeEmail } = require("./email-address");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -224,14 +226,21 @@ const recalculateEntireLeague = async () => {
 
     leaderboardScores.sort((a, b) => b.totalPoints - a.totalPoints);
 
-    const batch = db.batch();
+    // public_users.rank is the only rank the app shows; the client never re-ranks.
+    // Standard competition ranking: tied points share a rank (1, 2, 2, 4).
     leaderboardScores.forEach((score, index) => {
+        const prev = leaderboardScores[index - 1];
+        score.rank = prev && prev.totalPoints === score.totalPoints ? prev.rank : index + 1;
+    });
+
+    const batch = db.batch();
+    leaderboardScores.forEach((score) => {
         const publicRef = db.collection('public_users').doc(score.userId);
         batch.set(publicRef, {
             displayName: score.displayName, // Repair name
             totalPoints: score.totalPoints,
             breakdown: score.breakdown,
-            rank: index + 1,
+            rank: score.rank,
             lastUpdated: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     });
@@ -244,13 +253,12 @@ const recalculateEntireLeague = async () => {
 // --- AUTH & RATE LIMIT UTILS ---
 
 const getClientIp = (request) => {
-    if (!request.rawRequest) return "unknown";
-    const xForwarded = request.rawRequest.headers['x-forwarded-for'];
-    if (xForwarded) return xForwarded.split(',')[0].trim();
-    return request.rawRequest.ip || request.rawRequest.socket?.remoteAddress || "unknown";
+    const raw = request.rawRequest;
+    return resolveClientIp(raw?.headers, raw?.ip || raw?.socket?.remoteAddress);
 };
 
-const checkRateLimit = async (ip, operation, limit, windowSeconds) => {
+const checkRateLimit = async (request, operation, limit, windowSeconds) => {
+    const ip = getClientIp(request);
     const safeIp = ip.replace(/[^a-zA-Z0-9]/g, '_');
     const docRef = db.collection('rate_limits_ip').doc(`${operation}_${safeIp}`);
 
@@ -266,7 +274,8 @@ const checkRateLimit = async (ip, operation, limit, windowSeconds) => {
             });
         } else {
             if (data.count >= limit) {
-                logger.warn(`IP ${ip} rate limited for operation ${operation}.`);
+                // The raw header is logged so the trusted hop count in client-ip.js can be checked against real traffic.
+                logger.warn("rate_limited", { event: "rate_limited", operation, ip, xForwardedFor: request.rawRequest?.headers?.["x-forwarded-for"] ?? null });
                 throw new HttpsError('resource-exhausted', `Too many attempts. Please try again in ${Math.ceil((data.resetTime.seconds - now.seconds) / 60)} minutes.`);
             }
             t.update(docRef, { count: data.count + 1 });
@@ -307,8 +316,7 @@ exports.updateLeaderboardOnCancellation = onDocumentWritten(
 exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
     await requireAdmin(request, 'manual sync');
 
-    const clientIp = getClientIp(request);
-    await checkRateLimit(clientIp, 'manual_sync', 5, 300);
+    await checkRateLimit(request, 'manual_sync', 5, 300);
 
     try {
         const count = await recalculateEntireLeague();
@@ -361,13 +369,12 @@ exports.startNewSeason = seasonOpCallable('season_start', resetSeason, LONG_RUNN
 exports.openSeason = seasonOpCallable('season_open', openSeason);
 
 exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
-  const email = request.data.email;
-  if (!email) throw new HttpsError("invalid-argument", "Email is required");
+  const email = normalizeEmail(request.data.email);
+  if (!email) throw new HttpsError("invalid-argument", "A valid email address is required");
 
-  const clientIp = getClientIp(request);
-  await checkRateLimit(clientIp, 'send_auth_code', 3, 600);
+  await checkRateLimit(request, 'send_auth_code', 3, 600);
 
-  const rateLimitRef = db.collection("rate_limits").doc(email.toLowerCase());
+  const rateLimitRef = db.collection("rate_limits").doc(email);
   const rateLimitDoc = await rateLimitRef.get();
   if (rateLimitDoc.exists) {
       const lastAttempt = rateLimitDoc.data().lastAttempt;
@@ -382,7 +389,7 @@ exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecr
   let gmailPassword = credentials.pass || "your-app-password";
   
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  await db.collection("email_verifications").doc(email.toLowerCase()).set({
+  await db.collection("email_verifications").doc(email).set({
     code: code, email: email, expiresAt: Date.now() + 600000,
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
@@ -437,13 +444,13 @@ exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecr
 });
 
 exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
-    const { email, code } = request.data;
+    const email = normalizeEmail(request.data.email);
+    const { code } = request.data;
     if (!email || !code) return { valid: false, message: "Missing data" };
 
-    const clientIp = getClientIp(request);
-    await checkRateLimit(clientIp, 'verify_auth_code', 10, 600);
+    await checkRateLimit(request, 'verify_auth_code', 10, 600);
 
-    const docRef = db.collection("email_verifications").doc(email.toLowerCase());
+    const docRef = db.collection("email_verifications").doc(email);
     // Transactional so parallel guesses cannot all read the same failure count and slip past the cap.
     const result = await db.runTransaction(async (t) => {
         const doc = await t.get(docRef);
@@ -460,8 +467,7 @@ exports.verifyAuthCode = onCall({ cors: true }, async (request) => {
 exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
     const { code } = request.data;
     if (!code) throw new HttpsError("invalid-argument", "Code required");
-    const clientIp = getClientIp(request);
-    await checkRateLimit(clientIp, 'validate_invitation', 5, 600);
+    await checkRateLimit(request, 'validate_invitation', 5, 600);
 
     const codeRef = db.collection("invitation_codes").doc(code);
     return await db.runTransaction(async (t) => {
@@ -474,11 +480,10 @@ exports.validateInvitationCode = onCall({ cors: true }, async (request) => {
 });
 
 exports.sendPasswordResetLink = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
-    const email = request.data.email;
-    if (!email) throw new HttpsError("invalid-argument", "Email is required");
+    const email = normalizeEmail(request.data.email);
+    if (!email) throw new HttpsError("invalid-argument", "A valid email address is required");
 
-    const clientIp = getClientIp(request);
-    await checkRateLimit(clientIp, 'password_reset', 3, 600);
+    await checkRateLimit(request, 'password_reset', 3, 600);
 
     const { user: gmailEmail, pass: gmailPassword } = emailCredentials();
 

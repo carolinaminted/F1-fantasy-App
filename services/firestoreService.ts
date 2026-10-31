@@ -1,5 +1,5 @@
 
-import { db } from './firebase.ts';
+import { db, auth } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
@@ -212,7 +212,13 @@ export const getUserPicks = async (uid: string): Promise<{ [eventId: string]: Pi
 
 export const saveUserPicks = async (uid: string, eventId: string, picks: PickSelection, isAdminOverride = false) => {
     const picksRef = doc(db, 'userPicks', uid);
-    await setDoc(picksRef, { [eventId]: picks }, { merge: true });
+    // Stamped only for the member's own submission. An admin edit omits the field, and the merge
+    // keeps the member's original time. Any value read back into the form is dropped, never resent.
+    const isOwnSubmission = auth.currentUser?.uid === uid;
+    const { submittedAt: _previous, ...lineup } = picks;
+    await setDoc(picksRef, {
+        [eventId]: isOwnSubmission ? { ...lineup, submittedAt: serverTimestamp() } : lineup,
+    }, { merge: true });
 };
 
 export const fetchAllUserPicks = async (): Promise<{ [uid: string]: { [eid: string]: PickSelection } }> => {

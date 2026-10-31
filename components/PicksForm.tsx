@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PickSelection, EntityClass, Event, Constructor, Driver, User } from '../types.ts';
 import { SlotGroup } from './picks/SlotGroup.tsx';
 import { OptionSheet } from './picks/OptionSheet.tsx';
@@ -19,7 +19,23 @@ import { validateLineup } from '../services/pickValidation.ts';
 import { useScoredEventIds, useSeason } from '../contexts/SeasonContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Countdown } from './ui/index.ts';
-import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
+import { parseLeagueDate, LEAGUE_TIMEZONE, pickSubmittedAt, formatLeagueDateTime } from '../utils/dateUtils.ts';
+
+export type SubmitState = 'idle' | 'saving' | 'slow' | 'error';
+
+/** After this long without an ack the sheet says it is still waiting; the write keeps retrying. */
+const SLOW_SAVE_MS = 8000;
+
+const friendlySaveError = (err: unknown): string => {
+  const code = (err as { code?: string } | null)?.code;
+  if (code === 'permission-denied' || code === 'unauthenticated') {
+    return 'Your session has expired. Sign in again to lock in your picks.';
+  }
+  if (code === 'unavailable' || code === 'deadline-exceeded') {
+    return "Couldn't reach the server. Check your connection and try again.";
+  }
+  return 'Your picks were not saved. Try again.';
+};
 
 const getInitialPicks = (): PickSelection => ({
   aTeams: [null, null],
@@ -35,7 +51,7 @@ interface PicksFormProps {
   initialPicksForEvent?: PickSelection;
   /** The whole season, needed to check a lineup against its remaining budget before saving. */
   seasonPicks: { [eventId: string]: PickSelection };
-  onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  onPicksSubmit: (eventId: string, picks: PickSelection) => Promise<void>;
   formLocks: { [eventId: string]: boolean };
   aTeams: Constructor[];
   bTeams: Constructor[];
@@ -84,6 +100,14 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [showReview, setShowReview] = useState(false);
   /** Problems found by the confirm-time re-check; normally empty. */
   const [reviewIssues, setReviewIssues] = useState<string[]>([]);
+  const [submitState, setSubmitState] = useState<SubmitState>('idle');
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  /** Set only when this session's save was acknowledged by the server. */
+  const [justConfirmed, setJustConfirmed] = useState(false);
+  const submitInFlight = useRef(false);
+  /** From submit until the save is acked: covers the rollback echo that can follow a rejection. */
+  const holdDraft = useRef(false);
+  const syncedEventId = useRef(event.id);
   /** Which slot the option sheet is currently editing. */
   const [openSlot, setOpenSlot] = useState<
     { category: 'aTeams' | 'bTeam' | 'aDrivers' | 'bDrivers' | 'fastestLap'; index: number } | null
@@ -115,6 +139,17 @@ const PicksForm: React.FC<PicksFormProps> = ({
 
   // Sync state if event changes
   useEffect(() => {
+    // The picks listener echoes our own write before the server acks it, and echoes the rollback
+    // if it is rejected. Neither may end editing or overwrite the draft while a save is in flight.
+    const eventChanged = syncedEventId.current !== event.id;
+    if (holdDraft.current && !eventChanged) return;
+    syncedEventId.current = event.id;
+    if (eventChanged) {
+      holdDraft.current = false;
+      setJustConfirmed(false);
+      setSubmitState('idle');
+      setSubmitError(null);
+    }
     const savedPicks = initialPicksForEvent;
     setPicks(savedPicks || getInitialPicks());
     setIsEditing(!savedPicks);
@@ -269,7 +304,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
     setShowReview(true);
   };
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
+    if (submitInFlight.current) return;
     // Re-checked here because the sheet can sit open: a class flip or a save from another tab
     // between review and confirm would otherwise be written through.
     const issues = checkLineup();
@@ -278,9 +314,33 @@ const PicksForm: React.FC<PicksFormProps> = ({
         showToast(issues[0].message, 'error');
         return;
     }
-    setShowReview(false);
-    onPicksSubmit(event.id, picks);
-    setIsEditing(false);
+    // Offline, setDoc would neither resolve nor reject; say so rather than spin.
+    if (!navigator.onLine) {
+        setSubmitState('error');
+        setSubmitError("You're offline. Reconnect and try again.");
+        return;
+    }
+
+    submitInFlight.current = true;
+    holdDraft.current = true;
+    setSubmitError(null);
+    setSubmitState('saving');
+    // No hard timeout: Firestore keeps retrying a pending write, so "failed" could be untrue.
+    const slowTimer = setTimeout(() => setSubmitState(s => (s === 'saving' ? 'slow' : s)), SLOW_SAVE_MS);
+    try {
+        await onPicksSubmit(event.id, picks);
+        holdDraft.current = false;
+        setJustConfirmed(true);
+        setSubmitState('idle');
+        setShowReview(false);
+        setIsEditing(false);
+    } catch (err) {
+        setSubmitState('error');
+        setSubmitError(friendlySaveError(err));
+    } finally {
+        clearTimeout(slowTimer);
+        submitInFlight.current = false;
+    }
   };
   
   // CANCELLED GATE
@@ -338,12 +398,22 @@ const PicksForm: React.FC<PicksFormProps> = ({
   
   // Confirmation Screen (if not editing and not locked)
   if (!isEditing) {
+    // The server's own time: the listener delivers it once the write is acked.
+    const submittedAt = pickSubmittedAt(initialPicksForEvent);
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
             <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up relative overflow-hidden">
-                <h2 className="text-3xl font-bold text-ghost-white mb-4 relative z-10">Picks Submitted Successfully!</h2>
+                <h2 className="text-3xl font-black uppercase italic text-ghost-white mb-4 relative z-10">
+                    {justConfirmed ? 'Picks Locked In' : 'Picks Submitted'}
+                </h2>
                 <p className="text-ghost-white relative z-10">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
-                
+                {submittedAt && (
+                    <p className="mt-2 text-xs text-highlight-silver relative z-10">
+                        {justConfirmed ? 'Confirmed by the server at ' : 'Submitted '}
+                        <span className="tabular-nums">{formatLeagueDateTime(submittedAt)}</span>
+                    </p>
+                )}
+
                 {!isEffectiveLocked && (
                     <div className="mt-6 p-4 bg-carbon-black/40 rounded-lg inline-block border border-pure-white/5 backdrop-blur-sm relative z-10">
                         <p className="text-[10px] text-highlight-silver uppercase tracking-widest font-bold mb-2">Time Remaining to Edit</p>
@@ -546,6 +616,8 @@ const PicksForm: React.FC<PicksFormProps> = ({
         getUsage={getUsage}
         getLimit={getLimit}
         validationIssues={reviewIssues}
+        submitState={submitState}
+        submitError={submitError}
         exhaustedLabels={Object.entries(exhaustionReport)
           .filter(([, r]: [string, any]) => r.isExhausted)
           .map(([key]) => ({

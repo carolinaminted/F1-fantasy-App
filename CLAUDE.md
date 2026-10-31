@@ -100,6 +100,7 @@ npm run build -- --mode staging   # vite build for a given mode
 ./deploy-staging.sh               # deploys Functions + Firestore rules/indexes + frontend to STAGING
 
 ./scripts/release-gates.sh show   # where this commit stands in the pipeline
+node scripts/release-work-items.mjs  # work items in the latest release, and which have reached members
 ./scripts/release-gates.sh sign local     # record that you tested it locally
 ./scripts/release-gates.sh sign staging   # record that you tested it on staging (checks first)
 ./deploy-production.sh --dry-run  # PRODUCTION: gates + locked targets, touches nothing
@@ -199,6 +200,19 @@ Every `prod` release still needs `./scripts/release-gates.sh sign local` and `si
 tip commit before `pre-push` lets it through. The script fetches and pushes that notes ref itself
 on each `sign`. An agent never signs a gate: signing says a human looked.
 
+**Closing out work items after a production deploy.** `promote-production.sh` writes a
+`promoted:` note; `deploy-data-plane.sh` and `deploy-portal.sh` write `data-plane-deployed:` and
+`portal-deployed:` notes (via `release-gates.sh record`) on the commit they shipped. On success all
+three print `scripts/release-work-items.mjs`, which reads each commit's `Refs:` lines and changed
+files and reports every item as `LIVE` or `WAITING` on a deploy. A `functions/` change counts as live
+only once both Functions deploys include it. When the user asks to close out a release, the agent
+runs it with `--json`, shows the LIVE and WAITING lists and waits for one confirmation. Then, for
+each LIVE tracker item, it sets Status `Completed`, Released In `prod`, and appends the prod
+revision and SHAs to Commits. WAITING items stay at `staging`. Epics (`*-00`) and `INV-###` items
+are never closed this way, and an ID with no tracker row is reported, never created. Scripts hold no
+Notion credentials; the agent writes through its Notion connector. The 2026-10-15 Functions deploys
+were backfilled onto `6319050` on 2026-10-31.
+
 `LOL_ALLOW_PROD_EDIT=1` overrides the git hooks for a genuine emergency hotfix. The Claude Code
 hook has no override on purpose: the human can bypass, the agent cannot.
 
@@ -276,8 +290,8 @@ does that redeploy.
   `deploy-portal.sh`.
 - `hooks/`, `contexts/` (`SeasonContext`, `ThemeContext`, `ToastContext`), `utils/`, `styles/`.
 - Scripts: `deploy-staging.sh`, `deploy-production.sh`, `promote-production.sh`, `deploy-portal.sh`,
-  `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `portal-rollback.sh`,
-  `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
+  `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `release-work-items.mjs`,
+  `portal-rollback.sh`, `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
 
 **The scoring engine is implemented twice** — `services/scoringService.ts` (client) and
 `functions/index.js` (server) implement the same math independently. A scoring rule change must
@@ -297,12 +311,8 @@ included), with `career_stats/{uid}` derived from them and each lifecycle step r
 - **Commits:** conventional and scoped, matching the existing log — `feat(api):`,
   `chore(functions):`, `docs(design):`, `fix(ui):`.
 - **Work-item trailer:** when a commit closes or advances a tracked item, end the message with
-  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **Lights Out
-  League** database in the **JHH_Workspace** workspace
-  (<https://app.notion.com/p/9ac6781e0d2a414780901d150d90a88b>, data source
-  `collection://00be8388-7def-4d77-9962-c9dd2745a8c3`). It replaced the old **F1 Work Items**
-  database on 2026-10-16; plan pages linked from rows (Plans 1–3, AI SDLC Factory, codex-files)
-  still live in the old workspace. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
+  `Refs: [M-8]` (several are fine: `Refs: [C-1], [C-2]`). IDs come from the Notion **🏁 Lights Out League** work-item tracker; its
+  IDs and workspace are recorded only in `../CLAUDE.md`. `.githooks/commit-msg` hints when it is missing but **never blocks** — a
   commit with no work item is normal. Silence it with `LOL_SKIP_REFS_HINT=1`.
 
   This is worth the keystrokes: as of 2026-08-30 not one commit in the history carried an ID, so
@@ -359,14 +369,15 @@ staging design and the captured production baseline.
 ## Known open work
 
 **Season rollover is built, not deployed.** Plan 2 (Notion: Plan 2 — Season-Ending Cutover, tracked
-as `[ROLL-xx]` in the Lights Out League work-item database) is implemented on this branch, `feat/season-config`, including the
-`[ROLL-10]` backup step. It is **local-only by the user's rule** — no push, no merge to `staging`, no
-staging deploy — until the user lifts it, even though the October release shipped 2026-10-15. After
-that it deploys to staging for two rehearsals with the `verify.sh` zero-drift gate.
+as `[ROLL-xx]` in the Lights Out League tracker) is implemented on this branch, `feat/season-config`,
+including the `[ROLL-10]` backup step: `season_config/current` is the single source of scored events
+on both engines, the calendar lives in Firestore, and Season Control drives conclude, archive, reset
+and open. The local-only rule was **lifted 2026-10-31**. Timetable: one production release targeting
+Thu Nov 12 (fallback Tue Nov 17), two staging rehearsals first with the `verify.sh` zero-drift gate,
+season close Dec 6–13 (`[ROLL-06]`), 2027 start Jan–Feb (`[ROLL-07]`).
 
-- **Staging rules lag this branch.** The season rules in `firestore.rules` exist only here. Any
-  `deploy-staging.sh` from `staging` replaces the live ruleset and removes them (last on 2026-10-15),
-  after which local dev on this branch shows the outage screen until a rules-only deploy from here.
+- **Season rules are on `staging`** since 2026-10-31 (`feat/season-rules`, additive and deny-write),
+  so a `deploy-staging.sh` from `staging` no longer removes the `season_config` read rule.
 - **`[ROLL-10]` needs infra** before Take backup can succeed: the buckets in `functions/backup-buckets.js`
   and their IAM, in both staging and production. Start new season refuses without a backup.
 - **The portal create path is built but gated.** `deploy-portal.sh` on this branch detects callables

@@ -12,7 +12,7 @@ import { parseLeagueDate } from '../utils/dateUtils.ts';
 interface HomePageProps {
   user: User;
   seasonPicks: { [eventId: string]: PickSelection };
-  onPicksSubmit: (eventId: string, picks: PickSelection) => void;
+  onPicksSubmit: (eventId: string, picks: PickSelection) => Promise<void>;
   formLocks: { [eventId: string]: boolean };
   pointsSystem: PointsSystem;
   allDrivers: Driver[];

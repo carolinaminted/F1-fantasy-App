@@ -87,3 +87,30 @@ export const leagueZoneName = (
 
     return part?.value ?? null;
 };
+
+/**
+ * A Firestore timestamp field as a Date. Tolerates a missing field, the null a pending server
+ * timestamp reads as, and a plain {seconds} map left by a Database Manager edit.
+ */
+export const firestoreTimestampToDate = (value: unknown): Date | null => {
+    const ts = value as { toDate?: () => Date; seconds?: number } | null | undefined;
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    return null;
+};
+
+/** A pick's `submittedAt` as a Date; null for picks saved before the field existed. */
+export const pickSubmittedAt = (picks?: { submittedAt?: unknown } | null): Date | null =>
+    firestoreTimestampToDate(picks?.submittedAt);
+
+/** "Oct 31, 11:46 AM EDT" in league time, labelled from the date itself so DST cannot drift. */
+export const formatLeagueDateTime = (date: Date): string =>
+    new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: LEAGUE_TIMEZONE,
+        timeZoneName: 'short',
+    }).format(date);

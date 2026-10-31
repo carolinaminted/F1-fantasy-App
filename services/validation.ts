@@ -1,9 +1,18 @@
 
-// Basic list of reserved words and common profanity to block from public leaderboards
-const BLACKLIST = [
-  'admin', 'administrator', 'mod', 'moderator', 'system', 'root', 'support',
-  'fuck', 'shit', 'piss', 'cunt', 'bitch', 'asshole', 'dick', 'cock', 'pussy', 'nigger', 'faggot', 'whore', 'slut'
+// Reserved words and common profanity to block from public leaderboards.
+// Blocked anywhere in the name: never occur inside a legitimate name.
+const BLOCKED_SUBSTRINGS = [
+  'fuck', 'shit', 'cunt', 'bitch', 'asshole', 'pussy', 'nigger', 'faggot', 'whore'
 ];
+// Blocked only as a whole word: substring matching rejected Modena, Badminton, Hancock, Dickinson.
+const BLOCKED_WORDS = [
+  'admin', 'administrator', 'mod', 'moderator', 'system', 'root', 'support',
+  'piss', 'dick', 'cock', 'slut'
+];
+
+// "BigDick_Racing" -> ["big", "dick", "racing"]
+const toWords = (name: string): string[] =>
+  name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 
 export const sanitizeString = (str: string): string => {
   return str.trim();
@@ -27,9 +36,9 @@ export const validateDisplayName = (name: string): ValidationResult => {
     return { valid: false, error: "Display name contains invalid characters." };
   }
 
-  // Check Blacklist
   const lower = sanitized.toLowerCase();
-  if (BLACKLIST.some(word => lower.includes(word))) {
+  const words = toWords(sanitized);
+  if (BLOCKED_SUBSTRINGS.some(s => lower.includes(s)) || words.some(w => BLOCKED_WORDS.includes(w))) {
     return { valid: false, error: "Display name contains restricted words." };
   }
 

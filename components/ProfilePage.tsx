@@ -18,6 +18,7 @@ import { AccountMenu } from './profile/AccountMenu.tsx';
 import { EditProfileForm } from './profile/EditProfileForm.tsx';
 import { UsageSection } from './profile/UsageSection.tsx';
 import { HistoryList, type EventCategory } from './profile/HistoryList.tsx';
+import { firestoreTimestampToDate } from '../utils/dateUtils.ts';
 import type { Page } from '../App.tsx';
 
 interface ProfilePageProps {
@@ -577,6 +578,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             onDetailClick={handleEventScoringDetailClick}
             onUpdatePenalty={onUpdatePenalty}
             isPublicView={isPublicView}
+            cancelledEventIds={cancelledEventIds}
+            joinedAt={firestoreTimestampToDate(user.createdAt)}
           />
         </div>
       </div>
