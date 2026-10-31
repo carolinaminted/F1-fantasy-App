@@ -1,5 +1,6 @@
 import { EVENTS } from '../constants.ts';
-import { PickSelection, RaceResults, EventResult, UsageRollup, ClassUsage, EntityClass, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
+import { EntityClass } from '../types.ts';
+import type { PickSelection, RaceResults, EventResult, UsageRollup, ClassUsage, PointsSystem, Driver, Constructor, EventPointsBreakdown, User } from '../types.ts';
 
 const CURRENT_EVENT_IDS = new Set(EVENTS.map(e => e.id));
 
