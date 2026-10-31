@@ -8,7 +8,9 @@ const { computeFinalStandings, podiumOf, finalPodiumOf } = require('./standings'
  */
 const APP_STATE_POLICY = {
   archive: ['race_results', 'event_schedules', 'form_locks', 'cancelled_events', 'scoring_config', 'entities', 'season_calendar'],
-  skip: ['league_config', 'maintenance', 'general_announcement', 'results_announcement'],
+  // staging_seed_metadata is the marker functions/scripts/seed-staging.js leaves; it describes the
+  // environment, not a season, and never exists in production.
+  skip: ['league_config', 'maintenance', 'general_announcement', 'results_announcement', 'staging_seed_metadata'],
 };
 
 /**
