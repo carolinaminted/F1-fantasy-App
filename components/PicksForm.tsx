@@ -18,7 +18,7 @@ import { CONSTRUCTORS } from '../constants.ts';
 import { validateLineup } from '../services/pickValidation.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { Countdown } from './ui/index.ts';
-import { parseLeagueDate, LEAGUE_TIMEZONE } from '../utils/dateUtils.ts';
+import { parseLeagueDate, LEAGUE_TIMEZONE, pickSubmittedAt, formatLeagueDateTime } from '../utils/dateUtils.ts';
 
 export type SubmitState = 'idle' | 'saving' | 'slow' | 'error';
 
@@ -100,7 +100,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
   /** Set only when this session's save was acknowledged by the server. */
-  const [confirmedAt, setConfirmedAt] = useState<Date | null>(null);
+  const [justConfirmed, setJustConfirmed] = useState(false);
   const submitInFlight = useRef(false);
   /** From submit until the save is acked: covers the rollback echo that can follow a rejection. */
   const holdDraft = useRef(false);
@@ -143,7 +143,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     syncedEventId.current = event.id;
     if (eventChanged) {
       holdDraft.current = false;
-      setConfirmedAt(null);
+      setJustConfirmed(false);
       setSubmitState('idle');
       setSubmitError(null);
     }
@@ -326,7 +326,7 @@ const PicksForm: React.FC<PicksFormProps> = ({
     try {
         await onPicksSubmit(event.id, picks);
         holdDraft.current = false;
-        setConfirmedAt(new Date());
+        setJustConfirmed(true);
         setSubmitState('idle');
         setShowReview(false);
         setIsEditing(false);
@@ -394,19 +394,19 @@ const PicksForm: React.FC<PicksFormProps> = ({
   
   // Confirmation Screen (if not editing and not locked)
   if (!isEditing) {
+    // The server's own time: the listener delivers it once the write is acked.
+    const submittedAt = pickSubmittedAt(initialPicksForEvent);
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-4">
             <div className="max-w-4xl w-full text-center bg-carbon-fiber rounded-xl p-8 border border-pure-white/10 shadow-2xl animate-fade-in-up relative overflow-hidden">
                 <h2 className="text-3xl font-black uppercase italic text-ghost-white mb-4 relative z-10">
-                    {confirmedAt ? 'Picks Locked In' : 'Picks Submitted'}
+                    {justConfirmed ? 'Picks Locked In' : 'Picks Submitted'}
                 </h2>
                 <p className="text-ghost-white relative z-10">Your picks for the {event.name} are locked in. Good luck, {user.displayName}!</p>
-                {confirmedAt && (
+                {submittedAt && (
                     <p className="mt-2 text-xs text-highlight-silver relative z-10">
-                        Confirmed by the server at{' '}
-                        <span className="tabular-nums">
-                            {confirmedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: LEAGUE_TIMEZONE, timeZoneName: 'short' })}
-                        </span>
+                        {justConfirmed ? 'Confirmed by the server at ' : 'Submitted '}
+                        <span className="tabular-nums">{formatLeagueDateTime(submittedAt)}</span>
                     </p>
                 )}
 
