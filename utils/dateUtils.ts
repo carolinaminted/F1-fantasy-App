@@ -87,3 +87,26 @@ export const leagueZoneName = (
 
     return part?.value ?? null;
 };
+
+/**
+ * A pick's `submittedAt` as a Date. Tolerates picks saved before the field existed, the null a
+ * pending server timestamp reads as, and a plain {seconds} map left by a Database Manager edit.
+ */
+export const pickSubmittedAt = (picks?: { submittedAt?: unknown } | null): Date | null => {
+    const value = picks?.submittedAt as { toDate?: () => Date; seconds?: number } | null | undefined;
+    if (!value) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+    return null;
+};
+
+/** "Oct 31, 11:46 AM EDT" in league time, labelled from the date itself so DST cannot drift. */
+export const formatLeagueDateTime = (date: Date): string =>
+    new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: LEAGUE_TIMEZONE,
+        timeZoneName: 'short',
+    }).format(date);

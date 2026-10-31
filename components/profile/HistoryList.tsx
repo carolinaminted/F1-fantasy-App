@@ -8,6 +8,8 @@ import { FastestLapIcon } from '../icons/FastestLapIcon.tsx';
 import { PicksIcon } from '../icons/PicksIcon.tsx';
 import { HistoryIcon } from '../icons/HistoryIcon.tsx';
 import { PenaltyManager } from './PenaltyManager.tsx';
+import { LockIcon } from '../icons/LockIcon.tsx';
+import { pickSubmittedAt, formatLeagueDateTime } from '../../utils/dateUtils.ts';
 import { calculatePointsForEvent } from '../../services/scoringService.ts';
 import { CURRENT_SEASON } from '../../constants.ts';
 import type { Event, PickSelection, RaceResults, PointsSystem, Driver } from '../../types.ts';
@@ -84,6 +86,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
             : { totalPoints: 0, grandPrixPoints: 0, sprintPoints: 0, gpQualifyingPoints: 0, sprintQualifyingPoints: 0, fastestLapPoints: 0, penaltyPoints: 0 };
           const isExpanded = expandedEvent === event.id;
           const hasPenalty = (picks.penalty || 0) > 0;
+          const submittedAt = pickSubmittedAt(picks);
           const rawPoints = eventPoints.totalPoints + (eventPoints.penaltyPoints || 0);
 
           return (
@@ -136,6 +139,15 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                       <p className="text-ghost-white">{getEntityName(picks.fastestLap)}</p>
                     </div>
                   </div>
+
+                  {!isPublicView && (submittedAt || onUpdatePenalty) && (
+                    <div className="mt-4">
+                      {submittedAt
+                        ? <Chip tone="success" icon={LockIcon} className="tabular-nums"
+                            label={`Submitted ${formatLeagueDateTime(submittedAt)}`} />
+                        : <Chip tone="neutral" label="Submitted before timestamps were recorded" />}
+                    </div>
+                  )}
 
                   {results && (
                     <div className="mt-4 border-t border-pure-white/10 pt-4">

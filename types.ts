@@ -1,4 +1,5 @@
 
+import type { Timestamp } from '@firebase/firestore';
 
 export enum EntityClass {
   A = 'A',
@@ -67,6 +68,8 @@ export interface PickSelection {
   fastestLap: string | null;
   penalty?: number;
   penaltyReason?: string;
+  /** Server time of the member's own last save. Null until acked; absent before Nov 2026. */
+  submittedAt?: Timestamp | null;
 }
 
 export interface EventResult {
