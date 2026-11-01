@@ -1,0 +1,218 @@
+{
+  "bhr_27": {
+    "name": "Bahrain GP",
+    "hasSprint": true,
+    "fp1": "2027-03-12T06:30",
+    "sprintQualifying": "2027-03-12T10:30",
+    "sprint": "2027-03-13T07:00",
+    "qualifying": "2027-03-13T11:00",
+    "race": "2027-03-14T11:00"
+  },
+  "sau_27": {
+    "name": "Saudi Arabian GP",
+    "hasSprint": false,
+    "fp1": "2027-03-19T09:30",
+    "fp2": "2027-03-19T13:00",
+    "fp3": "2027-03-20T09:30",
+    "qualifying": "2027-03-20T13:00",
+    "race": "2027-03-21T13:00"
+  },
+  "aus_27": {
+    "name": "Australian GP",
+    "hasSprint": true,
+    "fp1": "2027-04-01T21:30",
+    "sprintQualifying": "2027-04-02T01:30",
+    "sprint": "2027-04-02T21:00",
+    "qualifying": "2027-04-03T01:00",
+    "race": "2027-04-04T01:00"
+  },
+  "jpn_27": {
+    "name": "Japanese GP",
+    "hasSprint": true,
+    "fp1": "2027-04-08T22:30",
+    "sprintQualifying": "2027-04-09T02:30",
+    "sprint": "2027-04-09T22:00",
+    "qualifying": "2027-04-10T02:00",
+    "race": "2027-04-11T01:00"
+  },
+  "chn_27": {
+    "name": "Chinese GP",
+    "hasSprint": false,
+    "fp1": "2027-04-15T23:30",
+    "fp2": "2027-04-16T03:00",
+    "fp3": "2027-04-16T23:30",
+    "qualifying": "2027-04-17T03:00",
+    "race": "2027-04-18T03:00"
+  },
+  "mia_27": {
+    "name": "Miami GP",
+    "hasSprint": false,
+    "fp1": "2027-04-30T12:30",
+    "fp2": "2027-04-30T16:00",
+    "fp3": "2027-05-01T12:30",
+    "qualifying": "2027-05-01T16:00",
+    "race": "2027-05-02T16:00"
+  },
+  "can_27": {
+    "name": "Canadian GP",
+    "hasSprint": true,
+    "fp1": "2027-05-21T13:30",
+    "sprintQualifying": "2027-05-21T17:30",
+    "sprint": "2027-05-22T12:00",
+    "qualifying": "2027-05-22T16:00",
+    "race": "2027-05-23T14:00"
+  },
+  "mco_27": {
+    "name": "Monaco GP",
+    "hasSprint": true,
+    "fp1": "2027-06-04T07:30",
+    "sprintQualifying": "2027-06-04T11:30",
+    "sprint": "2027-06-05T06:00",
+    "qualifying": "2027-06-05T10:00",
+    "race": "2027-06-06T09:00"
+  },
+  "por_27": {
+    "name": "Portuguese GP",
+    "hasSprint": false,
+    "fp1": "2027-06-18T08:30",
+    "fp2": "2027-06-18T12:00",
+    "fp3": "2027-06-19T07:30",
+    "qualifying": "2027-06-19T11:00",
+    "race": "2027-06-20T10:00"
+  },
+  "gbr_27": {
+    "name": "British GP",
+    "hasSprint": true,
+    "fp1": "2027-07-02T07:30",
+    "sprintQualifying": "2027-07-02T11:30",
+    "sprint": "2027-07-03T07:00",
+    "qualifying": "2027-07-03T11:00",
+    "race": "2027-07-04T10:00"
+  },
+  "aut_27": {
+    "name": "Austrian GP",
+    "hasSprint": false,
+    "fp1": "2027-07-09T07:30",
+    "fp2": "2027-07-09T11:00",
+    "fp3": "2027-07-10T06:30",
+    "qualifying": "2027-07-10T10:00",
+    "race": "2027-07-11T09:00"
+  },
+  "bel_27": {
+    "name": "Belgian GP",
+    "hasSprint": false,
+    "fp1": "2027-07-23T07:30",
+    "fp2": "2027-07-23T11:00",
+    "fp3": "2027-07-24T06:30",
+    "qualifying": "2027-07-24T10:00",
+    "race": "2027-07-25T09:00"
+  },
+  "hun_27": {
+    "name": "Hungarian GP",
+    "hasSprint": false,
+    "fp1": "2027-07-30T07:30",
+    "fp2": "2027-07-30T11:00",
+    "fp3": "2027-07-31T06:30",
+    "qualifying": "2027-07-31T10:00",
+    "race": "2027-08-01T09:00"
+  },
+  "ita_27": {
+    "name": "Italian GP",
+    "hasSprint": true,
+    "fp1": "2027-09-03T07:30",
+    "sprintQualifying": "2027-09-03T11:30",
+    "sprint": "2027-09-04T06:00",
+    "qualifying": "2027-09-04T10:00",
+    "race": "2027-09-05T09:00"
+  },
+  "esp_27": {
+    "name": "Spanish GP",
+    "hasSprint": false,
+    "fp1": "2027-09-10T07:30",
+    "fp2": "2027-09-10T11:00",
+    "fp3": "2027-09-11T06:30",
+    "qualifying": "2027-09-11T10:00",
+    "race": "2027-09-12T09:00"
+  },
+  "aze_27": {
+    "name": "Azerbaijan GP",
+    "hasSprint": false,
+    "fp1": "2027-09-24T04:30",
+    "fp2": "2027-09-24T08:00",
+    "fp3": "2027-09-25T04:30",
+    "qualifying": "2027-09-25T08:00",
+    "race": "2027-09-26T07:00"
+  },
+  "tur_27": {
+    "name": "Turkish GP",
+    "hasSprint": false,
+    "fp1": "2027-10-01T06:30",
+    "fp2": "2027-10-01T10:00",
+    "fp3": "2027-10-02T05:30",
+    "qualifying": "2027-10-02T09:00",
+    "race": "2027-10-03T08:00"
+  },
+  "sgp_27": {
+    "name": "Singapore GP",
+    "hasSprint": false,
+    "fp1": "2027-10-08T05:30",
+    "fp2": "2027-10-08T09:00",
+    "fp3": "2027-10-09T05:30",
+    "qualifying": "2027-10-09T09:00",
+    "race": "2027-10-10T08:00"
+  },
+  "usa_27": {
+    "name": "United States GP",
+    "hasSprint": false,
+    "fp1": "2027-10-22T13:30",
+    "fp2": "2027-10-22T17:00",
+    "fp3": "2027-10-23T13:30",
+    "qualifying": "2027-10-23T17:00",
+    "race": "2027-10-24T15:00"
+  },
+  "mex_27": {
+    "name": "Mexico City GP",
+    "hasSprint": false,
+    "fp1": "2027-10-29T14:30",
+    "fp2": "2027-10-29T18:00",
+    "fp3": "2027-10-30T13:30",
+    "qualifying": "2027-10-30T17:00",
+    "race": "2027-10-31T16:00"
+  },
+  "bra_27": {
+    "name": "Sao Paulo GP",
+    "hasSprint": true,
+    "fp1": "2027-11-05T10:30",
+    "sprintQualifying": "2027-11-05T14:30",
+    "sprint": "2027-11-06T10:00",
+    "qualifying": "2027-11-06T14:00",
+    "race": "2027-11-07T12:00"
+  },
+  "las_27": {
+    "name": "Las Vegas GP",
+    "hasSprint": false,
+    "fp1": "2027-11-18T19:30",
+    "fp2": "2027-11-18T23:00",
+    "fp3": "2027-11-19T19:30",
+    "qualifying": "2027-11-19T23:00",
+    "race": "2027-11-20T23:00"
+  },
+  "qat_27": {
+    "name": "Qatar GP",
+    "hasSprint": true,
+    "fp1": "2027-12-03T08:30",
+    "sprintQualifying": "2027-12-03T12:30",
+    "sprint": "2027-12-04T09:00",
+    "qualifying": "2027-12-04T13:00",
+    "race": "2027-12-05T11:00"
+  },
+  "abu_27": {
+    "name": "Abu Dhabi GP",
+    "hasSprint": true,
+    "fp1": "2027-12-10T04:30",
+    "sprintQualifying": "2027-12-10T08:30",
+    "sprint": "2027-12-11T05:00",
+    "qualifying": "2027-12-11T09:00",
+    "race": "2027-12-12T08:00"
+  }
+}
