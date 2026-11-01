@@ -1,0 +1,222 @@
+{
+  "seasonId": "2027",
+  "label": "2027 Season",
+  "events": [
+    {
+      "id": "bhr_27",
+      "round": 1,
+      "name": "Bahrain GP",
+      "country": "Bahrain",
+      "location": "Sakhir",
+      "circuit": "Bahrain International Circuit",
+      "hasSprint": true
+    },
+    {
+      "id": "sau_27",
+      "round": 2,
+      "name": "Saudi Arabian GP",
+      "country": "Saudi Arabia",
+      "location": "Jeddah",
+      "circuit": "Jeddah Corniche Circuit",
+      "hasSprint": false
+    },
+    {
+      "id": "aus_27",
+      "round": 3,
+      "name": "Australian GP",
+      "country": "Australia",
+      "location": "Melbourne",
+      "circuit": "Albert Park Circuit",
+      "hasSprint": true
+    },
+    {
+      "id": "jpn_27",
+      "round": 4,
+      "name": "Japanese GP",
+      "country": "Japan",
+      "location": "Suzuka",
+      "circuit": "Suzuka Circuit",
+      "hasSprint": true
+    },
+    {
+      "id": "chn_27",
+      "round": 5,
+      "name": "Chinese GP",
+      "country": "China",
+      "location": "Shanghai",
+      "circuit": "Shanghai International Circuit",
+      "hasSprint": false
+    },
+    {
+      "id": "mia_27",
+      "round": 6,
+      "name": "Miami GP",
+      "country": "United States",
+      "location": "Miami",
+      "circuit": "Miami International Autodrome",
+      "hasSprint": false
+    },
+    {
+      "id": "can_27",
+      "round": 7,
+      "name": "Canadian GP",
+      "country": "Canada",
+      "location": "Montreal",
+      "circuit": "Circuit Gilles Villeneuve",
+      "hasSprint": true
+    },
+    {
+      "id": "mco_27",
+      "round": 8,
+      "name": "Monaco GP",
+      "country": "Monaco",
+      "location": "Monte Carlo",
+      "circuit": "Circuit de Monaco",
+      "hasSprint": true
+    },
+    {
+      "id": "por_27",
+      "round": 9,
+      "name": "Portuguese GP",
+      "country": "Portugal",
+      "location": "Portimão",
+      "circuit": "Algarve International Circuit",
+      "hasSprint": false
+    },
+    {
+      "id": "gbr_27",
+      "round": 10,
+      "name": "British GP",
+      "country": "United Kingdom",
+      "location": "Silverstone",
+      "circuit": "Silverstone Circuit",
+      "hasSprint": true
+    },
+    {
+      "id": "aut_27",
+      "round": 11,
+      "name": "Austrian GP",
+      "country": "Austria",
+      "location": "Spielberg",
+      "circuit": "Red Bull Ring",
+      "hasSprint": false
+    },
+    {
+      "id": "bel_27",
+      "round": 12,
+      "name": "Belgian GP",
+      "country": "Belgium",
+      "location": "Spa-Francorchamps",
+      "circuit": "Circuit de Spa-Francorchamps",
+      "hasSprint": false
+    },
+    {
+      "id": "hun_27",
+      "round": 13,
+      "name": "Hungarian GP",
+      "country": "Hungary",
+      "location": "Budapest",
+      "circuit": "Hungaroring",
+      "hasSprint": false
+    },
+    {
+      "id": "ita_27",
+      "round": 14,
+      "name": "Italian GP",
+      "country": "Italy",
+      "location": "Monza",
+      "circuit": "Autodromo Nazionale Monza",
+      "hasSprint": true
+    },
+    {
+      "id": "esp_27",
+      "round": 15,
+      "name": "Spanish GP",
+      "country": "Spain",
+      "location": "Madrid",
+      "circuit": "Madring",
+      "hasSprint": false
+    },
+    {
+      "id": "aze_27",
+      "round": 16,
+      "name": "Azerbaijan GP",
+      "country": "Azerbaijan",
+      "location": "Baku",
+      "circuit": "Baku City Circuit",
+      "hasSprint": false
+    },
+    {
+      "id": "tur_27",
+      "round": 17,
+      "name": "Turkish GP",
+      "country": "Türkiye",
+      "location": "Istanbul",
+      "circuit": "Istanbul Park",
+      "hasSprint": false
+    },
+    {
+      "id": "sgp_27",
+      "round": 18,
+      "name": "Singapore GP",
+      "country": "Singapore",
+      "location": "Singapore",
+      "circuit": "Marina Bay Street Circuit",
+      "hasSprint": false
+    },
+    {
+      "id": "usa_27",
+      "round": 19,
+      "name": "United States GP",
+      "country": "United States",
+      "location": "Austin",
+      "circuit": "Circuit of the Americas",
+      "hasSprint": false
+    },
+    {
+      "id": "mex_27",
+      "round": 20,
+      "name": "Mexico City GP",
+      "country": "Mexico",
+      "location": "Mexico City",
+      "circuit": "Autódromo Hermanos Rodríguez",
+      "hasSprint": false
+    },
+    {
+      "id": "bra_27",
+      "round": 21,
+      "name": "Sao Paulo GP",
+      "country": "Brazil",
+      "location": "São Paulo",
+      "circuit": "Autódromo José Carlos Pace",
+      "hasSprint": true
+    },
+    {
+      "id": "las_27",
+      "round": 22,
+      "name": "Las Vegas GP",
+      "country": "United States",
+      "location": "Las Vegas",
+      "circuit": "Las Vegas Strip Circuit",
+      "hasSprint": false
+    },
+    {
+      "id": "qat_27",
+      "round": 23,
+      "name": "Qatar GP",
+      "country": "Qatar",
+      "location": "Lusail",
+      "circuit": "Lusail International Circuit",
+      "hasSprint": true
+    },
+    {
+      "id": "abu_27",
+      "round": 24,
+      "name": "Abu Dhabi GP",
+      "country": "United Arab Emirates",
+      "location": "Abu Dhabi",
+      "circuit": "Yas Marina Circuit",
+      "hasSprint": true
+    }
+  ]
+}
