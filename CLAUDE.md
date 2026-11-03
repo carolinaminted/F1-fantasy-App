@@ -31,9 +31,10 @@ domain or DNS changes, IAM edits, traffic shifts — without explicit per-action
   `update-traffic` lines to restore them are in `.backups/portal-revisions-2026-10-15T21-07-41Z.txt`.
 - Data plane: `rollback/data-plane-node20` redeploys the two triggers on Node 20 — **only until
   2026-10-30**, when nodejs20 is decommissioned.
-- Data: `.backups/schedule-correction-formula-fantasy-1-2026-09-17T22-50-25-510Z.json`.
-  **Use this file, not the 2026-09-10 one** — the older backup predates Madrid being scored on
-  2026-09-13 and restoring it would wipe those results.
+- Data: the managed export `gs://formula-fantasy-1-season-backups/season-2026/manual-2026-11-03T02-58-42Z`
+  (full database, 2026-11-03, restore with `gcloud firestore import`). The older local file
+  `.backups/schedule-correction-formula-fantasy-1-2026-09-17T22-50-25-510Z.json` is schedule-only;
+  never use the 2026-09-10 one, which predates Madrid being scored on 2026-09-13.
 
 ⚠️ **`gen-lang-client-0034225567` vs `formula-fantasy-1` is a trap that has bitten twice.** The
 console shows the *display name* `formula-fantasy-one` for the legacy project, but `--project`
@@ -384,8 +385,13 @@ season close Dec 6–13 (`[ROLL-06]`), 2027 start Jan–Feb (`[ROLL-07]`).
 - **`[ROLL-11]` `deploy-prod-rules.sh` is built, never run** (2026-11-02). Production has never
   served the season rules; the Nov 12 release needs this script run from `prod` before the web
   candidate is promoted. It backs up the live ruleset to `.backups/` and records `rules-deployed:`.
-- **`[ROLL-10]` needs infra** before Take backup can succeed: the buckets in `functions/backup-buckets.js`
-  and their IAM, in both staging and production. Start new season refuses without a backup.
+- **`[ROLL-10]` infra is in place in both projects** (staging 2026-10-31, production 2026-11-02):
+  the buckets in `functions/backup-buckets.js`, `storage.objectAdmin` for each Firestore service
+  agent, `datastore.importExportAdmin` for each runtime SA (the portal SA on `formula-fantasy-1`,
+  cross-project). A one-off export proved the production bucket:
+  `gs://formula-fantasy-1-season-backups/season-2026/manual-2026-11-03T02-58-42Z` (517 docs), which
+  is also the freshest pre-release data backup. The portal SA's grant is first exercised by Take
+  backup at the December close.
 - **The portal create path is built but gated.** `deploy-portal.sh` on this branch detects callables
   the portal lacks and lists them as "will CREATE", but a real run refuses (`CREATE_SUPPORTED=false`)
   until a staging rehearsal settles how to turn on invoker-iam-disabled for a new function without
