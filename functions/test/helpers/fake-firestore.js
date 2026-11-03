@@ -1,7 +1,7 @@
 /**
  * A minimal in-memory Firestore for season-ops tests. Documents live in a Map keyed by full path.
  * Supports only what the season-ops runners use: doc(path), collection(path), get() on both,
- * doc set (with merge) and update, and bulkWriter() set/delete/close.
+ * doc set (with merge), create, and update, and bulkWriter() set/delete/close.
  */
 const clone = (v) => (v === undefined ? v : structuredClone(v));
 
@@ -22,6 +22,10 @@ const fakeFirestore = (seed = {}) => {
     get: async () => snap(path),
     set: async (data, opts) => {
       docs.set(path, opts?.merge ? { ...(docs.get(path) || {}), ...clone(data) } : clone(data));
+    },
+    create: async (data) => {
+      if (docs.has(path)) throw new Error(`create of existing doc ${path}`);
+      docs.set(path, clone(data));
     },
     update: async (data) => {
       if (!docs.has(path)) throw new Error(`update of missing doc ${path}`);
