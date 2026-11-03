@@ -2,8 +2,8 @@
 #
 # Deploys the callables to lights-out-league-prod, the production portal that serves
 # formula-fantasy-1's data: the five member-facing ones and the five admin-only season ones. A
-# callable the portal does not have yet is created; see "Creating" below for the one step that
-# still blocks a real create. Plan 3, Phase B: https://app.notion.com/p/3e30c2f763aa81a2938dc294cdf7d205
+# callable the portal does not have yet is created and then made public; see "Creating" below.
+# Plan 3, Phase B: https://app.notion.com/p/3e30c2f763aa81a2938dc294cdf7d205
 #
 # Production. Every run needs explicit approval, on a weekday between race weekends.
 #
@@ -362,11 +362,27 @@ fi
 
 # --- Creating ------------------------------------------------------------------------------------
 # A newly created function's Cloud Run service lacks invoker-iam-disabled, the only way this portal
-# is public (Domain Restricted Sharing forbids allUsers), so its probe would return 403. Setting it
-# means writing the Cloud Run service directly, which is how two functions' GCF records were
-# blanked in 2026-08. The safe sequence waits on a staging rehearsal (worklog/season-rollover.md,
-# 2026-10-15); until it is written into the deploy loop below, a real run refuses to create.
-readonly CREATE_SUPPORTED=false
+# is public (Domain Restricted Sharing forbids allUsers), so its probe would return 403. The deploy
+# loop sets it right after the create with `gcloud run services update --no-invoker-iam-check`.
+#
+# Writing the Cloud Run service directly is how two GCF records were blanked in 2026-08, but that
+# write changed the revision template. Rehearsed on formula-fantasy-staging 2026-11-03 [ROLL-12]:
+# this flag changes only the service. It creates no revision and leaves serviceConfig.revision
+# intact; the next functions deploy rebuilds normally and keeps the setting. That next deploy prints
+# "Completed with warnings: [INFO] A new revision will be deployed serving with 100% traffic." once
+# and exits 0. It is expected, not a failure.
+#
+# Kill switch: false makes a real run refuse to create, as it did before the rehearsal.
+readonly CREATE_SUPPORTED=true
+
+is_being_created() {
+  local c
+  # ${arr[@]+"${arr[@]}"}: bash 3.2 (macOS default) treats an empty array as unbound under set -u.
+  for c in ${to_create[@]+"${to_create[@]}"}; do
+    [[ "$c" == "$1" ]] && return 0
+  done
+  return 1
+}
 
 if [[ "$dry_run" == true ]]; then
   echo
@@ -452,7 +468,15 @@ for fn in "${DEPLOY_ORDER[@]}"; do
     --quiet \
     || stop_after "$fn (gcloud reported a failure)"
 
-  # Creating: a newly created function's public-access step goes here (see "Creating" above).
+  # Created this run: make it public before the probe (see "Creating" above).
+  if is_being_created "$fn"; then
+    env -u DEBUG gcloud run services update "$(run_service_name "$fn")" --no-invoker-iam-check \
+      --project "$PORTAL_PROJECT" \
+      --account "$PORTAL_ACCOUNT" \
+      --region "$FUNCTIONS_REGION" \
+      --quiet \
+      || stop_after "$fn (setting public access on the new function failed)"
+  fi
 
   verify_function "$fn" "$started" || stop_after "$fn (configuration check failed)"
   probe_function "$fn" || stop_after "$fn (anonymous probe failed)"
