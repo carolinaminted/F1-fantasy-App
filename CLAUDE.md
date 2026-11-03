@@ -112,6 +112,9 @@ node scripts/release-work-items.mjs  # work items in the latest release, and whi
 ./deploy-data-plane.sh            # PRODUCTION, approval-gated: runs from `prod` or `rollback/data-plane-node20`
 ./deploy-portal.sh --dry-run      # PRODUCTION: the 5 callables to lights-out-league-prod; read-only, incl. live drift check
 ./deploy-portal.sh                # PRODUCTION, approval-gated: runs from `prod`, or a detached earlier prod commit to roll back
+
+./deploy-prod-rules.sh --dry-run  # PRODUCTION: firestore.rules + indexes to formula-fantasy-1; read-only, shows the live diff
+./deploy-prod-rules.sh            # PRODUCTION, approval-gated: runs from `prod`; refuses rules staging is not already serving
 ```
 
 `deploy-staging.sh` self-guards: it asserts the `.firebaserc` staging alias, hardcodes its
@@ -201,8 +204,8 @@ tip commit before `pre-push` lets it through. The script fetches and pushes that
 on each `sign`. An agent never signs a gate: signing says a human looked.
 
 **Closing out work items after a production deploy.** `promote-production.sh` writes a
-`promoted:` note; `deploy-data-plane.sh` and `deploy-portal.sh` write `data-plane-deployed:` and
-`portal-deployed:` notes (via `release-gates.sh record`) on the commit they shipped. On success all
+`promoted:` note; `deploy-data-plane.sh`, `deploy-portal.sh` and `deploy-prod-rules.sh` write
+`data-plane-deployed:`, `portal-deployed:` and `rules-deployed:` notes (via `release-gates.sh record`) on the commit they shipped. On success all
 three print `scripts/release-work-items.mjs`, which reads each commit's `Refs:` lines and changed
 files and reports every item as `LIVE` or `WAITING` on a deploy. A `functions/` change counts as live
 only once both Functions deploys include it. When the user asks to close out a release, the agent
@@ -290,7 +293,7 @@ does that redeploy.
   `deploy-portal.sh`.
 - `hooks/`, `contexts/` (`SeasonContext`, `ThemeContext`, `ToastContext`), `utils/`, `styles/`.
 - Scripts: `deploy-staging.sh`, `deploy-production.sh`, `promote-production.sh`, `deploy-portal.sh`,
-  `deploy-data-plane.sh` at the root; `scripts/` holds `release-gates.sh`, `release-work-items.mjs`,
+  `deploy-data-plane.sh`, `deploy-prod-rules.sh` at the root; `scripts/` holds `release-gates.sh`, `release-work-items.mjs`,
   `portal-rollback.sh`, `rotate-staging-email-secret.sh`, and `bundle-audit.sh`. The prod-staging pair was deleted 2026-09-29.
 
 **The scoring engine is implemented twice** — `services/scoringService.ts` (client) and
@@ -378,6 +381,9 @@ season close Dec 6–13 (`[ROLL-06]`), 2027 start Jan–Feb (`[ROLL-07]`).
 
 - **Season rules are on `staging`** since 2026-10-31 (`feat/season-rules`, additive and deny-write),
   so a `deploy-staging.sh` from `staging` no longer removes the `season_config` read rule.
+- **`[ROLL-11]` `deploy-prod-rules.sh` is built, never run** (2026-11-02). Production has never
+  served the season rules; the Nov 12 release needs this script run from `prod` before the web
+  candidate is promoted. It backs up the live ruleset to `.backups/` and records `rules-deployed:`.
 - **`[ROLL-10]` needs infra** before Take backup can succeed: the buckets in `functions/backup-buckets.js`
   and their IAM, in both staging and production. Start new season refuses without a backup.
 - **The portal create path is built but gated.** `deploy-portal.sh` on this branch detects callables

@@ -6,6 +6,7 @@
 //   promoted:             web    (promote-production.sh)
 //   data-plane-deployed:  the 2 scoring triggers in formula-fantasy-1 (deploy-data-plane.sh)
 //   portal-deployed:      the 5 callables in lights-out-league-prod (deploy-portal.sh)
+//   rules-deployed:       firestore.rules + indexes in formula-fantasy-1 (deploy-prod-rules.sh)
 // A functions/ change is only live once BOTH Functions deploys include it: a file cannot be mapped
 // to the functions it affects, so this errs towards "not yet".
 //
@@ -39,7 +40,7 @@ const noteList = spawnSync('git', ['notes', `--ref=${NOTES_REF}`, 'list'], { enc
 for (const line of noteList.split('\n').filter(Boolean)) {
     const sha = line.split(' ')[1];
     const body = git('notes', `--ref=${NOTES_REF}`, 'show', sha);
-    for (const m of body.matchAll(/^(promoted|data-plane-deployed|portal-deployed): (\S+)/gm)) {
+    for (const m of body.matchAll(/^(promoted|data-plane-deployed|portal-deployed|rules-deployed): (\S+)/gm)) {
         records.push({ kind: m[1], at: m[2], sha });
     }
 }
@@ -51,6 +52,7 @@ const serving = {
     web: latest('promoted'),
     dataPlane: latest('data-plane-deployed'),
     portal: latest('portal-deployed'),
+    rules: latest('rules-deployed'),
 };
 
 const to = git('rev-parse', '--verify', `${opt('--to') || 'origin/prod'}^{commit}`);
@@ -83,7 +85,7 @@ const waitingOn = (sha, surface) => {
         if (!has(serving.dataPlane)) missing.push('data-plane');
         if (!has(serving.portal)) missing.push('portal');
     }
-    if (surface === 'rules') missing.push('rules (manual)');
+    if (surface === 'rules' && !has(serving.rules)) missing.push('rules');
     return missing;
 };
 

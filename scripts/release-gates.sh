@@ -19,9 +19,9 @@
 #   release-gates.sh check <ref> <gate>...
 #   release-gates.sh show <ref>
 #   release-gates.sh serving staging|production <ref>
-#   release-gates.sh record data-plane-deployed|portal-deployed <ref> <detail>
+#   release-gates.sh record data-plane-deployed|portal-deployed|rules-deployed <ref> <detail>
 #
-# `record` is called by deploy-data-plane.sh and deploy-portal.sh after a successful production
+# `record` is called by deploy-data-plane.sh, deploy-portal.sh and deploy-prod-rules.sh after a successful production
 # deploy. Those notes are a record, not gates: scripts/release-work-items.mjs reads them to tell
 # which work items have actually reached members.
 
@@ -320,8 +320,8 @@ cmd_check() {
 cmd_record() {
   local kind="${1:-}" ref="${2:-}" detail="${3:-}"
   case "$kind" in
-    data-plane-deployed|portal-deployed) ;;
-    *) gates_die "record: kind must be data-plane-deployed or portal-deployed" ;;
+    data-plane-deployed|portal-deployed|rules-deployed) ;;
+    *) gates_die "record: kind must be data-plane-deployed, portal-deployed or rules-deployed" ;;
   esac
   [[ -n "$ref" ]] || gates_die "record: missing <ref>"
   local sha now who
