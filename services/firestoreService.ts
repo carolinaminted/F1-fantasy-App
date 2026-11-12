@@ -1,6 +1,7 @@
 
 import { db, auth } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
+import type { SeasonOps } from './seasonOps.ts';
 import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { LEAGUE_DUES_AMOUNT } from '../constants.ts';
@@ -73,6 +74,12 @@ export const concludeSeasonCall = async (seasonId: string) => {
     const fn = getCallable<{ seasonId: string }, { champions: string[]; podium: string[] }>('concludeSeason');
     return (await fn({ seasonId })).data;
 };
+
+/** Live `season_ops/{seasonId}` (admin-readable), so Season Control can mark steps done as they land. */
+export const subscribeSeasonOps = (seasonId: string, onChange: (ops: SeasonOps | undefined) => void) =>
+    onSnapshot(doc(db, 'season_ops', seasonId),
+        (snap) => onChange(snap.exists() ? snap.data() as SeasonOps : undefined),
+        (error) => { console.error('Firestore listener error (season_ops):', error); onChange(undefined); });
 
 export const backupLeagueCall = async (seasonId: string) => {
     const fn = getCallable<{ seasonId: string }, { outputUri: string }>('backupLeague');

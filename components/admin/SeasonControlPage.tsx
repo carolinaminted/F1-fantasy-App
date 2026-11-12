@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tile, Chip } from '../ui/index.ts';
 import { AdminToolShell } from './AdminToolShell.tsx';
 import { ConfirmModal } from './ConfirmModal.tsx';
 import { CheckeredFlagIcon } from '../icons/CheckeredFlagIcon.tsx';
 import { useSeason } from '../../contexts/SeasonContext.tsx';
 import { useToast } from '../../contexts/ToastContext.tsx';
-import { concludeSeasonCall, archiveSeasonCall, backupLeagueCall, startNewSeasonCall, openSeasonCall } from '../../services/firestoreService.ts';
+import { concludeSeasonCall, archiveSeasonCall, backupLeagueCall, startNewSeasonCall, openSeasonCall, subscribeSeasonOps } from '../../services/firestoreService.ts';
+import { stepProgress, type SeasonOps } from '../../services/seasonOps.ts';
 import type { SeasonStatus } from '../../services/seasonConfig.ts';
 import type { AdminDestination } from '../../routes.ts';
 
@@ -48,12 +49,30 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
   const { showToast } = useToast();
   const [confirming, setConfirming] = useState<StepId | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ops, setOps] = useState<SeasonOps | undefined>();
+  useEffect(() => subscribeSeasonOps(seasonId, setOps), [seasonId]);
 
-  // Archive stays available once archived: re-running refreshes and re-verifies the copy.
-  const isCurrent = (step: Step) =>
-    step.id === 'archive' ? status === 'concluded' || status === 'archived' : step.from === status;
-  const isDone = (step: Step) =>
-    STATUS_ORDER.indexOf(status) > STATUS_ORDER.indexOf(step.from) && !isCurrent(step);
+  // Archive and Backup both run while the season is `archived`, so status alone cannot say
+  // which is complete; season_ops records each one.
+  const { archiveVerified, backupCurrent } = stepProgress(ops);
+  const pastStatus = (step: Step) => STATUS_ORDER.indexOf(status) > STATUS_ORDER.indexOf(step.from);
+  const isDone = (step: Step) => {
+    if (step.id === 'archive') return pastStatus(step) || (status === 'archived' && archiveVerified);
+    if (step.id === 'backup') return pastStatus(step) || (status === 'archived' && backupCurrent);
+    return pastStatus(step);
+  };
+  // Archive and Backup stay available once done: re-running refreshes them. Start waits for a
+  // backup newer than the archive, the same rule the server enforces.
+  const isCurrent = (step: Step) => {
+    if (step.id === 'archive') return status === 'concluded' || status === 'archived';
+    if (step.id === 'start') return status === 'archived' && backupCurrent;
+    return step.from === status;
+  };
+  const nextStep = STEPS.find((step) => isCurrent(step) && !isDone(step))?.id;
+  const blockedNote = (step: Step) =>
+    step.id === 'start' && status === 'archived' && !backupCurrent
+      ? (archiveVerified ? 'Take a backup first.' : 'Archive the season, then take a backup.')
+      : null;
 
   const run = async () => {
     const step = confirming;
@@ -110,7 +129,7 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
           const done = isDone(step);
           return (
             <li key={step.id}>
-              <Tile padding="md" glow={current}>
+              <Tile padding="md" glow={step.id === nextStep}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -119,6 +138,9 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
                     </div>
                     <h3 className="mt-1 text-base font-black uppercase italic tracking-wide text-pure-white">{step.title}</h3>
                     <p className="mt-1 text-sm text-highlight-silver">{step.description}</p>
+                    {blockedNote(step) && (
+                      <p className="mt-1 text-xs font-bold text-highlight-silver">{blockedNote(step)}</p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -126,7 +148,7 @@ const SeasonControlPage: React.FC<SeasonControlPageProps> = ({ setAdminSubPage }
                     onClick={() => setConfirming(step.id)}
                     className="shrink-0 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider bg-primary-red text-pure-white disabled:opacity-40"
                   >
-                    {step.id === 'archive' && status === 'archived' ? 'Re-run' : 'Run'}
+                    {current && done ? 'Re-run' : 'Run'}
                   </button>
                 </div>
               </Tile>
