@@ -3,6 +3,7 @@ import { User } from '../types.ts';
 import { auth } from '../services/firebase.ts';
 import { signOut } from '@firebase/auth';
 import { SESSION_STORAGE_KEY } from '../constants.ts';
+import { lastActivityAcrossTabs } from '../services/sessionActivity.ts';
 
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 const WARNING_THRESHOLD = 10 * 60 * 1000; // 10 minutes (Warning triggers 5 mins before timeout)
@@ -110,8 +111,7 @@ export const useSessionGuard = (user: User | null, onExpired: () => void) => {
                 const now = Date.now();
                 
                 // Re-read storage in case another tab updated it (though we primarily care about this tab's logic)
-                const stored = localStorage.getItem(SESSION_STORAGE_KEY);
-                const referenceTime = stored ? parseInt(stored, 10) : lastActivity.current;
+                const referenceTime = lastActivityAcrossTabs(lastActivity.current, localStorage.getItem(SESSION_STORAGE_KEY));
                 
                 const timeSinceLastActivity = now - referenceTime;
                 
@@ -134,6 +134,8 @@ export const useSessionGuard = (user: User | null, onExpired: () => void) => {
 
         const checkInterval = setInterval(() => {
             const now = Date.now();
+            // Activity in another tab counts: they all share this sign-in.
+            lastActivity.current = lastActivityAcrossTabs(lastActivity.current, localStorage.getItem(SESSION_STORAGE_KEY));
             const timeSinceLastActivity = now - lastActivity.current;
             
             // Check Idle Time
@@ -146,6 +148,9 @@ export const useSessionGuard = (user: User | null, onExpired: () => void) => {
             if (timeSinceLastActivity > WARNING_THRESHOLD && !showWarning) {
                 setIdleExpiryTime(lastActivity.current + IDLE_TIMEOUT);
                 setShowWarning(true);
+            } else if (timeSinceLastActivity <= WARNING_THRESHOLD && showWarning) {
+                // Another tab became active while this one was warning.
+                setShowWarning(false);
             }
         }, 1000); // Check every second
 
