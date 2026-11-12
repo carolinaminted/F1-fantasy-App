@@ -3,3 +3,5 @@ local-verified: 2026-11-12T23:15:25Z by carolinaminted@gmail.com
 staging-verified: 2026-11-12T23:15:37Z by carolinaminted@gmail.com revision=lights-out-league-staging-00047-54z digest=sha256:c72dae6a11fa96959631688074426dfc07b499ff3bb2b6e7556299bb4f38bdb3
 
 rules-deployed: 2026-11-12T23:22:51Z by carolinaminted@gmail.com project=formula-fantasy-1 changed=true backup=.backups/firestore-rules-formula-fantasy-1-2026-11-12T23-22-41Z.rules
+
+data-plane-deployed: 2026-11-12T23:29:07Z by carolinaminted@gmail.com project=formula-fantasy-1 triggers=updateLeaderboardOnCancellation,updateLeaderboardOnResults runtime=nodejs22
