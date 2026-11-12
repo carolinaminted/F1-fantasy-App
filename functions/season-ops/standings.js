@@ -13,6 +13,7 @@ const computeFinalStandings = (publicUsers) => {
       uid,
       displayName: data.displayName || '',
       totalPoints: Number.isFinite(Number(data.totalPoints)) ? Number(data.totalPoints) : 0,
+      p22: Number(data.breakdown?.p22) || 0,
     }))
     .sort((a, b) => (b.totalPoints - a.totalPoints) || a.displayName.localeCompare(b.displayName));
   rows.forEach((row, i) => {
@@ -32,4 +33,17 @@ const finalPodiumOf = (standings) => standings
   .filter((r) => r.finalRank <= 3)
   .map(({ uid, displayName, totalPoints, finalRank }) => ({ uid, displayName, totalPoints, finalRank }));
 
-module.exports = { computeFinalStandings, podiumOf, finalPodiumOf };
+/**
+ * The P22 Award: whoever picked the last-place finisher most often (breakdown.p22 counts the
+ * events). An array because ties happen; empty when nobody ever backed the backmarker.
+ */
+const p22AwardOf = (standings) => {
+  const most = Math.max(0, ...standings.map((r) => r.p22));
+  if (most === 0) return [];
+  return standings
+    .filter((r) => r.p22 === most)
+    .map(({ uid, displayName, p22, finalRank }) => ({ uid, displayName, p22Count: p22, finalRank }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+};
+
+module.exports = { computeFinalStandings, podiumOf, finalPodiumOf, p22AwardOf };

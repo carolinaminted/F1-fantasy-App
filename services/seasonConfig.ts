@@ -23,6 +23,14 @@ export interface PodiumEntry {
   finalRank: number;
 }
 
+/** A P22 Award holder: most picks of the last-place finisher, fixed at conclusion. */
+export interface P22AwardEntry {
+  uid: string;
+  displayName: string;
+  p22Count: number;
+  finalRank: number;
+}
+
 export interface SeasonConfig {
   scoredEventIds: ScoredEventIds;
   seasonId: string;
@@ -32,6 +40,8 @@ export interface SeasonConfig {
   champions: string[];
   /** Everyone at rank 3 or better when the season was concluded; empty before that. */
   finalPodium: PodiumEntry[];
+  /** Set when the season is concluded; empty before that, or when nobody picked a P22 driver. */
+  p22Award: P22AwardEntry[];
 }
 
 export const parsePodium = (value: unknown): PodiumEntry[] => {
@@ -43,12 +53,21 @@ export const parsePodium = (value: unknown): PodiumEntry[] => {
     .sort((a, b) => (a.finalRank - b.finalRank) || a.displayName.localeCompare(b.displayName));
 };
 
+export const parseP22Award = (value: unknown): P22AwardEntry[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((p) => isNonEmptyString(p?.uid) && typeof p.displayName === 'string'
+      && typeof p.p22Count === 'number' && p.p22Count > 0 && typeof p.finalRank === 'number')
+    .map(({ uid, displayName, p22Count, finalRank }) => ({ uid, displayName, p22Count, finalRank }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+};
+
 const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 
 export const parseSeasonConfig = (data: unknown): SeasonConfig | null => {
   const d = data as {
     scoredEventIds?: unknown; activeSeasonId?: unknown; label?: unknown; status?: unknown; champions?: unknown;
-    finalPodium?: unknown;
+    finalPodium?: unknown; p22Award?: unknown;
   } | undefined;
   const ids = d?.scoredEventIds;
   if (typeof d?.status !== 'string' || !SEASON_STATUSES.includes(d.status)) return null;
@@ -60,6 +79,7 @@ export const parseSeasonConfig = (data: unknown): SeasonConfig | null => {
   return {
     scoredEventIds: toScoredEventIds(ids), seasonId: d.activeSeasonId, label: d.label,
     status: d.status as SeasonStatus, champions, finalPodium: parsePodium(d.finalPodium),
+    p22Award: parseP22Award(d.p22Award),
   };
 };
 

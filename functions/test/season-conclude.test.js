@@ -14,7 +14,7 @@ const seed = (overrides = {}) => ({
   'app_state/cancelled_events': { events: { c_26: { at: 'x' } } },
   'public_users/u1': { displayName: 'Uno', totalPoints: 90 },
   'public_users/u2': { displayName: 'Dos', totalPoints: 90 },
-  'public_users/u3': { displayName: 'Tres', totalPoints: 50 },
+  'public_users/u3': { displayName: 'Tres', totalPoints: 50, breakdown: { p22: 3 } },
   ...overrides,
 });
 const allSettled = { 'app_state/race_results': { a_26: { grandPrixFinish: ['nor'] }, b_26: { fastestLap: 'lec' } } };
@@ -43,6 +43,7 @@ test('concludes: co-champions on equal points, podium, status and ops record', a
     { uid: 'u1', displayName: 'Uno', totalPoints: 90, finalRank: 1 },
     { uid: 'u3', displayName: 'Tres', totalPoints: 50, finalRank: 3 },
   ]);
+  assert.deepEqual(config.p22Award, [{ uid: 'u3', displayName: 'Tres', p22Count: 3, finalRank: 3 }]);
   assert.deepEqual(config.scoredEventIds, ['a_26', 'b_26', 'c_26']);
   assert.equal(db.docs.get('season_ops/2026').conclude.state, 'done');
 });

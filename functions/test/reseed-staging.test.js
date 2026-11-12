@@ -5,7 +5,7 @@ const { planReseed } = require('../scripts/reseed-staging');
 
 const archivedConfig = {
   activeSeasonId: '2026', label: '2026 Season', status: 'concluded', scoredEventIds: ['aus_26', 'bhr_26'],
-  champions: ['u1'], podium: { first: ['u1'] }, finalPodium: [{ uid: 'u1' }], concludedAt: 'ts',
+  champions: ['u1'], podium: { first: ['u1'] }, finalPodium: [{ uid: 'u1' }], p22Award: [{ uid: 'u1' }], concludedAt: 'ts',
 };
 const calendar2026 = { seasonId: '2026', events: [{ id: 'aus_26', round: 1 }, { id: 'bhr_26', round: 2 }] };
 const results2026 = { aus_26: { gp: ['VER'] }, bhr_26: { gp: ['NOR'] } };

@@ -68,3 +68,15 @@ test('parseSeasonConfig exposes a well-formed final podium, sorted, and drops ba
   assert.deepEqual(parsed.finalPodium.map((p) => p.uid), ['u2', 'u1', 'u3']);
   assert.deepEqual(parseSeasonConfig(base)!.finalPodium, []);
 });
+
+test('parseSeasonConfig exposes the P22 Award, drops bad entries, and defaults to none', () => {
+  const base = { activeSeasonId: '2026', label: '2026 Season', status: 'concluded', scoredEventIds: ['a_26'] };
+  const parsed = parseSeasonConfig({ ...base, p22Award: [
+    { uid: 'u2', displayName: 'Zed', p22Count: 4, finalRank: 9 },
+    { uid: 'u1', displayName: 'Abe', p22Count: 4, finalRank: 2 },
+    { uid: 'u3', displayName: 'Zero', p22Count: 0, finalRank: 5 },
+    { displayName: 'No uid', p22Count: 4, finalRank: 1 },
+  ] })!;
+  assert.deepEqual(parsed.p22Award.map((p) => p.uid), ['u1', 'u2']);
+  assert.deepEqual(parseSeasonConfig(base)!.p22Award, []);
+});

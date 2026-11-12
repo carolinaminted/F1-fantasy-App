@@ -9,6 +9,7 @@ const seed = (over = {}) => ({
   'season_config/current': {
     activeSeasonId: '2026', label: '2026 Season', status: 'archived', scoredEventIds: ['a_26'],
     champions: ['u1'], podium: ['u1'], finalPodium: [{ uid: 'u1', finalRank: 1 }], concludedAt: 'T',
+    p22Award: [{ uid: 'u1', p22Count: 1 }],
   },
   'season_archives/2026': { seasonId: '2026' },
   'season_ops/2026': { archive: { state: 'verified', finishedAt: 1000 }, backup: { state: 'done', at: 2000 } },

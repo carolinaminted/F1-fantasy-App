@@ -768,6 +768,7 @@ const App: React.FC = () => {
             cancelledEventIds={cancelledEventIds}
             seasonPicks={seasonPicks}
             leaderboardCache={leaderboardCache}
+            introPlaying={isTransitioning}
         />;
       case 'race':
         return <RacePage
@@ -806,7 +807,7 @@ const App: React.FC = () => {
         return null;
       case 'admin':
         if (!isUserAdmin(user)) {
-            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
+            return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} introPlaying={isTransitioning} />;
         }
         switch (adminSubPage) {
             case 'dashboard':
@@ -846,7 +847,7 @@ const App: React.FC = () => {
                 return <AdminPage setAdminSubPage={setAdminSubPage} user={user} events={mergedEvents} raceResults={raceResults} cancelledEventIds={cancelledEventIds} maintenanceOn={!!maintenance?.enabled} />;
         }
       default:
-        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} />;
+        return <Dashboard user={user} setActivePage={navigateToPage} raceResults={raceResults} pointsSystem={activePointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={mergedEvents} schedulesLoaded={schedulesLoaded} cancelledEventIds={cancelledEventIds} seasonPicks={seasonPicks} leaderboardCache={leaderboardCache} introPlaying={isTransitioning} />;
     }
   };
   

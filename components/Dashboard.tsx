@@ -34,6 +34,8 @@ interface DashboardProps {
   seasonPicks?: { [eventId: string]: PickSelection };
   /** Populated once Standings has been visited. Never fetched from here. */
   leaderboardCache?: LeaderboardCache | null;
+  /** True while the sign-in overlay still covers the page. */
+  introPlaying?: boolean;
 }
 
 const isPicksComplete = (p?: PickSelection) =>
@@ -51,11 +53,11 @@ const hasAnyResult = (r?: RaceResults[string]) =>
  */
 const Dashboard: React.FC<DashboardProps> = ({
   user, setActivePage, raceResults = {}, pointsSystem, allDrivers = [], allConstructors = [],
-  events, schedulesLoaded, cancelledEventIds, seasonPicks = {}, leaderboardCache,
+  events, schedulesLoaded, cancelledEventIds, seasonPicks = {}, leaderboardCache, introPlaying = false,
 }) => {
   const egg = useRaceStartEasterEgg();
   const scoredEventIds = useScoredEventIds();
-  const { status, label, finalPodium, seasonId } = useSeason();
+  const { status, label, finalPodium, p22Award, seasonId } = useSeason();
   const seasonOver = status === 'concluded' || status === 'archived';
   const { easterEggState, activeLights, handleTriggerClick } = egg;
 
@@ -114,7 +116,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* ---- Next race ---------------------------------------------------------- */}
       <div className="pt-4 md:pt-6">
         {seasonOver ? (
-          <ChampionHero label={label} finalPodium={finalPodium} onViewStandings={() => setActivePage('leaderboard')}
+          <ChampionHero label={label} finalPodium={finalPodium} p22Award={p22Award} holdConfetti={introPlaying} onViewStandings={() => setActivePage('leaderboard')}
             onOpenHallOfFame={status === 'archived'
               ? () => setActivePage('leaderboard', { search: `view=hall&season=${seasonId}` })
               : undefined} />

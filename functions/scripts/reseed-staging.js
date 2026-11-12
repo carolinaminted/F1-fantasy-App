@@ -21,7 +21,7 @@
  */
 const STAGING_PROJECT = 'formula-fantasy-staging';
 const STAGING_MARKER = 'app_state/staging_seed_metadata';
-const CONCLUSION_FIELDS = ['champions', 'podium', 'finalPodium', 'concludedAt'];
+const CONCLUSION_FIELDS = ['champions', 'podium', 'finalPodium', 'p22Award', 'concludedAt'];
 
 const readCollection = async (db, path) => {
   const snap = await db.collection(path).get();
