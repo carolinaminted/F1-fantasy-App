@@ -13,7 +13,7 @@ readonly PROD_ACCOUNT="carolinaminted@gmail.com"
 readonly FUNCTIONS_REGION="us-central1"
 readonly FIREBASE_CLI_VERSION="15.28.1"
 readonly RELEASE_BRANCH="prod"
-readonly ROLLBACK_BRANCH="rollback/data-plane-node20"
+readonly EXPECTED_NODE="22"
 # The triggers keep the default Compute identity. Moving them to a dedicated account is a
 # separate, later change ([NODE-04]) so that this deploy changes the runtime and nothing else.
 readonly EXPECTED_SERVICE_ACCOUNT="193463400309-compute@developer.gserviceaccount.com"
@@ -36,15 +36,18 @@ expected_document() {
 
 usage() {
   cat <<'EOF'
-Usage: ./deploy-data-plane.sh [--dry-run]
+Usage: ./deploy-data-plane.sh [--dry-run] [--rollback-to <commit>]
 
 Deploys ONLY the two Firestore triggers to formula-fantasy-1 (production).
 
-Runs from `prod` (Node 22, both release gates on the tip) or from
-`rollback/data-plane-node20` (Node 20, exactly one commit on top of origin/prod
-that changes only functions/package.json).
+Always runs from `prod` at origin/prod (Node 22, both release gates on the tip).
 
-  --dry-run  Run every local and read-only check, then stop before changing anything.
+  --dry-run               Run every local and read-only check, then stop before changing anything.
+  --rollback-to <commit>  Deploy an earlier commit of origin/prod instead of the tip. The commit
+                          must already carry a data-plane-deployed note (production ran it) and
+                          both release gates. Its functions/ is deployed from a git archive, so
+                          this script's checks apply even though that commit's copy of the
+                          script predates rollback support.
 EOF
 }
 
@@ -54,13 +57,18 @@ fail() {
 }
 
 dry_run=false
-case "${1:-}" in
-  "") ;;
-  --dry-run) dry_run=true ;;
-  -h|--help) usage; exit 0 ;;
-  *) usage >&2; fail "unsupported argument '$1'. Deployment targets cannot be overridden." ;;
-esac
-[[ $# -le 1 ]] || fail "only --dry-run is supported. Deployment targets cannot be overridden."
+rollback_ref=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) dry_run=true ;;
+    --rollback-to)
+      [[ -n "${2:-}" && -z "$rollback_ref" ]] || fail "--rollback-to takes exactly one commit"
+      rollback_ref="$2"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; fail "unsupported argument '$1'. Deployment targets cannot be overridden." ;;
+  esac
+  shift
+done
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -98,46 +106,54 @@ git fetch --quiet origin "$RELEASE_BRANCH" || fail "could not fetch origin/$RELE
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 head_sha="$(git rev-parse HEAD)"
 prod_sha="$(git rev-parse "origin/$RELEASE_BRANCH")"
-engines_node="$(node -p 'require("./functions/package.json").engines?.node ?? ""')"
 
 # firebase-tools uploads the functions/ directory as it is on disk, so anything uncommitted
 # ships under a commit that does not describe it.
 [[ -z "$(git status --porcelain)" ]] || fail "the working tree has uncommitted changes. Production deploys only committed code."
 
-case "$current_branch" in
-  "$RELEASE_BRANCH")
-    [[ "$head_sha" == "$prod_sha" ]] || fail "local prod ($head_sha) is not origin/prod ($prod_sha). Pull or push first."
-    [[ "$engines_node" == "22" ]] || fail "prod declares engines.node '$engines_node', expected 22"
-    gated_sha="$head_sha"
-    ;;
-  "$ROLLBACK_BRANCH")
-    # The rollback must be the code production runs, with only the runtime changed.
-    [[ "$(git rev-parse HEAD^)" == "$prod_sha" ]] \
-      || fail "$ROLLBACK_BRANCH must be exactly one commit on top of origin/prod. Rebase it onto origin/prod first."
-    [[ "$(git diff --name-only HEAD^ HEAD)" == "functions/package.json" ]] \
-      || fail "$ROLLBACK_BRANCH may change only functions/package.json relative to origin/prod"
-    [[ "$engines_node" == "20" ]] || fail "$ROLLBACK_BRANCH declares engines.node '$engines_node', expected 20"
-    gated_sha="$prod_sha"
-    ;;
-  *)
-    fail "must run from '$RELEASE_BRANCH' or '$ROLLBACK_BRANCH', not '$current_branch'"
-    ;;
-esac
+# A rollback also runs from prod: checking out the old commit would run that commit's copy of
+# this script, and the one production ran on 2026-10-15 cannot roll back at all.
+[[ "$current_branch" == "$RELEASE_BRANCH" ]] \
+  || fail "must run from '$RELEASE_BRANCH', not '$current_branch'. To roll back, stay on $RELEASE_BRANCH and pass --rollback-to."
+[[ "$head_sha" == "$prod_sha" ]] || fail "local prod ($head_sha) is not origin/prod ($prod_sha). Pull or push first."
+
+deploy_dir="$SCRIPT_DIR"
+deploy_sha="$head_sha"
+if [[ -n "$rollback_ref" ]]; then
+  deploy_sha="$(git rev-parse --verify --quiet "${rollback_ref}^{commit}")" || fail "'$rollback_ref' is not a commit"
+  [[ "$deploy_sha" != "$prod_sha" ]] || fail "--rollback-to names origin/prod itself; run without it"
+  git merge-base --is-ancestor "$deploy_sha" "$prod_sha" \
+    || fail "${deploy_sha:0:7} is not an earlier commit of origin/prod"
+  ./scripts/release-gates.sh check "$deploy_sha" data-plane-deployed \
+    || fail "${deploy_sha:0:7} never ran on the data plane, so it is not a known-good rollback point"
+  deploy_dir="$(mktemp -d)"
+  trap 'rm -rf "$deploy_dir"' EXIT
+  # The whole tree, because the functions tests read root files; firebase.json still uploads
+  # only functions/.
+  git archive "$deploy_sha" | tar -x -C "$deploy_dir" \
+    || fail "could not extract ${deploy_sha:0:7}"
+  echo "Installing the functions dependencies of ${deploy_sha:0:7}..."
+  (cd "$deploy_dir/functions" && npm ci --silent >/dev/null) || fail "npm ci failed for ${deploy_sha:0:7}"
+fi
+
+engines_node="$(cd "$deploy_dir" && node -p 'require("./functions/package.json").engines?.node ?? ""')"
+[[ "$engines_node" == "$EXPECTED_NODE" ]] \
+  || fail "${deploy_sha:0:7} declares engines.node '$engines_node', expected $EXPECTED_NODE"
 readonly expected_runtime="nodejs${engines_node}"
 
-./scripts/release-gates.sh check "$gated_sha" local-verified staging-verified \
-  || fail "${gated_sha:0:7} has not cleared the local and staging release gates"
+./scripts/release-gates.sh check "$deploy_sha" local-verified staging-verified \
+  || fail "${deploy_sha:0:7} has not cleared the local and staging release gates"
 
 for env_file in "${FORBIDDEN_ENV_FILES[@]}"; do
-  [[ ! -e "$env_file" ]] || fail "$env_file exists. firebase-tools would inject it into the triggers as plaintext — move it outside the repo first."
+  [[ ! -e "$deploy_dir/$env_file" ]] || fail "$env_file exists. firebase-tools would inject it into the triggers as plaintext — move it outside the repo first."
 done
 
 # The triggers must keep the platform identity and bind no secrets. Both modules resolve from
 # the deploy project exactly as firebase-tools discovery will.
-runtime_sa="$(env -u DEBUG GCLOUD_PROJECT="$PROD_FIREBASE_PROJECT" node -p \
+runtime_sa="$(cd "$deploy_dir" && env -u DEBUG GCLOUD_PROJECT="$PROD_FIREBASE_PROJECT" node -p \
   'require("./functions/runtime-service-account").resolveRuntimeServiceAccount() ?? ""')"
 [[ -z "$runtime_sa" ]] || fail "runtime-service-account.js now assigns $runtime_sa to $PROD_FIREBASE_PROJECT; that is a separate change ([NODE-04])"
-email_secrets="$(env -u DEBUG GCLOUD_PROJECT="$PROD_FIREBASE_PROJECT" node -p \
+email_secrets="$(cd "$deploy_dir" && env -u DEBUG GCLOUD_PROJECT="$PROD_FIREBASE_PROJECT" node -p \
   'JSON.stringify(require("./functions/email-secrets").resolveEmailSecretNames())')"
 [[ "$email_secrets" == "null" ]] || fail "email-secrets.js now declares secrets for $PROD_FIREBASE_PROJECT"
 
@@ -148,10 +164,15 @@ echo "  Firebase project: $PROD_FIREBASE_PROJECT (account $PROD_ACCOUNT)"
 echo "  Functions:        ${TRIGGERS[*]}"
 echo "  Runtime:          $expected_runtime"
 echo "  Source:           $current_branch @ ${head_sha:0:7}"
+if [[ -n "$rollback_ref" ]]; then
+  echo
+  echo "  ROLLBACK: deploying ${deploy_sha:0:7}, an earlier commit than origin/prod (${prod_sha:0:7})."
+fi
 echo
 
 echo "Running functions tests..."
-(cd functions && npm test --silent >/dev/null) || fail "functions tests failed (cd functions && npm test)"
+(cd "$deploy_dir/functions" && npm test --silent >/dev/null) \
+  || fail "functions tests failed at ${deploy_sha:0:7} (cd functions && npm test)"
 echo "  passed"
 
 # --- Live state before -----------------------------------------------------------------------------
@@ -194,11 +215,11 @@ deploy_started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # --only names the two triggers, so firebase-tools leaves the five dormant callables alone.
 # Deleting them is Phase D, a separate approved step.
-env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
+(cd "$deploy_dir" && env -u DEBUG npx --yes "firebase-tools@$FIREBASE_CLI_VERSION" deploy \
   --only "$only_flag" \
   --project "$PROD_FIREBASE_PROJECT" \
   --account "$PROD_ACCOUNT" \
-  --non-interactive
+  --non-interactive)
 
 # --- Verify ----------------------------------------------------------------------------------------
 
@@ -273,13 +294,13 @@ unexpected="$(printf '%s\n' "$touched" | grep -vxF -e "${TRIGGERS[0]}" -e "${TRI
 echo "  no other function in $PROD_FIREBASE_PROJECT changed"
 
 # What reached members, for scripts/release-work-items.mjs. Never fails the deploy.
-./scripts/release-gates.sh record data-plane-deployed "$head_sha" \
-  "project=$PROD_FIREBASE_PROJECT triggers=$(IFS=,; echo "${TRIGGERS[*]}") runtime=$expected_runtime" \
+./scripts/release-gates.sh record data-plane-deployed "$deploy_sha" \
+  "project=$PROD_FIREBASE_PROJECT triggers=$(IFS=,; echo "${TRIGGERS[*]}") runtime=$expected_runtime${rollback_ref:+ rollback-from=${prod_sha:0:7}}" \
   || echo "  (could not record the deploy note; add it with ./scripts/release-gates.sh record)"
 
 cat <<EOF
 
-Data-plane deploy complete: ${TRIGGERS[*]} on $expected_runtime from ${head_sha:0:7}.
+Data-plane deploy complete: ${TRIGGERS[*]} on $expected_runtime from ${deploy_sha:0:7}.
 
 Not done yet. Finish the runbook by hand:
   1. Fire the results trigger on purpose: as admin, edit and then revert one harmless field
@@ -290,7 +311,9 @@ Not done yet. Finish the runbook by hand:
        LOL_ENV=prod $VERIFY_SCRIPT triggers $deploy_started
 
 If the standings drift or a trigger errors: run Manual Sync from the admin portal first, then
-roll the runtime back from $ROLLBACK_BRANCH with this same script.
+roll back with this same script, from $RELEASE_BRANCH:
+  ./deploy-data-plane.sh --rollback-to <the commit the data plane ran before this one>
+(scripts/release-gates.sh show <sha> lists data-plane-deployed on it).
 
 EOF
 node scripts/release-work-items.mjs || true

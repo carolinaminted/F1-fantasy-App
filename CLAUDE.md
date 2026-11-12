@@ -29,8 +29,9 @@ domain or DNS changes, IAM edits, traffic shifts — without explicit per-action
   `lights-out-league-web-00011-vat`, still warm.
 - Portal: the 5 callables on their `-00004` revisions. The pre-deploy `-00003` revisions and the
   `update-traffic` lines to restore them are in `.backups/portal-revisions-2026-10-15T21-07-41Z.txt`.
-- Data plane: `rollback/data-plane-node20` redeploys the two triggers on Node 20 — **only until
-  2026-10-30**, when nodejs20 is decommissioned.
+- Data plane: `./deploy-data-plane.sh --rollback-to 6319050`, run from `prod`. It deploys an earlier
+  prod commit that already carries a `data-plane-deployed` note. The Node 20 branch is gone, because
+  nodejs20 was decommissioned on 2026-10-30.
 - Data: the managed export `gs://formula-fantasy-1-season-backups/season-2026/manual-2026-11-03T02-58-42Z`
   (full database, 2026-11-03, restore with `gcloud firestore import`). The older local file
   `.backups/schedule-correction-formula-fantasy-1-2026-09-17T22-50-25-510Z.json` is schedule-only;
@@ -110,7 +111,7 @@ node scripts/release-work-items.mjs  # work items in the latest release, and whi
 ./promote-production.sh           # PRODUCTION, approval-gated: shift member traffic to the candidate
 
 ./deploy-data-plane.sh --dry-run  # PRODUCTION: the 2 triggers to formula-fantasy-1; read-only checks only
-./deploy-data-plane.sh            # PRODUCTION, approval-gated: runs from `prod` or `rollback/data-plane-node20`
+./deploy-data-plane.sh            # PRODUCTION, approval-gated: runs from `prod`; `--rollback-to <sha>` redeploys an earlier prod commit
 ./deploy-portal.sh --dry-run      # PRODUCTION: the 5 callables to lights-out-league-prod; read-only, incl. live drift check
 ./deploy-portal.sh                # PRODUCTION, approval-gated: runs from `prod`, or a detached earlier prod commit to roll back
 
