@@ -5,3 +5,5 @@ staging-verified: 2026-11-12T23:15:37Z by carolinaminted@gmail.com revision=ligh
 rules-deployed: 2026-11-12T23:22:51Z by carolinaminted@gmail.com project=formula-fantasy-1 changed=true backup=.backups/firestore-rules-formula-fantasy-1-2026-11-12T23-22-41Z.rules
 
 data-plane-deployed: 2026-11-12T23:29:07Z by carolinaminted@gmail.com project=formula-fantasy-1 triggers=updateLeaderboardOnCancellation,updateLeaderboardOnResults runtime=nodejs22
+
+portal-deployed: 2026-11-12T23:52:31Z by carolinaminted@gmail.com project=lights-out-league-prod functions=concludeSeason,archiveSeason,backupLeague,startNewSeason,openSeason,manualLeaderboardSync,validateInvitationCode,verifyAuthCode,sendPasswordResetLink,sendAuthCode runtime=nodejs22
