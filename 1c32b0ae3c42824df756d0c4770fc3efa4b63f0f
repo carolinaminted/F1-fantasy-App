@@ -9,3 +9,5 @@ data-plane-deployed: 2026-11-12T23:29:07Z by carolinaminted@gmail.com project=fo
 portal-deployed: 2026-11-12T23:52:31Z by carolinaminted@gmail.com project=lights-out-league-prod functions=concludeSeason,archiveSeason,backupLeague,startNewSeason,openSeason,manualLeaderboardSync,validateInvitationCode,verifyAuthCode,sendPasswordResetLink,sendAuthCode runtime=nodejs22
 
 candidate-verified: 2026-11-13T00:03:01Z by carolinaminted@gmail.com
+
+promoted: 2026-11-13T00:03:30Z by carolinaminted@gmail.com from=lights-out-league-web-00013-zas to=lights-out-league-web-00015-wul mode=production
