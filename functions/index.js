@@ -25,6 +25,7 @@ const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
 const { resolveClientIp } = require("./client-ip");
 const { normalizeEmail } = require("./email-address");
+const { resolvePointsSystem, scoreUserSeason } = require("./scoring");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -64,75 +65,6 @@ if (runtimeTarget) {
 }
 const db = admin.firestore();
 
-// --- CONSTANTS ---
-const DEFAULT_POINTS = {
-  grandPrixFinish: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],
-  sprintFinish: [8, 7, 6, 5, 4, 3, 2, 1],
-  fastestLap: 3,
-  gpQualifying: [3, 2, 1],
-  sprintQualifying: [3, 2, 1],
-};
-
-// --- SHARED SCORING ENGINE ---
-
-const getDriverPoints = (driverId, resultList, pointsList) => {
-    if (!driverId || !resultList || !pointsList) return 0;
-    const idx = resultList.indexOf(driverId);
-    return idx !== -1 ? (pointsList[idx] || 0) : 0;
-};
-
-const calculateEventScore = (picks, results, system, drivers) => {
-    if (!picks || !results) return { total: 0, breakdown: { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 } };
-
-    const getTeamId = (driverId) => {
-        if(results.driverTeams && results.driverTeams[driverId]) return results.driverTeams[driverId];
-        const d = drivers.find(drv => drv.id === driverId);
-        return d ? d.constructorId : null;
-    };
-
-    let gpPoints = 0, sprintPoints = 0, qualiPoints = 0, flPoints = 0, p22Count = 0;
-
-    const teamIds = [...(picks.aTeams || []), picks.bTeam].filter(Boolean);
-    results.grandPrixFinish?.forEach((dId, idx) => {
-        if (dId && teamIds.includes(getTeamId(dId))) gpPoints += (system.grandPrixFinish[idx] || 0);
-    });
-    results.sprintFinish?.forEach((dId, idx) => {
-        if (dId && teamIds.includes(getTeamId(dId))) sprintPoints += (system.sprintFinish[idx] || 0);
-    });
-    results.gpQualifying?.forEach((dId, idx) => {
-        if (dId && teamIds.includes(getTeamId(dId))) qualiPoints += (system.gpQualifying[idx] || 0);
-    });
-    results.sprintQualifying?.forEach((dId, idx) => {
-        if (dId && teamIds.includes(getTeamId(dId))) qualiPoints += (system.sprintQualifying[idx] || 0);
-    });
-
-    const driverIds = [...(picks.aDrivers || []), ...(picks.bDrivers || [])].filter(Boolean);
-    driverIds.forEach(dId => {
-        gpPoints += getDriverPoints(dId, results.grandPrixFinish, system.grandPrixFinish);
-        sprintPoints += getDriverPoints(dId, results.sprintFinish, system.sprintFinish);
-        qualiPoints += getDriverPoints(dId, results.gpQualifying, system.gpQualifying);
-        qualiPoints += getDriverPoints(dId, results.sprintQualifying, system.sprintQualifying);
-    });
-
-    if (picks.fastestLap && picks.fastestLap === results.fastestLap) {
-        flPoints += system.fastestLap;
-    }
-
-    // P22 Tracker Logic
-    if (results.p22Driver && driverIds.includes(results.p22Driver)) {
-        p22Count = 1;
-    }
-
-    let total = gpPoints + sprintPoints + qualiPoints + flPoints;
-
-    if (picks.penalty && picks.penalty > 0) {
-        const deduction = Math.ceil(total * picks.penalty);
-        total -= deduction;
-    }
-
-    return { total, breakdown: { gp: gpPoints, sprint: sprintPoints, quali: qualiPoints, fl: flPoints, p22: p22Count } };
-};
-
 /**
  * Clean Sweep Recalculation
  * Processes every user against every completed result to ensure 100% integrity.
@@ -167,16 +99,7 @@ const recalculateEntireLeague = async () => {
         userProfileMap[doc.id] = doc.data().displayName || 'Unknown Team';
     });
     
-    let pointsSystem = DEFAULT_POINTS;
-    if (scoringSnap.exists) {
-        const data = scoringSnap.data();
-        if (data.profiles && data.activeProfileId) {
-            const active = data.profiles.find(p => p.id === data.activeProfileId);
-            if (active) pointsSystem = active.config;
-        } else if (!data.profiles) {
-            pointsSystem = data; 
-        }
-    }
+    const pointsSystem = resolvePointsSystem(scoringSnap.exists ? scoringSnap.data() : undefined);
 
     // Build set of cancelled event IDs
     const cancelledEventIds = new Set(
@@ -192,31 +115,8 @@ const recalculateEntireLeague = async () => {
 
     picksSnap.forEach(pickDoc => {
         const userId = pickDoc.id;
-        const allUserPicks = pickDoc.data();
-        
-        let totalPoints = 0;
-        let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
-
-        Object.keys(allUserPicks).forEach(eventId => {
-            // Picks are keyed by event id and outlive the calendar, so only events the season
-            // config names may score — otherwise a prior-season pick keeps scoring here.
-            if (!scoredEventIds.has(eventId)) return;
-            // Skip cancelled events — no points awarded
-            if (cancelledEventIds.has(eventId)) return;
-            const result = raceResults[eventId];
-            if (result) {
-                const systemToUse = result.scoringSnapshot || pointsSystem;
-                const score = calculateEventScore(allUserPicks[eventId], result, systemToUse, driversList);
-                totalPoints += score.total;
-                breakdown.gp += score.breakdown.gp;
-                breakdown.sprint += score.breakdown.sprint;
-                breakdown.quali += score.breakdown.quali;
-                breakdown.fl += score.breakdown.fl;
-                if (score.breakdown.p22) {
-                    breakdown.p22 = (breakdown.p22 || 0) + score.breakdown.p22;
-                }
-            }
-        });
+        const { totalPoints, breakdown } = scoreUserSeason(
+            pickDoc.data(), raceResults, pointsSystem, driversList, scoredEventIds, cancelledEventIds);
 
         // Use the name from the users collection, fallback to ID if completely missing
         const displayName = userProfileMap[userId] || `Team ${userId.substring(0, 4)}`;
