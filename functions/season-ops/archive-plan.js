@@ -10,7 +10,8 @@ const APP_STATE_POLICY = {
   // survival_config is production's March 2026 survival game (season 2026), from before Podium
   // Survival was redesigned. Archiving keeps that record; the doc itself stays live, and the 2027
   // feature reads the same name, so its setup must overwrite it.
-  archive: ['race_results', 'event_schedules', 'form_locks', 'cancelled_events', 'scoring_config', 'entities', 'season_calendar', 'survival_config'],
+  // pick_trends is derived from the season's picks and results by recalculateEntireLeague.
+  archive: ['race_results', 'event_schedules', 'form_locks', 'cancelled_events', 'scoring_config', 'entities', 'season_calendar', 'survival_config', 'pick_trends'],
   // staging_seed_metadata is the marker functions/scripts/seed-staging.js leaves; it describes the
   // environment, not a season, and never exists in production.
   skip: ['league_config', 'maintenance', 'general_announcement', 'results_announcement', 'staging_seed_metadata'],

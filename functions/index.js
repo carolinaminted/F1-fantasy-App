@@ -25,6 +25,7 @@ const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
 const { resolveClientIp } = require("./client-ip");
 const { normalizeEmail } = require("./email-address");
+const { countPickTrends } = require("./pick-trends");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -189,10 +190,12 @@ const recalculateEntireLeague = async () => {
     }
 
     const leaderboardScores = [];
+    const picksByUser = {};
 
     picksSnap.forEach(pickDoc => {
         const userId = pickDoc.id;
         const allUserPicks = pickDoc.data();
+        picksByUser[userId] = allUserPicks;
         
         let totalPoints = 0;
         let breakdown = { gp: 0, sprint: 0, quali: 0, fl: 0, p22: 0 };
@@ -243,6 +246,11 @@ const recalculateEntireLeague = async () => {
             rank: score.rank,
             lastUpdated: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
+    });
+    // Replaced whole, so an event that loses its results or is cancelled drops out.
+    batch.set(db.collection('app_state').doc('pick_trends'), {
+        ...countPickTrends(picksByUser, raceResults, scoredEventIds, cancelledEventIds),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     await batch.commit();
