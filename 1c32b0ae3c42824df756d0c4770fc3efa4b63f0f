@@ -7,3 +7,5 @@ rules-deployed: 2026-11-12T23:22:51Z by carolinaminted@gmail.com project=formula
 data-plane-deployed: 2026-11-12T23:29:07Z by carolinaminted@gmail.com project=formula-fantasy-1 triggers=updateLeaderboardOnCancellation,updateLeaderboardOnResults runtime=nodejs22
 
 portal-deployed: 2026-11-12T23:52:31Z by carolinaminted@gmail.com project=lights-out-league-prod functions=concludeSeason,archiveSeason,backupLeague,startNewSeason,openSeason,manualLeaderboardSync,validateInvitationCode,verifyAuthCode,sendPasswordResetLink,sendAuthCode runtime=nodejs22
+
+candidate-verified: 2026-11-13T00:03:01Z by carolinaminted@gmail.com
