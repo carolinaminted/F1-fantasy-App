@@ -9,7 +9,7 @@ import { TrendsView } from './standings/TrendsView.tsx';
 import { EntityPointsView } from './standings/EntityPointsView.tsx';
 import HallOfFameView from './standings/HallOfFameView.tsx';
 import { calculateScoreRollup, calculatePointsForEvent, processLeaderboardStats } from '../services/scoringService.ts';
-import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache } from '../types.ts';
+import { User, RaceResults, PickSelection, PointsSystem, Event, Driver, Constructor, EventResult, LeaderboardCache, PickTrends } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { LeaderboardIcon } from './icons/LeaderboardIcon.tsx';
 import { TrendingUpIcon } from './icons/TrendingUpIcon.tsx';
@@ -29,7 +29,7 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ListSkeleton, ProfileSkeleton } from './LoadingSkeleton.tsx';
 import { CONSTRUCTORS } from '../constants.ts';
 import { PageHeader } from './ui/PageHeader.tsx';
-import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, fetchAllUserPicks, getUserPicks } from '../services/firestoreService.ts';
+import { DEFAULT_PAGE_SIZE, getAllUsersAndPicks, getPickTrends, getUserPicks } from '../services/firestoreService.ts';
 import ProfilePage from './ProfilePage.tsx';
 import { parseLeagueDate } from '../utils/dateUtils.ts';
 const ExecutiveDashboardView = lazy(() => import('./ExecutiveDashboardView.tsx'));
@@ -70,6 +70,8 @@ interface RefreshPolicy {
 
 interface LeaderboardPageProps {
   currentUser: User | null;
+  /** The reader's own season picks, for the Popular view's alignment stat. */
+  seasonPicks: { [eventId: string]: PickSelection };
   raceResults: RaceResults;
   pointsSystem: PointsSystem;
   allDrivers: Driver[];
@@ -289,6 +291,7 @@ const ViewLoadingFallback: React.FC = () => (
 
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ 
     currentUser, 
+    seasonPicks,
     raceResults, 
     pointsSystem, 
     allDrivers, 
@@ -323,7 +326,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
   const [hasMore, setHasMore] = useState(true);
   
   // New: Global league picks for popularity calculation
-  const [allLeaguePicks, setAllLeaguePicks] = useState<{ [uid: string]: { [eid: string]: PickSelection } }>({});
+  const [pickTrends, setPickTrends] = useState<PickTrends | null>(null);
   const [isFetchingGlobalPicks, setIsFetchingGlobalPicks] = useState(false);
 
   // New: Modal User State
@@ -484,19 +487,20 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
 
   // Global Picks Fetch Effect for Popularity View
   useEffect(() => {
-    if (view === 'popular' && Object.keys(allLeaguePicks).length === 0 && !isFetchingGlobalPicks) {
+    if (view === 'popular' && !pickTrends && !isFetchingGlobalPicks) {
         setIsFetchingGlobalPicks(true);
-        fetchAllUserPicks()
-            .then(picks => {
-                setAllLeaguePicks(picks);
+        getPickTrends()
+            .then(trends => {
+                setPickTrends(trends);
                 setIsFetchingGlobalPicks(false);
             })
             .catch(err => {
-                console.error("Failed to fetch global league picks:", err);
+                console.error("Failed to fetch pick trends:", err);
+                setPickTrends({ events: {} });
                 setIsFetchingGlobalPicks(false);
             });
     }
-  }, [view, allLeaguePicks, isFetchingGlobalPicks]);
+  }, [view, pickTrends, isFetchingGlobalPicks]);
 
   // [S1A-03] Handle external system updates (scoring rules/results changes)
   // We process with a slight delay to ensure UI stays responsive during rapid changes
@@ -555,8 +559,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
           // If on popular view, also refresh global picks
           if (view === 'popular') {
               setIsFetchingGlobalPicks(true);
-              const picks = await fetchAllUserPicks();
-              setAllLeaguePicks(picks);
+              setPickTrends(await getPickTrends());
               setIsFetchingGlobalPicks(false);
           }
           setRefreshStatus('success');
@@ -654,7 +657,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({
           <div className="md:flex-1 md:overflow-hidden px-2 md:px-0 pb-4">
             {view === 'executive' && <Suspense fallback={<ViewLoadingFallback />}><ExecutiveDashboardView users={processedUsers} currentUser={currentUser} onSelectUser={setSelectedUserProfile} /></Suspense>}
             {view === 'standings' && <StandingsView users={processedUsers} currentUser={currentUser} hasMore={hasMore} onFetchMore={handleFetchMore} isPaging={isPaging} onSelectUser={setSelectedUserProfile} />}
-            {view === 'popular' && <TrendsView allLeaguePicks={allLeaguePicks} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks} cancelledEventIds={cancelledEventIds} currentUser={currentUser} />}
+            {view === 'popular' && <TrendsView trends={pickTrends ?? { events: {} }} ownPicks={currentUser ? seasonPicks : null} allDrivers={allDrivers} allConstructors={allConstructors} events={events} isLoading={isFetchingGlobalPicks || !pickTrends} />}
             {view === 'insights' && <InsightsView users={processedUsers} currentUser={currentUser} initialCategory={insightsCategory} />}
             {view === 'entities' && <EntityPointsView raceResults={raceResults} pointsSystem={pointsSystem} allDrivers={allDrivers} allConstructors={allConstructors} events={events} />}
             {view === 'p22' && <P22View users={processedUsers} currentUser={currentUser} />}

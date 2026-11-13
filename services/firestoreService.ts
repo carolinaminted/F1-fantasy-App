@@ -2,7 +2,7 @@
 import { db, auth } from './firebase.ts';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, query, orderBy, addDoc, Timestamp, runTransaction, deleteDoc, writeBatch, serverTimestamp, where, limit, startAfter, QueryDocumentSnapshot, DocumentData, deleteField, onSnapshot, arrayUnion, getCountFromServer } from '@firebase/firestore';
 import type { SeasonOps } from './seasonOps.ts';
-import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState } from '../types.ts';
+import { PickSelection, User, RaceResults, ScoringSettingsDoc, Driver, Constructor, EventSchedule, InvitationCode, AdminLogEntry, LeagueConfig, MaintenanceState, ResultsAnnouncementState, GeneralAnnouncementState, CancelledEventsState, PickTrends } from '../types.ts';
 import { User as FirebaseUser } from '@firebase/auth';
 import { LEAGUE_DUES_AMOUNT } from '../constants.ts';
 import { cancelApiEvent, restoreApiEvent, saveApiRaceResults, triggerApiLeaderboardSync } from './apiService.ts';
@@ -228,14 +228,11 @@ export const saveUserPicks = async (uid: string, eventId: string, picks: PickSel
     }, { merge: true });
 };
 
-export const fetchAllUserPicks = async (): Promise<{ [uid: string]: { [eid: string]: PickSelection } }> => {
-    const colRef = collection(db, 'userPicks');
-    const snap = await getDocs(colRef);
-    const all: { [uid: string]: { [eid: string]: PickSelection } } = {};
-    snap.forEach(d => {
-        all[d.id] = d.data() as any;
-    });
-    return all;
+/** Empty until the server's first recalc after results are saved. */
+export const getPickTrends = async (): Promise<PickTrends> => {
+    const snap = await getDoc(doc(db, 'app_state', 'pick_trends'));
+    const events = snap.exists() ? snap.data().events : null;
+    return { events: events && typeof events === 'object' ? events : {} };
 };
 
 export const saveFormLocks = async (locks: { [eventId: string]: boolean }) => {

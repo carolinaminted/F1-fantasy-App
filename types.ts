@@ -88,6 +88,11 @@ export interface RaceResults {
   [eventId: string]: EventResult;
 }
 
+/** app_state/pick_trends: league-wide pick counts per event with results, written by the server recalc. */
+export interface PickTrends {
+  events: { [eventId: string]: { teams: Record<string, number>; drivers: Record<string, number> } };
+}
+
 export interface PointsSystem {
   grandPrixFinish: number[];
   sprintFinish: number[];

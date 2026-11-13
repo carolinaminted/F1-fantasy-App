@@ -7,10 +7,10 @@ import { TrendingUpIcon } from '../icons/TrendingUpIcon.tsx';
 import { TeamIcon } from '../icons/TeamIcon.tsx';
 import { DriverIcon } from '../icons/DriverIcon.tsx';
 import { ProfileIcon } from '../icons/ProfileIcon.tsx';
-import { parseLeagueDate } from '../../utils/dateUtils.ts';
-import type { User, PickSelection, Driver, Constructor, Event } from '../../types.ts';
+import { summarizeTrends, type TrendEntity } from '../../services/pickTrends.ts';
+import type { PickSelection, PickTrends, Driver, Constructor, Event } from '../../types.ts';
 
-type EntityType = 'drivers' | 'teams';
+type EntityType = TrendEntity;
 type Window = 'all' | '3' | '5' | '8';
 
 const ENTITY_SEGMENTS: Segment<EntityType>[] = [
@@ -26,94 +26,45 @@ const WINDOW_SEGMENTS: Segment<Window>[] = [
 ];
 
 interface TrendsViewProps {
-  allLeaguePicks: { [uid: string]: { [eid: string]: PickSelection } };
+  trends: PickTrends;
+  /** The reader's own season picks, for the alignment stat. Nobody else's reach the device. */
+  ownPicks: { [eid: string]: PickSelection } | null;
   allDrivers: Driver[];
   allConstructors: Constructor[];
   events: Event[];
   isLoading: boolean;
-  cancelledEventIds: Set<string>;
-  currentUser: User | null;
 }
 
 interface Row { id: string; name: string; count: number; color?: string; teamName?: string }
 
 /**
- * What the league is picking.
- *
- * The counting is unchanged — every member's picks over a window of recent events. What is
- * new is the reader's side of it: whether your lineups track the consensus or fade it. The
- * picks were already loaded to build these bars; nobody was comparing them to yours.
+ * What the league is picking, over a window of recent events with results, and whether the
+ * reader's lineups track the consensus or fade it. The counts are server-computed
+ * (app_state/pick_trends), so an upcoming event's picks are never shown before it runs.
  */
 export const TrendsView: React.FC<TrendsViewProps> = ({
-  allLeaguePicks, allDrivers, allConstructors, events, isLoading, cancelledEventIds, currentUser,
+  trends, ownPicks, allDrivers, allConstructors, events, isLoading,
 }) => {
   const [entityType, setEntityType] = useState<EntityType>('drivers');
   const [window, setWindow] = useState<Window>('all');
 
   const { rows, picksCounted, eventsCounted, yourAlignment } = useMemo(() => {
-    const empty = { rows: [] as Row[], picksCounted: 0, eventsCounted: 0, yourAlignment: null as number | null };
-    if (Object.keys(allLeaguePicks).length === 0) return empty;
-
-    const eventIdsWithPicks = new Set<string>();
-    Object.values(allLeaguePicks).forEach(p => Object.keys(p).forEach(id => eventIdsWithPicks.add(id)));
-
-    const completed = events
-      .filter(e => eventIdsWithPicks.has(e.id) && !cancelledEventIds.has(e.id))
-      .sort((a, b) =>
-        (parseLeagueDate(a.lockAtUtc)?.getTime() || 0) - (parseLeagueDate(b.lockAtUtc)?.getTime() || 0));
-
-    const relevant = window === 'all' ? completed : completed.slice(-parseInt(window, 10));
-    const relevantIds = new Set(relevant.map(e => e.id));
-
-    const counts: Record<string, number> = {};
-    (entityType === 'teams' ? allConstructors : allDrivers).forEach(e => { counts[e.id] = 0; });
-
-    let total = 0;
-    Object.values(allLeaguePicks).forEach(userPicks => {
-      Object.entries(userPicks).forEach(([eventId, picks]) => {
-        if (!relevantIds.has(eventId)) return;
-        const ids = entityType === 'teams'
-          ? [...(picks.aTeams || []), picks.bTeam]
-          : [...(picks.aDrivers || []), ...(picks.bDrivers || [])];
-        ids.filter(Boolean).forEach(id => {
-          if (counts[id as string] !== undefined) { counts[id as string]++; total++; }
-        });
-      });
-    });
-
     const source: (Driver | Constructor)[] = entityType === 'teams' ? allConstructors : allDrivers;
-    const built: Row[] = source
-      .map(e => {
-        const constructorId = entityType === 'teams' ? e.id : (e as Driver).constructorId;
-        return {
-          id: e.id,
-          name: e.name,
-          count: counts[e.id] ?? 0,
-          color: teamColor(constructorId, allConstructors),
-          teamName: entityType === 'drivers'
-            ? allConstructors.find(c => c.id === constructorId)?.name
-            : undefined,
-        };
-      })
-      .sort((a, b) => b.count !== a.count ? b.count - a.count : a.name.localeCompare(b.name));
-
-    // How often the reader's picks land on options the league also favours (top third).
-    let alignment: number | null = null;
-    if (currentUser && allLeaguePicks[currentUser.id]) {
-      const popular = new Set(built.slice(0, Math.max(1, Math.ceil(built.length / 3))).map(r => r.id));
-      let mine = 0, withCrowd = 0;
-      Object.entries(allLeaguePicks[currentUser.id]).forEach(([eventId, picks]) => {
-        if (!relevantIds.has(eventId)) return;
-        const ids = entityType === 'teams'
-          ? [...(picks.aTeams || []), picks.bTeam]
-          : [...(picks.aDrivers || []), ...(picks.bDrivers || [])];
-        ids.filter(Boolean).forEach(id => { mine++; if (popular.has(id as string)) withCrowd++; });
-      });
-      if (mine > 0) alignment = Math.round((withCrowd / mine) * 100);
-    }
-
-    return { rows: built, picksCounted: total, eventsCounted: relevant.length, yourAlignment: alignment };
-  }, [allLeaguePicks, allDrivers, allConstructors, events, cancelledEventIds, entityType, window, currentUser]);
+    const summary = summarizeTrends(trends, ownPicks, events, source, entityType, window === 'all' ? null : parseInt(window, 10));
+    const built: Row[] = summary.ranked.map(({ entity: e, count }) => {
+      const constructorId = entityType === 'teams' ? e.id : (e as Driver).constructorId;
+      return {
+        id: e.id,
+        name: e.name,
+        count,
+        color: teamColor(constructorId, allConstructors),
+        teamName: entityType === 'drivers'
+          ? allConstructors.find(c => c.id === constructorId)?.name
+          : undefined,
+      };
+    });
+    return { rows: built, picksCounted: summary.picksCounted, eventsCounted: summary.eventsCounted, yourAlignment: summary.yourAlignment };
+  }, [trends, ownPicks, allDrivers, allConstructors, events, entityType, window]);
 
   if (isLoading) {
     return (
@@ -204,7 +155,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         ) : (
           <Tile padding="none">
             <EmptyState icon={TrendingUpIcon} title="No picks to analyse"
-              description="Trends appear once league members have submitted lineups." />
+              description="Trends appear once a race has results." />
           </Tile>
         )}
       </div>

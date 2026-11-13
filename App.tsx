@@ -812,6 +812,7 @@ const App: React.FC = () => {
       case 'leaderboard':
         return <LeaderboardPage 
             currentUser={user} 
+            seasonPicks={seasonPicks}
             raceResults={raceResults} 
             pointsSystem={activePointsSystem} 
             allDrivers={allDrivers} 
