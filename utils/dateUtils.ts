@@ -1,66 +1,50 @@
 
 export const LEAGUE_TIMEZONE = 'America/New_York';
 
+const LEAGUE_WALL_CLOCK = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+const leagueParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: LEAGUE_TIMEZONE,
+    hourCycle: 'h23',
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
+});
+
+/** The league zone's offset from UTC at an instant, in ms (EDT is -4h). */
+const leagueOffsetAt = (instant: number): number => {
+    const p: Record<string, number> = {};
+    leagueParts.formatToParts(new Date(instant)).forEach(({ type, value }) => { p[type] = Number(value); });
+    return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - (instant - (instant % 1000));
+};
+
 /**
- * Robust parsing helper.
- * If the string lacks a timezone suffix (typical for datetime-local strings from Admin),
- * we parse it while forcing it into the League's context (America/New_York).
+ * Reads a league wall-clock string — the schedule's and Admin's `2026-03-29T14:00`, always New
+ * York time — as the instant it names, whatever zone the browser is in. Strings carrying their own
+ * zone (`...Z`) are already absolute.
+ *
+ * The offset must be the one in force at the answer, not at the input read as some other zone's
+ * time: the earlier version measured it at the latter, so any clock change between the two —
+ * New York's, or the browser's own — put the result an hour out.
  */
 export const parseLeagueDate = (isoString?: string): Date | null => {
     if (!isoString) return null;
-    
-    // 1. If it's already an absolute ISO string from constants (ends with Z)
-    if (isoString.endsWith('Z')) return new Date(isoString);
 
-    // 2. If it's a local string from Admin (e.g. 2026-03-29T14:00)
-    // We must parse this as being in the context of the LEAGUE_TIMEZONE (EST/EDT)
-    try {
-        const normalized = isoString.replace(' ', 'T');
-        // Simple but effective: treat the string as browser local, then adjust for the TZ difference
-        const tempDate = new Date(normalized);
-        
-        // Get what time it is in the League Timezone when it is 'tempDate' in UTC (or local)
-        // Actually, the logic from SchedulePage was:
-        // tempDate (Local) -> leagueString (Time in NY) -> leagueDate (Local)
-        // diff = tempDate - leagueDate
-        // final = tempDate + diff
-        
-        // Let's re-verify this logic.
-        // We want Final Date (UTC) such that Final Date in NY == Input String.
-        
-        // SchedulePage logic:
-        // tempDate = Input String parsed as Local.
-        // leagueString = tempDate formatted in NY.
-        // leagueDate = leagueString parsed as Local.
-        // diff = tempDate - leagueDate.
-        // final = tempDate + diff.
-        
-        // Example: Input "03:30". Local = UTC.
-        // tempDate = 03:30 UTC.
-        // leagueString (NY time for 03:30 UTC) = 23:30 (Prev Day).
-        // leagueDate = 23:30 UTC (Prev Day).
-        // diff = 03:30 - 23:30 = +4 hours.
-        // final = 03:30 UTC + 4h = 07:30 UTC.
-        // 07:30 UTC in NY is 03:30. Correct.
-        
-        // Example 2: Input "03:30". Local = NY (Browser in NY).
-        // tempDate = 03:30 NY (07:30 UTC).
-        // leagueString (NY time for 07:30 UTC) = 03:30.
-        // leagueDate = 03:30 NY (07:30 UTC).
-        // diff = 0.
-        // final = 07:30 UTC + 0 = 07:30 UTC.
-        // Correct.
-        
-        const leagueString = tempDate.toLocaleString('en-US', { timeZone: LEAGUE_TIMEZONE });
-        const leagueDate = new Date(leagueString);
-        const diff = tempDate.getTime() - leagueDate.getTime();
-        const finalDate = new Date(tempDate.getTime() + diff);
-        
-        return isNaN(finalDate.getTime()) ? null : finalDate;
-    } catch (e) {
-        const fallback = new Date(isoString);
-        return isNaN(fallback.getTime()) ? null : fallback;
+    const m = LEAGUE_WALL_CLOCK.exec(isoString.trim());
+    if (!m) {
+        const absolute = new Date(isoString);
+        return isNaN(absolute.getTime()) ? null : absolute;
     }
+
+    const [, y, mo, d, h, mi, s = '0'] = m;
+    const wall = Date.UTC(+y, +mo - 1, +d, +h, +mi, +s);
+    const before = leagueOffsetAt(wall);
+    const first = wall - before;
+    const after = leagueOffsetAt(first);
+    if (after === before) return new Date(first);
+    // A clock change sits between the two guesses. If the post-change offset holds, that is the
+    // answer; if not, the wall time fell in the spring-forward gap and never happened, and `first`
+    // reads it on the pre-change offset — 02:30 becomes 03:30 EDT.
+    const second = wall - after;
+    return new Date(leagueOffsetAt(second) === after ? second : first);
 };
 
 /**
