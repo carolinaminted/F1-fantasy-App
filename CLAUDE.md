@@ -23,19 +23,21 @@ domain. Do not read anything below as "pending".
 mutate `formula-fantasy-1` or `lights-out-league-prod` — Firestore writes, Functions deploys,
 domain or DNS changes, IAM edits, traffic shifts — without explicit per-action approval.
 
-**Current production and its rollback handles (as of the 2026-10-15 release):**
+**Current production and its rollback handles (as of the 2026-11-12 release):**
 
-- Web: `lights-out-league-web-00013-zas` (commit `6319050`) serves members. Rollback is
-  `lights-out-league-web-00011-vat`, still warm.
-- Portal: the 5 callables on their `-00004` revisions. The pre-deploy `-00003` revisions and the
-  `update-traffic` lines to restore them are in `.backups/portal-revisions-2026-10-15T21-07-41Z.txt`.
+- Web: `lights-out-league-web-00015-wul` (commit `1c32b0a`) serves members. Rollback is
+  `lights-out-league-web-00013-zas` (commit `6319050`), still warm.
+- Portal: the 5 original callables on their `-00005` revisions, plus the 5 season callables created
+  on 2026-11-12 at `-00001`. The pre-deploy `-00004` revisions and the `update-traffic` lines to
+  restore them are in `.backups/portal-revisions-2026-11-12T23-42-44Z.txt`. A rollback leaves the
+  season callables in place, idle.
 - Data plane: `./deploy-data-plane.sh --rollback-to 6319050`, run from `prod`. It deploys an earlier
-  prod commit that already carries a `data-plane-deployed` note. The Node 20 branch is gone, because
-  nodejs20 was decommissioned on 2026-10-30.
-- Data: the managed export `gs://formula-fantasy-1-season-backups/season-2026/manual-2026-11-03T02-58-42Z`
-  (full database, 2026-11-03, restore with `gcloud firestore import`). The older local file
-  `.backups/schedule-correction-formula-fantasy-1-2026-09-17T22-50-25-510Z.json` is schedule-only;
-  never use the 2026-09-10 one, which predates Madrid being scored on 2026-09-13.
+  prod commit that already carries a `data-plane-deployed` note.
+- Rules: `.backups/firestore-rules-formula-fantasy-1-2026-11-12T23-22-41Z.rules` is the ruleset
+  production served before the season rules. `deploy-prod-rules.sh` prints the restore commands.
+- Data: the managed export `gs://formula-fantasy-1-season-backups/season-2026/manual-2026-11-12T23-16-57Z`
+  (full database, 518 docs, taken minutes before the release; restore with `gcloud firestore import`).
+  It predates `season_config/current` and `app_state/season_calendar`, which the release seeded.
 
 ⚠️ **`gen-lang-client-0034225567` vs `formula-fantasy-1` is a trap that has bitten twice.** The
 console shows the *display name* `formula-fantasy-one` for the legacy project, but `--project`
@@ -290,7 +292,7 @@ does that redeploy.
   `sendAuthCode`, `verifyAuthCode`, `validateInvitationCode`, `sendPasswordResetLink` — plus five
   admin-only season callables (`SEASON_CALLABLES` in `deploy-targets.js`): `concludeSeason`,
   `archiveSeason`, `backupLeague`, `startNewSeason`, `openSeason`. Their logic lives in
-  `functions/season-ops/`. Staging and the portal host them; the portal does not have them yet.
+  `functions/season-ops/`. Staging and the portal host them (the portal since 2026-11-12).
   Their 540s/512MiB limits are declared once, in `LONG_RUNNING`, read by both `index.js` and
   `deploy-portal.sh`.
 - `hooks/`, `contexts/` (`SeasonContext`, `ThemeContext`, `ToastContext`), `utils/`, `styles/`.
@@ -373,28 +375,25 @@ staging design and the captured production baseline.
 
 ## Known open work
 
-**Season rollover is built, not deployed.** Plan 2 (Notion: Plan 2 — Season-Ending Cutover, tracked
-as `[ROLL-xx]` in the Lights Out League tracker) is implemented on this branch, `feat/season-config`,
-including the `[ROLL-10]` backup step: `season_config/current` is the single source of scored events
-on both engines, the calendar lives in Firestore, and Season Control drives conclude, archive, reset
-and open. The local-only rule was **lifted 2026-10-31**. Timetable: one production release targeting
-Thu Nov 12 (fallback Tue Nov 17), two staging rehearsals first with the `verify.sh` zero-drift gate,
-season close Dec 6–13 (`[ROLL-06]`), 2027 start Jan–Feb (`[ROLL-07]`).
+**Season rollover is in production since 2026-11-12** (`1c32b0a`; tracked as `[ROLL-xx]` in the
+Lights Out League tracker). Production serves the season rules, `season_config/current` and
+`app_state/season_calendar` are seeded for 2026, both Functions deployments read them, and the portal
+hosts the five season callables. No lifecycle step has run in production yet. Record:
+`../worklog/november-2026-release.md`.
 
-- **Season rules are on `staging`** since 2026-10-31 (`feat/season-rules`, additive and deny-write),
-  so a `deploy-staging.sh` from `staging` no longer removes the `season_config` read rule.
-- **`[ROLL-11]` `deploy-prod-rules.sh` is built, never run** (2026-11-02). Production has never
-  served the season rules; the Nov 12 release needs this script run from `prod` before the web
-  candidate is promoted. It backs up the live ruleset to `.backups/` and records `rules-deployed:`.
-- **`[ROLL-10]` infra is in place in both projects** (staging 2026-10-31, production 2026-11-02):
-  the buckets in `functions/backup-buckets.js`, `storage.objectAdmin` for each Firestore service
-  agent, `datastore.importExportAdmin` for each runtime SA (the portal SA on `formula-fantasy-1`,
-  cross-project). A one-off export proved the production bucket:
-  `gs://formula-fantasy-1-season-backups/season-2026/manual-2026-11-03T02-58-42Z` (517 docs), which
-  is also the freshest pre-release data backup. The portal SA's grant is first exercised by Take
-  backup at the December close.
-- **The portal create path is built but gated.** `deploy-portal.sh` on this branch detects callables
-  the portal lacks and lists them as "will CREATE", but a real run refuses (`CREATE_SUPPORTED=false`)
-  until a staging rehearsal settles how to turn on invoker-iam-disabled for a new function without
-  blanking its GCF record. Needed before `[ROLL-06]` (Dec 6–13).
-- `[ROLL-06]` and `[ROLL-07]` are the operations themselves. Progress: `../worklog/season-rollover.md`.
+- **`[ROLL-20]` blocks the December archive.** Production holds `app_state/survival_config`, a
+  leftover from March 2026 that `functions/season-ops/archive-plan.js` does not classify, so
+  `archiveSeason` would refuse before writing anything. Classify it and redeploy the portal before
+  `[ROLL-06]`.
+- **`[ROLL-06]` season close, Dec 6–13.** Conclude, Archive and Take backup from Season Control. Take
+  backup is the first production run of the portal service account's export grant
+  (`datastore.importExportAdmin` on `formula-fantasy-1`, cross-project).
+- **`[ROLL-07]` 2027 start, Jan–Feb.** Start new season, `seed-season.js --calendar-only`, the
+  schedule paste, Open season. `[ROLL-19]` Hall of Fame v2 ships with it; only its champion-hero part
+  is live.
+- **Code freeze from Nov 20 until `[ROLL-06]`**, apart from `[ROLL-20]`.
+- **Production no longer serves Survival rules.** The 2026-11-12 rules deploy removed the
+  `survival_picks` and `survival_standings` rules, which existed only in the live ruleset. The data
+  is untouched. Podium Survival (parked for 2027) must bring its own rules.
+- **Firing the results trigger on purpose** (the post-deploy check in `deploy-data-plane.sh`): use
+  Delete results on a race with no results. The results form refuses partial saves.

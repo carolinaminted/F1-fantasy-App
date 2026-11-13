@@ -303,9 +303,13 @@ cat <<EOF
 Data-plane deploy complete: ${TRIGGERS[*]} on $expected_runtime from ${deploy_sha:0:7}.
 
 Not done yet. Finish the runbook by hand:
-  1. Fire the results trigger on purpose: as admin, edit and then revert one harmless field
-     on an empty placeholder entry (such as abu_26) in race_results. Do NOT touch cancellations.
-  2. Check the standings did not move (expect zero drift across all rows):
+  1. Fire the results trigger on purpose: as admin, open a race with no results yet (such as
+     abu_26) and use Delete results. The form refuses partial saves, so one field cannot be
+     edited and reverted. Deleting empty results scores nobody and leaves picks alone, but it
+     rewrites the entry's driverTeams snapshot, so the trigger fires once. Do NOT touch
+     cancellations.
+  2. Check the standings did not move (expect zero drift across all rows; race_results will
+     show drift on that one event key, which is the snapshot write):
        LOL_ENV=prod $VERIFY_SCRIPT check
   3. Watch the trigger logs for 15 minutes:
        LOL_ENV=prod $VERIFY_SCRIPT triggers $deploy_started
