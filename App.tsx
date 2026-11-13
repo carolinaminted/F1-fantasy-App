@@ -49,7 +49,7 @@ import { ThemeSwitch } from './components/ui/ThemeSwitch.tsx';
 import { auth, db } from './services/firebase.ts';
 import { onAuthStateChanged } from '@firebase/auth';
 import { onSnapshot, doc } from '@firebase/firestore';
-import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveEventRaceResults, saveScoringSettings, getLeagueEntities, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
+import { getUserProfile, getUserPicks, saveUserPicks, saveFormLocks, saveRaceResults, saveEventRaceResults, saveScoringSettings, saveLeagueEntities, getEventSchedules, getAllUsersAndPicks, DEFAULT_PAGE_SIZE, onCancelledEvents } from './services/firestoreService.ts';
 import { calculateScoreRollup } from './services/scoringService.ts';
 import { parseSeasonConfig, parseSeasonCalendar, type SeasonConfig } from './services/seasonConfig.ts';
 import { SeasonProvider } from './contexts/SeasonContext.tsx';
@@ -390,7 +390,7 @@ const App: React.FC = () => {
   }, [seasonPicks, raceResults, activePointsSystem, allDrivers, user, seasonConfig, cancelledEventIds]);
 
   // Centralized Data Fetch for Leaderboard (Standard Batch)
-  const fetchLeaderboardData = useCallback(async () => {
+  const loadLeaderboard = useCallback(async (): Promise<boolean> => {
       try {
           const { users, allPicks, lastDoc, source } = await getAllUsersAndPicks();
           setLeaderboardCache({
@@ -400,24 +400,34 @@ const App: React.FC = () => {
               lastUpdated: Date.now(),
               lastDoc // Store for further pagination if needed
           } as any);
+          return true;
       } catch (e) {
           console.error("Failed to fetch leaderboard data", e);
+          return false;
       }
   }, []);
-
-
+  const fetchLeaderboardData = useCallback(async () => { await loadLeaderboard(); }, [loadLeaderboard]);
 
   /**
    * Warm the league cache as soon as someone is signed in. It is a single paged read of
    * `public_users` with the totals already baked in, and it is what Home's standings list and
    * the category rank tiles read from — none of which should be waiting on a trip to the
    * Standings page first.
+   *
+   * It retries because a one-shot read rejects outright while the client is offline, and
+   * nothing else would ever ask again: Home and Standings would sit on their skeletons [PROD-09].
    */
   useEffect(() => {
-    if (hasSession && !leaderboardCache) {
-      fetchLeaderboardData();
-    }
-  }, [hasSession, leaderboardCache, fetchLeaderboardData]);
+    if (!hasSession || leaderboardCache) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const attempt = async (retryIn: number) => {
+      if (await loadLeaderboard() || cancelled) return;
+      timer = setTimeout(() => attempt(Math.min(retryIn * 2, 30000)), retryIn);
+    };
+    attempt(2000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [hasSession, leaderboardCache, loadLeaderboard]);
 
   // The league cache is a one-off read, so a season step (conclude, start new season, open)
   // would leave every open tab showing the old season's standings on Home until someone
@@ -444,6 +454,7 @@ const App: React.FC = () => {
     let unsubscribeCancelled = () => {};
     let unsubscribeSeasonConfig = () => {};
     let unsubscribeCalendar = () => {};
+    let unsubscribeEntities = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       unsubscribeResults();
@@ -456,6 +467,7 @@ const App: React.FC = () => {
       unsubscribeCancelled();
       unsubscribeSeasonConfig();
       unsubscribeCalendar();
+      unsubscribeEntities();
 
       // Clear caches on auth change
       publicProfileDataRef.current = null;
@@ -474,8 +486,7 @@ const App: React.FC = () => {
             setIsTransitioning(true);
         }
         setIsLoading(true);
-        // Ahead of the blocking read below, so the league cache fetch runs alongside it
-        // rather than queueing behind the whole auth chain.
+        // Before the profile arrives, so the league cache fetch runs alongside it.
         setHasSession(true);
 
         setProfileStalled(false);
@@ -488,8 +499,7 @@ const App: React.FC = () => {
             setProfileStalled(true);
         }, 10000);
 
-        // Listener 1: User Profile (Details). Attached before the entities read below, so that
-        // read's latency never counts against the profile's grace period.
+        // Listener 1: User Profile (Details).
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
           if (profileSnap.exists()) {
@@ -516,13 +526,20 @@ const App: React.FC = () => {
           // grace period above offers the way out when it never does.
         });
 
-        const entities = await getLeagueEntities();
-        if (entities) {
-            setAllDrivers(entities.drivers);
-            setAllConstructors(entities.constructors);
-        } else {
-            await saveLeagueEntities(DRIVERS, CONSTRUCTORS);
-        }
+        // A listener, not a one-shot read: getDoc rejects while the client is offline, and when
+        // it was awaited here that rejection ended this callback before any listener below was
+        // attached, leaving the app on its skeleton [PROD-09].
+        const entitiesRef = doc(db, 'app_state', 'entities');
+        unsubscribeEntities = onSnapshot(entitiesRef, (docSnap) => {
+            const { fromCache } = docSnap.metadata;
+            if (docSnap.exists()) {
+                const entities = docSnap.data() as { drivers: Driver[], constructors: Constructor[] };
+                setAllDrivers(entities.drivers);
+                setAllConstructors(entities.constructors);
+            } else if (!fromCache) {
+                saveLeagueEntities(DRIVERS, CONSTRUCTORS);
+            }
+        }, (error) => console.error("Firestore listener error (entities):", error));
 
         const schedulesRef = doc(db, 'app_state', 'event_schedules');
         unsubscribeSchedules = onSnapshot(schedulesRef, (docSnap) => {
@@ -668,8 +685,9 @@ const App: React.FC = () => {
       unsubscribeCancelled();
       unsubscribeSeasonConfig();
       unsubscribeCalendar();
+      unsubscribeEntities();
     };
-  }, []); 
+  }, []);
 
   // Old links and open tabs land on the surface that absorbed them.
   useEffect(() => {
