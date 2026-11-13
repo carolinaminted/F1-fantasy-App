@@ -536,22 +536,26 @@ const App: React.FC = () => {
         unsubscribeResults = onSnapshot(resultsRef, (docSnap) => {
           if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
             setRaceResults(docSnap.data() as RaceResults);
-          } else {
+          } else if (!docSnap.metadata.fromCache) {
+            // A client that starts offline gets a fromCache snapshot saying the doc does not
+            // exist. Seeding from that queues a write that lands on reconnect over live data.
             saveRaceResults(RACE_RESULTS);
           }
         });
 
         const locksRef = doc(db, 'app_state', 'form_locks');
         unsubscribeLocks = onSnapshot(locksRef, (docSnap) => {
+            const { fromCache } = docSnap.metadata;
             if (docSnap.exists()) {
                 setFormLocks(docSnap.data());
-            } else {
+            } else if (!fromCache) {
                 saveFormLocks({});
             }
         });
 
         const pointsRef = doc(db, 'app_state', 'scoring_config');
         unsubscribePoints = onSnapshot(pointsRef, (docSnap) => {
+            const { fromCache } = docSnap.metadata;
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data.profiles && Array.isArray(data.profiles)) {
@@ -563,7 +567,7 @@ const App: React.FC = () => {
                     };
                     setScoringSettings(migratedSettings);
                 }
-            } else {
+            } else if (!fromCache) {
                 saveScoringSettings(defaultSettings);
             }
         });
