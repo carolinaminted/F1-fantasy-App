@@ -1,5 +1,5 @@
 // Remove once the app stops seeding app_state/race_results for non-admins (App.tsx:552-559).
-// TODO(tracker): bug ID added in Task 12.
+// Tracked as [PROD-11].
 export const RACE_RESULTS_SEED_ERROR = /^pageerror: Missing or insufficient permissions\.$/;
 export const RACE_RESULTS_SEED_NOTE = 'known-app-issue: race_results self-seed denied for non-admin (App.tsx:552-559)';
 
