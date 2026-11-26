@@ -16,6 +16,8 @@ test('admin lands signed in, with the Admin entry', async ({ adminPage }) => {
 });
 
 test('wrong password shows the error and stays on sign-in', async ({ anonPage, expectError }) => {
+  const status400: string[] = [];
+  anonPage.on('response', (r) => { if (r.status() === 400) status400.push(`${r.request().method()} ${r.url()}`); });
   await anonPage.goto('/');
   await expect(stagingBadge(anonPage)).toBeVisible();
   await anonPage.locator('#login-email').fill(process.env.E2E_MEMBER_EMAIL!);
@@ -23,6 +25,9 @@ test('wrong password shows the error and stays on sign-in', async ({ anonPage, e
   await anonPage.getByRole('button', { name: 'Log In', exact: true }).click();
   await expect(anonPage.getByText('Invalid email or password. Please try again.')).toBeVisible();
   await expect(anonPage.locator('#login-email')).toBeVisible();
+  // The allowance below is only safe if the one 400 is the sign-in request itself.
+  expect(status400).toHaveLength(1);
+  expect(status400[0]).toMatch(/^POST https:\/\/identitytoolkit\.googleapis\.com\/.*accounts:signInWithPassword(\?|$)/);
   // Chromium logs the 400 from signInWithPassword as a resource-load error; the URL is not in the text.
   expectError(/^console\.error: Failed to load resource: the server responded with a status of 400 \(\)$/);
 });
