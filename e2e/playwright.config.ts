@@ -22,7 +22,12 @@ if (sides.length) {
 // compare.ts starts its own servers with --mode staging; the request guards and the STAGING badge check still apply.
 const managed = process.env.E2E_SERVERS_MANAGED === '1';
 
-const capture = (name: string, use: PlaywrightTestConfig['use']) => ({ name, testMatch: /capture\.spec\.ts/, dependencies: ['setup'], use });
+// Chromium text antialiasing differs run to run (subpixel positioning, LCD smoothing); these flags make glyph edges deterministic.
+const CHROMIUM_STABLE_TEXT = ['--font-render-hinting=none', '--disable-lcd-text', '--disable-font-subpixel-positioning', '--force-color-profile=srgb'];
+const capture = (name: string, use: PlaywrightTestConfig['use']) => ({
+  name, testMatch: /capture\.spec\.ts/, dependencies: ['setup'],
+  use: use?.browserName === 'chromium' ? { ...use, launchOptions: { args: CHROMIUM_STABLE_TEXT } } : use,
+});
 const captureProjects = sides.length ? [
   capture('capture-desktop', { browserName: 'chromium', viewport: { width: 1440, height: 1000 } }),
   capture('capture-mobile', { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }),
