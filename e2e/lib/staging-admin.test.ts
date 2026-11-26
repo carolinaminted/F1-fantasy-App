@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { docUrl } from './staging-admin.ts';
+import { docUrl, fieldPath, patchUrl, patchDoc } from './staging-admin.ts';
 
 test('every document URL is pinned to the staging project', () => {
   assert.equal(

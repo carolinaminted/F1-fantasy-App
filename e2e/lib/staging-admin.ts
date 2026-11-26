@@ -45,9 +45,22 @@ export async function createDoc(path: string, data: Record<string, unknown>): Pr
   await ok(await call(`${docUrl(path)}?currentDocument.exists=false`, { method: 'PATCH', body: JSON.stringify({ fields: encodeFields(data) }) }), `create ${path}`);
 }
 
+const SIMPLE_FIELD = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export function fieldPath(key: string): string {
+  if (SIMPLE_FIELD.test(key)) return key;
+  return `\`${key.replace(/[\\`]/g, (c) => `\\${c}`)}\``;
+}
+
+export function patchUrl(path: string, keys: string[]): string {
+  const mask = keys.map((k) => `updateMask.fieldPaths=${encodeURIComponent(fieldPath(k))}`).join('&');
+  return `${docUrl(path)}?${mask}`;
+}
+
 export async function patchDoc(path: string, data: Record<string, unknown>): Promise<void> {
-  const mask = Object.keys(data).map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`).join('&');
-  await ok(await call(`${docUrl(path)}?${mask}`, { method: 'PATCH', body: JSON.stringify({ fields: encodeFields(data) }) }), `patch ${path}`);
+  const keys = Object.keys(data);
+  if (keys.length === 0) throw new Error(`patchDoc: no fields given for ${path}`);
+  await ok(await call(patchUrl(path, keys), { method: 'PATCH', body: JSON.stringify({ fields: encodeFields(data) }) }), `patch ${path}`);
 }
 
 export async function deleteDoc(path: string): Promise<void> {
@@ -56,7 +69,7 @@ export async function deleteDoc(path: string): Promise<void> {
 }
 
 export async function queryDocIds(collection: string, field: string, equals: string): Promise<string[]> {
-  const body = { structuredQuery: { from: [{ collectionId: collection }], where: { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: { stringValue: equals } satisfies FsValue } } } };
+  const body = { structuredQuery: { from: [{ collectionId: collection }], where: { fieldFilter: { field: { fieldPath: fieldPath(field) }, op: 'EQUAL', value: { stringValue: equals } satisfies FsValue } } } };
   const rows = await ok(await call(`${FS_BASE}:runQuery`, { method: 'POST', body: JSON.stringify(body) }), `query ${collection}`);
   return rows.filter((r: any) => r.document).map((r: any) => r.document.name.split('/').pop());
 }
