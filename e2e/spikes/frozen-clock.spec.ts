@@ -11,7 +11,7 @@ test('a fixed clock keeps auth, listeners and rendering working', async ({ membe
   // The season label is not rendered on Home while the season is active, so assert listener-fed data instead:
   // the calendar-driven next-race heading and a standings row (both arrive via Firestore).
   await expect(memberPage.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 20_000 });
-  await expect(memberPage.getByText('E2E Member').first()).toBeVisible({ timeout: 20_000 });
+  await expect(memberPage.getByText('E2E Member').filter({ visible: true }).first()).toBeVisible({ timeout: 20_000 });
   const a = await memberPage.evaluate(() => Date.now());
   await memberPage.waitForTimeout(1_500);
   const b = await memberPage.evaluate(() => Date.now());
