@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from './paths.ts';
 
@@ -7,16 +7,21 @@ export class GuardError extends Error {
 }
 
 export const STAGING_PROJECT = 'formula-fantasy-staging';
-export const FORBIDDEN_STRINGS = ['formula-fantasy-1', 'lights-out-league-prod'] as const;
+export const FORBIDDEN_STRINGS = [
+  'formula-fantasy-1', 'lights-out-league-prod', 'lights-out-league-web',
+  '45017321387', '193463400309', 'gen-lang-client-0034225567',
+] as const;
 const FORBIDDEN_HOSTS = new Set(['f1.carolinaminted.net']);
 const ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost', 'f1.staging.carolinaminted.net']);
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:3100';
 
 const findForbidden = (s: string) => FORBIDDEN_STRINGS.find((f) => s.includes(f)) ?? null;
+const findForbiddenCI = (s: string) => findForbidden(s.toLowerCase());
 
 export function assertAllowedBaseUrl(raw: string): void {
   let url: URL;
   try { url = new URL(raw); } catch { throw new GuardError(`base URL is not a URL: ${raw}`); }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new GuardError(`base URL protocol "${url.protocol}" is not allowed (http: and https: only)`);
   if (!ALLOWED_HOSTS.has(url.hostname)) {
     throw new GuardError(`base URL host "${url.hostname}" is not allowed (allowed: ${[...ALLOWED_HOSTS].join(', ')})`);
   }
@@ -30,14 +35,58 @@ export function resolveBaseUrl(raw?: string): string {
 
 export function assertNoProdInEnv(env: NodeJS.ProcessEnv): void {
   for (const [key, value] of Object.entries(env)) {
-    if (value && findForbidden(value)) throw new GuardError(`environment variable ${key} names a production project; unset it`);
+    // A VITE_ variable overrides .env.staging, so it could repoint the app at production Auth.
+    if (key.startsWith('VITE_')) throw new GuardError(`environment variable ${key} would override .env.staging; unset it`);
+    if (value && findForbiddenCI(value)) throw new GuardError(`environment variable ${key} names a production project; unset it`);
   }
 }
 
-export function assertStagingEnvFile(path = join(REPO_ROOT, '.env.staging')): void {
-  const match = /^VITE_FIREBASE_PROJECT_ID=(.*)$/m.exec(readFileSync(path, 'utf8'));
-  const project = match?.[1].trim();
-  if (project !== STAGING_PROJECT) throw new GuardError(`${path} names project "${project}", expected ${STAGING_PROJECT}`);
+const viteKeys = (text: string) => [...text.matchAll(/^\s*(?:export\s+)?(VITE_[A-Za-z0-9_]*)\s*=/gm)].map((m) => m[1]);
+const parseEnv = (text: string): Map<string, string> => {
+  const out = new Map<string, string>();
+  for (const m of text.matchAll(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/gm)) out.set(m[1], m[2].trim().replace(/^(['"])(.*)\1$/, '$2'));
+  return out; // later assignments win, as in Vite
+};
+
+function readStagingEnv(path: string): string {
+  try { return readFileSync(path, 'utf8'); } catch { throw new GuardError(`cannot read ${path}`); }
+}
+
+export function assertStagingEnvFile(root = REPO_ROOT, file = join(root, '.env.staging')): void {
+  for (const name of ['.env.staging.local', '.env.local', '.env']) {
+    const path = join(root, name);
+    if (existsSync(path) && viteKeys(readFileSync(path, 'utf8')).length) {
+      throw new GuardError(`${path} sets VITE_ variables that override .env.staging; remove them`);
+    }
+  }
+  const text = readStagingEnv(file);
+  const env = parseEnv(text);
+  const project = env.get('VITE_FIREBASE_PROJECT_ID');
+  if (project !== STAGING_PROJECT) throw new GuardError(`${file} names project "${project}", expected ${STAGING_PROJECT}`);
+  for (const [key, value] of env) {
+    if (findForbiddenCI(value)) throw new GuardError(`${file} ${key} names a production project`);
+  }
+}
+
+export function stagingWebApiKey(root = REPO_ROOT): string {
+  const key = parseEnv(readStagingEnv(join(root, '.env.staging'))).get('VITE_FIREBASE_API_KEY');
+  if (!key) throw new GuardError('.env.staging has no VITE_FIREBASE_API_KEY');
+  return key;
+}
+
+const FIREBASE_AUTH_HOSTS = ['identitytoolkit.googleapis.com', 'securetoken.googleapis.com'];
+
+// Browser Auth calls carry only ?key=<web API key>, no project string, so the key is the only evidence of which project they hit.
+export function isForeignFirebaseAuthKey(url: string, stagingKey: string): boolean {
+  let u: URL;
+  try { u = new URL(url); } catch { return false; }
+  const host = u.hostname.replace(/\.+$/, '');
+  if (!FIREBASE_AUTH_HOSTS.some((h) => onHost(host, h))) return false;
+  return u.searchParams.get('key') !== stagingKey;
+}
+
+export function redactKey(url: string): string {
+  return url.replace(/([?&]key=)[^&#]*/g, '$1REDACTED');
 }
 
 // Decodes each valid %XX on its own so one malformed sequence cannot stop the rest from decoding.

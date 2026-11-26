@@ -19,6 +19,7 @@ test.describe('sign-up', () => {
     const invite = await mintInvite(runId);
 
     await page.goto('/');
+    await expect(stagingBadge(page)).toBeVisible();
     await page.getByRole('button', { name: "Don't have an account? Sign Up" }).click();
     await page.getByPlaceholder('LOL-XXXX-XXXX').fill(invite);
     await page.getByRole('button', { name: 'Validate Code' }).click();

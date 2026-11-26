@@ -7,6 +7,8 @@ export async function deleteRunAccount(email: string): Promise<void> {
   // A sign-up that failed before the account existed still leaves these behind.
   await revokeInvite(inviteCodeFor(runIdFromEmail(email)));
   await deleteDoc(`email_verifications/${email.toLowerCase()}`);
+  // sendAuthCode keys its per-email throttle doc by the normalised address (the per-IP limit lives in rate_limits_ip).
+  await deleteDoc(`rate_limits/${email.toLowerCase()}`);
   const user = await lookupUserByEmail(email);
   if (!user) return;
   const uid = user.localId;

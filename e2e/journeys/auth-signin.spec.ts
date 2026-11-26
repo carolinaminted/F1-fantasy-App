@@ -16,7 +16,8 @@ test('admin lands signed in, with the Admin entry', async ({ adminPage }) => {
   await expect(adminEntry(adminPage)).toBeVisible();
 });
 
-test('wrong password shows the error and stays on sign-in', async ({ anonPage, expectError }) => {
+test('unknown account shows the error and stays on sign-in', async ({ anonPage, expectError }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'Firebase throttles repeated failed sign-ins; one run per suite is enough');
   const status400: string[] = [];
   anonPage.on('response', (r) => { if (r.status() === 400) status400.push(`${r.request().method()} ${r.url()}`); });
   await anonPage.goto('/');

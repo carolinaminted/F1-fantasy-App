@@ -1,7 +1,7 @@
 import { expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { join } from 'node:path';
 import { AUTH_DIR } from './paths.ts';
-import { isForbiddenRequestUrl, isWriteRequest } from './guards.ts';
+import { isForbiddenRequestUrl, isForeignFirebaseAuthKey, isWriteRequest, redactKey, stagingWebApiKey } from './guards.ts';
 import { isFirestoreWriteBody } from './known-issues.ts';
 
 // e2e deliberately imports no app code, so these two keys are re-declared here.
@@ -20,9 +20,10 @@ export async function guardContext(
   context: BrowserContext,
   opts: { readOnly: boolean; blocked: string[]; writeBodies?: string[] },
 ): Promise<void> {
+  const stagingKey = stagingWebApiKey();
   await context.route('**/*', (route) => {
     const req = route.request();
-    if (isForbiddenRequestUrl(req.url())) { opts.blocked.push(`FORBIDDEN ${req.url()}`); return route.abort('blockedbyclient'); }
+    if (isForbiddenRequestUrl(req.url()) || isForeignFirebaseAuthKey(req.url(), stagingKey)) { opts.blocked.push(`FORBIDDEN ${redactKey(req.url())}`); return route.abort('blockedbyclient'); }
     // Kept in memory only, for the known-issue check in fixtures.ts; never logged.
     if (opts.writeBodies && isWriteRequest(req.url(), req.method()) && isFirestoreWriteBody(req.url())) {
       opts.writeBodies.push(req.postData() ?? '');

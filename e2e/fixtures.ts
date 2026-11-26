@@ -56,9 +56,17 @@ async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> 
 }
 
 export const test = base.extend<Fixtures>({
+  // The built-in page/context go through the same guard as openPage; the built-in request is unguarded, so it is closed off.
+  context: async ({ context, readOnly, blocked }, use) => {
+    await guardContext(context, { readOnly, blocked });
+    await use(context);
+  },
+  request: async ({}, use) => {
+    await use(new Proxy({}, { get() { throw new Error('the built-in request fixture is unguarded; use lib/staging-admin.ts for API calls'); } }) as never);
+  },
   readOnly: [false, { option: true }],
   blockedAllowances: async ({}, use) => { await use([]); },
-  expectBlocked: async ({ blockedAllowances }, use) => {
+  expectBlocked: async ({ blockedAllowances, blocked: _blocked }, use) => {
     await use((re) => { blockedAllowances.push({ re, used: false }); });
   },
   blocked: async ({ blockedAllowances }, use, testInfo) => {
@@ -75,7 +83,7 @@ export const test = base.extend<Fixtures>({
     expect(blockedAllowances.filter((a) => !a.used).map((a) => String(a.re)), 'expectBlocked patterns that never matched').toEqual([]);
   },
   allowances: async ({}, use) => { await use([]); },
-  expectError: async ({ allowances }, use) => {
+  expectError: async ({ allowances, pageErrors: _pageErrors }, use) => {
     await use((re) => { allowances.push({ re, used: false }); });
   },
   writeBodies: async ({}, use) => { await use(new Map()); },

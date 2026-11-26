@@ -9,7 +9,12 @@ export async function mintInvite(runId: string): Promise<string> {
   return code;
 }
 
-export const revokeInvite = (code: string): Promise<void> => deleteDoc(`invitation_codes/${code}`);
+export const E2E_INVITE_RE = /^E2E-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+export function revokeInvite(code: string): Promise<void> {
+  if (!E2E_INVITE_RE.test(code)) throw new Error(`refusing to delete invitation code that is not an e2e code: ${code}`);
+  return deleteDoc(`invitation_codes/${code}`);
+}
 
 export function isFreshVerification(doc: Record<string, unknown> | null, startedAt: number): boolean {
   if (!doc || typeof doc.code !== 'string') return false;

@@ -3,7 +3,13 @@
 Never runs against production. Guards run at config load, so a production base URL or a
 production project in the environment fails before Vite or a browser starts. Allowed hosts are
 `127.0.0.1`, `localhost` and `f1.staging.carolinaminted.net`. Any request naming
-`formula-fantasy-1` or `lights-out-league-prod` is aborted and fails the test. Read-only mode
+`formula-fantasy-1`, `lights-out-league-prod`, `lights-out-league-web` or a production project
+number, or the host `f1.carolinaminted.net`, is aborted and fails the test. Browser calls to
+`identitytoolkit.googleapis.com` and `securetoken.googleapis.com` carry no project string, so they
+are aborted unless their `key` is the staging web API key from `.env.staging` (keys are redacted in
+reports). Config load also refuses a `.env.staging.local`, `.env.local` or `.env` that sets any
+`VITE_` key, and any `VITE_*` variable in the shell, because either would override `.env.staging`
+while the STAGING badge still rendered. Read-only mode
 (`test.use({ readOnly: true })`) aborts writes.
 
 ## One-time setup
@@ -27,9 +33,11 @@ npm run e2e:journeys                               # local Vite (--mode staging)
 E2E_BASE_URL=https://f1.staging.carolinaminted.net npm run e2e:journeys
 E2E_REAL_MAIL=1 npm run e2e:journeys -- journeys/signup.spec.ts   # read the code from the bot inbox
 npm run e2e:teardown                               # sweep throwaway accounts older than 1 hour
+npm run e2e:teardown -- --email=<run address>      # delete one run's account, invite and docs now
 ```
 
-Artifacts land in `e2e-results/` (gitignored).
+Artifacts land in `e2e-results/` (gitignored). Traces and reports there contain test passwords and
+session tokens: do not share them.
 
 ## Auth setup and throttling
 
@@ -53,12 +61,13 @@ the expectation:
 One known app issue is allowed. On a non-admin page, a write to `app_state/race_results`
 self-seeds and is denied, which throws "Missing or insufficient permissions."
 (`App.tsx:552-559`). The allowance applies per page, only when that page sent the write. The
-test is annotated `known-app-issue`. Remove it once the app is fixed (`e2e/lib/known-issues.ts`).
+test is annotated `known-app-issue`. The allowance is optional: it never fails a test, it only
+annotates when it fires. Remove it once the app is fixed (`e2e/lib/known-issues.ts`).
 
 ## Sign-up journey
 
-Desktop only. It spends staging rate limit: 3 verification sends per 10 minutes per IP, so the
-full suite needs about 200 s between runs. Teardown deletes the run's invite and
+Desktop only. It spends staging rate limit: 3 verification sends per 10 minutes per IP, so run
+at most 3 sign-up runs in any 10 minutes. Teardown deletes the run's invite and
 `email_verifications` doc even when no Auth user was created.
 
 ## Clock
