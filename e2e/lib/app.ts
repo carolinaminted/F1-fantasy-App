@@ -2,6 +2,7 @@ import { expect, type BrowserContext, type Locator, type Page } from '@playwrigh
 import { join } from 'node:path';
 import { AUTH_DIR } from './paths.ts';
 import { isForbiddenRequestUrl, isWriteRequest } from './guards.ts';
+import { isFirestoreWriteBody } from './known-issues.ts';
 
 // e2e deliberately imports no app code, so these two keys are re-declared here.
 // They mirror constants.ts (session activity) and contexts/ThemeContext.tsx (theme).
@@ -17,11 +18,15 @@ export const adminEntry = (page: Page): Locator => page.getByRole('button', { na
 
 export async function guardContext(
   context: BrowserContext,
-  opts: { readOnly: boolean; blocked: string[] },
+  opts: { readOnly: boolean; blocked: string[]; writeBodies?: string[] },
 ): Promise<void> {
   await context.route('**/*', (route) => {
     const req = route.request();
     if (isForbiddenRequestUrl(req.url())) { opts.blocked.push(`FORBIDDEN ${req.url()}`); return route.abort('blockedbyclient'); }
+    // Kept in memory only, for the known-issue check in fixtures.ts; never logged.
+    if (opts.writeBodies && isWriteRequest(req.url(), req.method()) && isFirestoreWriteBody(req.url())) {
+      opts.writeBodies.push(req.postData() ?? '');
+    }
     if (opts.readOnly && isWriteRequest(req.url(), req.method())) { opts.blocked.push(`WRITE ${req.method()} ${req.url()}`); return route.abort('blockedbyclient'); }
     return route.continue();
   });
