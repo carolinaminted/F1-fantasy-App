@@ -6,6 +6,8 @@ export const RUN_EMAIL_RE = /^lol\.e2e\.bot\+run-([a-z0-9]{8})@gmail\.com$/;
 
 export const newRunId = (): string => randomBytes(6).toString('base64url').toLowerCase().replace(/[^a-z0-9]/g, '0').slice(0, 8);
 export const runEmail = (runId: string): string => `lol.e2e.bot+run-${runId}@gmail.com`;
+// Wrong-password checks must not lock out a real test account; this address must never be provisioned.
+export const NO_ACCOUNT_EMAIL = runEmail('noacct00');
 export const inviteCodeFor = (runId: string): string => `E2E-${runId.slice(0, 4)}-${runId.slice(4, 8)}`.toUpperCase();
 
 export function runIdFromEmail(email: string): string {

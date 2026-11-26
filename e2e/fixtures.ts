@@ -11,7 +11,9 @@ type Fixtures = {
   pageErrors: string[];
   errorPages: string[];
   allowances: Allowance[];
+  blockedAllowances: Allowance[];
   expectError: (re: RegExp) => void;
+  expectBlocked: (re: RegExp) => void;
   memberPage: Page;
   adminPage: Page;
   anonPage: Page;
@@ -55,12 +57,22 @@ async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> 
 
 export const test = base.extend<Fixtures>({
   readOnly: [false, { option: true }],
-  blocked: async ({}, use, testInfo) => {
+  blockedAllowances: async ({}, use) => { await use([]); },
+  expectBlocked: async ({ blockedAllowances }, use) => {
+    await use((re) => { blockedAllowances.push({ re, used: false }); });
+  },
+  blocked: async ({ blockedAllowances }, use, testInfo) => {
     const blocked: string[] = [];
     await use(blocked);
     const forbidden = blocked.filter((b) => b.startsWith('FORBIDDEN'));
     if (forbidden.length) testInfo.annotations.push({ type: 'forbidden-requests', description: forbidden.join('\n') });
-    expect(forbidden, 'requests to production were attempted').toEqual([]);
+    const unexpected = forbidden.filter((b) => {
+      const hits = blockedAllowances.filter((a) => a.re.test(b));
+      hits.forEach((a) => { a.used = true; });
+      return hits.length === 0;
+    });
+    expect(unexpected, 'requests to production were attempted').toEqual([]);
+    expect(blockedAllowances.filter((a) => !a.used).map((a) => String(a.re)), 'expectBlocked patterns that never matched').toEqual([]);
   },
   allowances: async ({}, use) => { await use([]); },
   expectError: async ({ allowances }, use) => {

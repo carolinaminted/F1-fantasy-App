@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures.ts';
 import { adminEntry, stagingBadge } from '../lib/app.ts';
+import { NO_ACCOUNT_EMAIL } from '../lib/identities.ts';
 
 test('member lands signed in, with no Admin entry', async ({ memberPage }) => {
   await memberPage.goto('/');
@@ -20,7 +21,7 @@ test('wrong password shows the error and stays on sign-in', async ({ anonPage, e
   anonPage.on('response', (r) => { if (r.status() === 400) status400.push(`${r.request().method()} ${r.url()}`); });
   await anonPage.goto('/');
   await expect(stagingBadge(anonPage)).toBeVisible();
-  await anonPage.locator('#login-email').fill(process.env.E2E_MEMBER_EMAIL!);
+  await anonPage.locator('#login-email').fill(NO_ACCOUNT_EMAIL);
   await anonPage.locator('#login-password').fill('definitely-wrong-password');
   await anonPage.getByRole('button', { name: 'Log In', exact: true }).click();
   await expect(anonPage.getByText('Invalid email or password. Please try again.')).toBeVisible();
