@@ -40,19 +40,30 @@ export function assertStagingEnvFile(path = join(REPO_ROOT, '.env.staging')): vo
   if (project !== STAGING_PROJECT) throw new GuardError(`${path} names project "${project}", expected ${STAGING_PROJECT}`);
 }
 
-const safeDecode = (s: string) => { try { return decodeURIComponent(s); } catch { return s; } };
+// Decodes each valid %XX on its own so one malformed sequence cannot stop the rest from decoding.
+const lenientDecode = (s: string) => s.replace(/%[0-9a-fA-F]{2}/g, (m) => String.fromCharCode(parseInt(m.slice(1), 16)));
+
+const hostOf = (url: string): string | null => {
+  try { return new URL(url).hostname.replace(/\.+$/, ''); } catch { return null; }
+};
+const onHost = (host: string, domain: string) => host === domain || host.endsWith(`.${domain}`);
+
+const FIRESTORE_READ_SUFFIX = /:(runQuery|batchGet|runAggregationQuery|listen|listCollectionIds)(?=[?#/]|$)/;
+const IDENTITY_WRITE_PATH = /\/accounts:(signUp|update|delete|sendOobCode)(?=[?#/]|$)/;
 
 export function isForbiddenRequestUrl(url: string): boolean {
-  if (findForbidden(safeDecode(url))) return true;
-  try { return FORBIDDEN_HOSTS.has(new URL(url).hostname); } catch { return false; }
+  if (findForbidden(url) || findForbidden(lenientDecode(url))) return true;
+  const host = hostOf(url);
+  return host !== null && [...FORBIDDEN_HOSTS].some((h) => onHost(host, h));
 }
 
 export function isWriteRequest(url: string, method: string): boolean {
-  if (method === 'GET' || method === 'OPTIONS') return false;
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return false;
   if (url.includes('/google.firestore.v1.Firestore/Write/')) return true;
-  if (/\/documents(:commit|:batchWrite)/.test(url)) return true;
-  try {
-    const host = new URL(url).hostname;
-    return host.endsWith('.cloudfunctions.net') || host.endsWith('.run.app');
-  } catch { return false; }
+  if (/\/documents\//.test(url) && (method === 'PATCH' || method === 'DELETE')) return true;
+  if (/\/documents[/:]/.test(url) && method === 'POST') return !FIRESTORE_READ_SUFFIX.test(url);
+  const host = hostOf(url);
+  if (host === null) return false;
+  if (onHost(host, 'identitytoolkit.googleapis.com') && IDENTITY_WRITE_PATH.test(url)) return true;
+  return onHost(host, 'cloudfunctions.net') || onHost(host, 'run.app');
 }

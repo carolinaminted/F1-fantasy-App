@@ -43,3 +43,36 @@ test('request classifiers', () => {
   assert.equal(isWriteRequest('https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?VER=8', 'POST'), false);
   assert.equal(isWriteRequest('https://securetoken.googleapis.com/v1/token?key=x', 'POST'), false);
 });
+
+test('a malformed percent sequence elsewhere does not hide an encoded forbidden project', () => {
+  assert.equal(isForbiddenRequestUrl('https://firestore.googleapis.com/v1/projects/formula%2Dfantasy%2D1/databases?x=%zz'), true);
+  assert.equal(isForbiddenRequestUrl('https://firestore.googleapis.com/v1/projects/formula%2dfantasy%2d1/databases?x=%E0%A4%A'), true);
+});
+
+test('forbidden host matches a trailing dot and a subdomain of it', () => {
+  assert.equal(isForbiddenRequestUrl('https://f1.carolinaminted.net./'), true);
+  assert.equal(isForbiddenRequestUrl('https://x.f1.carolinaminted.net/'), true);
+  assert.equal(isForbiddenRequestUrl('https://notf1.carolinaminted.net/'), false);
+});
+
+test('Firestore REST document mutations are writes; document reads are not', () => {
+  const db = 'https://firestore.googleapis.com/v1/projects/formula-fantasy-staging/databases/(default)/documents';
+  assert.equal(isWriteRequest(`${db}/picks/abc`, 'PATCH'), true);
+  assert.equal(isWriteRequest(`${db}/picks/abc`, 'DELETE'), true);
+  assert.equal(isWriteRequest(`${db}/picks`, 'POST'), true);
+  assert.equal(isWriteRequest(`${db}:runQuery`, 'POST'), false);
+  assert.equal(isWriteRequest(`${db}:batchGet`, 'POST'), false);
+  assert.equal(isWriteRequest(`${db}:runAggregationQuery`, 'POST'), false);
+  assert.equal(isWriteRequest(`${db}:listCollectionIds`, 'POST'), false);
+  assert.equal(isWriteRequest(`${db}/picks/abc`, 'HEAD'), false);
+});
+
+test('Identity Toolkit account writes are writes; sign-in and token refresh are not', () => {
+  const idt = 'https://identitytoolkit.googleapis.com/v1';
+  assert.equal(isWriteRequest(`${idt}/accounts:signUp?key=x`, 'POST'), true);
+  assert.equal(isWriteRequest(`${idt}/accounts:update?key=x`, 'POST'), true);
+  assert.equal(isWriteRequest(`${idt}/accounts:delete?key=x`, 'POST'), true);
+  assert.equal(isWriteRequest(`${idt}/accounts:sendOobCode?key=x`, 'POST'), true);
+  assert.equal(isWriteRequest(`${idt}/accounts:signInWithPassword?key=x`, 'POST'), false);
+  assert.equal(isWriteRequest(`${idt}/accounts:lookup?key=x`, 'POST'), false);
+});
