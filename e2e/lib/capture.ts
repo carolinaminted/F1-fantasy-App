@@ -14,13 +14,16 @@ export const DETERMINISM_INIT = `(() => {
   };
 })();`;
 
+// LoadingSkeleton's Skeleton (bg-pure-white/5) and the Dashboard placeholder containers (bars are bg-pure-white/10);
+// animate-pulse alone also marks live dots and badges that never go away.
+export const LOADING_PLACEHOLDER = '.animate-pulse.bg-pure-white\\/5, .animate-pulse:has(.bg-pure-white\\/10)';
+
 export async function settle(page: Page, surface: Pick<Surface, 'role' | 'ready'>): Promise<void> {
   await expect(stagingBadge(page), 'the STAGING badge must render on every surface').toBeVisible({ timeout: 20_000 });
   if (surface.role === 'anon') await expect(page.locator('#login-email')).toBeVisible({ timeout: 20_000 });
   else await expect(page.locator('#login-email')).toBeHidden({ timeout: 30_000 });
   if (surface.ready) await expect(surface.ready(page)).toBeVisible({ timeout: 20_000 });
-  // LoadingSkeleton renders .animate-pulse blocks while Firestore data is on its way.
-  await expect(page.locator('.animate-pulse').filter({ visible: true }), 'loading skeletons still visible').toHaveCount(0, { timeout: 20_000 });
+  await expect(page.locator(LOADING_PLACEHOLDER).filter({ visible: true }), 'loading skeletons still visible').toHaveCount(0, { timeout: 20_000 });
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
 }
 
