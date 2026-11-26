@@ -25,6 +25,8 @@ const { openSeason } = require("./season-ops/open");
 const { evaluateCodeAttempt } = require("./auth-code");
 const { resolveClientIp } = require("./client-ip");
 const { normalizeEmail } = require("./email-address");
+const guards = require("./auth-guards");
+const { setAdminRole } = require("./admin-role");
 
 // Run as a dedicated least-privilege account instead of the default compute service account,
 // which holds roles/editor. See runtime-service-account.js for which identity lands where.
@@ -283,16 +285,7 @@ const checkRateLimit = async (request, operation, limit, windowSeconds) => {
     });
 };
 
-const requireAdmin = async (request, action) => {
-    if (!request.auth) {
-        throw new HttpsError('unauthenticated', 'Login required.');
-    }
-    const userDoc = await db.collection('users').doc(request.auth.uid).get();
-    if (!userDoc.exists || !userDoc.data().isAdmin) {
-        logger.error(`Unauthorized ${action} attempt from ${request.auth.uid}`);
-        throw new HttpsError('permission-denied', 'Only admins can do this.');
-    }
-};
+const requireAdmin = (request, action) => guards.requireAdmin(request, action, logger);
 
 // --- EXPORTED FUNCTIONS ---
 
@@ -314,7 +307,7 @@ exports.updateLeaderboardOnCancellation = onDocumentWritten(
 );
 
 exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
-    await requireAdmin(request, 'manual sync');
+    requireAdmin(request, 'manual sync');
 
     await checkRateLimit(request, 'manual_sync', 5, 300);
 
@@ -332,8 +325,8 @@ exports.manualLeaderboardSync = onCall({ cors: true }, async (request) => {
  * and throw a message written for the admin, which is passed back as failed-precondition.
  */
 const seasonOpCallable = (action, run, options = {}) => onCall({ cors: true, ...options }, async (request) => {
-    await requireAdmin(request, action);
-    await checkRateLimit(getClientIp(request), 'season_ops', 5, 300);
+    requireAdmin(request, action);
+    await checkRateLimit(request, 'season_ops', 5, 300);
     const seasonId = request.data && request.data.seasonId;
     if (typeof seasonId !== 'string' || !seasonId) {
         throw new HttpsError('invalid-argument', 'seasonId is required.');
@@ -367,6 +360,20 @@ exports.backupLeague = seasonOpCallable('season_backup', (database, { seasonId, 
 }), LONG_RUNNING.backupLeague);
 exports.startNewSeason = seasonOpCallable('season_start', resetSeason, LONG_RUNNING.startNewSeason);
 exports.openSeason = seasonOpCallable('season_open', openSeason);
+
+exports.setAdminRole = onCall({ cors: true }, async (request) => {
+    const actor = requireAdmin(request, 'set_admin_role');
+    await checkRateLimit(request, 'set_admin_role', 10, 300);
+
+    const { uid, admin: grant } = request.data || {};
+    const result = await setAdminRole({ auth: admin.auth(), db }, { actorUid: actor.uid, uid, admin: grant });
+    await guards.logAdminActionServer(db, admin.firestore.FieldValue, actor, {
+        action: 'set_admin_role',
+        changes: `${grant ? 'Granted' : 'Revoked'} admin for ${uid}`,
+    });
+    logger.info('admin_action', { event: 'admin_action', action: 'set_admin_role', uid: actor.uid, target: uid, admin: grant });
+    return result;
+});
 
 exports.sendAuthCode = onCall({ cors: true, memory: "512MiB", secrets: emailSecretParams }, async (request) => {
   const email = normalizeEmail(request.data.email);

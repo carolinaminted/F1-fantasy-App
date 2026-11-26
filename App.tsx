@@ -503,7 +503,25 @@ const App: React.FC = () => {
         const profileRef = doc(db, 'users', firebaseUser.uid);
         unsubscribeProfile = onSnapshot(profileRef, async (profileSnap) => {
           if (profileSnap.exists()) {
-            const userProfile = { id: firebaseUser.uid, ...profileSnap.data() } as User;
+            // Admin is the token's custom claim, never the profile field: a member can write their
+            // own profile. The field is only a mirror, so when the two disagree the token is stale
+            // (a role was just granted or revoked) and one forced refresh brings it up to date.
+            const mirroredAdmin = profileSnap.data().isAdmin === true;
+            let isAdmin = false;
+            try {
+              let claims = (await firebaseUser.getIdTokenResult()).claims;
+              if ((claims.admin === true) !== mirroredAdmin) {
+                claims = (await firebaseUser.getIdTokenResult(true)).claims;
+              }
+              isAdmin = claims.admin === true;
+            } catch (error) {
+              // An expired token cannot be refreshed offline. Letting that reject here would leave
+              // the app on its skeleton [PROD-09]; a member view until the next snapshot is safe.
+              console.warn('Could not read the admin claim; continuing as a member.', error);
+            }
+            // The awaits above yield: do not resurrect a session that signed out meanwhile.
+            if (auth.currentUser?.uid !== firebaseUser.uid) return;
+            const userProfile = { id: firebaseUser.uid, ...profileSnap.data(), isAdmin } as User;
             userProfileDataRef.current = userProfile;
             
             const publicData = publicProfileDataRef.current;

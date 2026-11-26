@@ -48,6 +48,7 @@ test('the portal deploys every callable and no trigger', () => {
       'openSeason',
       'sendAuthCode',
       'sendPasswordResetLink',
+      'setAdminRole',
       'startNewSeason',
       'validateInvitationCode',
       'verifyAuthCode',

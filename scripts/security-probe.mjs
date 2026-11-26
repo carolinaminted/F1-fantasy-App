@@ -32,7 +32,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 const STAGING_PROJECT = 'formula-fantasy-staging';
 const WEB_ORIGIN = 'https://f1.staging.carolinaminted.net';
 const { SEASON_CALLABLES } = createRequire(import.meta.url)('../functions/deploy-targets.js');
-const ADMIN_CALLABLES = ['manualLeaderboardSync', ...SEASON_CALLABLES];
+const ADMIN_CALLABLES = ['manualLeaderboardSync', 'setAdminRole', ...SEASON_CALLABLES];
 
 const flags = new Set(process.argv.slice(2));
 for (const flag of flags) {
@@ -217,17 +217,18 @@ async function callableCases(member) {
     return open.length ? fail(open.join('; ')) : pass('all answered UNAUTHENTICATED');
   });
 
-  // Only two are called as a member. The guard is the first statement of all six, and these are the
-  // two that do no harm if it fails open: a recalculation, and a conclude of a season that does not exist.
+  // Only three are called as a member. The guard is the first statement of every admin callable,
+  // and these are the ones that do no harm if it fails open: a recalculation, and a conclude and a
+  // role grant aimed at a season and a member that do not exist.
   await check('SEC-01', 'admin callables refuse a signed-in non-admin', async () => {
     if (!member) return skip('no member identity');
     const open = [];
-    for (const name of ['manualLeaderboardSync', 'concludeSeason']) {
-      const res = await call(name, { seasonId: SYNTHETIC }, { token: member.token });
+    for (const name of ['manualLeaderboardSync', 'concludeSeason', 'setAdminRole']) {
+      const res = await call(name, { seasonId: SYNTHETIC, uid: SYNTHETIC, admin: true }, { token: member.token });
       if (res.status >= 500) return inconclusive(`${name}: ${describe(res)}`);
       if (res.code !== 'PERMISSION_DENIED') open.push(`${name}: ${describe(res)}`);
     }
-    return open.length ? fail(open.join('; ')) : pass('both answered PERMISSION_DENIED');
+    return open.length ? fail(open.join('; ')) : pass('all answered PERMISSION_DENIED');
   });
 
   await check('SEC-06', 'a callable refuses a request with no App Check token', async () => {

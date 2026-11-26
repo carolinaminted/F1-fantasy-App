@@ -348,9 +348,10 @@ export const getPublicProfileRank = async (uid: string): Promise<number | null> 
     }
 };
 
+// Admin authority is a custom claim only the server can mint; it mirrors users/{uid}.isAdmin itself.
 export const updateUserAdminStatus = async (uid: string, isAdmin: boolean) => {
-    const ref = doc(db, 'users', uid);
-    await updateDoc(ref, { isAdmin });
+    const fn = getCallable<{ uid: string; admin: boolean }, { uid: string; admin: boolean }>('setAdminRole');
+    await fn({ uid, admin: isAdmin });
 };
 
 export const updateUserDuesStatus = async (uid: string, status: 'Paid' | 'Unpaid') => {

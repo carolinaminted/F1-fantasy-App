@@ -37,7 +37,7 @@ readonly VERIFY_SCRIPT="../lol-docs/regression/verify.sh"
 # Lowest member impact first: the season callables and Manual Sync are admin-only, so if a deploy
 # breaks public access it breaks there and the script stops before any sign-in path is touched.
 readonly DEPLOY_ORDER=(concludeSeason archiveSeason backupLeague startNewSeason openSeason
-                       manualLeaderboardSync validateInvitationCode verifyAuthCode
+                       manualLeaderboardSync setAdminRole validateInvitationCode verifyAuthCode
                        sendPasswordResetLink sendAuthCode)
 
 is_email_function() {
@@ -79,7 +79,7 @@ timeout_for() {
 expected_probe_code() {
   if is_season_function "$1"; then echo 401; return; fi
   case "$1" in
-    manualLeaderboardSync) echo 401 ;;
+    manualLeaderboardSync|setAdminRole) echo 401 ;;
     verifyAuthCode) echo 200 ;;
     *) echo 400 ;;
   esac

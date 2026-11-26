@@ -16,6 +16,7 @@ const CALLABLES = Object.freeze([
   'manualLeaderboardSync',
   'sendAuthCode',
   'sendPasswordResetLink',
+  'setAdminRole',
   'validateInvitationCode',
   'verifyAuthCode',
 ]);
