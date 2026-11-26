@@ -1,7 +1,5 @@
 import { test, expect } from '../fixtures.ts';
-
-// Chromium logs each route-aborted request as this console error; it is the observed text, with no URL in it.
-const ABORTED_REQUEST_LOG = /^console\.error: Failed to load resource: net::ERR_BLOCKED_BY_CLIENT\.Inspector$/;
+import { ABORTED_REQUEST_LOG } from '../lib/capture-noise.ts';
 
 test.describe('read-only mode', () => {
   test.use({ readOnly: true });

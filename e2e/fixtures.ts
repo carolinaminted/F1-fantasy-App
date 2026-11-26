@@ -1,12 +1,14 @@
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { authFile, guardContext, SESSION_STORAGE_KEY } from './lib/app.ts';
 import { loadStorageState } from './lib/storage-state.ts';
+import { dropBlockedWriteNoise } from './lib/capture-noise.ts';
 import { RACE_RESULTS_SEED_NOTE, splitKnownIssues } from './lib/known-issues.ts';
 
 type Allowance = { re: RegExp; used: boolean };
 
 type Fixtures = {
   readOnly: boolean;
+  allowBlockedWriteNoise: boolean;
   blocked: string[];
   writeBodies: Map<string, string[]>;
   pageErrors: string[];
@@ -66,6 +68,7 @@ export const test = base.extend<Fixtures>({
     await use(new Proxy({}, { get() { throw new Error('the built-in request fixture is unguarded; use lib/staging-admin.ts for API calls'); } }) as never);
   },
   readOnly: [false, { option: true }],
+  allowBlockedWriteNoise: [false, { option: true }],
   blockedAllowances: async ({}, use) => { await use([]); },
   expectBlocked: async ({ blockedAllowances, blocked: _blocked }, use) => {
     await use((re) => { blockedAllowances.push({ re, used: false }); });
@@ -89,13 +92,19 @@ export const test = base.extend<Fixtures>({
   },
   writeBodies: async ({}, use) => { await use(new Map()); },
   errorPages: async ({}, use) => { await use([]); },
-  pageErrors: async ({ allowances, writeBodies, errorPages }, use, testInfo) => {
+  pageErrors: async ({ allowances, writeBodies, errorPages, blocked, allowBlockedWriteNoise }, use, testInfo) => {
     const errors: string[] = [];
     await use(errors);
     // Optional, may match zero times (the bug is intermittent); unlike expectError it never fails when unused.
     const known = splitKnownIssues(errors.map((text, i) => ({ text, pageId: errorPages[i] })), writeBodies);
     if (known.knownHit) testInfo.annotations.push({ type: 'known-app-issue', description: RACE_RESULTS_SEED_NOTE.replace('known-app-issue: ', '') });
-    const unexpected = known.remaining.map((r) => r.text).filter((e) => {
+    let texts = known.remaining.map((r) => r.text);
+    if (allowBlockedWriteNoise) {
+      const noise = dropBlockedWriteNoise(texts, blocked);
+      if (noise.dropped) testInfo.annotations.push({ type: 'blocked-write-noise', description: `${noise.dropped} log line(s) from aborted writes` });
+      texts = noise.remaining;
+    }
+    const unexpected = texts.filter((e) => {
       const hits = allowances.filter((a) => a.re.test(e));
       hits.forEach((a) => { a.used = true; });
       return hits.length === 0;
