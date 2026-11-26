@@ -275,6 +275,26 @@ Because `defineSecret` pins the secret *version* current at deploy time, rotatin
 requires a redeploy — adding a version alone changes nothing. `scripts/rotate-staging-email-secret.sh`
 does that redeploy.
 
+## Agents
+
+One review agent ships in the `lol-agents` plugin (`../lol-plugins`), so it loads on every branch
+and worktree. It does not edit files, deploy or sign a gate. Its report is evidence for the person
+who signs `local-verified`; a PASS is never a gate.
+
+| Agent | Dispatch when | It returns |
+|---|---|---|
+| `lol-agents:change-verifier` | Before any feature branch merges into `staging` | The checks the changed files require, each with its output, and `PASS`, `FAIL` or `INCOMPLETE` |
+
+- Relay every failing check with its output and every `not_checked` item to the user in full.
+- `INCOMPLETE` means part of the change has no local check. Name those parts when asking the user to
+  test locally.
+- The map from changed paths to checks is `plugins/lol-agents/scripts/checks-for-diff.mjs`. A new
+  top-level directory or test suite needs a rule there, or the verifier reports it as unmapped.
+- A defect that reaches staging or production after a PASS becomes a new case in
+  `plugins/lol-agents/evals/` before its fix merges.
+- `lol-agents:design-reviewer` is in the plugin but was dropped by the 2026-11-26 baseline: a plain
+  session reviewed UI changes against `DESIGN.md` as well. Do not dispatch it.
+
 ## Layout
 
 - `App.tsx` (~1000 lines) — page state machine and most app wiring.
