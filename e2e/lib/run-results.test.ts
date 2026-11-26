@@ -28,6 +28,22 @@ test('walks nested suites, takes the last result, strips colour codes and dedupe
   }]);
 });
 
+test('keeps every errors[] message, body and teardown, joined by a separator', () => {
+  const j = { suites: [{ specs: [{ title: 't', tests: [{ projectName: 'capture-desktop', results: [{
+    status: 'failed',
+    error: { message: '\u001b[31mpage overflows horizontally by 9px: div#x\u001b[39m' },
+    errors: [{ message: '\u001b[31mpage overflows horizontally by 9px: div#x\u001b[39m' }, { message: 'console.error: e2e probe' }],
+  }] }] }] }] };
+  assert.equal(readPlaywrightResults(j)[0].error, 'page overflows horizontally by 9px: div#x\n---\nconsole.error: e2e probe');
+});
+
+test('a test with no results is skipped with no error', () => {
+  const j = { suites: [{ specs: [{ title: 't', tests: [{ projectName: 'p', results: [] }] }] }] };
+  const [o] = readPlaywrightResults(j);
+  assert.equal(o.status, 'skipped');
+  assert.equal(o.error, undefined);
+});
+
 test('reads top-level errors', () => {
   assert.deepEqual(readPlaywrightErrors(json), ['global boom']);
   assert.deepEqual(readPlaywrightErrors({}), []);
