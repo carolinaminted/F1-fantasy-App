@@ -3,6 +3,7 @@ import { mkdirSync, statSync } from 'node:fs';
 import { AUTH_DIR } from '../lib/paths.ts';
 import { adminEntry, authFile, guardContext, signInViaUi, stagingBadge } from '../lib/app.ts';
 import { loadE2EEnv } from '../lib/env.ts';
+import { loadStorageState } from '../lib/storage-state.ts';
 
 const env = loadE2EEnv(['E2E_ADMIN_EMAIL', 'E2E_ADMIN_PASSWORD', 'E2E_MEMBER_EMAIL', 'E2E_MEMBER_PASSWORD']);
 mkdirSync(AUTH_DIR, { recursive: true });
@@ -18,7 +19,7 @@ const isFresh = (file: string): boolean => {
 async function tryReuse(
   browser: Browser, baseURL: string | undefined, role: 'admin' | 'member', blocked: string[],
 ): Promise<boolean> {
-  const context = await browser.newContext({ storageState: authFile(role), baseURL, serviceWorkers: 'block', reducedMotion: 'reduce' });
+  const context = await browser.newContext({ storageState: loadStorageState(authFile(role), baseURL), baseURL, serviceWorkers: 'block', reducedMotion: 'reduce' });
   try {
     await guardContext(context, { readOnly: false, blocked });
     const signIns: string[] = [];
@@ -48,7 +49,11 @@ for (const role of ['admin', 'member'] as const) {
     if (process.env.E2E_FRESH_SIGNIN !== '1' && isFresh(authFile(role))) {
       const reused = await tryReuse(browser, baseURL, role, blocked);
       noForbidden();
-      if (reused) { testInfo.annotations.push({ type: 'reused session', description: role }); return; }
+      if (reused) {
+        console.log(`[setup] reused ${role} session on ${new URL(baseURL ?? 'http://127.0.0.1:3100').origin}`);
+        testInfo.annotations.push({ type: 'reused session', description: role });
+        return;
+      }
     }
 
     await guardContext(page.context(), { readOnly: false, blocked });

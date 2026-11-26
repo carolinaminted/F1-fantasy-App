@@ -1,5 +1,6 @@
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { authFile, guardContext, SESSION_STORAGE_KEY } from './lib/app.ts';
+import { loadStorageState } from './lib/storage-state.ts';
 import { RACE_RESULTS_SEED_NOTE, splitKnownIssues } from './lib/known-issues.ts';
 
 type Allowance = { re: RegExp; used: boolean };
@@ -34,7 +35,7 @@ type PageEnv = {
 
 async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> {
   const context = await env.browser.newContext({
-    storageState: role ? authFile(role) : undefined,
+    storageState: role ? loadStorageState(authFile(role), env.baseURL) : undefined,
     viewport: env.viewport,
     isMobile: env.isMobile,
     hasTouch: env.hasTouch,
