@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runName, selectionFor } from './orchestrate.ts';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { readRunJson, runName, selectionFor } from './orchestrate.ts';
 import { SURFACES } from '../surfaces.ts';
 
 const ref = { kind: 'ref' as const, ref: 'x', sha: 'a'.repeat(40) };
@@ -18,4 +21,12 @@ test('--all and URL sides select everything without reading git', () => {
   assert.equal(selectionFor({ surfaces: null, all: true, base: ref, head: ref }).ids.length, SURFACES.length);
   const url = { kind: 'url' as const, url: 'https://f1.staging.carolinaminted.net' };
   assert.deepEqual(selectionFor({ surfaces: null, all: false, base: ref, head: url }).reasons, ['a URL side has no source to diff → all']);
+});
+
+test('a missing or truncated playwright.json becomes an errors entry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'e2e-run-'));
+  const f = join(dir, 'playwright.json');
+  assert.match((readRunJson(f) as any).errors[0].message, /was not written/);
+  writeFileSync(f, '{"suites":[');
+  assert.match((readRunJson(f) as any).errors[0].message, /is not valid JSON: /);
 });

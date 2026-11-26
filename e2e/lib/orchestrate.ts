@@ -34,7 +34,7 @@ export function selectionFor(o: { surfaces: string[] | null; all: boolean; base:
   return selectSurfaces(changedFiles(o.base.sha, o.head), closures);
 }
 
-export function runPlaywrightCapture(o: { runDir: string; sides: Side[]; surfaceIds: string[]; frozenAt: number; full: boolean; setupBaseURL: string }): number {
+export function runPlaywrightCapture(o: { runDir: string; sides: Side[]; surfaceIds: string[]; frozenAt: number; full: boolean; setupBaseURL: string }): { status: number; interrupted: boolean } {
   const projects = ['capture-desktop', 'capture-mobile', ...(o.full ? ['capture-webkit-mobile'] : [])];
   const r = spawnSync('npx', ['playwright', 'test', ...projects.flatMap((p) => ['--project', p])], {
     cwd: E2E_ROOT,
@@ -50,12 +50,21 @@ export function runPlaywrightCapture(o: { runDir: string; sides: Side[]; surface
       E2E_FULL: o.full ? '1' : '0',
     },
   });
-  return r.status ?? 1;
+  return { status: r.status ?? 1, interrupted: r.signal === 'SIGINT' || r.signal === 'SIGTERM' };
+}
+
+export function readRunJson(jsonPath: string): unknown {
+  if (!existsSync(jsonPath)) return { errors: [{ message: `${jsonPath} was not written` }] };
+  try {
+    return JSON.parse(readFileSync(jsonPath, 'utf8'));
+  } catch (e) {
+    return { errors: [{ message: `${jsonPath} is not valid JSON: ${(e as Error).message}` }] };
+  }
 }
 
 export function finalizeRun(o: { runDir: string; run: string; startedAt: Date; frozenAt: number; sides: SideInfo[]; selection: Selection }): Report {
   const jsonPath = join(o.runDir, 'playwright.json');
-  const json: unknown = existsSync(jsonPath) ? JSON.parse(readFileSync(jsonPath, 'utf8')) : { errors: [{ message: `${jsonPath} was not written` }] };
+  const json = readRunJson(jsonPath);
   const { groups, hardFailures, warnings, blockedWrites } = groupOutcomes(readPlaywrightResults(json));
   hardFailures.push(...readPlaywrightErrors(json).map((error) => ({ title: 'run', project: 'global', error })));
   const rel = (abs: string) => relative(o.runDir, abs).split(sep).join('/');

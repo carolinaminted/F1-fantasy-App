@@ -4,7 +4,7 @@ import { parseCompareArgs } from '../lib/compare-args.ts';
 import { assertAllowedBaseUrl, assertNoProdInEnv, assertStagingEnvFile } from '../lib/guards.ts';
 import { classifyTarget, resolveTarget, type Resolved } from '../lib/sides.ts';
 import { ensureCheckout, pruneBaseWorktrees } from '../lib/checkouts.ts';
-import { startVite, type Server } from '../lib/servers.ts';
+import { startVite, stopAllServers } from '../lib/servers.ts';
 import { finalizeRun, printSummary, runName, runPlaywrightCapture, selectionFor } from '../lib/orchestrate.ts';
 import { RESULTS_DIR } from '../lib/paths.ts';
 import type { SideInfo } from '../lib/report.ts';
@@ -41,9 +41,7 @@ const run = runName(startedAt, args.base, args.head);
 const runDir = join(RESULTS_DIR, run);
 mkdirSync(join(runDir, 'servers'), { recursive: true });
 
-const servers: Server[] = [];
-const stopAll = () => Promise.all(servers.map((s) => s.stop()));
-process.on('SIGINT', () => { void stopAll().then(() => process.exit(130)); });
+process.on('SIGINT', () => { void stopAllServers().then(() => process.exit(130)); });
 
 const urlByRoot = new Map<string, string>();
 async function serve(r: Resolved, port: number, name: string): Promise<string> {
@@ -53,7 +51,6 @@ async function serve(r: Resolved, port: number, name: string): Promise<string> {
   const existing = urlByRoot.get(root);
   if (existing) return existing;
   const server = await startVite(root, port, join(runDir, 'servers', `${name}.log`));
-  servers.push(server);
   urlByRoot.set(root, server.url);
   return server.url;
 }
@@ -64,12 +61,13 @@ let baseURL = '';
 try {
   headURL = await serve(head, 3100, 'head');
   baseURL = await serve(base, 3101, 'base');
-  runPlaywrightCapture({
+  const capture = runPlaywrightCapture({
     runDir, frozenAt, full: args.full, surfaceIds: selection.ids, setupBaseURL: head.kind === 'url' ? baseURL : headURL,
     sides: [{ name: 'base', baseURL }, { name: 'head', baseURL: headURL }],
   });
+  if (capture.interrupted) { await stopAllServers(); process.exit(130); }
 } finally {
-  await stopAll();
+  await stopAllServers();
 }
 
 const info = (name: string, target: string, r: Resolved, url: string): SideInfo =>

@@ -4,7 +4,7 @@ import { parseCaptureArgs } from '../lib/compare-args.ts';
 import { assertAllowedBaseUrl, assertNoProdInEnv, assertStagingEnvFile } from '../lib/guards.ts';
 import { classifyTarget, resolveTarget } from '../lib/sides.ts';
 import { ensureCheckout } from '../lib/checkouts.ts';
-import { startVite, type Server } from '../lib/servers.ts';
+import { startVite, stopAllServers } from '../lib/servers.ts';
 import { finalizeRun, printSummary, runName, runPlaywrightCapture, selectionFor } from '../lib/orchestrate.ts';
 import { RESULTS_DIR } from '../lib/paths.ts';
 
@@ -21,19 +21,19 @@ const run = runName(startedAt, `capture-${args.label}`, args.target);
 const runDir = join(RESULTS_DIR, run);
 mkdirSync(join(runDir, 'servers'), { recursive: true });
 
-let server: Server | undefined;
 let url = '';
 const frozenAt = Date.now();
-process.on('SIGINT', () => { void (server?.stop() ?? Promise.resolve()).then(() => process.exit(130)); });
+process.on('SIGINT', () => { void stopAllServers().then(() => process.exit(130)); });
 try {
   if (target.kind === 'url') url = target.url;
   else {
-    server = await startVite(target.kind === 'worktree' ? target.root : ensureCheckout(target.sha), 3100, join(runDir, 'servers', `${args.label}.log`));
+    const server = await startVite(target.kind === 'worktree' ? target.root : ensureCheckout(target.sha), 3100, join(runDir, 'servers', `${args.label}.log`));
     url = server.url;
   }
-  runPlaywrightCapture({ runDir, frozenAt, full: args.full, surfaceIds: selection.ids, setupBaseURL: url, sides: [{ name: args.label, baseURL: url }] });
+  const capture = runPlaywrightCapture({ runDir, frozenAt, full: args.full, surfaceIds: selection.ids, setupBaseURL: url, sides: [{ name: args.label, baseURL: url }] });
+  if (capture.interrupted) { await stopAllServers(); process.exit(130); }
 } finally {
-  await server?.stop();
+  await stopAllServers();
 }
 
 const report = finalizeRun({

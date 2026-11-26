@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { openSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 
@@ -16,6 +16,24 @@ export function assertPortFree(port: number): Promise<void> {
   });
 }
 
+// Every spawned child is registered at spawn time, so an interrupt during the readiness wait still reaches it.
+const live = new Set<() => Promise<void>>();
+
+export function track(child: ChildProcess): () => Promise<void> {
+  let exited = false;
+  const stop = async () => {
+    if (exited || child.pid === undefined) return;
+    try { process.kill(-child.pid, 'SIGTERM'); } catch { return; }
+    for (let i = 0; i < 50 && !exited; i++) await sleep(100);
+    if (!exited) try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+  };
+  live.add(stop);
+  child.on('exit', () => { exited = true; live.delete(stop); });
+  return stop;
+}
+
+export const stopAllServers = async (): Promise<void> => { await Promise.all([...live].map((stop) => stop())); };
+
 export async function startVite(root: string, port: number, logFile: string, timeoutMs = 90_000): Promise<Server> {
   await assertPortFree(port);
   const fd = openSync(logFile, 'a');
@@ -25,12 +43,7 @@ export async function startVite(root: string, port: number, logFile: string, tim
   });
   let exited = false;
   child.on('exit', () => { exited = true; });
-  const stop = async () => {
-    if (exited || child.pid === undefined) return;
-    try { process.kill(-child.pid, 'SIGTERM'); } catch { return; }
-    for (let i = 0; i < 50 && !exited; i++) await sleep(100);
-    if (!exited) try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
-  };
+  const stop = track(child);
   const url = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
