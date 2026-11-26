@@ -8,7 +8,12 @@
     "build": "vite build",
     "lint": "tsc --noEmit",
     "test": "node --experimental-transform-types --no-warnings --test services/*.test.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e:unit": "npm --prefix e2e run unit",
+    "e2e:journeys": "npm --prefix e2e run journeys --",
+    "e2e:provision": "npm --prefix e2e run provision --",
+    "e2e:teardown": "npm --prefix e2e run teardown --",
+    "e2e:check-live": "npm --prefix e2e run check-live"
   },
   "dependencies": {
     "@firebase/analytics": "^0.10.19",

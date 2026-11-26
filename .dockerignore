@@ -20,3 +20,5 @@ firebase.json
 !.env.production
 !.env.staging
 !.env.prod-staging
+e2e
+e2e-results

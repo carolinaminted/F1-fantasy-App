@@ -1,0 +1,19 @@
+{
+  "name": "lol-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "unit": "node --experimental-transform-types --no-warnings --test 'lib/**/*.test.ts'",
+    "journeys": "playwright test",
+    "provision": "node --experimental-transform-types --no-warnings scripts/provision.ts",
+    "teardown": "node --experimental-transform-types --no-warnings scripts/teardown.ts",
+    "check-live": "node --experimental-transform-types --no-warnings scripts/check-live.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.63.0",
+    "@types/node": "^22.0.0",
+    "imapflow": "^2.12.2",
+    "typescript": "~5.8.0"
+  }
+}

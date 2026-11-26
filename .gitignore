@@ -37,3 +37,8 @@ functions/.env.*
 # Firestore snapshots taken by functions/scripts/fix-2026-schedule.js before it deletes
 # anything. They contain member picks — never commit them.
 .backups/
+
+# e2e harness (plan: e2e/PLAN.md)
+e2e/node_modules/
+e2e/.auth/
+e2e-results/
