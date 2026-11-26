@@ -7,8 +7,9 @@ type Allowance = { re: RegExp; used: boolean };
 type Fixtures = {
   readOnly: boolean;
   blocked: string[];
-  writeBodies: string[];
+  writeBodies: Map<string, string[]>;
   pageErrors: string[];
+  errorPages: string[];
   allowances: Allowance[];
   expectError: (re: RegExp) => void;
   memberPage: Page;
@@ -24,8 +25,9 @@ type PageEnv = {
   baseURL?: string;
   readOnly: boolean;
   blocked: string[];
-  writeBodies: string[];
+  writeBodies: Map<string, string[]>;
   pageErrors: string[];
+  errorPages: string[];
 };
 
 async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> {
@@ -38,11 +40,16 @@ async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> 
     serviceWorkers: 'block',
     reducedMotion: 'reduce',
   });
-  await guardContext(context, { readOnly: env.readOnly, blocked: env.blocked, writeBodies: env.writeBodies });
+  // Errors and write bodies share this id so a known-issue excuse never crosses pages.
+  const pageId = `${role ?? 'anon'}#${env.writeBodies.size}`;
+  const bodies: string[] = [];
+  env.writeBodies.set(pageId, bodies);
+  await guardContext(context, { readOnly: env.readOnly, blocked: env.blocked, writeBodies: bodies });
   await context.addInitScript((key) => localStorage.setItem(key, String(Date.now())), SESSION_STORAGE_KEY);
   const page = await context.newPage();
-  page.on('pageerror', (e) => env.pageErrors.push(`pageerror: ${e.message}`));
-  page.on('console', (m) => { if (m.type() === 'error') env.pageErrors.push(`console.error: ${m.text()}`); });
+  const record = (text: string) => { env.pageErrors.push(text); env.errorPages.push(pageId); };
+  page.on('pageerror', (e) => record(`pageerror: ${e.message}`));
+  page.on('console', (m) => { if (m.type() === 'error') record(`console.error: ${m.text()}`); });
   return page;
 }
 
@@ -59,14 +66,15 @@ export const test = base.extend<Fixtures>({
   expectError: async ({ allowances }, use) => {
     await use((re) => { allowances.push({ re, used: false }); });
   },
-  writeBodies: async ({}, use) => { await use([]); },
-  pageErrors: async ({ allowances, writeBodies }, use, testInfo) => {
+  writeBodies: async ({}, use) => { await use(new Map()); },
+  errorPages: async ({}, use) => { await use([]); },
+  pageErrors: async ({ allowances, writeBodies, errorPages }, use, testInfo) => {
     const errors: string[] = [];
     await use(errors);
     // Optional, may match zero times (the bug is intermittent); unlike expectError it never fails when unused.
-    const known = splitKnownIssues(errors, writeBodies);
+    const known = splitKnownIssues(errors.map((text, i) => ({ text, pageId: errorPages[i] })), writeBodies);
     if (known.knownHit) testInfo.annotations.push({ type: 'known-app-issue', description: RACE_RESULTS_SEED_NOTE.replace('known-app-issue: ', '') });
-    const unexpected = known.remaining.filter((e) => {
+    const unexpected = known.remaining.map((r) => r.text).filter((e) => {
       const hits = allowances.filter((a) => a.re.test(e));
       hits.forEach((a) => { a.used = true; });
       return hits.length === 0;
@@ -74,18 +82,18 @@ export const test = base.extend<Fixtures>({
     expect(unexpected, 'page errors or console.error during the test').toEqual([]);
     expect(allowances.filter((a) => !a.used).map((a) => String(a.re)), 'expectError patterns that never matched').toEqual([]);
   },
-  memberPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors }, use) => {
-    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors }, 'member');
+  memberPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
+    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, 'member');
     await use(page);
     await page.context().close();
   },
-  adminPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors }, use) => {
-    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors }, 'admin');
+  adminPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
+    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, 'admin');
     await use(page);
     await page.context().close();
   },
-  anonPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors }, use) => {
-    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors });
+  anonPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
+    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages });
     await use(page);
     await page.context().close();
   },
