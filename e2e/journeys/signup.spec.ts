@@ -49,11 +49,9 @@ test.describe('sign-up', () => {
     await expect(page.locator('#login-email')).toBeHidden();
     await expect(stagingBadge(page)).toBeVisible();
 
-    const user = await lookupUserByEmail(email);
-    expect(user, 'auth user created').not.toBeNull();
-    const profile = await getDoc(`users/${user!.localId}`);
-    expect(profile, 'users doc created').not.toBeNull();
-    expect(profile?.duesPaidStatus ?? 'Unpaid').toBe('Unpaid'); // the app reads an absent field as Unpaid
-    expect((await getDoc(`invitation_codes/${invite}`))?.status).toBe('used');
+    // The profile transaction commits after the form closes, so poll rather than read once.
+    const uid = await expect.poll(async () => (await lookupUserByEmail(email))?.localId ?? null, { message: 'auth user created', timeout: 15_000 }).not.toBeNull().then(async () => (await lookupUserByEmail(email))!.localId);
+    await expect.poll(async () => (await getDoc(`users/${uid}`))?.duesPaidStatus, { timeout: 15_000 }).toBe('Unpaid');
+    await expect.poll(async () => (await getDoc(`invitation_codes/${invite}`))?.status, { timeout: 15_000 }).toBe('used');
   });
 });
