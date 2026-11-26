@@ -10,6 +10,10 @@ test('every document URL is pinned to the staging project', () => {
   );
 });
 
+test('a plus in a document id is percent-encoded', () => {
+  assert.ok(docUrl('email_verifications/a+b@gmail.com').endsWith('/email_verifications/a%2Bb%40gmail.com'));
+});
+
 test('paths cannot smuggle another project', () => {
   assert.throws(() => docUrl('../../../projects/formula-fantasy-1/databases/(default)/documents/users/x'));
   assert.throws(() => docUrl('users/../x'));

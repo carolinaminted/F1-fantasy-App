@@ -21,7 +21,8 @@ function token(): string {
 
 export function docUrl(path: string): string {
   if (path.split('/').some((seg) => seg === '..' || seg === '.' || seg === '')) throw new GuardError(`bad document path: ${path}`);
-  return `${FS_BASE}/${path}`;
+  // A literal "+" in a document id (plus-addressed emails) reads as a different id unless encoded.
+  return `${FS_BASE}/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 async function call(url: string, init: RequestInit = {}): Promise<Response> {
