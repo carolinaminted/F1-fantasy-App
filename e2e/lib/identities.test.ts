@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { newRunId, runEmail, inviteCodeFor, assertThrowaway, ADMIN_EMAIL, MEMBER_EMAIL, RUN_EMAIL_RE } from './identities.ts';
+import { newRunId, runEmail, inviteCodeFor, assertThrowaway, runIdFromEmail, ADMIN_EMAIL, MEMBER_EMAIL, RUN_EMAIL_RE } from './identities.ts';
 
 test('run IDs are short, lowercase and unique', () => {
   const a = newRunId(); const b = newRunId();
@@ -40,4 +40,11 @@ test('assertThrowaway is exact: case, whitespace, length and prefix variants are
   assert.throws(() => assertThrowaway('lol.e2e.bot+run-ab12cd345@gmail.com'));
   assert.throws(() => assertThrowaway('lol.e2e.bot+runx-ab12cd34@gmail.com'));
   assert.doesNotThrow(() => assertThrowaway(runEmail(newRunId())));
+});
+
+test("runIdFromEmail extracts the run ID and rejects every other address", () => {
+  assert.equal(runIdFromEmail(runEmail("ab12cd34")), "ab12cd34");
+  assert.throws(() => runIdFromEmail(ADMIN_EMAIL));
+  assert.throws(() => runIdFromEmail(MEMBER_EMAIL));
+  assert.throws(() => runIdFromEmail("lol.e2e.bot+run-ab12cd3@gmail.com"));
 });
