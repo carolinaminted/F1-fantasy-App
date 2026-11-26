@@ -14,8 +14,10 @@
     "@playwright/test": "~1.63.0",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^22.0.0",
+    "@types/picomatch": "^4.0.3",
     "imapflow": "^2.12.2",
     "mailparser": "^3.15.0",
+    "picomatch": "^4.0.7",
     "typescript": "~5.8.0"
   }
 }
