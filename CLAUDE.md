@@ -292,8 +292,8 @@ who signs `local-verified`; a PASS is never a gate.
   top-level directory or test suite needs a rule there, or the verifier reports it as unmapped.
 - A defect that reaches staging or production after a PASS becomes a new case in
   `plugins/lol-agents/evals/` before its fix merges.
-- `lol-agents:design-reviewer` is in the plugin but was dropped by the 2026-11-26 baseline: a plain
-  session reviewed UI changes against `DESIGN.md` as well. Do not dispatch it.
+- There is no design-review agent. One was tried and dropped by the 2026-11-26 baseline, because a
+  plain session reviewed UI changes against `DESIGN.md` as well; it was removed in plugin 0.2.0.
 
 ## Layout
 
