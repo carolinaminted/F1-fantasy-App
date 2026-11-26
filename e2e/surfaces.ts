@@ -42,6 +42,8 @@ export const SURFACES: Surface[] = [
     path: v === 'standings' ? '/standings' : `/standings?view=${v}`,
     role: 'member',
     entries: [STANDINGS],
+    // TrendsView shows a spinner ("Analysing league trends…", no skeleton class) while the league picks load.
+    ...(v === 'popular' ? { ready: (page: Page) => page.getByRole('heading', { name: 'Trends', level: 2 }) } : {}),
   })),
   { id: 'standings-rules', path: '/standings?rules=1', role: 'member', entries: [STANDINGS] },
   { id: 'league', path: '/league', role: 'member', entries: [LEAGUE] },
