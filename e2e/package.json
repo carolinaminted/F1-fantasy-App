@@ -8,6 +8,8 @@
     "provision": "node --experimental-transform-types --no-warnings scripts/provision.ts",
     "teardown": "node --experimental-transform-types --no-warnings scripts/teardown.ts",
     "check-live": "node --experimental-transform-types --no-warnings scripts/check-live.ts",
+    "compare": "node --experimental-transform-types --no-warnings scripts/compare.ts",
+    "capture": "node --experimental-transform-types --no-warnings scripts/capture.ts",
     "typecheck": "tsc --noEmit -p ."
   },
   "devDependencies": {
