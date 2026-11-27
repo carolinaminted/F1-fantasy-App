@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures.ts';
 import { ABORTED_REQUEST_LOG } from '../lib/capture-noise.ts';
+import { firestoreOutage } from '../lib/firestore-outage.ts';
 
 test.describe('read-only mode', () => {
   test.use({ readOnly: true });
@@ -38,4 +39,16 @@ test('page.request and context.request are refused, so nothing skips the request
     await expect(api.get(PROD_LOOKALIKE)).rejects.toThrow(/e2e guard/);
     await expect(api.fetch(PROD_LOOKALIKE, { method: 'POST' })).rejects.toThrow(/e2e guard/);
   }
+});
+
+test('after a Firestore outage ends, requests still go through the guard', async ({ memberPage, blocked, expectError }) => {
+  expectError(/^console\.error: /);
+  // No rule matches this collection and the fetch carries no token, so it cannot write even unguarded.
+  const probe = 'https://firestore.googleapis.com/v1/projects/formula-fantasy-staging/databases/(default)/documents/e2e_probe/x';
+  const outage = await firestoreOutage(memberPage);
+  await memberPage.goto('/');
+  outage.restore();
+  const result = await memberPage.evaluate((url) => fetch(url, { method: 'PATCH', body: '{}' }).then(() => 'sent', () => 'aborted'), probe);
+  expect(result).toBe('aborted');
+  expect(blocked.some((b) => b.startsWith('WRITE PATCH') && b.includes('e2e_probe'))).toBe(true);
 });
