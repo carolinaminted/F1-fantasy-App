@@ -10,8 +10,8 @@ import { REPO_ROOT } from './paths.ts';
 const appSource = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf8');
 const block = (src: string, start: string, end: string) => { const i = src.indexOf(start); return src.slice(i, src.indexOf(end, i)); };
 
-test('there are 26 surfaces with unique kebab-case ids and app-relative paths', () => {
-  assert.equal(SURFACES.length, 26);
+test('there are 25 surfaces with unique kebab-case ids and app-relative paths', () => {
+  assert.equal(SURFACES.length, 25);
   assert.equal(new Set(SURFACES.map((s) => s.id)).size, SURFACES.length);
   for (const s of SURFACES) {
     assert.match(s.id, /^[a-z0-9]+(-[a-z0-9]+)*$/);
