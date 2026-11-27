@@ -9,7 +9,7 @@ const userDoc = async (email: string) => {
 
 let cached: Promise<StagingState> | null = null;
 
-// Read once per worker: no journey changes these documents.
+// Read once per worker: write journeys restore e2e-member's users doc before their test ends, and a failed test restarts the worker, so the cache stays valid.
 export function readStagingState(): Promise<StagingState> {
   cached ??= Promise.all([
     getDoc('season_config/current'), getDoc('app_state/season_calendar'), getDoc('app_state/maintenance'),

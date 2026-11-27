@@ -32,7 +32,7 @@ Google access impersonates `e2e-harness@formula-fantasy-staging` as `carolinamin
 npm run e2e:unit                                   # pure unit tests, no network
 npm run e2e:journeys                               # read-only journeys, local Vite (--mode staging) on :3100
 E2E_BASE_URL=https://f1.staging.carolinaminted.net npm run e2e:journeys
-npm --prefix e2e run harness                       # proofs that guards, error checks and gates work
+npm --prefix e2e run harness                       # proofs that guards, error checks, gates and restoring work
 npm --prefix e2e run spikes -- spikes/<file>       # open questions; may be slow or fail
 E2E_WRITES=1 npm run e2e:journeys -- journeys/signup.spec.ts   # writes to staging, sends mail
 E2E_WRITES=1 E2E_REAL_MAIL=1 npm run e2e:journeys -- journeys/signup.spec.ts
@@ -46,7 +46,14 @@ npm run e2e:teardown -- --email=<run address>      # delete one run's account, i
 | `journeys/admin-access` | every admin URL: the screen for the admin, Home for a member |
 | `journeys/redirects` | each retired URL lands on its replacement |
 | `journeys/signed-out` | signed out, every URL shows only sign-in |
-| `journeys/signup` (`@write`) | invite, email code, registration |
+| `journeys/signup` (`@write`) | invite, email code, registration (`E2E_REAL_MAIL=1` reads the code from the bot inbox) |
+| `journeys/picks` (`@write`) | member makes picks, sees them on Profile and Home, edits them |
+| `journeys/profile` (`@write`) | member edits their display name |
+| `journeys/dues` | unpaid member sees what they owe (read-only); admin toggles e2e-member's dues (`@write`) |
+| `journeys/invitations` (`@write`) | admin creates an invite code and deletes it |
+| `journeys/admin-tour` | admin opens each tool from its dashboard tile and returns |
+| `journeys/session` | sign out stays signed out; idle warning and idle sign-out under a fixed clock |
+| `journeys/password-reset` (`@write`, needs `E2E_REAL_MAIL=1`) | reset link by real mail on a throwaway account, new password works |
 
 A journey calls `requires(...)` first and fails naming any staging precondition that is not met
 (`lib/preconditions.ts`). Those checks read staging through `gcloud` impersonation of the harness
@@ -59,12 +66,17 @@ session tokens: do not share them.
 
 | Spec | What it writes | Restored by |
 |---|---|---|
-| `journeys/picks.spec.ts` | e2e-member's `userPicks` | lossless snapshot (`lib/snapshot.ts`) |
-| `journeys/profile.spec.ts` | e2e-member's `users` and `public_users` display name | lossless snapshot |
-| `journeys/dues.spec.ts` (admin test) | e2e-member's `users.duesPaidStatus`, through the admin UI | the UI sets it back, then the snapshot |
-| `journeys/invitations.spec.ts` | one `invitation_codes` doc created by e2e-admin | deleted through the UI, then any leftover in `finally` |
+| `journeys/picks.spec.ts` | e2e-member's `userPicks` | `restoring` fixture: lossless snapshot (`lib/snapshot.ts`), put back in teardown |
+| `journeys/profile.spec.ts` | e2e-member's `users` and `public_users` display name | `restoring` fixture |
+| `journeys/dues.spec.ts` (admin test) | e2e-member's `users.duesPaidStatus`, through the admin UI | the UI sets it back, then the `restoring` fixture |
+| `journeys/invitations.spec.ts` | one `invitation_codes` doc created by e2e-admin | deleted through the UI, then any leftover in `afterEach` |
 | `journeys/signup.spec.ts` | a throwaway `+run-*` account | `deleteRunAccount` |
 | `journeys/password-reset.spec.ts` | a throwaway `+run-*` account's password (needs `E2E_REAL_MAIL=1`) | `deleteRunAccount` |
+
+A test calls `restoring([...paths])` before its first write. Teardown puts every snapshotted document
+back and re-reads it, and it runs after a timeout or a failed assertion too, which a `finally` in the
+test body does not survive. A document still differing after the restore fails the test, naming the
+path only.
 
 Every write test is desktop only and needs `E2E_WRITES=1`. Before a series of runs, save a baseline with
 `npm --prefix e2e run check-clean -- --save`; afterwards `npm --prefix e2e run check-clean -- --compare`
@@ -165,4 +177,6 @@ npm run e2e:compare -- --prune-bases                          # remove the base 
 `e2e-results/` whose head was the commit with no uncommitted changes. It is information only. It never
 blocks, and an agent never signs a gate on its strength.
 
-Plans: e2e/PLAN.md, e2e/PLAN-2.md, e2e/PLAN-E2E-08.md. Specs: the [E2E-00] and [E2E-08] tracker pages.
+---
+
+Plans: e2e/PLAN.md, e2e/PLAN-2.md, e2e/PLAN-3.md, e2e/PLAN-E2E-08.md. Specs: the [E2E-00] and [E2E-08] tracker pages.
