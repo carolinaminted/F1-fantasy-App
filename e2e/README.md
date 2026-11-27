@@ -93,4 +93,49 @@ Before moving the clock far ahead, store the latest fake time in `localStorage` 
 `SESSION_PIN_KEY` and `SESSION_STORAGE_KEY`, or the app's idle guard signs the session out (see
 `spikes/lock-clock.spec.ts`).
 
+## Capture and compare
+
+Capture is read-only: it aborts every write the app makes, never clicks, and fails on a console
+error, a page that scrolls sideways, a missing STAGING badge or a guard trip. Visual differences
+never fail a run.
+
+"Scrolls sideways" covers the app shell's main scroller, not only the document: the shell is
+fixed and overflow-hidden, so in-app overflow never reaches the document. Elements marked
+`overflow-x-auto` or `overflow-auto` are meant to scroll sideways and are skipped. A surface with
+a known app overflow declares `overflowAllowancePx` in `surfaces.ts`, with the reason. Today that
+is only `standings-insights`, at 7px: the PageHeader title does not wrap on a 390px screen.
+
+```bash
+git fetch origin                                              # compare uses refs as they are locally
+npm run e2e:compare                                           # staging vs this checkout, affected surfaces only
+npm run e2e:compare -- --plan                                 # print the selection and stop
+npm run e2e:compare -- --base origin/prod --head staging      # what members will see change
+npm run e2e:compare -- --base staging --head https://f1.staging.carolinaminted.net   # confirm a deploy
+npm run e2e:compare -- --surfaces home,league --all --full    # explicit surfaces; --full adds WebKit (warn-only)
+npm run e2e:capture -- --label after-conclude                 # one side, labeled, no diffs
+npm run e2e:compare -- --prune-bases                          # remove the base worktrees
+```
+
+- **Sides.** `worktree` (the default head) is this checkout, uncommitted changes included. A git
+  ref becomes a detached worktree at `/Users/jhh/Codebase/jhh-ai/.worktrees/lol-e2e-base-<sha12>`,
+  reused per commit (`npm ci` runs once). A URL side must be `https://f1.staging.carolinaminted.net`.
+  Head is served on 3100 and base on 3101, always with `--mode staging`, and only on a free port.
+- **Same moment.** One frozen timestamp (`page.clock.setFixedTime`) is shared by both sides, and
+  the base and head shots of each surface are taken back to back. `Math.random` is seeded.
+- **Matrix.** 25 surfaces (`surfaces.ts`) × dark and light × Chromium desktop (1440×1000) and
+  mobile (390×844), so 100 rows. `--full` adds WebKit mobile, whose failures are warnings.
+  `standings-popular` is left out until `fix/leaderboard-picks-fetch` [H-3] merges: on staging its
+  picks fetch loops and the view never settles (see the comment in `surfaces.ts`).
+- **Selection.** A changed file selects the surfaces whose entry component imports it, directly or
+  through other files. `App.tsx`, `routes.ts`, `styles/**`, `components/ui/**`, `contexts/**`,
+  `services/**` and root build files select everything, and so does any changed file no surface
+  reaches. Server code, rules, docs, tests and `e2e/**` are ignored (`lib/select.ts`).
+- **Reading a run.** `e2e-results/<run>/index.html` lists hard failures first, then changed
+  surfaces most-changed first (base, head, diff, and the aria-snapshot patch), with unchanged ones
+  collapsed. `report.json` holds the same data for an agent. Runs exit 1 only on hard failures.
+- **Sessions.** The setup project reuses saved sessions and moves them between the two origins, so
+  a compare normally signs in zero times.
+- **Timing.** A full `--all` A/A run takes about 3 minutes (164–196 s over three runs on
+  2026-11-26).
+
 Plans: e2e/PLAN.md, e2e/PLAN-2.md, e2e/PLAN-E2E-08.md. Specs: the [E2E-00] and [E2E-08] tracker pages.
