@@ -18,6 +18,10 @@ test('summarises the latest clean-head compare run for the commit', () => {
   assert.equal(runLine([older, newer], SHA), '  [~] e2e: new vs origin/prod: 1 changed, 0 hard failures, 3 rows (warn only)');
 });
 
+test('a run that selected no surfaces says so instead of reporting zeros', () => {
+  assert.equal(runLine([report({ run: 'empty', rows: [] })], SHA), '  [~] e2e: empty vs origin/prod: no surfaces selected (warn only)');
+});
+
 test('ignores runs whose head had uncommitted changes or another commit', () => {
   const line = runLine([report({ dirty: true }), report({ headSha: 'c'.repeat(40) })], SHA);
   assert.match(line, /^  \[~\] e2e: no compare run has this commit as its head/);
