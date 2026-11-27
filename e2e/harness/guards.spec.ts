@@ -29,3 +29,13 @@ test('requests naming a production project are aborted', async ({ memberPage, bl
   expect(result).toBe('aborted');
   expect(blocked.some((b) => b.includes('formula-fantasy-1'))).toBe(true);
 });
+
+// .invalid never resolves, so even with the guard missing this cannot reach a real host.
+const PROD_LOOKALIKE = 'https://formula-fantasy-1.invalid/probe';
+
+test('page.request and context.request are refused, so nothing skips the request guard', async ({ memberPage, page, context }) => {
+  for (const api of [memberPage.request, memberPage.context().request, page.request, context.request]) {
+    await expect(api.get(PROD_LOOKALIKE)).rejects.toThrow(/e2e guard/);
+    await expect(api.fetch(PROD_LOOKALIKE, { method: 'POST' })).rejects.toThrow(/e2e guard/);
+  }
+});

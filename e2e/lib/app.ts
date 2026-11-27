@@ -1,7 +1,7 @@
 import { expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { join } from 'node:path';
 import { AUTH_DIR } from './paths.ts';
-import { isForbiddenRequestUrl, isForeignFirebaseAuthKey, isWriteRequest, redactKey, stagingWebApiKey } from './guards.ts';
+import { GuardError, isForbiddenRequestUrl, isForeignFirebaseAuthKey, isWriteRequest, redactKey, stagingWebApiKey } from './guards.ts';
 import { isFirestoreWriteBody } from './known-issues.ts';
 
 // e2e deliberately imports no app code, so these two keys are re-declared here.
@@ -16,10 +16,20 @@ export const stagingBadge = (page: Page): Locator => page.getByRole('status', { 
 // mobile header (App.tsx). Both expose role=button with name "Admin".
 export const adminEntry = (page: Page): Locator => page.getByRole('button', { name: 'Admin', exact: true });
 
+// page.request, context.request and route.fetch share one object that context.route never sees.
+// Only its sending methods are replaced: context.close() still needs the rest of it.
+export function closeApiRequests(context: BrowserContext): void {
+  const refuse = async (): Promise<never> => {
+    throw new GuardError('page.request, context.request and route.fetch bypass the request guard; use lib/staging-admin.ts for API calls');
+  };
+  for (const method of ['fetch', '_innerFetch']) Object.defineProperty(context.request, method, { value: refuse, configurable: true });
+}
+
 export async function guardContext(
   context: BrowserContext,
   opts: { readOnly: boolean; blocked: string[]; writeBodies?: string[] },
 ): Promise<void> {
+  closeApiRequests(context);
   const stagingKey = stagingWebApiKey();
   await context.route('**/*', (route) => {
     const req = route.request();
