@@ -6,6 +6,21 @@ test('assertFits names the element that overflows', async ({ anonPage }) => {
   await expect(assertFits(anonPage)).rejects.toThrow(/div#e2e-wide "wide" right=3000/);
 });
 
+// The app shell is fixed and overflow-hidden, and its content scrolls inside an overflow-y-auto
+// element, which CSS also lets scroll sideways. The document itself never overflows there.
+const SHELL = (inner: string) =>
+  `<body style="margin:0"><div style="position:fixed;inset:0;overflow:hidden"><div class="flex-1 overflow-y-auto" style="height:100%;overflow-y:auto">${inner}</div></div></body>`;
+
+test('assertFits names the element that overflows inside the app shell scroller', async ({ anonPage }) => {
+  await anonPage.setContent(SHELL('<div id="ok">fine</div><div id="e2e-wide" style="width:3000px">wide</div>'));
+  await expect(assertFits(anonPage)).rejects.toThrow(/page overflows horizontally.*div#e2e-wide "wide" right=3000/);
+});
+
+test('assertFits allows an element meant to scroll sideways', async ({ anonPage }) => {
+  await anonPage.setContent(SHELL('<div class="overflow-x-auto" style="overflow-x:auto"><div style="width:3000px">table</div></div>'));
+  await assertFits(anonPage);
+});
+
 test('assertFits passes a page that fits', async ({ anonPage }) => {
   await anonPage.setContent('<body style="margin:0"><div style="width:100px">narrow</div></body>');
   await assertFits(anonPage);

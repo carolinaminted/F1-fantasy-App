@@ -27,28 +27,43 @@ export async function settle(page: Page, surface: Pick<Surface, 'role' | 'ready'
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
 }
 
-// Fails only when the document itself scrolls sideways, naming the outermost offending elements.
+// Fails when the document, or a vertical scroller such as the app shell's <main>, scrolls sideways,
+// naming the outermost offending elements. The app shell is fixed and overflow-hidden, so in-app
+// overflow never reaches the document: it makes the overflow-y-auto scroller (whose overflow-x then
+// computes to auto) swipeable sideways instead. Elements marked overflow-x-auto or overflow-auto
+// are meant to scroll sideways and are skipped.
 export async function assertFits(page: Page): Promise<void> {
   const r = await page.evaluate(() => {
-    const de = document.documentElement;
-    if (de.scrollWidth <= de.clientWidth + 1) return null;
     const describe = (el: Element) => {
       const id = el.id ? `#${el.id}` : '';
       const cls = typeof el.className === 'string' && el.className.trim() ? `.${el.className.trim().split(/\s+/).slice(0, 2).join('.')}` : '';
       const text = (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 30);
       return `${el.tagName.toLowerCase()}${id}${cls}${text ? ` "${text}"` : ''}`;
     };
-    const overflows = (el: Element | null) => !!el && el.getBoundingClientRect().right > de.clientWidth + 1 && el.getBoundingClientRect().width > 0;
-    const offenders: string[] = [];
+    const de = document.documentElement;
+    const scrolls = (v: string) => v === 'auto' || v === 'scroll';
+    const meantToScrollSideways = (el: Element) => /(^|[\s:])overflow-(x-)?(auto|scroll)(\s|$)/.test(el.getAttribute('class') ?? '');
+    const overflowing: { root: Element; edge: number; by: number }[] = [];
+    if (de.scrollWidth > de.clientWidth + 1) overflowing.push({ root: document.body, edge: de.clientWidth, by: de.scrollWidth - de.clientWidth });
     for (const el of document.querySelectorAll('body *')) {
-      if (overflows(el) && !overflows(el.parentElement === document.body ? null : el.parentElement)) {
+      const s = getComputedStyle(el);
+      if (scrolls(s.overflowY) && scrolls(s.overflowX) && !meantToScrollSideways(el) && el.scrollWidth > el.clientWidth + 1) {
+        overflowing.push({ root: el, edge: el.getBoundingClientRect().left + el.clientWidth, by: el.scrollWidth - el.clientWidth });
+      }
+    }
+    if (overflowing.length === 0) return null;
+    const { root, edge, by } = overflowing[0];
+    const overflows = (el: Element | null) => !!el && el.getBoundingClientRect().right > edge + 1 && el.getBoundingClientRect().width > 0;
+    const offenders: string[] = [];
+    for (const el of root.querySelectorAll('*')) {
+      if (overflows(el) && !overflows(el.parentElement === root ? null : el.parentElement)) {
         offenders.push(`${describe(el)} right=${Math.round(el.getBoundingClientRect().right)}`);
         if (offenders.length >= 5) break;
       }
     }
-    return { by: de.scrollWidth - de.clientWidth, offenders };
+    return { by, where: root === document.body ? '' : ` inside ${describe(root).slice(0, 60)}`, offenders };
   });
-  if (r) throw new Error(`page overflows horizontally by ${r.by}px: ${r.offenders.join('; ') || 'no element found'}`);
+  if (r) throw new Error(`page overflows horizontally by ${r.by}px${r.where}: ${r.offenders.join('; ') || 'no element found'}`);
 }
 
 // Two identical consecutive shots mean the page has stopped changing.
