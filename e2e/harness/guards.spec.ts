@@ -52,3 +52,20 @@ test('after a Firestore outage ends, requests still go through the guard', async
   expect(result).toBe('aborted');
   expect(blocked.some((b) => b.startsWith('WRITE PATCH') && b.includes('e2e_probe'))).toBe(true);
 });
+
+test.describe('observing writes', () => {
+  test.use({ observeWrites: true });
+
+  test('a Write channel message that carries a write is still aborted', async ({ memberPage, blocked, expectError }) => {
+    expectError(ABORTED_REQUEST_LOG);
+    await memberPage.goto('/');
+    const result = await memberPage.evaluate(() => {
+      const message = { writes: [{ delete: 'projects/formula-fantasy-staging/databases/(default)/documents/e2e_probe/x' }] };
+      const body = new URLSearchParams({ count: '1', ofs: '1', req0___data__: JSON.stringify(message) });
+      return fetch('https://firestore.googleapis.com/google.firestore.v1.Firestore/Write/channel?e2e=probe', { method: 'POST', body })
+        .then(() => 'sent', () => 'aborted');
+    });
+    expect(result).toBe('aborted');
+    expect(blocked.some((b) => b.includes('e2e=probe'))).toBe(true);
+  });
+});

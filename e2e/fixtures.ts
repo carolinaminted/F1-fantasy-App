@@ -12,6 +12,7 @@ type Allowance = { re: RegExp; used: boolean };
 // What a context needs to be guarded and listened to.
 type Watch = {
   readOnly: boolean;
+  observeWrites: boolean;
   blocked: string[];
   writeBodies: Map<string, string[]>;
   pageErrors: string[];
@@ -21,6 +22,7 @@ type Watch = {
 type Fixtures = {
   readOnly: boolean;
   allowBlockedWriteNoise: boolean;
+  observeWrites: boolean;
   writeGate: void;
   watch: Watch;
   blocked: string[];
@@ -43,7 +45,7 @@ async function watchContext(watch: Watch, context: BrowserContext, name: string)
   const contextId = `${name}#${watch.writeBodies.size}`;
   const bodies: string[] = [];
   watch.writeBodies.set(contextId, bodies);
-  await guardContext(context, { readOnly: watch.readOnly, blocked: watch.blocked, writeBodies: bodies });
+  await guardContext(context, { readOnly: watch.readOnly, blocked: watch.blocked, writeBodies: bodies, allowWriteHandshake: watch.observeWrites });
   const record = (text: string) => { watch.pageErrors.push(text); watch.errorPages.push(contextId); };
   context.on('weberror', (e) => record(`pageerror: ${e.error().message}`));
   context.on('console', (m) => { if (m.type() === 'error') record(`console.error: ${m.text()}`); });
@@ -84,9 +86,10 @@ export const test = base.extend<Fixtures>({
   },
   readOnly: [true, { option: true }],
   allowBlockedWriteNoise: [true, { option: true }],
+  observeWrites: [false, { option: true }],
   writeGate: [async ({ readOnly }, use) => { assertWriteAllowed(readOnly); await use(); }, { auto: true }],
-  watch: async ({ readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
-    await use({ readOnly, blocked, writeBodies, pageErrors, errorPages });
+  watch: async ({ readOnly, observeWrites, blocked, writeBodies, pageErrors, errorPages }, use) => {
+    await use({ readOnly, observeWrites, blocked, writeBodies, pageErrors, errorPages });
   },
   blockedAllowances: async ({}, use) => { await use([]); },
   expectBlocked: async ({ blockedAllowances, blocked: _blocked }, use) => {

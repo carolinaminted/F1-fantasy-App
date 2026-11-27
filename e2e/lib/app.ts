@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { AUTH_DIR } from './paths.ts';
 import { GuardError, isForbiddenRequestUrl, isForeignFirebaseAuthKey, isWriteRequest, redactKey, stagingWebApiKey } from './guards.ts';
 import { isFirestoreWriteBody } from './known-issues.ts';
+import { isWriteHandshakeOnly } from './write-channel.ts';
 
 // e2e deliberately imports no app code, so these two keys are re-declared here.
 // They mirror constants.ts (session activity) and contexts/ThemeContext.tsx (theme).
@@ -35,7 +36,7 @@ export function closeApiRequests(context: BrowserContext): void {
 
 export async function guardContext(
   context: BrowserContext,
-  opts: { readOnly: boolean; blocked: string[]; writeBodies?: string[] },
+  opts: { readOnly: boolean; blocked: string[]; writeBodies?: string[]; allowWriteHandshake?: boolean },
 ): Promise<void> {
   closeApiRequests(context);
   const stagingKey = stagingWebApiKey();
@@ -46,7 +47,11 @@ export async function guardContext(
     if (opts.writeBodies && isWriteRequest(req.url(), req.method()) && isFirestoreWriteBody(req.url())) {
       opts.writeBodies.push(req.postData() ?? '');
     }
-    if (opts.readOnly && isWriteRequest(req.url(), req.method())) { opts.blocked.push(`WRITE ${req.method()} ${req.url()}`); return route.abort('blockedbyclient'); }
+    if (opts.readOnly && isWriteRequest(req.url(), req.method())) {
+      // The handshake is let through only for tests that need to see which documents a write names.
+      if (opts.allowWriteHandshake && req.url().includes('/google.firestore.v1.Firestore/Write/') && isWriteHandshakeOnly(req.postData() ?? '')) return route.continue();
+      opts.blocked.push(`WRITE ${req.method()} ${req.url()}`); return route.abort('blockedbyclient');
+    }
     return route.continue();
   });
 }
