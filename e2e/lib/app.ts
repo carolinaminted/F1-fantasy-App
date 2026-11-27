@@ -8,6 +8,14 @@ import { isFirestoreWriteBody } from './known-issues.ts';
 // They mirror constants.ts (session activity) and contexts/ThemeContext.tsx (theme).
 export const SESSION_STORAGE_KEY = 'ff1_session_activity';
 export const THEME_STORAGE_KEY = 'lol_theme';
+export const SESSION_PIN_KEY = 'e2e_session_pin';
+
+// Runs in the page on every load and marks the session active. A test that moves the clock first
+// stores its latest time under both keys, so the app's idle guard never sees a gap and signs out.
+export const stampSession = ([key, pin]: string[]): void => {
+  // about:blank has no storage, and the thrown error would fail the test.
+  if (location.protocol.startsWith('http')) localStorage.setItem(key, localStorage.getItem(pin) ?? String(Date.now()));
+};
 
 export const authFile = (role: 'admin' | 'member'): string => join(AUTH_DIR, `${role}.json`);
 export const stagingBadge = (page: Page): Locator => page.getByRole('status', { name: 'Environment: STAGING' });

@@ -1,5 +1,5 @@
 import { test as base, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { authFile, guardContext, SESSION_STORAGE_KEY } from './lib/app.ts';
+import { authFile, guardContext, SESSION_PIN_KEY, SESSION_STORAGE_KEY, stampSession } from './lib/app.ts';
 import { loadStorageState } from './lib/storage-state.ts';
 import { dropBlockedWriteNoise } from './lib/capture-noise.ts';
 import { RACE_RESULTS_SEED_NOTE, splitKnownIssues } from './lib/known-issues.ts';
@@ -69,9 +69,7 @@ async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> 
     reducedMotion: 'reduce',
   });
   await watchContext(env.watch, context, role ?? 'anon');
-  // A new page starts on about:blank, which has no storage. The thrown error would now be reported,
-  // because the listeners above are attached before the page exists.
-  await context.addInitScript((key) => { if (location.protocol.startsWith('http')) localStorage.setItem(key, String(Date.now())); }, SESSION_STORAGE_KEY);
+  await context.addInitScript(stampSession, [SESSION_STORAGE_KEY, SESSION_PIN_KEY]);
   return context.newPage();
 }
 
