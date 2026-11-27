@@ -102,6 +102,8 @@ npm run lint                      # tsc --noEmit — this IS the typecheck; ther
 npm run build -- --mode staging   # vite build for a given mode
 ./deploy-staging.sh --dry-run     # lint + build, touches no cloud resources
 ./deploy-staging.sh               # deploys Functions + Firestore rules/indexes + frontend to STAGING
+npm run e2e:journeys              # Playwright journeys against STAGING; read-only unless E2E_WRITES=1 (see e2e/README.md)
+npm run e2e:compare               # same-moment screenshot A/B: staging vs this checkout, affected surfaces only
 
 ./scripts/release-gates.sh show   # where this commit stands in the pipeline
 node scripts/release-work-items.mjs  # work items in the latest release, and which have reached members

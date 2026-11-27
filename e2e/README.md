@@ -159,4 +159,10 @@ npm run e2e:compare -- --prune-bases                          # remove the base 
 - **Timing.** A full `--all` A/A run takes about 3 minutes (164–196 s over three runs on
   2026-11-26).
 
+## In the release process
+
+`./scripts/release-gates.sh show` prints one `[~] e2e:` line: the latest compare run in this checkout's
+`e2e-results/` whose head was the commit with no uncommitted changes. It is information only. It never
+blocks, and an agent never signs a gate on its strength.
+
 Plans: e2e/PLAN.md, e2e/PLAN-2.md, e2e/PLAN-E2E-08.md. Specs: the [E2E-00] and [E2E-08] tracker pages.

@@ -353,6 +353,11 @@ cmd_show() {
   done
   # Deploy records, not gates: only shown when present.
   gates_notes_body "$sha" | grep -E '^(data-plane|portal)-deployed:' | sed 's/^/  [-] /' || true
+  # Screenshot compare, warn only: it never blocks and signing stays human.
+  if [[ -f e2e/scripts/last-run.ts ]]; then
+    node --experimental-transform-types --no-warnings e2e/scripts/last-run.ts "$sha" 2>/dev/null \
+      || echo "  [~] e2e: could not read e2e-results (warn only)"
+  fi
 
   echo
   local out rc
