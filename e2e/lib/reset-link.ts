@@ -22,7 +22,16 @@ export async function confirmPasswordReset(oobCode: string, newPassword: string)
   if (!res.ok) throw new Error(`resetPassword: HTTP ${res.status}`);
 }
 
+// A wrong password is an answer; a throttle or an outage is not, and must not read as "the old password no longer works".
+export function classifySignIn(status: number, body: unknown): boolean {
+  if (status === 200) return true;
+  const message = (body as { error?: { message?: unknown } } | null)?.error?.message;
+  const code = typeof message === 'string' ? message.split(/[\s:]/)[0] : '';
+  if (status === 400 && (code.startsWith('INVALID_LOGIN_CREDENTIALS') || code.startsWith('INVALID_PASSWORD'))) return false;
+  throw new Error(`signInWithPassword: HTTP ${status} ${code}`.trimEnd());
+}
+
 export async function passwordWorks(email: string, password: string): Promise<boolean> {
   const res = await identity('signInWithPassword', { email, password, returnSecureToken: false });
-  return res.ok;
+  return classifySignIn(res.status, await res.json().catch(() => null));
 }
