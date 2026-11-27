@@ -3,12 +3,14 @@ import { authFile, guardContext, SESSION_STORAGE_KEY } from './lib/app.ts';
 import { loadStorageState } from './lib/storage-state.ts';
 import { dropBlockedWriteNoise } from './lib/capture-noise.ts';
 import { RACE_RESULTS_SEED_NOTE, splitKnownIssues } from './lib/known-issues.ts';
+import { assertWriteAllowed } from './lib/run-mode.ts';
 
 type Allowance = { re: RegExp; used: boolean };
 
 type Fixtures = {
   readOnly: boolean;
   allowBlockedWriteNoise: boolean;
+  writeGate: void;
   blocked: string[];
   writeBodies: Map<string, string[]>;
   pageErrors: string[];
@@ -67,8 +69,9 @@ export const test = base.extend<Fixtures>({
   request: async ({}, use) => {
     await use(new Proxy({}, { get() { throw new Error('the built-in request fixture is unguarded; use lib/staging-admin.ts for API calls'); } }) as never);
   },
-  readOnly: [false, { option: true }],
-  allowBlockedWriteNoise: [false, { option: true }],
+  readOnly: [true, { option: true }],
+  allowBlockedWriteNoise: [true, { option: true }],
+  writeGate: [async ({ readOnly }, use) => { assertWriteAllowed(readOnly); await use(); }, { auto: true }],
   blockedAllowances: async ({}, use) => { await use([]); },
   expectBlocked: async ({ blockedAllowances, blocked: _blocked }, use) => {
     await use((re) => { blockedAllowances.push({ re, used: false }); });
@@ -98,17 +101,17 @@ export const test = base.extend<Fixtures>({
     // Optional, may match zero times (the bug is intermittent); unlike expectError it never fails when unused.
     const known = splitKnownIssues(errors.map((text, i) => ({ text, pageId: errorPages[i] })), writeBodies);
     if (known.knownHit) testInfo.annotations.push({ type: 'known-app-issue', description: RACE_RESULTS_SEED_NOTE.replace('known-app-issue: ', '') });
-    let texts = known.remaining.map((r) => r.text);
-    if (allowBlockedWriteNoise) {
-      const noise = dropBlockedWriteNoise(texts, blocked);
-      if (noise.dropped) testInfo.annotations.push({ type: 'blocked-write-noise', description: `${noise.dropped} log line(s) from aborted writes` });
-      texts = noise.remaining;
-    }
-    const unexpected = texts.filter((e) => {
+    // Declared allowances are matched first, so the noise filter cannot swallow a line a test expects.
+    let unexpected = known.remaining.map((r) => r.text).filter((e) => {
       const hits = allowances.filter((a) => a.re.test(e));
       hits.forEach((a) => { a.used = true; });
       return hits.length === 0;
     });
+    if (allowBlockedWriteNoise) {
+      const noise = dropBlockedWriteNoise(unexpected, blocked);
+      if (noise.dropped) testInfo.annotations.push({ type: 'blocked-write-noise', description: `${noise.dropped} log line(s) from aborted writes` });
+      unexpected = noise.remaining;
+    }
     expect(unexpected, 'page errors or console.error during the test').toEqual([]);
     expect(allowances.filter((a) => !a.used).map((a) => String(a.re)), 'expectError patterns that never matched').toEqual([]);
   },

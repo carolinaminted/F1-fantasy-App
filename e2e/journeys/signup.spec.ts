@@ -9,6 +9,7 @@ import { getDoc, lookupUserByEmail } from '../lib/staging-admin.ts';
 const realMail = process.env.E2E_REAL_MAIL === '1';
 
 test.describe('sign-up', () => {
+  test.use({ readOnly: false });
   const runId = newRunId();
   const email = runEmail(runId);
   test.afterAll(async () => { await deleteRunAccount(email); });

@@ -21,7 +21,7 @@ async function tryReuse(
 ): Promise<boolean> {
   const context = await browser.newContext({ storageState: loadStorageState(authFile(role), baseURL), baseURL, serviceWorkers: 'block', reducedMotion: 'reduce' });
   try {
-    await guardContext(context, { readOnly: false, blocked });
+    await guardContext(context, { readOnly: true, blocked });
     const signIns: string[] = [];
     context.on('request', (r) => { if (r.url().includes('accounts:signInWithPassword')) signIns.push(r.url()); });
     const page = await context.newPage();
@@ -56,7 +56,7 @@ for (const role of ['admin', 'member'] as const) {
       }
     }
 
-    await guardContext(page.context(), { readOnly: false, blocked });
+    await guardContext(page.context(), { readOnly: true, blocked });
     const prefix = role === 'admin' ? 'E2E_ADMIN' : 'E2E_MEMBER';
     await signInViaUi(page, env[`${prefix}_EMAIL`], env[`${prefix}_PASSWORD`]);
     noForbidden();
