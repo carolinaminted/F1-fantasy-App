@@ -34,11 +34,22 @@ test.describe('idle session', () => {
     await page.goto('/');
     await signedIn(page);
     // Timers keep running under setFixedTime; the guard compares Date.now() with the last activity every second.
-    await page.clock.setFixedTime(Date.now() + 11 * 60_000);
+    const warnedAt = Date.now() + 11 * 60_000;
+    await page.clock.setFixedTime(warnedAt);
     await expect(page.getByRole('heading', { level: 2, name: 'Are you still there?' })).toBeVisible({ timeout: 10_000 });
+    // The guard also treats any click that reaches window as activity, and re-attaches that listener while this very click is
+    // still bubbling. Stopping the bubble at <body> (after React has handled it) leaves Continue Session's own reset as the
+    // only thing that can restart the idle clock.
+    await page.evaluate(() => document.body.addEventListener('click', (e) => e.stopPropagation()));
     await page.getByRole('button', { name: 'Continue Session', exact: true }).click();
     await expect(page.getByRole('heading', { level: 2, name: 'Are you still there?' })).toBeHidden();
-    await signedIn(page);
+    // 17 minutes after the original activity but only 6 after Continue: signed out unless Continue reset the idle clock.
+    await page.clock.setFixedTime(warnedAt + 6 * 60_000);
+    // A fixed wait is right here: the claim is that nothing happens across at least two of the guard's 1 s checks.
+    await page.waitForTimeout(2_500);
+    await expect(page.getByRole('heading', { level: 2, name: 'Are you still there?' })).toBeHidden();
+    await expect(page.locator('#login-email')).toBeHidden();
+    await expect(stagingBadge(page)).toBeVisible();
   });
 
   test('after 15 idle minutes the member is signed out with a notice', async ({ memberPage: page, requires }) => {
