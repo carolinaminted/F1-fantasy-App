@@ -1,4 +1,4 @@
-import { test as base, expect, type Browser, type Page } from '@playwright/test';
+import { test as base, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { authFile, guardContext, SESSION_STORAGE_KEY } from './lib/app.ts';
 import { loadStorageState } from './lib/storage-state.ts';
 import { dropBlockedWriteNoise } from './lib/capture-noise.ts';
@@ -7,10 +7,20 @@ import { assertWriteAllowed } from './lib/run-mode.ts';
 
 type Allowance = { re: RegExp; used: boolean };
 
+// What a context needs to be guarded and listened to.
+type Watch = {
+  readOnly: boolean;
+  blocked: string[];
+  writeBodies: Map<string, string[]>;
+  pageErrors: string[];
+  errorPages: string[];
+};
+
 type Fixtures = {
   readOnly: boolean;
   allowBlockedWriteNoise: boolean;
   writeGate: void;
+  watch: Watch;
   blocked: string[];
   writeBodies: Map<string, string[]>;
   pageErrors: string[];
@@ -24,17 +34,25 @@ type Fixtures = {
   anonPage: Page;
 };
 
+// Guards a context and records what its pages report. Errors and write bodies share an id,
+// so a known-issue excuse never crosses contexts.
+async function watchContext(watch: Watch, context: BrowserContext, name: string): Promise<void> {
+  const contextId = `${name}#${watch.writeBodies.size}`;
+  const bodies: string[] = [];
+  watch.writeBodies.set(contextId, bodies);
+  await guardContext(context, { readOnly: watch.readOnly, blocked: watch.blocked, writeBodies: bodies });
+  const record = (text: string) => { watch.pageErrors.push(text); watch.errorPages.push(contextId); };
+  context.on('weberror', (e) => record(`pageerror: ${e.error().message}`));
+  context.on('console', (m) => { if (m.type() === 'error') record(`console.error: ${m.text()}`); });
+}
+
 type PageEnv = {
   browser: Browser;
   viewport: { width: number; height: number } | null;
   isMobile: boolean;
   hasTouch: boolean;
   baseURL?: string;
-  readOnly: boolean;
-  blocked: string[];
-  writeBodies: Map<string, string[]>;
-  pageErrors: string[];
-  errorPages: string[];
+  watch: Watch;
 };
 
 async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> {
@@ -47,23 +65,17 @@ async function openPage(env: PageEnv, role?: 'member' | 'admin'): Promise<Page> 
     serviceWorkers: 'block',
     reducedMotion: 'reduce',
   });
-  // Errors and write bodies share this id so a known-issue excuse never crosses pages.
-  const pageId = `${role ?? 'anon'}#${env.writeBodies.size}`;
-  const bodies: string[] = [];
-  env.writeBodies.set(pageId, bodies);
-  await guardContext(context, { readOnly: env.readOnly, blocked: env.blocked, writeBodies: bodies });
-  await context.addInitScript((key) => localStorage.setItem(key, String(Date.now())), SESSION_STORAGE_KEY);
-  const page = await context.newPage();
-  const record = (text: string) => { env.pageErrors.push(text); env.errorPages.push(pageId); };
-  page.on('pageerror', (e) => record(`pageerror: ${e.message}`));
-  page.on('console', (m) => { if (m.type() === 'error') record(`console.error: ${m.text()}`); });
-  return page;
+  await watchContext(env.watch, context, role ?? 'anon');
+  // A new page starts on about:blank, which has no storage. The thrown error would now be reported,
+  // because the listeners above are attached before the page exists.
+  await context.addInitScript((key) => { if (location.protocol.startsWith('http')) localStorage.setItem(key, String(Date.now())); }, SESSION_STORAGE_KEY);
+  return context.newPage();
 }
 
 export const test = base.extend<Fixtures>({
-  // The built-in page/context go through the same guard as openPage; the built-in request is unguarded, so it is closed off.
-  context: async ({ context, readOnly, blocked }, use) => {
-    await guardContext(context, { readOnly, blocked });
+  // The built-in page and context are guarded and watched like the role pages; the built-in request is closed off.
+  context: async ({ context, watch }, use) => {
+    await watchContext(watch, context, 'builtin');
     await use(context);
   },
   request: async ({}, use) => {
@@ -72,6 +84,9 @@ export const test = base.extend<Fixtures>({
   readOnly: [true, { option: true }],
   allowBlockedWriteNoise: [true, { option: true }],
   writeGate: [async ({ readOnly }, use) => { assertWriteAllowed(readOnly); await use(); }, { auto: true }],
+  watch: async ({ readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
+    await use({ readOnly, blocked, writeBodies, pageErrors, errorPages });
+  },
   blockedAllowances: async ({}, use) => { await use([]); },
   expectBlocked: async ({ blockedAllowances, blocked: _blocked }, use) => {
     await use((re) => { blockedAllowances.push({ re, used: false }); });
@@ -115,18 +130,18 @@ export const test = base.extend<Fixtures>({
     expect(unexpected, 'page errors or console.error during the test').toEqual([]);
     expect(allowances.filter((a) => !a.used).map((a) => String(a.re)), 'expectError patterns that never matched').toEqual([]);
   },
-  memberPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
-    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, 'member');
+  memberPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, watch }, use) => {
+    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, watch }, 'member');
     await use(page);
     await page.context().close();
   },
-  adminPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
-    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, 'admin');
+  adminPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, watch }, use) => {
+    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, watch }, 'admin');
     await use(page);
     await page.context().close();
   },
-  anonPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages }, use) => {
-    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, readOnly, blocked, writeBodies, pageErrors, errorPages });
+  anonPage: async ({ browser, viewport, isMobile, hasTouch, baseURL, watch }, use) => {
+    const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, watch });
     await use(page);
     await page.context().close();
   },
