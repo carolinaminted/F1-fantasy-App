@@ -22,7 +22,7 @@ test('admin opens each tool from its dashboard tile and returns', async ({ admin
   await page.goto('/admin');
   for (const [tile, heading] of TILES) {
     await expect(h1(page, 'ADMIN')).toBeVisible({ timeout: 20_000 });
-    await page.getByText(tile, { exact: true }).first().click(); // a tile title can also appear in a stat label
+    await page.getByRole('heading', { level: 3, name: tile, exact: true }).click();
     await expect(h1(page, heading), `${tile} opens ${heading}`).toBeVisible({ timeout: 20_000 });
     // "Admin Home" is in PageHeader's leftAction, shown from md up; mobile uses the browser back.
     if (desktop) await page.getByRole('button', { name: 'Admin Home' }).click();

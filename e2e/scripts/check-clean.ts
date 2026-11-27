@@ -20,7 +20,7 @@ const runAccounts = (await listAuthUsers()).filter((u) => RUN_EMAIL_RE.test(u.em
 
 if (mode === '--save') {
   if (runAccounts > 0 || harnessCodes.length > 0) {
-    console.error(`refusing to save: ${runAccounts} +run-* accounts and ${harnessCodes.length} harness-minted codes exist; run npm run e2e:teardown first`);
+    console.error(`refusing to save: ${runAccounts} +run-* accounts and ${harnessCodes.length} harness-minted codes exist; run npm run e2e:teardown, and delete any orphan E2E-* invitation_codes by hand`);
     process.exit(1);
   }
   mkdirSync(dirname(FILE), { recursive: true });
