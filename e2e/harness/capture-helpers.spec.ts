@@ -16,6 +16,13 @@ test('assertFits names the element that overflows inside the app shell scroller'
   await expect(assertFits(anonPage)).rejects.toThrow(/page overflows horizontally.*div#e2e-wide "wide" right=3000/);
 });
 
+test('assertFits tolerates a known overflow up to its allowance and no further', async ({ anonPage }) => {
+  await anonPage.setViewportSize({ width: 390, height: 844 });
+  await anonPage.setContent(SHELL('<div style="width:397px">seven over</div>'));
+  await assertFits(anonPage, 7);
+  await expect(assertFits(anonPage, 6)).rejects.toThrow(/page overflows horizontally by 7px/);
+});
+
 test('assertFits allows an element meant to scroll sideways', async ({ anonPage }) => {
   await anonPage.setContent(SHELL('<div class="overflow-x-auto" style="overflow-x:auto"><div style="width:3000px">table</div></div>'));
   await assertFits(anonPage);

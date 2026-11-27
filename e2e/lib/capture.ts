@@ -32,8 +32,8 @@ export async function settle(page: Page, surface: Pick<Surface, 'role' | 'ready'
 // overflow never reaches the document: it makes the overflow-y-auto scroller (whose overflow-x then
 // computes to auto) swipeable sideways instead. Elements marked overflow-x-auto or overflow-auto
 // are meant to scroll sideways and are skipped.
-export async function assertFits(page: Page): Promise<void> {
-  const r = await page.evaluate(() => {
+export async function assertFits(page: Page, allowPx = 0): Promise<void> {
+  const r = await page.evaluate((allow) => {
     const describe = (el: Element) => {
       const id = el.id ? `#${el.id}` : '';
       const cls = typeof el.className === 'string' && el.className.trim() ? `.${el.className.trim().split(/\s+/).slice(0, 2).join('.')}` : '';
@@ -44,10 +44,10 @@ export async function assertFits(page: Page): Promise<void> {
     const scrolls = (v: string) => v === 'auto' || v === 'scroll';
     const meantToScrollSideways = (el: Element) => /(^|[\s:])overflow-(x-)?(auto|scroll)(\s|$)/.test(el.getAttribute('class') ?? '');
     const overflowing: { root: Element; edge: number; by: number }[] = [];
-    if (de.scrollWidth > de.clientWidth + 1) overflowing.push({ root: document.body, edge: de.clientWidth, by: de.scrollWidth - de.clientWidth });
+    if (de.scrollWidth > de.clientWidth + Math.max(1, allow)) overflowing.push({ root: document.body, edge: de.clientWidth, by: de.scrollWidth - de.clientWidth });
     for (const el of document.querySelectorAll('body *')) {
       const s = getComputedStyle(el);
-      if (scrolls(s.overflowY) && scrolls(s.overflowX) && !meantToScrollSideways(el) && el.scrollWidth > el.clientWidth + 1) {
+      if (scrolls(s.overflowY) && scrolls(s.overflowX) && !meantToScrollSideways(el) && el.scrollWidth > el.clientWidth + Math.max(1, allow)) {
         overflowing.push({ root: el, edge: el.getBoundingClientRect().left + el.clientWidth, by: el.scrollWidth - el.clientWidth });
       }
     }
@@ -62,7 +62,7 @@ export async function assertFits(page: Page): Promise<void> {
       }
     }
     return { by, where: root === document.body ? '' : ` inside ${describe(root).slice(0, 60)}`, offenders };
-  });
+  }, allowPx);
   if (r) throw new Error(`page overflows horizontally by ${r.by}px${r.where}: ${r.offenders.join('; ') || 'no element found'}`);
 }
 

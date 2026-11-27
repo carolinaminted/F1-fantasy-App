@@ -32,7 +32,7 @@ async function capture(page: Page, surface: Surface, theme: Theme, side: Side, b
   await page.goto(surface.path);
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
   await settle(page, surface);
-  await assertFits(page);
+  await assertFits(page, surface.overflowAllowancePx);
   const { png, stable } = await stableScreenshot(page, { mask: surface.mask?.(page) ?? [] });
   const aria = await ariaText(page);
 
