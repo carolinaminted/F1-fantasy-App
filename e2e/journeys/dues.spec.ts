@@ -1,7 +1,6 @@
 import { test, expect } from '../fixtures.ts';
 import { MEMBER_EMAIL } from '../lib/identities.ts';
 import { getDoc, uidOf } from '../lib/staging-admin.ts';
-import { restoreDocs, snapshotDocs } from '../lib/snapshot.ts';
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -29,42 +28,37 @@ test('unpaid member sees what they owe and the payment memo, from League and fro
 test.describe('admin dues toggle', () => {
   test.use({ readOnly: false });
 
-  test('admin marks e2e-member paid, the member sees it, and the admin sets it back', { tag: '@write' }, async ({ adminPage, memberPage, requires }) => {
+  test('admin marks e2e-member paid, the member sees it, and the admin sets it back', { tag: '@write' }, async ({ adminPage, memberPage, requires, restoring }) => {
     test.skip(test.info().project.name !== 'desktop', 'one write per run: desktop only');
     test.setTimeout(150_000);
     await requires('maintenance-off', 'calendar-present', 'member-dues-unpaid', 'admin-is-admin');
 
     const uid = await uidOf(MEMBER_EMAIL);
-    const snapshot = await snapshotDocs([`users/${uid}`]);
+    await restoring([`users/${uid}`]);
     const name = String((await getDoc(`users/${uid}`))!.displayName);
-    try {
-      await adminPage.goto('/admin?tool=manage-users');
-      await adminPage.getByPlaceholder(/Search by name or email/).fill(MEMBER_EMAIL);
-      await adminPage.getByRole('row').filter({ hasText: name }).click();
-      await expect(adminPage.getByRole('heading', { level: 1, name: name.toUpperCase(), exact: true })).toBeVisible({ timeout: 20_000 });
+    await adminPage.goto('/admin?tool=manage-users');
+    await adminPage.getByPlaceholder(/Search by name or email/).fill(MEMBER_EMAIL);
+    await adminPage.getByRole('row').filter({ hasText: name }).click();
+    await expect(adminPage.getByRole('heading', { level: 1, name: name.toUpperCase(), exact: true })).toBeVisible({ timeout: 20_000 });
 
-      const paid = adminPage.getByRole('switch', { name: 'Dues paid' });
-      // The dues "Save" sits beside the switch; another "Save" on the page belongs to the admin flag.
-      const save = adminPage.locator('div').filter({ has: paid }).filter({ has: adminPage.getByRole('button', { name: 'Save', exact: true }) }).last()
-        .getByRole('button', { name: 'Save', exact: true });
+    const paid = adminPage.getByRole('switch', { name: 'Dues paid' });
+    // The dues "Save" sits beside the switch; another "Save" on the page belongs to the admin flag.
+    const save = adminPage.locator('div').filter({ has: paid }).filter({ has: adminPage.getByRole('button', { name: 'Save', exact: true }) }).last()
+      .getByRole('button', { name: 'Save', exact: true });
 
-      await expect(paid).toHaveAttribute('aria-checked', 'false');
-      await paid.click();
-      await save.click();
-      await expect(adminPage.getByRole('alert').filter({ hasText: `Successfully updated dues status to Paid for ${name}.` })).toBeVisible();
-      await expect.poll(async () => (await getDoc(`users/${uid}`))?.duesPaidStatus).toBe('Paid');
+    await expect(paid).toHaveAttribute('aria-checked', 'false');
+    await paid.click();
+    await save.click();
+    await expect(adminPage.getByRole('alert').filter({ hasText: `Successfully updated dues status to Paid for ${name}.` })).toBeVisible();
+    await expect.poll(async () => (await getDoc(`users/${uid}`))?.duesPaidStatus).toBe('Paid');
 
-      await memberPage.goto('/league');
-      await expect(memberPage.getByText('Dues Paid', { exact: true })).toBeVisible({ timeout: 20_000 });
+    await memberPage.goto('/league');
+    await expect(memberPage.getByText('Dues Paid', { exact: true })).toBeVisible({ timeout: 20_000 });
 
-      await paid.click();
-      await expect(paid).toHaveAttribute('aria-checked', 'false');
-      await save.click();
-      await expect(adminPage.getByRole('alert').filter({ hasText: `Successfully updated dues status to Unpaid for ${name}.` })).toBeVisible();
-      await expect.poll(async () => (await getDoc(`users/${uid}`))?.duesPaidStatus, { message: 'the admin can set it back' }).toBe('Unpaid');
-    } finally {
-      await restoreDocs(snapshot);
-    }
-    expect(await snapshotDocs([`users/${uid}`])).toEqual(snapshot);
+    await paid.click();
+    await expect(paid).toHaveAttribute('aria-checked', 'false');
+    await save.click();
+    await expect(adminPage.getByRole('alert').filter({ hasText: `Successfully updated dues status to Unpaid for ${name}.` })).toBeVisible();
+    await expect.poll(async () => (await getDoc(`users/${uid}`))?.duesPaidStatus, { message: 'the admin can set it back' }).toBe('Unpaid');
   });
 });

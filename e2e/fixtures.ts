@@ -6,6 +6,7 @@ import { RACE_RESULTS_SEED_NOTE, splitKnownIssues } from './lib/known-issues.ts'
 import { assertWriteAllowed } from './lib/run-mode.ts';
 import { unmetPreconditions, type Precondition } from './lib/preconditions.ts';
 import { readStagingState } from './lib/staging-state.ts';
+import { changedPaths, restoreDocs, snapshotDocs, stagingIo, type DocIo, type DocSnapshot } from './lib/snapshot.ts';
 
 type Allowance = { re: RegExp; used: boolean };
 
@@ -37,6 +38,8 @@ type Fixtures = {
   adminPage: Page;
   anonPage: Page;
   requires: (...names: Precondition[]) => Promise<void>;
+  docIo: DocIo;
+  restoring: (paths: string[]) => Promise<DocSnapshot[]>;
 };
 
 // Guards a context and records what its pages report. Errors and write bodies share an id,
@@ -88,7 +91,9 @@ export const test = base.extend<Fixtures>({
   allowBlockedWriteNoise: [true, { option: true }],
   observeWrites: [false, { option: true }],
   writeGate: [async ({ readOnly }, use) => { assertWriteAllowed(readOnly); await use(); }, { auto: true }],
-  watch: async ({ readOnly, observeWrites, blocked, writeBodies, pageErrors, errorPages }, use) => {
+  // Depends on restoring only for ordering: fixtures tear down in reverse setup order, so the pages close
+  // (no write can still be in flight) before restoring puts the documents back.
+  watch: async ({ readOnly, observeWrites, blocked, writeBodies, pageErrors, errorPages, restoring: _restoring }, use) => {
     await use({ readOnly, observeWrites, blocked, writeBodies, pageErrors, errorPages });
   },
   blockedAllowances: async ({}, use) => { await use([]); },
@@ -155,6 +160,23 @@ export const test = base.extend<Fixtures>({
       expect(unmetPreconditions(names, await readStagingState()), 'staging preconditions not met').toEqual([]);
     });
   },
+  docIo: [stagingIo, { option: true }],
+  // A write test calls this before its first write. Teardown puts every snapshotted document back and then
+  // re-reads it, so a timeout or a failed assertion cannot skip the restore the way a finally in the body can.
+  // Messages name paths only, never field values. Own timeout: teardown must not be starved by a slow test.
+  restoring: [async ({ docIo }, use) => {
+    const taken = new Map<string, DocSnapshot>();
+    await use(async (paths) => {
+      const fresh = paths.filter((p) => !taken.has(p));
+      for (const snap of await snapshotDocs(fresh, docIo)) taken.set(snap.path, snap);
+      return paths.map((p) => taken.get(p)!);
+    });
+    if (!taken.size) return;
+    const snapshots = [...taken.values()];
+    await restoreDocs(snapshots, docIo);
+    const drifted = changedPaths(snapshots, await snapshotDocs(snapshots.map((s) => s.path), docIo));
+    expect(drifted, 'documents differ from their snapshot after restore').toEqual([]);
+  }, { timeout: 60_000 }],
 });
 
 export { expect };
