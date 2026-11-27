@@ -71,6 +71,11 @@ Every write test is desktop only and needs `E2E_WRITES=1`. Before a series of ru
 must report `clean`. Sign-up and password reset each allow 3 calls per 10 minutes, so three full write
 runs in a row reach the limit exactly.
 
+The check covers e2e-member's `users`, `public_users` and `userPicks` docs, invite codes created by
+e2e-admin or minted by the harness, and `+run-*` Auth accounts. It cannot list a run's
+`email_verifications` or `rate_limits` docs (keyed by an email it does not know); `deleteRunAccount`
+removes those. The baseline lives in `e2e-results/clean-baseline.json` and holds member data.
+
 ## Auth setup and throttling
 
 The `setup` project signs in the admin and member once and saves sessions to `e2e/.auth/`
