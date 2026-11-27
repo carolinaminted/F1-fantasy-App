@@ -12,6 +12,7 @@
     "check-live": "node --experimental-transform-types --no-warnings scripts/check-live.ts",
     "compare": "node --experimental-transform-types --no-warnings scripts/compare.ts",
     "capture": "node --experimental-transform-types --no-warnings scripts/capture.ts",
+    "check-clean": "node --experimental-transform-types --no-warnings scripts/check-clean.ts",
     "typecheck": "tsc --noEmit -p ."
   },
   "devDependencies": {

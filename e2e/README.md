@@ -55,6 +55,22 @@ service account, so an expired `gcloud` login fails every journey: log in again,
 Artifacts land in `e2e-results/` (gitignored). Traces and reports there contain test passwords and
 session tokens: do not share them.
 
+### Journeys that write
+
+| Spec | What it writes | Restored by |
+|---|---|---|
+| `journeys/picks.spec.ts` | e2e-member's `userPicks` | lossless snapshot (`lib/snapshot.ts`) |
+| `journeys/profile.spec.ts` | e2e-member's `users` and `public_users` display name | lossless snapshot |
+| `journeys/dues.spec.ts` (admin test) | e2e-member's `users.duesPaidStatus`, through the admin UI | the UI sets it back, then the snapshot |
+| `journeys/invitations.spec.ts` | one `invitation_codes` doc created by e2e-admin | deleted through the UI, then any leftover in `finally` |
+| `journeys/signup.spec.ts` | a throwaway `+run-*` account | `deleteRunAccount` |
+| `journeys/password-reset.spec.ts` | a throwaway `+run-*` account's password (needs `E2E_REAL_MAIL=1`) | `deleteRunAccount` |
+
+Every write test is desktop only and needs `E2E_WRITES=1`. Before a series of runs, save a baseline with
+`npm --prefix e2e run check-clean -- --save`; afterwards `npm --prefix e2e run check-clean -- --compare`
+must report `clean`. Sign-up and password reset each allow 3 calls per 10 minutes, so three full write
+runs in a row reach the limit exactly.
+
 ## Auth setup and throttling
 
 The `setup` project signs in the admin and member once and saves sessions to `e2e/.auth/`
