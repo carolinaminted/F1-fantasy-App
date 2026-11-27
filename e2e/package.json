@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "unit": "node --experimental-transform-types --no-warnings --test 'lib/**/*.test.ts'",
-    "journeys": "playwright test",
+    "journeys": "playwright test --project=desktop --project=mobile",
+    "harness": "playwright test --project=harness",
+    "spikes": "E2E_SPIKES=1 playwright test --project=spikes",
     "provision": "node --experimental-transform-types --no-warnings scripts/provision.ts",
     "teardown": "node --experimental-transform-types --no-warnings scripts/teardown.ts",
     "check-live": "node --experimental-transform-types --no-warnings scripts/check-live.ts",

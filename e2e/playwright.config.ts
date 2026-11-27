@@ -3,6 +3,7 @@ import { join, resolve, sep } from 'node:path';
 import { assertAllowedBaseUrl, assertNoProdInEnv, assertStagingEnvFile, GuardError, resolveBaseUrl } from './lib/guards.ts';
 import { parseSides } from './lib/capture-plan.ts';
 import { RESULTS_DIR } from './lib/paths.ts';
+import { spikesEnabled, writesEnabled } from './lib/run-mode.ts';
 
 // Web servers start before globalSetup, so the guards must also run at config load.
 assertNoProdInEnv(process.env);
@@ -36,6 +37,13 @@ const captureProjects = sides.length ? [
     : []),
 ] : [];
 
+const DESKTOP: PlaywrightTestConfig['use'] = { browserName: 'chromium', viewport: { width: 1440, height: 1000 } };
+const MOBILE: PlaywrightTestConfig['use'] = { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true };
+// Tests tagged @write change staging, so they are left out unless E2E_WRITES=1.
+const journeys = (name: string, use: PlaywrightTestConfig['use']) => ({
+  name, testMatch: /journeys\/.*\.spec\.ts/, grepInvert: writesEnabled() ? undefined : /@write/, dependencies: ['setup'], use,
+});
+
 export default defineConfig({
   testDir: '.',
   globalSetup: './global-setup.ts',
@@ -55,8 +63,13 @@ export default defineConfig({
   },
   projects: [
     { name: 'setup', testMatch: /setup\/.*\.setup\.ts/ },
-    { name: 'desktop', testMatch: /(journeys|spikes)\/.*\.spec\.ts/, dependencies: ['setup'], use: { browserName: 'chromium', viewport: { width: 1440, height: 1000 } } },
-    { name: 'mobile', testMatch: /(journeys|spikes)\/.*\.spec\.ts/, dependencies: ['setup'], use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
+    journeys('desktop', DESKTOP),
+    journeys('mobile', MOBILE),
+    // Proofs that the harness itself works. testDir, not a testMatch regex: regexes see the absolute
+    // path, and the worktree folder lol-e2e-harness/ would make every spec match.
+    { name: 'harness', testDir: './harness', dependencies: ['setup'], use: DESKTOP },
+    // Questions being answered; they may be slow or fail. Only defined when asked for.
+    ...(spikesEnabled() ? [{ name: 'spikes', testMatch: /spikes\/.*\.spec\.ts/, dependencies: ['setup'], use: DESKTOP }] : []),
     ...captureProjects,
   ],
   // reuseExistingServer is false on purpose: a stray Vite on this port in another mode could point at production.
