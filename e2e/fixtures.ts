@@ -4,6 +4,8 @@ import { loadStorageState } from './lib/storage-state.ts';
 import { dropBlockedWriteNoise } from './lib/capture-noise.ts';
 import { RACE_RESULTS_SEED_NOTE, splitKnownIssues } from './lib/known-issues.ts';
 import { assertWriteAllowed } from './lib/run-mode.ts';
+import { unmetPreconditions, type Precondition } from './lib/preconditions.ts';
+import { readStagingState } from './lib/staging-state.ts';
 
 type Allowance = { re: RegExp; used: boolean };
 
@@ -32,6 +34,7 @@ type Fixtures = {
   memberPage: Page;
   adminPage: Page;
   anonPage: Page;
+  requires: (...names: Precondition[]) => Promise<void>;
 };
 
 // Guards a context and records what its pages report. Errors and write bodies share an id,
@@ -144,6 +147,12 @@ export const test = base.extend<Fixtures>({
     const page = await openPage({ browser, viewport, isMobile, hasTouch, baseURL, watch });
     await use(page);
     await page.context().close();
+  },
+  // Fails, never skips: a skip would read as green while the journey proved nothing.
+  requires: async ({}, use) => {
+    await use(async (...names) => {
+      expect(unmetPreconditions(names, await readStagingState()), 'staging preconditions not met').toEqual([]);
+    });
   },
 });
 

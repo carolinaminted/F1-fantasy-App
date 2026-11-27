@@ -14,9 +14,10 @@ test.describe('sign-up', () => {
   const email = runEmail(runId);
   test.afterAll(async () => { await deleteRunAccount(email); });
 
-  test(`new member signs up with an invite and a ${realMail ? 'delivered' : 'Firestore'} code`, { tag: '@write' }, async ({ anonPage: page }) => {
+  test(`new member signs up with an invite and a ${realMail ? 'delivered' : 'Firestore'} code`, { tag: '@write' }, async ({ anonPage: page, requires }) => {
     test.skip(test.info().project.name !== 'desktop', 'writes to staging and spends rate limit; desktop only');
     test.setTimeout(realMail ? 180_000 : 120_000); // four callables plus a Firestore poll, or an IMAP wait, exceed the 30 s default
+    await requires('maintenance-off', 'calendar-present');
     const invite = await mintInvite(runId);
 
     await page.goto('/');

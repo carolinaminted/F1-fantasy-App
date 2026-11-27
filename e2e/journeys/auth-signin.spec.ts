@@ -2,7 +2,8 @@ import { test, expect } from '../fixtures.ts';
 import { adminEntry, stagingBadge } from '../lib/app.ts';
 import { NO_ACCOUNT_EMAIL } from '../lib/identities.ts';
 
-test('member lands signed in, with no Admin entry', async ({ memberPage }) => {
+test('member lands signed in, with no Admin entry', async ({ memberPage, requires }) => {
+  await requires('maintenance-off', 'calendar-present', 'member-is-not-admin');
   await memberPage.goto('/');
   await expect(stagingBadge(memberPage)).toBeVisible();
   await expect(memberPage.locator('#login-email')).toBeHidden();
@@ -10,7 +11,8 @@ test('member lands signed in, with no Admin entry', async ({ memberPage }) => {
   await expect(adminEntry(memberPage)).toHaveCount(0);
 });
 
-test('admin lands signed in, with the Admin entry', async ({ adminPage }) => {
+test('admin lands signed in, with the Admin entry', async ({ adminPage, requires }) => {
+  await requires('calendar-present', 'admin-is-admin');
   await adminPage.goto('/');
   await expect(stagingBadge(adminPage)).toBeVisible();
   await expect(adminEntry(adminPage)).toBeVisible();
