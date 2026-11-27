@@ -42,6 +42,21 @@ export async function getDoc(path: string): Promise<Record<string, unknown> | nu
   return decodeFields(body.fields);
 }
 
+export type RawFields = Record<string, FsValue>;
+
+// The REST representation, untouched, so a restore puts back exactly what was read (timestamps included).
+export async function getRawDoc(path: string): Promise<RawFields | null> {
+  const res = await call(docUrl(path));
+  if (res.status === 404) return null;
+  const body = await ok(res, `get ${path}`);
+  return body.fields ?? {};
+}
+
+// PATCH without an updateMask replaces the whole document with these fields, creating it if missing.
+export async function putRawDoc(path: string, fields: RawFields): Promise<void> {
+  await ok(await call(docUrl(path), { method: 'PATCH', body: JSON.stringify({ fields }) }), `put ${path}`);
+}
+
 export async function createDoc(path: string, data: Record<string, unknown>): Promise<void> {
   await ok(await call(`${docUrl(path)}?currentDocument.exists=false`, { method: 'PATCH', body: JSON.stringify({ fields: encodeFields(data) }) }), `create ${path}`);
 }
@@ -80,6 +95,12 @@ export type AuthUser = { localId: string; email?: string; createdAt?: string; cu
 export async function lookupUserByEmail(email: string): Promise<AuthUser | null> {
   const body = await ok(await call(`${AUTH_BASE}/accounts:lookup`, { method: 'POST', body: JSON.stringify({ email: [email] }) }), 'lookup');
   return body.users?.[0] ?? null;
+}
+
+export async function uidOf(email: string): Promise<string> {
+  const user = await lookupUserByEmail(email);
+  if (!user) throw new Error(`no staging Auth user for ${email}; run npm run e2e:provision`);
+  return user.localId;
 }
 
 export async function createAuthUser(input: { email: string; password: string; displayName: string }): Promise<string> {
